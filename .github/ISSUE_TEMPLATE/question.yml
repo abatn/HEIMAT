@@ -1,0 +1,40 @@
+name: Question
+description: Stelle eine Frage zu HEIMAT 2.0
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Stelle deine Frage zu HEIMAT 2.0. Für allgemeine Diskussionen nutze bitte [GitHub Discussions](https://github.com/abatn/HEIMAT/discussions).
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Frage
+      description: Was möchtest du wissen?
+      placeholder: Beschreibe deine Frage so präzise wie möglich.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Kontext
+      description: Was hast du bereits versucht? Wo im Code/Projekt bezieht sich deine Frage hin?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Bereich
+      description: Zu welchem Bereich gehört die Frage?
+      options:
+        - Mobilität
+        - Finanzen
+        - Gesundheit
+        - Technologie/Architektur
+        - Contributing
+        - Sonstiges
+    validations:
+      required: false

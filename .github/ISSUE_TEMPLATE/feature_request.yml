@@ -1,0 +1,65 @@
+name: Feature Request
+description: Schlage ein neues Feature für HEIMAT 2.0 vor
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für deine Idee! Bitte beschreibe dein Feature so detailliert wie möglich.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Welches Problem löst dieses Feature? Was ist der Use Case?
+      placeholder: "Ich möchte ... weil ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Lösung
+      description: Wie sollte das Feature aussehen?
+      placeholder: Beschreibe deine Lösungsidee.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Bereich
+      description: Zu welchem Bereich gehört das Feature?
+      options:
+        - Mobilität (Karten, Routing, ÖPNV)
+        - Finanzen (Taler, P2P-Zahlungen)
+        - Gesundheit (Termine, Ärzte)
+        - Allgemein (UI/UX, Performance)
+        - Backend/Infrastruktur
+        - Dokumentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativen
+      description: Gibt es alternative Lösungsansätze?
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Zusätzlicher Kontext
+      description: Weitere Informationen, Links, Screenshots.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Beitrag
+      description: Würdest du bei der Umsetzung helfen?
+      options:
+        - label: Ich möchte bei der Umsetzung helfen

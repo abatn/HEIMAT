@@ -1,0 +1,82 @@
+name: Bug Report
+description: Melde einen Fehler in HEIMAT 2.0
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke, dass du einen Fehler meldest! Bitte fülle die folgenden Informationen aus.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Beschreibung
+      description: Eine klare Beschreibung des Fehlers.
+      placeholder: Was ist passiert? Was sollte stattdessen passieren?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachstellen
+      description: Wie kann man den Fehler nachstellen?
+      placeholder: |
+        1. Gehe zu '...'
+        2. Klicke auf '...'
+        3. Siehe Fehler
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plattform
+      description: Auf welcher Plattform tritt der Fehler auf?
+      options:
+        - Android
+        - iOS
+        - Web
+        - Backend
+        - Sonstiges
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+      description: Was hätte passieren sollen?
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Falls zutreffend, Screenshots des Fehlers.
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Umgebung
+      description: |
+        Bitte gib die relevanten Umgebungsinformationen an.
+      placeholder: |
+        - Betriebssystem: z.B. Android 14, iOS 17
+        - App-Version: z.B. 0.1.0
+      render: markdown
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Falls vorhanden, relevante Log-Ausgaben.
+      render: shell
+    validations:
+      required: false
