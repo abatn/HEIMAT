@@ -1,120 +1,106 @@
-import axios from 'axios';
+import { query, queryOne } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
-
-interface Coordinates {
-  lat: number;
-  lng: number;
-}
-
-interface Connection {
-  departure: string;
-  arrival: string;
-  duration: string;
-  transfers: number;
-  line: string;
-  from: string;
-  to: string;
-}
+import axios from 'axios';
 
 interface Stop {
   id: string;
   name: string;
-  lat: number;
-  lng: number;
-  distance: number;
+  latitude: number;
+  longitude: number;
+  stop_type: string;
+}
+
+interface Connection {
+  id: string;
+  departure_stop: string;
+  arrival_stop: string;
+  departure_time: string;
+  arrival_time: string;
+  line: string;
+  transport_type: string;
 }
 
 export class MobilityService {
-  private readonly openRouteServiceUrl = 'https://router.project-osrm.org';
   private readonly nominatimUrl = 'https://nominatim.openstreetmap.org';
+  private readonly osrmUrl = 'https://router.project-osrm.org';
 
-  async getConnections(from: Coordinates, to: Coordinates): Promise<Connection[]> {
-    // Mock-Daten für Demo
-    // In Produktion: GTFS-Daten abfragen
-    const connections: Connection[] = [
-      {
-        departure: '08:30',
-        arrival: '08:45',
-        duration: '15 Min',
-        transfers: 0,
-        line: 'U2',
-        from: 'Start',
-        to: 'Ziel',
-      },
-      {
-        departure: '08:35',
-        arrival: '08:55',
-        duration: '20 Min',
-        transfers: 1,
-        line: 'S-Bahn',
-        from: 'Start',
-        to: 'Ziel',
-      },
-      {
-        departure: '08:40',
-        arrival: '09:00',
-        duration: '20 Min',
-        transfers: 1,
-        line: 'Bus 100',
-        from: 'Start',
-        to: 'Ziel',
-      },
-    ];
+  async getNearbyStops(lat: number, lng: number, radiusMeters: number = 1000): Promise<Stop[]> {
+    // PostgreSQL PostGIS-Abfrage für Haltestellen in der Nähe
+    const stops = await query<Stop>(
+      `SELECT id, name, latitude, longitude, stop_type
+       FROM stops
+       WHERE ST_Distance(
+         ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
+         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
+       ) < $3
+       ORDER BY ST_Distance(
+         ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
+         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
+       )
+       LIMIT 10`,
+      [lng, lat, radiusMeters]
+    );
 
-    return connections;
+    return stops;
   }
 
-  async getNearbyStops(lat: number, lng: number, radius: number = 500): Promise<Stop[]> {
+  async getStopById(id: string): Promise<Stop> {
+    const stop = await queryOne<Stop>('SELECT * FROM stops WHERE id = $1', [id]);
+    if (!stop) {
+      throw new AppError('Stop not found', 404);
+    }
+    return stop;
+  }
+
+  async searchStops(query_text: string): Promise<Stop[]> {
+    return query<Stop>(
+      'SELECT * FROM stops WHERE name ILIKE $1 ORDER BY name LIMIT 20',
+      [`%${query_text}%`]
+    );
+  }
+
+  async getConnections(fromStopId: string, toStopId: string): Promise<Connection[]> {
+    return query<Connection>(
+      `SELECT c.*, 
+              fs.name as departure_stop_name, 
+              as.name as arrival_stop_name
+       FROM connections c
+       JOIN stops fs ON c.departure_stop_id = fs.id
+       JOIN stops as ON c.arrival_stop_id = as.id
+       WHERE c.departure_stop_id = $1 AND c.arrival_stop_id = $2
+       ORDER BY c.departure_time`,
+      [fromStopId, toStopId]
+    );
+  }
+
+  async geocodeAddress(address: string): Promise<{ lat: number; lng: number; display_name: string }[]> {
     try {
-      // Nominatim API für Haltestellen in der Nähe
       const response = await axios.get(`${this.nominatimUrl}/search`, {
         params: {
-          q: 'haltestation',
+          q: address,
           format: 'json',
-          limit: 10,
-          viewbox: `${lng - 0.01},${lat + 0.01},${lng + 0.01},${lat - 0.01}`,
+          limit: 5,
+          countrycodes: 'de',
         },
         headers: {
-          'User-Agent': 'HEIMAT-App/1.0',
+          'User-Agent': 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)',
         },
       });
 
-      const stops: Stop[] = response.data.map((item: any, index: number) => ({
-        id: item.place_id?.toString() || index.toString(),
-        name: item.display_name?.split(',')[0] || 'Haltestelle',
+      return response.data.map((item: any) => ({
         lat: parseFloat(item.lat),
         lng: parseFloat(item.lon),
-        distance: this.calculateDistance(lat, lng, parseFloat(item.lat), parseFloat(item.lon)),
+        display_name: item.display_name,
       }));
-
-      return stops.filter(stop => stop.distance <= radius);
     } catch (error) {
-      // Fallback: Mock-Daten
-      return [
-        {
-          id: '1',
-          name: 'Hauptbahnhof',
-          lat: lat + 0.001,
-          lng: lng + 0.001,
-          distance: 100,
-        },
-        {
-          id: '2',
-          name: 'Marktplatz',
-          lat: lat - 0.001,
-          lng: lng - 0.001,
-          distance: 200,
-        },
-      ];
+      throw new AppError('Geocoding failed', 500);
     }
   }
 
-  async getRoute(from: Coordinates, to: Coordinates, mode: string = 'driving'): Promise<any> {
+  async getRoute(from: { lat: number; lng: number }, to: { lat: number; lng: number }): Promise<any> {
     try {
-      // OpenRouteService API
-      const profile = this.getOsrmProfile(mode);
       const response = await axios.get(
-        `${this.openRouteServiceUrl}/route/v1/${profile}/${from.lng},${from.lat};${to.lng},${to.lat}`,
+        `${this.osrmUrl}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}`,
         {
           params: {
             overview: 'full',
@@ -124,56 +110,14 @@ export class MobilityService {
       );
 
       if (response.data.routes && response.data.routes.length > 0) {
-        const route = response.data.routes[0];
-        return {
-          distance: route.distance,
-          duration: route.duration,
-          geometry: route.geometry,
-        };
+        return response.data.routes[0];
       }
 
       throw new AppError('No route found', 404);
     } catch (error) {
       if (error instanceof AppError) throw error;
-      
-      // Fallback: Direkte Linie
-      const distance = this.calculateDistance(from.lat, from.lng, to.lat, to.lng);
-      return {
-        distance: distance,
-        duration: distance / 50 * 60, // Geschwindigkeit 50 km/h
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [from.lng, from.lat],
-            [to.lng, to.lat],
-          ],
-        },
-      };
+      throw new AppError('Routing service unavailable', 503);
     }
-  }
-
-  private getOsrmProfile(mode: string): string {
-    const profiles: Record<string, string> = {
-      driving: 'driving',
-      walking: 'foot',
-      cycling: 'cycling',
-    };
-    return profiles[mode] || 'driving';
-  }
-
-  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371e3; // Erdradius in Metern
-    const phi1 = (lat1 * Math.PI) / 180;
-    const phi2 = (lat2 * Math.PI) / 180;
-    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
   }
 }
 

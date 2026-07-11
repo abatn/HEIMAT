@@ -1,3 +1,4 @@
+import { query, queryOne, execute } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
 interface Doctor {
@@ -6,69 +7,51 @@ interface Doctor {
   specialty: string;
   address: string;
   phone: string;
-  availableSlots: string[];
+  email: string;
+  latitude: number;
+  longitude: number;
+}
+
+interface DoctorSlot {
+  id: string;
+  doctor_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
 }
 
 interface Appointment {
   id: string;
-  doctorId: string;
-  doctorName: string;
-  patientName: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  doctor_id: string;
+  patient_name: string;
+  patient_email: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
 }
 
 export class HealthService {
-  private doctors: Doctor[] = [
-    {
-      id: 'doc1',
-      name: 'Dr. Anna Schmidt',
-      specialty: 'Allgemeinmedizin',
-      address: 'Hauptstraße 10, 10115 Berlin',
-      phone: '+49 30 12345678',
-      availableSlots: ['09:00', '09:30', '10:00', '10:30', '14:00', '14:30'],
-    },
-    {
-      id: 'doc2',
-      name: 'Dr. Markus Weber',
-      specialty: 'Zahnarzt',
-      address: 'Berlinstraße 20, 10178 Berlin',
-      phone: '+49 30 87654321',
-      availableSlots: ['08:00', '08:30', '11:00', '11:30', '15:00'],
-    },
-    {
-      id: 'doc3',
-      name: 'Dr. Lisa Müller',
-      specialty: 'Augenarzt',
-      address: 'Auguststraße 5, 10117 Berlin',
-      phone: '+49 30 11223344',
-      availableSlots: ['09:00', '10:00', '11:00', '14:00', '15:00'],
-    },
-  ];
-
-  private appointments: Appointment[] = [];
-
   async searchDoctors(specialty?: string, location?: string): Promise<Doctor[]> {
-    let results = this.doctors;
+    let sql = 'SELECT * FROM doctors WHERE 1=1';
+    const params: any[] = [];
 
     if (specialty) {
-      results = results.filter(doc =>
-        doc.specialty.toLowerCase().includes(specialty.toLowerCase())
-      );
+      sql += ' AND specialty ILIKE $' + (params.length + 1);
+      params.push(`%${specialty}%`);
     }
 
     if (location) {
-      results = results.filter(doc =>
-        doc.address.toLowerCase().includes(location.toLowerCase())
-      );
+      sql += ' AND address ILIKE $' + (params.length + 1);
+      params.push(`%${location}%`);
     }
 
-    return results;
+    sql += ' ORDER BY name';
+    return query<Doctor>(sql, params);
   }
 
   async getDoctorById(id: string): Promise<Doctor> {
-    const doctor = this.doctors.find(doc => doc.id === id);
+    const doctor = await queryOne<Doctor>('SELECT * FROM doctors WHERE id = $1', [id]);
     if (!doctor) {
       throw new AppError('Doctor not found', 404);
     }
@@ -76,68 +59,106 @@ export class HealthService {
   }
 
   async getAvailableSlots(doctorId: string, date: string): Promise<string[]> {
-    const doctor = await this.getDoctorById(doctorId);
+    // Tag der Woche aus Datum berechnen (0=Sonntag, 6=Samstag)
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
 
-    // Bereits gebuchte Termine für diesen Tag filtern
-    const bookedSlots = this.appointments
-      .filter(apt => apt.doctorId === doctorId && apt.date === date && apt.status !== 'cancelled')
-      .map(apt => apt.time);
+    const slots = await query<DoctorSlot>(
+      'SELECT * FROM doctor_slots WHERE doctor_id = $1 AND day_of_week = $2 AND is_available = true',
+      [doctorId, dayOfWeek]
+    );
 
-    return doctor.availableSlots.filter(slot => !bookedSlots.includes(slot));
+    // Bereits gebuchte Termine filtern
+    const bookedSlots = await query<{ appointment_time: string }>(
+      'SELECT appointment_time FROM appointments WHERE doctor_id = $1 AND appointment_date = $2 AND status != $3',
+      [doctorId, date, 'cancelled']
+    );
+
+    const bookedTimes = bookedSlots.map(s => s.appointment_time.substring(0, 5));
+    const availableTimes: string[] = [];
+
+    for (const slot of slots) {
+      const start = slot.start_time.substring(0, 5);
+      const end = slot.end_time.substring(0, 5);
+      
+      // 30-Minuten-Slots generieren
+      let [hours, minutes] = start.split(':').map(Number);
+      const [endHours] = end.split(':').map(Number);
+
+      while (hours < endHours) {
+        const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        if (!bookedTimes.includes(timeStr)) {
+          availableTimes.push(timeStr);
+        }
+        minutes += 30;
+        if (minutes >= 60) {
+          hours++;
+          minutes = 0;
+        }
+      }
+    }
+
+    return availableTimes;
   }
 
   async bookAppointment(
     doctorId: string,
     patientName: string,
+    patientEmail: string,
     date: string,
     time: string
   ): Promise<Appointment> {
-    const doctor = await this.getDoctorById(doctorId);
+    // Prüfen ob Arzt existiert
+    await this.getDoctorById(doctorId);
 
-    // Prüfen, ob der Slot noch frei ist
+    // Prüfen ob Slot noch frei
     const availableSlots = await this.getAvailableSlots(doctorId, date);
     if (!availableSlots.includes(time)) {
       throw new AppError('This time slot is not available', 400);
     }
 
-    const appointment: Appointment = {
-      id: `apt_${Date.now()}`,
-      doctorId,
-      doctorName: doctor.name,
-      patientName,
-      date,
-      time,
-      status: 'pending',
-    };
+    // Termin erstellen
+    const result = await queryOne<Appointment>(
+      `INSERT INTO appointments (doctor_id, patient_name, patient_email, appointment_date, appointment_time, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')
+       RETURNING *`,
+      [doctorId, patientName, patientEmail, date, time]
+    );
 
-    this.appointments.push(appointment);
-    return appointment;
+    return result!;
   }
 
   async getAppointments(patientName: string): Promise<Appointment[]> {
-    return this.appointments.filter(
-      apt => apt.patientName === patientName && apt.status !== 'cancelled'
+    return query<Appointment>(
+      'SELECT * FROM appointments WHERE patient_name = $1 AND status != $2 ORDER BY appointment_date, appointment_time',
+      [patientName, 'cancelled']
     );
   }
 
   async cancelAppointment(appointmentId: string): Promise<Appointment> {
-    const appointment = this.appointments.find(apt => apt.id === appointmentId);
-    if (!appointment) {
+    const result = await queryOne<Appointment>(
+      "UPDATE appointments SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *",
+      [appointmentId]
+    );
+
+    if (!result) {
       throw new AppError('Appointment not found', 404);
     }
 
-    appointment.status = 'cancelled';
-    return appointment;
+    return result;
   }
 
   async confirmAppointment(appointmentId: string): Promise<Appointment> {
-    const appointment = this.appointments.find(apt => apt.id === appointmentId);
-    if (!appointment) {
+    const result = await queryOne<Appointment>(
+      "UPDATE appointments SET status = 'confirmed', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *",
+      [appointmentId]
+    );
+
+    if (!result) {
       throw new AppError('Appointment not found', 404);
     }
 
-    appointment.status = 'confirmed';
-    return appointment;
+    return result;
   }
 }
 

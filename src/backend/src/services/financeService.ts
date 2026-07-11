@@ -1,100 +1,113 @@
+import { query, queryOne, execute } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
 interface Wallet {
   id: string;
+  user_id: string;
   balance: number;
   currency: string;
-  userId: string;
 }
 
 interface Transaction {
   id: string;
-  from: string;
-  to: string;
+  from_wallet_id: string;
+  to_wallet_id: string;
   amount: number;
   currency: string;
-  timestamp: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: string;
+  created_at: string;
 }
 
 export class FinanceService {
-  private wallets: Map<string, Wallet> = new Map();
-  private transactions: Transaction[] = [];
-
-  constructor() {
-    // Mock-Daten für Demo
-    this.wallets.set('user1', {
-      id: 'wallet1',
-      balance: 100.00,
-      currency: 'EUR',
-      userId: 'user1',
-    });
-    this.wallets.set('user2', {
-      id: 'wallet2',
-      balance: 50.00,
-      currency: 'EUR',
-      userId: 'user2',
-    });
-  }
-
   async getWallet(userId: string): Promise<Wallet> {
-    const wallet = this.wallets.get(userId);
+    const wallet = await queryOne<Wallet>(
+      'SELECT * FROM wallets WHERE user_id = $1',
+      [userId]
+    );
+
     if (!wallet) {
-      throw new AppError('Wallet not found', 404);
+      // Wallet erstellen falls nicht vorhanden
+      const newWallet = await queryOne<Wallet>(
+        'INSERT INTO wallets (user_id, balance, currency) VALUES ($1, 0.00, $2) RETURNING *',
+        [userId, 'EUR']
+      );
+      return newWallet!;
     }
+
     return wallet;
   }
 
-  async createPayment(from: string, to: string, amount: number, currency: string = 'EUR'): Promise<Transaction> {
+  async createPayment(fromUserId: string, toUserId: string, amount: number, currency: string = 'EUR'): Promise<Transaction> {
     if (amount <= 0) {
       throw new AppError('Amount must be positive', 400);
     }
 
-    const fromWallet = this.wallets.get(from);
-    const toWallet = this.wallets.get(to);
-
-    if (!fromWallet) {
-      throw new AppError('Sender wallet not found', 404);
-    }
-
-    if (!toWallet) {
-      throw new AppError('Recipient wallet not found', 404);
-    }
+    // Wallets abrufen oder erstellen
+    const fromWallet = await this.getWallet(fromUserId);
+    const toWallet = await this.getWallet(toUserId);
 
     if (fromWallet.balance < amount) {
       throw new AppError('Insufficient balance', 400);
     }
 
-    // Transaktion durchführen
-    fromWallet.balance -= amount;
-    toWallet.balance += amount;
+    // Transaktion in Datenbank durchführen
+    const transaction = await queryOne<Transaction>(
+      `INSERT INTO transactions (from_wallet_id, to_wallet_id, amount, currency, status)
+       VALUES ($1, $2, $3, $4, 'completed')
+       RETURNING *`,
+      [fromWallet.id, toWallet.id, amount, currency]
+    );
 
-    const transaction: Transaction = {
-      id: `tx_${Date.now()}`,
-      from,
-      to,
-      amount,
-      currency,
-      timestamp: new Date().toISOString(),
-      status: 'completed',
-    };
+    // Guthaben aktualisieren
+    await execute(
+      'UPDATE wallets SET balance = balance - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [amount, fromWallet.id]
+    );
 
-    this.transactions.push(transaction);
-    return transaction;
+    await execute(
+      'UPDATE wallets SET balance = balance + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [amount, toWallet.id]
+    );
+
+    return transaction!;
   }
 
   async getTransactions(userId: string): Promise<Transaction[]> {
-    return this.transactions.filter(
-      tx => tx.from === userId || tx.to === userId
+    return query<Transaction>(
+      `SELECT t.* 
+       FROM transactions t
+       JOIN wallets w ON t.from_wallet_id = w.id OR t.to_wallet_id = w.id
+       WHERE w.user_id = $1
+       ORDER BY t.created_at DESC
+       LIMIT 50`,
+      [userId]
     );
   }
 
   async getBalance(userId: string): Promise<number> {
-    const wallet = this.wallets.get(userId);
+    const wallet = await queryOne<Wallet>(
+      'SELECT balance FROM wallets WHERE user_id = $1',
+      [userId]
+    );
+
+    if (!wallet) {
+      return 0;
+    }
+
+    return Number(wallet.balance);
+  }
+
+  async getWalletById(walletId: string): Promise<Wallet> {
+    const wallet = await queryOne<Wallet>(
+      'SELECT * FROM wallets WHERE id = $1',
+      [walletId]
+    );
+
     if (!wallet) {
       throw new AppError('Wallet not found', 404);
     }
-    return wallet.balance;
+
+    return wallet;
   }
 }
 
