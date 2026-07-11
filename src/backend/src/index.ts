@@ -52,6 +52,21 @@ app.use(morgan('combined', {
   },
 }));
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    name: 'HEIMAT 2.0 API',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      mobility: '/api/mobility',
+      finance: '/api/finance',
+      healthService: '/api/health',
+    },
+  });
+});
+
 // Health check
 app.use('/health', healthRouter);
 
