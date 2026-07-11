@@ -1,41 +1,80 @@
 import { Router, Request, Response } from 'express';
 import { AppError } from '../middleware/errorHandler';
+import { financeService } from '../services/financeService';
 
 export const financeRouter = Router();
 
 // Get wallet balance
-financeRouter.get('/wallet', async (req: Request, res: Response) => {
-  // TODO: Integrate with GNU Taler
+financeRouter.get('/wallet/:userId', async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    throw new AppError('User ID is required', 400);
+  }
+
+  const wallet = await financeService.getWallet(userId);
+
   res.json({
     status: 'ok',
-    balance: 0,
-    currency: 'EUR',
-    message: 'Wallet integration - coming soon',
+    wallet,
   });
 });
 
 // Create payment
 financeRouter.post('/pay', async (req: Request, res: Response) => {
-  const { recipient, amount, currency } = req.body;
+  const { from, to, amount, currency } = req.body;
 
-  if (!recipient || !amount) {
-    throw new AppError('Recipient and amount are required', 400);
+  if (!from || !to || !amount) {
+    throw new AppError('From, to, and amount are required', 400);
   }
 
-  // TODO: Integrate with GNU Taler
+  if (typeof amount !== 'number' || amount <= 0) {
+    throw new AppError('Amount must be a positive number', 400);
+  }
+
+  const transaction = await financeService.createPayment(
+    from,
+    to,
+    amount,
+    currency || 'EUR'
+  );
+
   res.json({
     status: 'ok',
-    transactionId: null,
-    message: 'P2P payment - coming soon',
+    transaction,
   });
 });
 
 // Get transaction history
-financeRouter.get('/transactions', async (req: Request, res: Response) => {
-  // TODO: Query transaction history
+financeRouter.get('/transactions/:userId', async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    throw new AppError('User ID is required', 400);
+  }
+
+  const transactions = await financeService.getTransactions(userId);
+
   res.json({
     status: 'ok',
-    transactions: [],
-    message: 'Transaction history - coming soon',
+    transactions,
+    count: transactions.length,
+  });
+});
+
+// Get balance
+financeRouter.get('/balance/:userId', async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    throw new AppError('User ID is required', 400);
+  }
+
+  const balance = await financeService.getBalance(userId);
+
+  res.json({
+    status: 'ok',
+    balance,
+    currency: 'EUR',
   });
 });
