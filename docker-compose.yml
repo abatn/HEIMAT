@@ -38,7 +38,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: heimat
@@ -52,9 +52,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./src/backend/src:/app/src
-    command: npm run dev
 
   ml-service:
     build:
@@ -68,6 +65,16 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./src/mobile
+      dockerfile: Dockerfile.web
+    container_name: heimat-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
 volumes:
   pgdata:
