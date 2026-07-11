@@ -122,7 +122,7 @@ Schau dir unsere [Good First Issues](https://github.com/abatn/HEIMAT/labels/good
 | Integration | Monat 7-9 | Taler + Arzt-Termine |
 | Pilot-Stadt | Monat 10-12 | Erste bereitgestellte Stadt |
 
-详细er Plan: [heimat-plan.md](heimat-plan.md)
+der Plan: [heimat-plan.md](heimat-plan.md)
 
 ---
 
