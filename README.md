@@ -1,9 +1,19 @@
 # HEIMAT 2.0
 
-**Die erste Open-Source Super App für Deutschland**
+<p align="center">
+  <img src="foto/logo.jpg" alt="HEIMAT 2.0 Logo" width="200">
+</p>
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![GitHub Stars](https://img.shields.io/github/stars/abatn/HEIMAT.svg?style=social)](https://github.com/abatn/HEIMAT)
+<h3 align="center">Die erste Open-Source Super App für Deutschland</h3>
+
+<p align="center">
+  <a href="https://www.gnu.org/licenses/agpl-3.0">
+    <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License: AGPL v3">
+  </a>
+  <a href="https://github.com/abatn/HEIMAT">
+    <img src="https://img.shields.io/github/stars/abatn/HEIMAT.svg?style=social" alt="GitHub Stars">
+  </a>
+</p>
 
 ---
 
