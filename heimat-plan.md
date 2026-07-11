@@ -810,3 +810,138 @@ HEIMAT/
 3. **heise.de-Artikel** einreichen
 4. **Universitäten** kontaktieren
 5. **Erste Community-Mitglieder** gewinnen
+
+---
+
+## Phase 20: Manuelle Umsetzung
+
+### 49. Übersicht der manuellen Schritte
+
+Diese Schritte können nicht automatisiert werden und müssen manuell durchgeführt werden.
+
+| Schritt | Beschreibung | Priorität | Zeitbedarf |
+|---------|--------------|-----------|------------|
+| 1 | Mastodon-Account einrichten | Hoch | 1 Stunde |
+| 2 | Blog-Beiträge veröffentlichen | Hoch | 2 Stunden |
+| 3 | Open Collective Account erstellen | Mittel | 1 Stunde |
+| 4 | Förderanträge einreichen | Hoch | 4 Stunden |
+| 5 | Stiftungen anschreiben | Mittel | 2 Stunden |
+| 6 | Good-First-Issues öffnen | Niedrig | 30 Minuten |
+| 7 | Mit der Entwicklung beginnen | Hoch | Laufend |
+
+### 50. Schritt 1: Mastodon-Account einrichten
+
+**Anleitung:** `funding/open-collective-anleitung.md`
+
+**Schritte:**
+1. Mastodon-Server wählen (z.B. social.heimat-app.de oder öffentlichen Server)
+2. Account erstellen
+3. Bio hinzufügen:
+   > "HEIMAT 2.0 – Die erste Open-Source Super App für Deutschland. 100% kostenlos, 100% datenschutzkonform, 100% community-getrieben."
+4. Ersten Post veröffentlichen
+5. Andere Open-Source-Projekte followen
+
+### 51. Schritt 2: Blog-Beiträge veröffentlichen
+
+**Vorbereitete Beiträge:** `blog/`
+
+| # | Datei | Titel |
+|---|-------|-------|
+| 1 | `01-was-ist-heimat.md` | Was ist HEIMAT 2.0? |
+| 2 | `02-warum-open-source.md` | Warum Open Source? |
+| 3 | `03-datenschutz-als-feature.md` | Datenschutz als Feature |
+| 4 | `04-erste-schritte-contributing.md` | Erste Schritte zum Contributieren |
+| 5 | `05-ai-in-heimat.md` | AI in HEIMAT 2.0 |
+
+**Schritte:**
+1. Blog-Plattform einrichten (GitHub Pages oder Self-Hosted)
+2. Beiträge nacheinander veröffentlichen (Woche 1-5)
+3. Auf Mastodon und Reddit teilen
+
+### 52. Schritt 3: Open Collective Account erstellen
+
+**Anleitung:** `funding/open-collective-anleitung.md`
+
+**Schritte:**
+1. https://opencollective.com öffnen
+2. Account erstellen (GitHub-Login)
+3. Collective "HEIMAT" anlegen
+4. Profil vervollständigen
+5. Bezahlmethoden einrichten
+6. GitHub-Badges einbinden
+
+### 53. Schritt 4: Förderanträge einreichen
+
+**Vorbereitete Anträge:** `funding/`
+
+| Datei | Förderprogramm | Summe |
+|-------|----------------|-------|
+| `prototype-fund-antrag.md` | Prototype Fund (BMBF) | €50.000 |
+| `bmwk-ki-antrag.md` | BMWK KI-Wettbewerb | €100.000 |
+
+**Schritte:**
+1. Anträge ausfüllen (Daten eintragen)
+2. Budget kalkulieren
+3. Team zusammenstellen
+4. Anhänge vorbereiten
+5. Absenden (Deadline prüfen!)
+
+### 54. Schritt 5: Stiftungen anschreiben
+
+**Vorbereitete Anschreiben:** `funding/stiftungs-anschreiben.md`
+
+**Stiftungen:**
+- Bosch Stiftung (Digitale Teilhabe)
+- VW Stiftung (Mobilität)
+- Telekom Stiftung (Bildung)
+- Bertelsmann Stiftung (Digitalisierung)
+
+**Schritte:**
+1. Anschreiben an Stiftung anpassen
+2. Ansprechpartner finden
+3. E-Mail mit Anhängen senden
+4. Nach 2 Wochen nachfragen
+
+### 55. Schritt 6: Good-First-Issues öffnen
+
+**Bestehende Issues:** #6-#10
+
+**Schritte:**
+1. Prüfen, ob Issues noch aktuell sind
+2. Labels sicherstellen (`good-first-issue`)
+3. Beschreibungen aktualisieren
+4. Auf Reddit und Mastodon bewerben
+
+### 56. Schritt 7: Mit der Entwicklung beginnen
+
+**Nächste Schritte:**
+1. **Issue #6** bearbeiten: Flutter-Projektstruktur einrichten
+2. **Issue #7** bearbeiten: Node.js Backend-Grundstruktur
+3. **Issue #8** bearbeiten: Docker-Grundkonfiguration
+4. CI/CD testen
+5. Ersten Commit machen
+
+**Empfohlene Reihenfolge:**
+1. Flutter-App initialisieren
+2. Backend-Grundstruktur erstellen
+3. Docker-Setup konfigurieren
+4. OSM-Komponente implementieren
+5. Erste Tests schreiben
+
+---
+
+## Zusammenfassung aller Phasen
+
+| Phase | Status |
+|-------|--------|
+| 1-6 | Planung ✅ |
+| 7 | Repository-Setup ✅ |
+| 8 | AI-Integration ✅ |
+| 9 | Community-Setup ✅ |
+| 10-13 | Marketing ✅ |
+| 14-18 | Fördermittel ✅ |
+| 19 | Abschlussdokumentation ✅ |
+| **20** | **Manuelle Umsetzung** ⏳ |
+
+**Status:** 🟢 ALLE AUTOMATISCHEN PHASEN ABGESCHLOSSEN
+**Nächster Schritt:** Manuelle Umsetzung der 7 Schritte
