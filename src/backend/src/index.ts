@@ -56,9 +56,9 @@ app.use(morgan('combined', {
 app.use('/health', healthRouter);
 
 // API routes
-app.use('/api/v1/mobility', mobilityRouter);
-app.use('/api/v1/finance', financeRouter);
-app.use('/api/v1/health', healthServiceRouter);
+app.use('/api/mobility', mobilityRouter);
+app.use('/api/finance', financeRouter);
+app.use('/api/health', healthServiceRouter);
 
 // Error handling
 app.use(notFoundHandler);
