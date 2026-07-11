@@ -19,9 +19,11 @@
 1. **Website öffnen:** https://mastodon.social (oder gewählter Server)
 2. **"Sign Up"** klicken
 3. **E-Mail-Adresse** eingeben
-4. **Benutzername** wählen: `@heimat`
+4. **Benutzername (OHNE @):** `heimat_app`
 5. **Passwort** setzen
 6. **E-Mail** bestätigen
+
+**Ergebnis:** `@heimat_app@mastodon.social`
 
 ### 3. Profil vervollständigen
 
