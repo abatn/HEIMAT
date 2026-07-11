@@ -16,14 +16,20 @@
 
 ### 2. Account erstellen
 
-1. **Website öffnen:** https://mastodon.social (oder gewählter Server)
-2. **"Sign Up"** klicken
-3. **E-Mail-Adresse** eingeben
-4. **Benutzername (OHNE @):** `heimat_app`
-5. **Passwort** setzen
-6. **E-Mail** bestätigen
+1. **Website öffnen:** https://mastodon.social/auth/sign_up
+2. **"Accept rules"** klicken
+3. **Im Formular ausfüllen:**
+   - **Username:** `heimat_app` (NUR diese Zeichen, KEIN @)
+   - **E-Mail-Adresse:** [deine E-Mail]
+   - **Passwort:** [dein Passwort]
+   - **Date of birth:** [dein Geburtsdatum]
+4. **"Sign up"** klicken
+5. **E-Mail** bestätigen
 
-**Ergebnis:** `@heimat_app@mastodon.social`
+**WICHTIG:** Gib NUR `heimat_app` ein – NICHT `@heimat_app`!
+Mastodon fügt das @ automatisch hinzu.
+
+**Dein Account wird dann:** `@heimat_app@mastodon.social`
 
 ### 3. Profil vervollständigen
 
