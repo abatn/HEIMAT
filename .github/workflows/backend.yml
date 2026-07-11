@@ -25,7 +25,6 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: src/backend/package-lock.json
 
       - name: Install dependencies
         run: npm install
@@ -36,9 +35,26 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: [lint]
     defaults:
       run:
         working-directory: src/backend
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: heimat_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -46,20 +62,18 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: src/backend/package.json
 
       - name: Install dependencies
         run: npm install
 
       - name: Run tests
         run: npm test
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          directory: src/backend/coverage
-          flags: backend
-        if: always()
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: heimat_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
 
   build:
     name: Build
@@ -75,7 +89,6 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: src/backend/package.json
 
       - name: Install dependencies
         run: npm install
