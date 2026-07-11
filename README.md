@@ -13,6 +13,9 @@
   <a href="https://github.com/abatn/HEIMAT">
     <img src="https://img.shields.io/github/stars/abatn/HEIMAT.svg?style=social" alt="GitHub Stars">
   </a>
+  <a href="https://opencollective.com/heimat">
+    <img src="https://img.shields.io/badge/Open%20Collective-Spenden-orange" alt="Open Collective">
+  </a>
 </p>
 
 ---
@@ -45,9 +48,37 @@ HEIMAT 2.0 ist eine datenschutzkonforme, kostenfreie Super App für den deutsche
 - Privacy-by-Design
 
 ### Gesundheit
-- Arzt-Terminbuchung (Cal.com)
-- Keine TI-Anbindung
-- Keine Patientendaten
+- Arzt-Suche nach Fachrichtung und Ort
+- Terminbuchung mit verfügbarer Zeitplanung
+- Keine TI-Anbindung, keine Patientendaten
+
+---
+
+## Projektstruktur
+
+```
+HEIMAT/
+├── src/
+│   ├── mobile/          # Flutter App
+│   │   ├── lib/
+│   │   │   ├── features/
+│   │   │   │   ├── mobility/    # ÖPNV, Karten, Routing
+│   │   │   │   ├── finance/     # Taler P2P-Zahlungen
+│   │   │   │   └── health/      # Arzt-Termine
+│   │   │   └── core/            # Config, Theme, Navigation
+│   │   └── pubspec.yaml
+│   └── backend/         # Node.js Backend
+│       ├── src/
+│       │   ├── routes/          # API-Endpunkte
+│       │   ├── services/        # Business-Logik
+│       │   └── middleware/       # Error-Handler, etc.
+│       └── package.json
+├── AI-*.md              # AI-Strategie Dokumentation
+├── blog/                # Blog-Beiträge
+├── funding/             # Förderanträge
+├── marketing/           # Marketing-Materialien
+└── docs/                # Zusätzliche Dokumentation
+```
 
 ---
 
@@ -71,9 +102,9 @@ HEIMAT 2.0 ist eine datenschutzkonforme, kostenfreie Super App für den deutsche
 
 ### Voraussetzungen
 
-- Flutter SDK
-- Node.js
-- PostgreSQL
+- Flutter SDK 3.x
+- Node.js 18+
+- PostgreSQL (optional)
 - Docker (optional)
 
 ### Entwicklung
@@ -94,6 +125,18 @@ npm install
 npm run dev
 ```
 
+### Tests ausführen
+
+```bash
+# Backend Tests
+cd src/backend
+npm test
+
+# Flutter Tests
+cd src/mobile
+flutter test
+```
+
 ---
 
 ## Contributing
@@ -109,7 +152,17 @@ Schau dir unsere [Good First Issues](https://github.com/abatn/HEIMAT/labels/good
 ## Community
 
 - **Matrix:** [HEIMAT Room](https://matrix.to/#/heimat:matrix.org)
+- **Mastodon:** [@heimat@mastodon.social](https://mastodon.social/@heimat)
 - **GitHub Discussions:** [Discussions](https://github.com/abatn/HEIMAT/discussions)
+
+---
+
+## Unterstützen
+
+HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden angewiesen:
+
+- **Open Collective:** [opencollective.com/heimat](https://opencollective.com/heimat)
+- **GitHub Sponsors:** [github.com/sponsors/abatn](https://github.com/sponsors/abatn)
 
 ---
 
@@ -122,7 +175,7 @@ Schau dir unsere [Good First Issues](https://github.com/abatn/HEIMAT/labels/good
 | Integration | Monat 7-9 | Taler + Arzt-Termine |
 | Pilot-Stadt | Monat 10-12 | Erste bereitgestellte Stadt |
 
-der Plan: [heimat-plan.md](heimat-plan.md)
+Detaillierter Plan: [heimat-plan.md](heimat-plan.md)
 
 ---
 
@@ -138,6 +191,7 @@ Dieses Projekt steht unter der [GNU Affero General Public License v3.0](LICENSE)
 - [GNU Taler](https://taler.net/) – Zahlungen
 - [Cal.com](https://cal.com/) – Terminbuchung
 - [Matrix](https://matrix.org/) – Kommunikation
+- [OpenRouteService](https://openrouteservice.org/) – Routing
 
 ---
 
