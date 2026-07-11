@@ -51,25 +51,25 @@ HEIMAT 2.0 ist eine Open-Source Super App für den deutschen Alltag, die ausschl
 
 **Persona 1: Anna, 32, Berlin**
 - Beruf: UX-Designerin
--痛点: Hasst das Wechseln zwischen 10 Apps (DB, Moovit, PayPal, Doctolib)
+-Anna: Hasst das Wechseln zwischen 10 Apps (DB, Moovit, PayPal, Doctolib)
 - Nutzt: Datenschutzkonforme Tools (Signal, OSM)
 - Wert: Bequemkeit ohne Kompromisse bei Privatsphäre
 
 **Persona 2: Markus, 45, München**
 - Beruf: Ingenieur, Familienvater
--痛点: Komplexe ÖPNV-Verbindungen mit Kind
+-Markus: Komplexe ÖPNV-Verbindungen mit Kind
 - Nutzt: Android, pragmatisch
 - Wert: Zuverlässigkeit, keine versteckten Kosten
 
 **Persona 3: Sarah, 28, Hamburg**
 - Beruf: Freelancerin
--痛点: P2P-Zahlungen an Kollegen, Terminfindung beim Arzt
+-Sarah: P2P-Zahlungen an Kollegen, Terminfindung beim Arzt
 - Nutzt: iOS, Open-Source begeistert
 - Wert: Transparenz, Community
 
 **Persona 4: Klaus, 67, Leipzig**
 - Beruf: Rentner
--痛点: Digitale Teilhabe, einfache Bedienung
+-Klaus: Digitale Teilhabe, einfache Bedienung
 - Nutzt: Smartphone Basics
 - Wert: Einfachheit, Vertrauen
 
