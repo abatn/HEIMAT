@@ -172,19 +172,22 @@ Was haltet ihr davon?
 
 ## Checkliste
 
-- [ ] GitHub Pages Repository erstellt
-- [ ] Hugo installiert und konfiguriert
-- [ ] 5 Beiträge vorbereitet
-- [ ] Reihenfolge festgelegt
-- [ ] Mastodon-Posts vorbereitet
-- [ ] Reddit-Posts vorbereitet
+- [x] GitHub Pages Repository erstellt
+- [x] Hugo installiert und konfiguriert
+- [x] 5 Beiträge vorbereitet
+- [x] Reihenfolge festgelegt
+- [ ] Mastodon-Posts veröffentlichen (nach Blog-Live)
+- [ ] Reddit-Posts veröffentlichen (nach Blog-Live)
 - [ ] Erster Beitrag veröffentlichen (Woche 1)
 
 ---
 
-## Nächste Schritte
+## Nächste Schritte (Manuell)
 
-1. **Heute:** GitHub Pages Repository erstellen
-2. **Morgen:** Hugo installieren und konfigurieren
-3. **Diese Woche:** Ersten Beitrag veröffentlichen
-4. **Nächste Woche:** Zweiter Beitrag + erster Reddit-Post
+1. **GitHub Pages Repository erstellen:** `abatn/heimat-blog`
+2. **Hugo lokalisieren und konfigurieren**
+3. **Beiträge in `content/posts/` kopieren**
+4. **Repository pushen**
+5. **GitHub Pages aktivieren**
+6. **Mastodon-Posts veröffentlichen**
+7. **Reddit-Posts veröffentlichen**
