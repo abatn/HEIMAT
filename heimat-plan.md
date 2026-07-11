@@ -669,8 +669,75 @@ HEIMAT/
 
 ### 36. Nächste Community-Maßnahmen
 
-1. **Matrix-Room** einrichten und verlinken
+1. **Matrix-Room** einrichten und verlinken ✅
 2. **Mastodon-Account** erstellen (@heimat@social.heimat-app.de)
 3. **Erste Blog-Beiträge** veröffentlichen
 4. **Open-Source-Foren** posten (heise, Linux-Magazin)
 5. **Universitäten** kontaktieren (FH München, TU Berlin)
+
+---
+
+## Phase 10: Marketing-Setup
+
+### 37. Mastodon-Account
+
+**Account:** `@heimat@social.heimat-app.de`
+
+**Einrichtungsschritte:**
+1. Mastodon-Server einrichten (oder nutzung eines öffentlichen Servers)
+2. Account erstellen mit Bio:
+   > "HEIMAT 2.0 – Die erste Open-Source Super App für Deutschland. 100% kostenlos, 100% datenschutzkonform, 100% community-getrieben. #OpenSource #Datenschutz #Germany"
+3. Profilbild und Header hinzufügen
+4. Erste Beiträge veröffentlichen
+5. Andere Open-Source-Projekte verlinken
+
+### 38. Blog-Strategie
+
+**Plattform:** GitHub Pages oder Self-Hosted (Hugo/Jekyll)
+
+**Erste Blog-Beiträge:**
+
+| Titel | Inhalt | Zielgruppe |
+|-------|--------|------------|
+| "Was ist HEIMAT 2.0?" | Projektvorstellung, Vision | Alle |
+| "Warum Open Source?" | Philosophie, Vorteile | Entwickler |
+| "Datenschutz als Feature" | DSGVO-Strategie | Datenschutzbewusste |
+| "Erste Schritte zum Contributieren" | Tutorial | Neue Contributors |
+| "AI in HEIMAT 2.0" | AI-Strategie | ML-Interessierte |
+
+### 39. Social-Media-Strategie
+
+| Kanal | Frequenz | Inhalt |
+|-------|----------|--------|
+| **Mastodon** | 3-5x/Woche | Updates, Diskussionen, Open-Source-Tipps |
+| **GitHub** | Wöchentlich | Releases, Milestones, Contributors |
+| **Blog** | 2x/Monat | Tutorials, Deep-Dives, Meinungen |
+| **Matrix** | Täglich | Community-Support, Fragen |
+
+### 40. Content-Kalender (Monat 1)
+
+| Woche | Mastodon | Blog | Matrix |
+|-------|----------|------|--------|
+| **1** | Vorstellung HEIMAT | "Was ist HEIMAT 2.0?" | Room einrichten |
+| **2** | Open-Source-Philosophie | "Warum Open Source?" | Erste Diskussionen |
+| **3** | Datenschutz-Fokus | "Datenschutz als Feature" | Community-Welcome |
+| **4** | Contributing-Call | "Erste Schritte" | Erste Good-First-Issues |
+
+### 41. Open-Source-Foren
+
+| Forum | Format | Inhalt |
+|-------|--------|--------|
+| **heise.de** | Artikel-Einreichung | "HEIMAT 2.0 – Open-Source Super App" |
+| **Linux-Magazin** | Community-Beitrag | "Mitmachen bei HEIMAT" |
+| **Reddit** | Post | r/opensource, r/de |
+| **Hacker News** | Show HN | "Show HN: HEIMAT 2.0" |
+
+### 42. Universitäts-Kontakt
+
+| Universität | Ansprechpartner | Format |
+|-------------|-----------------|--------|
+| **FH München** | Prof. Dr. [Name] | Praxisprojekt |
+| **TU Berlin** | Fachgebiet Mobile Computing | Bachelor-Arbeit |
+| **Uni Hamburg** | Informatik | Seminarprojekt |
+
+**Value Proposition:** "Kostenloses Open-Source-Projekt für Studierende mit Praxisbezug"
