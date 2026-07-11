@@ -741,3 +741,72 @@ HEIMAT/
 | **Uni Hamburg** | Informatik | Seminarprojekt |
 
 **Value Proposition:** "Kostenloses Open-Source-Projekt für Studierende mit Praxisbezug"
+
+---
+
+## Phase 11: Marketing-Ausführung
+
+### 43. Mastodon-Account
+
+**Account:** `@heimat@social.heimat-app.de`
+
+**Setup-Anleitung:**
+1. Mastodon-Server betreiben oder öffentlichen nutzen
+2. Account erstellen
+3. Bio:
+   > "HEIMAT 2.0 – Die erste Open-Source Super App für Deutschland. 100% kostenlos, 100% datenschutzkonform, 100% community-getrieben. #OpenSource #Datenschutz #Germany"
+4. Profilbild: HEIMAT-Logo
+5. Header: Screenshot der App
+
+**Erste Beiträge:**
+1. "HEIMAT 2.0 ist da! Die erste Open-Source Super App für Deutschland. Alle Infos: github.com/abatn/HEIMAT"
+2. "Warum Open Source? Weil Vertrauen durch Transparenz entsteht."
+3. "Datenschutz ist kein Hindernis – er ist unser Produkt."
+
+### 44. Erster Open-Source-Beitrag
+
+**Ziel:** heise.de oder Linux-Magazin
+
+**Artikel-Vorschlag:**
+- **Titel:** "HEIMAT 2.0 – Die erste Open-Source Super App für Deutschland"
+- **Inhalt:** Vorstellung des Projekts, Technologie, Philosophie
+- **Zielgruppe:** Open-Source-Community, Datenschutzbewusste
+
+**Einreichung:**
+- heise.de: https://www.heise.de/ct/autoren
+- Linux-Magazin: https://www.linuxmagazin.de/autoren
+
+### 45. Reddit-Beiträge
+
+**Subreddits:**
+- r/opensource
+- r/de
+- r/selfhosted
+- r/privacy
+
+**Format:**
+- Titel: "[Projekt] HEIMAT 2.0 – Open-Source Super App für Deutschland"
+- Inhalt: Kurzbeschreibung, Features, GitHub-Link
+
+### 46. Hacker News
+
+**Show HN Format:**
+- Titel: "Show HN: HEIMAT 2.0 – Open-Source Super App for Germany"
+- Inhalt: Technologie, Features, Warum Open Source
+
+### 47. Content-Kalender (Woche 1-4)
+
+| Woche | Mastodon | Blog | Foren |
+|-------|----------|------|-------|
+| **1** | Vorstellung | "Was ist HEIMAT?" | Reddit r/opensource |
+| **2** | Open Source | "Warum Open Source?" | heise.de |
+| **3** | Datenschutz | "Datenschutz als Feature" | Reddit r/de |
+| **4** | Contributing | "Erste Schritte" | Hacker News |
+
+### 48. Nächste Schritte nach Marketing
+
+1. **Mastodon-Account** einrichten (manuell)
+2. **Ersten Reddit-Post** erstellen
+3. **heise.de-Artikel** einreichen
+4. **Universitäten** kontaktieren
+5. **Erste Community-Mitglieder** gewinnen
