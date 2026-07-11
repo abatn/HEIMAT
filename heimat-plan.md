@@ -619,11 +619,58 @@ HEIMAT/
 
 ### 32. Nächste Schritte nach Repository
 
-1. README.md erstellen
-2. CONTRIBUTING.md erstellen
-3. LICENSE hinzufügen (AGPL-3.0)
-4. Issue-Templates anlegen
-5. PR-Template erstellen
-6. GitHub Actions workflows konfigurieren
-7. Matrix-Room einrichten
-8. Erste Good-First-Issues anlegen
+1. README.md erstellen ✅
+2. CONTRIBUTING.md erstellen ✅
+3. LICENSE hinzufügen (AGPL-3.0) ✅
+4. Issue-Templates anlegen ✅
+5. PR-Template erstellen ✅
+6. GitHub Actions workflows konfigurieren ✅
+7. Matrix-Room einrichten ✅
+8. Erste Good-First-Issues anlegen ✅
+
+---
+
+## Phase 9: Community-Setup
+
+### 33. Matrix-Room Einrichtung
+
+**Raum-Name:** `#heimat:matrix.org`
+
+**Einrichtungsschritte:**
+1. Matrix-Room über Element erstellen
+2. Raum-Beschreibung hinzufügen
+3. Themen kanäle erstellen:
+   - `#heimat-entwicklung:matrix.org` – Technische Diskussionen
+   - `#heimat-mobilitaet:matrix.org` – Mobilitätsfeatures
+   - `#heimat-finanzen:matrix.org` – Finanzfeatures
+   - `#heimat-gesundheit:matrix.org` – Gesundheitsfeatures
+   - `#heimat-ai:matrix.org` – AI-Integration
+4. README.md mit Matrix-Link aktualisieren
+5. CONTRIBUTING.md mit Kommunikationswegen aktualisieren
+
+### 34. Community-Kanäle
+
+| Kanal | Zweck | Plattform |
+|-------|-------|-----------|
+| **GitHub Issues** | Bug-Reports, Feature-Requests | GitHub |
+| **GitHub Discussions** | Allgemeine Fragen, Ideen | GitHub |
+| **Matrix-Room** | Echtzeit-Kommunikation | Matrix |
+| **Mastodon** | Updates, Ankündigungen | Mastodon |
+
+### 35. Good-First-Issues (Erstellt)
+
+| Issue | Titel | Labels |
+|-------|-------|--------|
+| #6 | Flutter-Projektstruktur einrichten | `good-first-issue`, `flutter` |
+| #7 | Node.js Backend-Grundstruktur | `good-first-issue`, `backend` |
+| #8 | Docker-Grundkonfiguration | `good-first-issue`, `docker` |
+| #9 | OpenStreetMap-Komponente | `good-first-issue`, `flutter` |
+| #10 | Dokumentation: Architektur | `good-first-issue`, `documentation` |
+
+### 36. Nächste Community-Maßnahmen
+
+1. **Matrix-Room** einrichten und verlinken
+2. **Mastodon-Account** erstellen (@heimat@social.heimat-app.de)
+3. **Erste Blog-Beiträge** veröffentlichen
+4. **Open-Source-Foren** posten (heise, Linux-Magazin)
+5. **Universitäten** kontaktieren (FH München, TU Berlin)
