@@ -1,6 +1,10 @@
-# Contributing to HEIMAT 2.0
+<p align="center">
+  <img src="foto/logo.jpg" alt="HEIMAT 2.0 Logo" width="150">
+</p>
 
-Vielen Dank für dein Interesse an HEIMAT 2.0! Wir freuen uns über jeden Beitrag.
+<h1 align="center">Contributing to HEIMAT 2.0</h1>
+
+<p align="center">Vielen Dank für dein Interesse an HEIMAT 2.0! Wir freuen uns über jeden Beitrag.</p>
 
 ---
 
