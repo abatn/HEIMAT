@@ -4,33 +4,6 @@ import { mobilityService } from '../services/mobilityService';
 
 export const mobilityRouter = Router();
 
-// Get transit connections
-mobilityRouter.get('/connections', async (req: Request, res: Response) => {
-  const { from, to, date } = req.query;
-
-  if (!from || !to) {
-    throw new AppError('From and to coordinates are required', 400);
-  }
-
-  const [fromLat, fromLng] = (from as string).split(',').map(Number);
-  const [toLat, toLng] = (to as string).split(',').map(Number);
-
-  if (isNaN(fromLat) || isNaN(fromLng) || isNaN(toLat) || isNaN(toLng)) {
-    throw new AppError('Invalid coordinates format. Use: lat,lng', 400);
-  }
-
-  const connections = await mobilityService.getConnections(
-    { lat: fromLat, lng: fromLng },
-    { lat: toLat, lng: toLng }
-  );
-
-  res.json({
-    status: 'ok',
-    connections,
-    count: connections.length,
-  });
-});
-
 // Get nearby stops
 mobilityRouter.get('/stops', async (req: Request, res: Response) => {
   const { lat, lng, radius } = req.query;
@@ -41,7 +14,7 @@ mobilityRouter.get('/stops', async (req: Request, res: Response) => {
 
   const latNum = parseFloat(lat as string);
   const lngNum = parseFloat(lng as string);
-  const radiusNum = radius ? parseFloat(radius as string) : 500;
+  const radiusNum = radius ? parseFloat(radius as string) : 1000;
 
   if (isNaN(latNum) || isNaN(lngNum)) {
     throw new AppError('Invalid coordinates', 400);
@@ -56,25 +29,46 @@ mobilityRouter.get('/stops', async (req: Request, res: Response) => {
   });
 });
 
-// Get route
-mobilityRouter.get('/route', async (req: Request, res: Response) => {
-  const { from, to, mode } = req.query;
+// Get stop by ID
+mobilityRouter.get('/stops/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
 
-  if (!from || !to) {
-    throw new AppError('From and to coordinates are required', 400);
+  const stop = await mobilityService.getStopById(id);
+
+  res.json({
+    status: 'ok',
+    stop,
+  });
+});
+
+// Search stops
+mobilityRouter.get('/stops/search', async (req: Request, res: Response) => {
+  const { q } = req.query;
+
+  if (!q) {
+    throw new AppError('Search query is required', 400);
   }
 
-  const [fromLat, fromLng] = (from as string).split(',').map(Number);
-  const [toLat, toLng] = (to as string).split(',').map(Number);
+  const stops = await mobilityService.searchStops(q as string);
 
-  if (isNaN(fromLat) || isNaN(fromLng) || isNaN(toLat) || isNaN(toLng)) {
-    throw new AppError('Invalid coordinates format. Use: lat,lng', 400);
+  res.json({
+    status: 'ok',
+    stops,
+    count: stops.length,
+  });
+});
+
+// Get route
+mobilityRouter.get('/route', async (req: Request, res: Response) => {
+  const { from_lat, from_lng, to_lat, to_lng } = req.query;
+
+  if (!from_lat || !from_lng || !to_lat || !to_lng) {
+    throw new AppError('All coordinates are required', 400);
   }
 
   const route = await mobilityService.getRoute(
-    { lat: fromLat, lng: fromLng },
-    { lat: toLat, lng: toLng },
-    (mode as string) || 'driving'
+    { lat: parseFloat(from_lat as string), lng: parseFloat(from_lng as string) },
+    { lat: parseFloat(to_lat as string), lng: parseFloat(to_lng as string) }
   );
 
   res.json({
@@ -83,7 +77,7 @@ mobilityRouter.get('/route', async (req: Request, res: Response) => {
   });
 });
 
-// Geocoding: Adresse in Koordinaten umwandeln
+// Geocoding
 mobilityRouter.get('/geocode', async (req: Request, res: Response) => {
   const { address } = req.query;
 
@@ -91,14 +85,7 @@ mobilityRouter.get('/geocode', async (req: Request, res: Response) => {
     throw new AppError('Address is required', 400);
   }
 
-  // Mock-Geocoding
-  const results = [
-    {
-      name: address as string,
-      lat: 52.5200 + Math.random() * 0.01,
-      lng: 13.4050 + Math.random() * 0.01,
-    },
-  ];
+  const results = await mobilityService.geocodeAddress(address as string);
 
   res.json({
     status: 'ok',

@@ -54,7 +54,7 @@ healthRouter.get('/doctors/:id/slots', async (req: Request, res: Response) => {
 
 // Book appointment
 healthRouter.post('/appointments', async (req: Request, res: Response) => {
-  const { doctorId, patientName, date, time } = req.body;
+  const { doctorId, patientName, patientEmail, date, time } = req.body;
 
   if (!doctorId || !patientName || !date || !time) {
     throw new AppError('Doctor ID, patient name, date, and time are required', 400);
@@ -63,6 +63,7 @@ healthRouter.post('/appointments', async (req: Request, res: Response) => {
   const appointment = await healthService.bookAppointment(
     doctorId,
     patientName,
+    patientEmail || '',
     date,
     time
   );
