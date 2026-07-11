@@ -201,3 +201,167 @@ Beginne mit der **Phase 1: Marktanalyse & Positionierung (überarbeitet)**. Arbe
 ---
 
 **Hinweis für den Agenten:** Dies ist der überarbeitete Rahmen für HEIMAT 2.0. Alle Entscheidungen müssen unter der Prämisse getroffen werden: **"Nur das nutzen, was legal, kostenlos und Open Source ist – ohne Verträge, ohne Genehmigungen, ohne Unternehmen."**
+
+---
+
+## 🧠 PHASE 8: AI-INTEGRATION – KONKRETE AUFGABEN
+
+### 8.1 AI-Anwendungsfälle definieren
+
+Erstelle für JEDEN der folgenden Bereiche eine detaillierte AI-Strategie:
+
+| Bereich | Mindest-Anforderung | Wunsch-Features |
+|---------|-------------------|-----------------|
+| **Mobilität** | Verspätungsvorhersage | Personalisierte Routenvorschläge, barrierefreie Routen |
+| **Finanzen** | Automatische Ausgabenkategorisierung | Budget-Vorschläge, Spar-Tipps |
+| **Gesundheit** | Termin-Empfehlungen | Symptom-Checker (mit Haftungsausschluss) |
+| **Alltag** | Sprachsteuerung (offline) | Text-to-Speech, Übersetzung |
+| **Entwicklung** | Code-Generierung für Mini-Apps | Automatische Dokumentation, Bug-Fixing |
+
+**Für JEDEN Bereich musst du folgende Fragen beantworten:**
+1. Welches Open-Source-Tool wird verwendet?
+2. Wie wird es implementiert? (On-Device oder Cloud?)
+3. Welche Daten werden benötigt? (Sind sie öffentlich zugänglich?)
+4. Wie wird Datenschutz sichergestellt?
+5. Welche rechtlichen Hürden gibt es? (DSGVO, Haftung, etc.)
+6. Wie hoch sind die Kosten? (Ziel: €0 für Nutzer, minimal für Hosting)
+
+---
+
+### 8.2 Technische Architektur für AI
+
+Entwickle eine **detaillierte Systemarchitektur** für AI:
+
+1. **Frontend-Architektur (Flutter):**
+   - Wie wird TensorFlow Lite integriert? (`pubspec.yaml`)
+   - Wie wird Vosk (Speech-to-Text) eingebunden?
+   - Wie wird Coqui TTS (Text-to-Speech) implementiert?
+   - Wie wird die UI für AI-Funktionen gestaltet?
+
+2. **Backend-Architektur (Node.js):**
+   - Wie wird MLflow für Modell-Management eingerichtet?
+   - Wie werden FastAPI-ML-Services bereitgestellt?
+   - Wie werden ML-Modelle versioniert und gecacht? (Redis)
+
+3. **ML-Modelle (Open Source):**
+   - LightGBM / XGBoost für Verspätungsvorhersage
+   - spaCy / BERT für NLP (Textklassifikation)
+   - Code Llama / StarCoder für Code-Generierung
+   - Surprise für Recommender-System
+
+4. **Infrastruktur (Hetzner Cloud):**
+   - GPU-Server für ML-Training (Kosten: ~€20-50/Monat)
+   - Docker + Kubernetes für Deployment
+   - Grafana + Prometheus für Monitoring
+
+**Frage:** Welche Komponenten können **vollständig On-Device** laufen (Datenschutz!) und welche benötigen **Cloud-Infrastruktur**?
+
+---
+
+### 8.3 Datenschutz & Rechtliches (Deutsches Recht)
+
+Erstelle eine **DSGVO-konforme AI-Strategie**:
+
+| Prinzip | Umsetzung | Rechtliche Grundlage |
+|---------|-----------|---------------------|
+| **On-Device AI** | So viel wie möglich lokal (TensorFlow Lite) | Art. 5(1)(c) DSGVO (Datenminimierung) |
+| **Anonymisierung** | Keine personenbezogenen Daten in Cloud-Modellen | Art. 4(5) DSGVO (Anonymisierung) |
+| **Open-Source-Transparenz** | Jeder kann die Modelle prüfen | Art. 13(2)(f) DSGVO (Transparenz) |
+| **Opt-in** | Nutzer müssen AI-Funktionen aktiv aktivieren | Art. 7 DSGVO (Einwilligung) |
+| **Löschung** | AI-Daten werden mit Nutzerdaten gelöscht | Art. 17 DSGVO (Recht auf Löschung) |
+
+**Rechtliche Prüfung für JEDE AI-Funktion:**
+- Brauche ich eine BaFin-Lizenz? (Nein – keine Finanzdienstleistung)
+- Brauche ich eine TI-Anbindung? (Nein – keine Patientendaten)
+- Brauche ich eine Datenschutz-Folgenabschätzung? (Nein – keine besonderen Kategorien)
+- Brauche ich eine Haftungsfreistellung? (Ja – für Gesundheits- und Finanz-Features)
+
+---
+
+### 8.4 AI-Implementierungsplan (Monate 6-18)
+
+Erstelle einen **detaillierten Zeitplan** für AI-Integration:
+
+| Phase | Zeitraum | Fokus | Meilenstein | Benötigte Contributors |
+|-------|----------|-------|-------------|----------------------|
+| **Phase 1: On-Device AI** | Monat 6-9 | TensorFlow Lite + Vosk | Sprachsteuerung, lokale Kategorisierung | 2 ML-Engineers |
+| **Phase 2: Cloud AI** | Monat 9-12 | MLflow + FastAPI | Verspätungsvorhersage, Termin-Empfehlungen | 2 Backend-Devs + 1 ML-Engineer |
+| **Phase 3: Generative AI** | Monat 12-15 | Code Llama | Code-Generierung für Mini-Apps | 1 ML-Engineer + 1 Dev |
+| **Phase 4: Vollintegration** | Monat 15-18 | Alle Systeme | Vollständige AI-Integration | 3 Developers |
+
+**Für JEDE Phase:**
+- Welche konkreten Aufgaben müssen erledigt werden?
+- Welche Open-Source-Tools werden verwendet?
+- Wer kann diese Aufgaben übernehmen? (Community, Studenten, Open-Source-Enthusiasten)
+- Wie werden die Ergebnisse getestet und validiert?
+
+---
+
+### 8.5 Kostenanalyse (Deutschland-spezifisch)
+
+Erstelle eine **detaillierte Kostenaufstellung**:
+
+| Komponente | Kosten | Anbieter | Alternative (kostenlos) |
+|------------|--------|----------|-------------------------|
+| **GPU-Server (ML-Training)** | €20-50/Monat | Hetzner Cloud | Google Colab (kostenlos, aber eingeschränkt) |
+| **Hetzner Cloud (Backend)** | €5-10/Monat | Hetzner | Eigenes Hosting (€0) |
+| **Domain (.de)** | €10/Jahr | Namecheap | .ml-Domain (kostenlos) |
+| **GitHub Actions** | €0 | GitHub | Keine Alternative nötig |
+| **MLflow Server** | €0 | Selbst gehostet | Keine Alternative nötig |
+| **FastAPI ML-Services** | €0 | Selbst gehostet | Keine Alternative nötig |
+
+**Gesamtkosten (Jahr 1):** ~€70-120 (Hosting + Domain)
+
+**Fördermöglichkeiten:**
+- **Prototype Fund (BMBF):** Bis zu €50.000 für Open-Source-Projekte
+- **BMWK KI-Innovationswettbewerb:** Bis zu €100.000 für KI-Projekte
+- **Stiftungen:** Bosch, VW, Telekom bieten Förderprogramme
+
+---
+
+### 8.6 Risikoanalyse für AI
+
+Erstelle eine **Risikoanalyse** speziell für AI:
+
+| Risiko | Wahrscheinlichkeit | Impact | Lösung |
+|--------|-------------------|--------|--------|
+| **Datenschutzverstoß (DSGVO)** | Niedrig | Hoch | On-Device AI + Anonymisierung + Opt-in |
+| **Haftung für Fehlentscheidungen** | Mittel | Hoch | Klare Haftungsausschlüsse, "Keine medizinische Beratung" |
+| **Mangelnde AI-Expertise in der Community** | Hoch | Mittel | Kooperation mit Universitäten, Hackathons |
+| **Hohe Rechenkosten (GPU)** | Niedrig | Mittel | Optimierung, Colab, Spenden |
+| **Abhängigkeit von externen Modellen** | Mittel | Mittel | Nur Open-Source-Modelle, selbst hosten |
+
+---
+
+### 📝 AUSGABE-FORMAT
+
+Erstelle folgende Dokumente:
+
+1. **AI-Strategy.md** – Zusammenfassung der AI-Strategie (1-2 Seiten)
+2. **AI-Architektur.md** – Detaillierte technische Architektur
+3. **AI-Implementierungsplan.md** – Zeitplan mit Meilensteinen
+4. **AI-Rechtliches.md** – DSGVO-konforme AI-Strategie mit Haftungsausschlüssen
+5. **AI-Kosten.md** – Detaillierte Kostenaufstellung (minimal)
+
+**Alle Dokumente müssen:**
+- 100% Open Source
+- DSGVO-konform
+- Rechtlich unbedenklich
+- Kostenoptimiert (<€100/Jahr)
+- Community-getrieben
+
+---
+
+### ✅ ERFOLGSKRITERIEN FÜR AI
+
+1. **Open-Source-Nutzung:** 100% der AI-Tools sind Open Source
+2. **Datenschutz:** On-Device AI bevorzugt, keine personenbezogenen Daten in der Cloud
+3. **Rechtliche Unbedenklichkeit:** Keine BaFin-Lizenz, keine TI-Anbindung, keine DSGVO-Verstöße
+4. **Kostenfreiheit:** Maximale Kosten <€100/Jahr (Hosting + Domain)
+5. **Community-getrieben:** 3-5 Contributors für AI-Bereich nach 12 Monaten
+
+---
+
+### 🚀 STARTANWEISUNG FÜR AI
+
+Beginne mit **Phase 8.1: AI-Anwendungsfälle definieren** und erstelle dann die 5 Dokumente in der angegebenen Reihenfolge.
