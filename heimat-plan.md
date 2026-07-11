@@ -544,3 +544,86 @@ HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Ra
 
 *Erstellt am: $(date)*
 *Nächste Aktualisierung: Nach Phase 1 der Umsetzung*
+
+---
+
+## Phase 7: Repository-Setup
+
+### 27. Repository-Struktur
+
+```
+HEIMAT/
+├── README.md                 # Projektbeschreibung
+├── CONTRIBUTING.md           # Anleitung für Contributors
+├── LICENSE                   # AGPL-3.0 (Open Source)
+├── .github/
+│   ├── ISSUE_TEMPLATE/       # Issue-Vorlagen
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── workflows/            # CI/CD (GitHub Actions)
+├── docs/                     # Dokumentation
+│   ├── architecture.md       # Systemarchitektur
+│   ├── roadmap.md            # Projekt-Roadmap
+│   └── api/                  # API-Dokumentation
+├── src/                      # Quellcode
+│   ├── mobile/               # Flutter App
+│   ├── backend/              # Node.js Backend
+│   └── shared/               # Gemeinsame Libraries
+├── infra/                    # Infrastructure as Code
+│   ├── docker/
+│   └── terraform/
+└── .loop.md                  # Fortschritts-Tracking
+```
+
+### 28. README.md Inhalt
+
+**Kernkomponenten:**
+- Projektname + Logo
+- One-Liner Beschreibung
+- Features (Mobilität, Finanzen, Gesundheit)
+- Quick-Start Anleitung
+- Technologie-Stack
+- Contributing-Hinweis
+- Lizenz (AGPL-3.0)
+- Community-Links (Matrix, GitHub Discussions)
+
+### 29. CONTRIBUTING.md Inhalt
+
+**Kernkomponenten:**
+- Code of Conduct
+- Erste Schritte (Fork, Clone, Branch)
+- Entwicklungsumgebung einrichten
+- Code-Style (Flutter, Node.js)
+- Testing (Flutter Tests, Jest)
+- PR-Prozess
+- Issue-Labels (good-first-issue, bug, feature)
+- Kommunikation (Matrix-Room)
+
+### 30. Lizenz: AGPL-3.0
+
+**Begründung:**
+- Stärkste Open-Source-Lizenz für SaaS
+- Verhindert Proprietarisierung durch Cloud-Anbieter
+- Sicherstellt, dass Änderungen öffentlich bleiben
+- Kompatibel mit EU-Förderprogrammen
+
+### 31. GitHub-Repository-Setup
+
+| Schritt | Details |
+|---------|---------|
+| **Branch Protection** | Main branch schützen, PRs erforderlich |
+| **Issue Templates** | Bug Report, Feature Request, Question |
+| **PR Template** | Checklist für Contributors |
+| **GitHub Actions** | CI/CD für Flutter + Node.js |
+| **Dependabot** | Automatische Security-Updates |
+| **CODEOWNERS** | Code-Owner für Reviews |
+
+### 32. Nächste Schritte nach Repository
+
+1. README.md erstellen
+2. CONTRIBUTING.md erstellen
+3. LICENSE hinzufügen (AGPL-3.0)
+4. Issue-Templates anlegen
+5. PR-Template erstellen
+6. GitHub Actions workflows konfigurieren
+7. Matrix-Room einrichten
+8. Erste Good-First-Issues anlegen
