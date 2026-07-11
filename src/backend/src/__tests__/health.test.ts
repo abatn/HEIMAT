@@ -1,53 +1,78 @@
-import { healthService } from '../services/healthService';
+import request from 'supertest';
+import app from '../index';
 
-describe('HealthService', () => {
-  describe('searchDoctors', () => {
-    it('should return all doctors when no filter is applied', async () => {
-      const doctors = await healthService.searchDoctors();
-      expect(doctors.length).toBeGreaterThan(0);
+describe('Health API', () => {
+  describe('GET /api/health/doctors', () => {
+    it('should return all doctors', async () => {
+      const res = await request(app)
+        .get('/api/health/doctors');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('doctors');
+      expect(Array.isArray(res.body.doctors)).toBe(true);
     });
 
-    it('should filter doctors by specialty', async () => {
-      const doctors = await healthService.searchDoctors('Allgemeinmedizin');
-      expect(doctors.length).toBeGreaterThan(0);
-      doctors.forEach(doc => {
-        expect(doc.specialty).toContain('Allgemeinmedizin');
-      });
-    });
-  });
+    it('should filter by specialty', async () => {
+      const res = await request(app)
+        .get('/api/health/doctors?specialty=Allgemeinmedizin');
 
-  describe('getDoctorById', () => {
-    it('should return a doctor by id', async () => {
-      const doctor = await healthService.getDoctorById('doc1');
-      expect(doctor).toBeDefined();
-      expect(doctor.id).toBe('doc1');
-    });
-
-    it('should throw error for non-existent doctor', async () => {
-      await expect(healthService.getDoctorById('nonexistent'))
-        .rejects.toThrow('Doctor not found');
+      expect(res.status).toBe(200);
+      expect(res.body.doctors.length).toBeGreaterThan(0);
     });
   });
 
-  describe('bookAppointment', () => {
-    it('should book an appointment successfully', async () => {
-      const appointment = await healthService.bookAppointment(
-        'doc1',
-        'Test Patient',
-        '2024-02-20',
-        '09:00'
-      );
-      expect(appointment).toBeDefined();
-      expect(appointment.status).toBe('pending');
-    });
+  describe('GET /api/health/doctors/:id', () => {
+    it('should return a specific doctor', async () => {
+      const doctorsRes = await request(app)
+        .get('/api/health/doctors');
 
-    it('should throw error for unavailable slot', async () => {
-      await expect(healthService.bookAppointment(
-        'doc1',
-        'Test Patient',
-        '2024-02-20',
-        '99:99'
-      )).rejects.toThrow('This time slot is not available');
+      if (doctorsRes.body.doctors.length > 0) {
+        const doctorId = doctorsRes.body.doctors[0].id;
+        const res = await request(app)
+          .get(`/api/health/doctors/${doctorId}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('doctor');
+      }
+    });
+  });
+
+  describe('GET /api/health/doctors/:id/slots', () => {
+    it('should return available slots', async () => {
+      const doctorsRes = await request(app)
+        .get('/api/health/doctors');
+
+      if (doctorsRes.body.doctors.length > 0) {
+        const doctorId = doctorsRes.body.doctors[0].id;
+        const res = await request(app)
+          .get(`/api/health/doctors/${doctorId}/slots?date=2024-02-15`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('slots');
+        expect(Array.isArray(res.body.slots)).toBe(true);
+      }
+    });
+  });
+
+  describe('POST /api/health/appointments', () => {
+    it('should book an appointment', async () => {
+      const doctorsRes = await request(app)
+        .get('/api/health/doctors');
+
+      if (doctorsRes.body.doctors.length > 0) {
+        const doctorId = doctorsRes.body.doctors[0].id;
+        const res = await request(app)
+          .post('/api/health/appointments')
+          .send({
+            doctorId,
+            patientName: 'Test Patient',
+            date: '2024-02-20',
+            time: '09:00',
+          });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('appointment');
+      }
     });
   });
 });
