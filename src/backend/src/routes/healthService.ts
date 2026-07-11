@@ -1,52 +1,114 @@
 import { Router, Request, Response } from 'express';
 import { AppError } from '../middleware/errorHandler';
+import { healthService } from '../services/healthService';
 
 export const healthRouter = Router();
 
 // Search doctors
 healthRouter.get('/doctors', async (req: Request, res: Response) => {
-  const { specialty, location, date } = req.query;
+  const { specialty, location } = req.query;
 
-  if (!specialty && !location) {
-    throw new AppError('Specialty or location is required', 400);
-  }
+  const doctors = await healthService.searchDoctors(
+    specialty as string,
+    location as string
+  );
 
-  // TODO: Query doctor database
   res.json({
     status: 'ok',
-    doctors: [],
-    message: 'Doctor search - coming soon',
+    doctors,
+    count: doctors.length,
   });
 });
 
-// Get available appointments
-healthRouter.get('/appointments', async (req: Request, res: Response) => {
-  const { doctorId, date } = req.query;
+// Get doctor by ID
+healthRouter.get('/doctors/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
 
-  if (!doctorId) {
-    throw new AppError('Doctor ID is required', 400);
-  }
+  const doctor = await healthService.getDoctorById(id);
 
-  // TODO: Query Cal.com integration
   res.json({
     status: 'ok',
-    appointments: [],
-    message: 'Appointment availability - coming soon',
+    doctor,
+  });
+});
+
+// Get available slots
+healthRouter.get('/doctors/:id/slots', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { date } = req.query;
+
+  if (!date) {
+    throw new AppError('Date is required', 400);
+  }
+
+  const slots = await healthService.getAvailableSlots(id, date as string);
+
+  res.json({
+    status: 'ok',
+    doctorId: id,
+    date,
+    slots,
+    count: slots.length,
   });
 });
 
 // Book appointment
 healthRouter.post('/appointments', async (req: Request, res: Response) => {
-  const { doctorId, date, time, patientName } = req.body;
+  const { doctorId, patientName, date, time } = req.body;
 
-  if (!doctorId || !date || !time) {
-    throw new AppError('Doctor ID, date, and time are required', 400);
+  if (!doctorId || !patientName || !date || !time) {
+    throw new AppError('Doctor ID, patient name, date, and time are required', 400);
   }
 
-  // TODO: Integrate with Cal.com
+  const appointment = await healthService.bookAppointment(
+    doctorId,
+    patientName,
+    date,
+    time
+  );
+
   res.json({
     status: 'ok',
-    appointmentId: null,
-    message: 'Appointment booking - coming soon',
+    appointment,
+    message: 'Appointment booked. Waiting for doctor confirmation.',
+  });
+});
+
+// Get appointments for patient
+healthRouter.get('/appointments/:patientName', async (req: Request, res: Response) => {
+  const { patientName } = req.params;
+
+  const appointments = await healthService.getAppointments(patientName);
+
+  res.json({
+    status: 'ok',
+    appointments,
+    count: appointments.length,
+  });
+});
+
+// Cancel appointment
+healthRouter.put('/appointments/:id/cancel', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const appointment = await healthService.cancelAppointment(id);
+
+  res.json({
+    status: 'ok',
+    appointment,
+    message: 'Appointment cancelled',
+  });
+});
+
+// Confirm appointment (for doctors)
+healthRouter.put('/appointments/:id/confirm', async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const appointment = await healthService.confirmAppointment(id);
+
+  res.json({
+    status: 'ok',
+    appointment,
+    message: 'Appointment confirmed',
   });
 });
