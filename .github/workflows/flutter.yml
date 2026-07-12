@@ -92,15 +92,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.x'
           channel: stable
+
+      - name: Enable Android platform
+        run: flutter create . --platforms android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
       - name: Install dependencies
         run: flutter pub get
@@ -128,6 +131,9 @@ jobs:
         with:
           flutter-version: '3.x'
           channel: stable
+
+      - name: Enable iOS platform
+        run: flutter create . --platforms ios
 
       - name: Install dependencies
         run: flutter pub get
