@@ -1,8 +1,9 @@
+import 'dart:convert';
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
-import '../../../core/api/api_client.dart';
+import '../../../core/config/app_config.dart';
 
 class FinanceProvider extends ChangeNotifier {
-  final ApiClient _api = ApiClient();
   static const String _currentUserId = 'user-demo-001';
   double _balance = 0.0;
   bool _isLoading = false;
@@ -15,18 +16,13 @@ class FinanceProvider extends ChangeNotifier {
   bool get hasLoaded => _hasLoaded;
 
   Future<void> loadWallet() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    _isLoading = true; _error = null; notifyListeners();
     try {
-      final response = await _api.get('/api/finance/wallet/$_currentUserId');
-      _balance = (response['wallet']['balance'] ?? 0).toDouble();
-    } catch (e) {
-      _error = 'Wallet konnte nicht geladen werden: $e';
-    } finally {
-      _isLoading = false;
-      _hasLoaded = true;
-      notifyListeners();
-    }
+      final url = '${AppConfig.backendUrl}/api/finance/wallet/$_currentUserId';
+      final response = await html.HttpRequest.request(url, method: 'GET', requestHeaders: {'Content-Type': 'application/json'});
+      final data = json.decode(response.responseText!);
+      _balance = (data['wallet']['balance'] ?? 0).toDouble();
+    } catch (e) { _error = 'Wallet konnte nicht geladen werden: $e'; }
+    finally { _isLoading = false; _hasLoaded = true; notifyListeners(); }
   }
 }

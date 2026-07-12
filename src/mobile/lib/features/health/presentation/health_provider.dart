@@ -1,5 +1,7 @@
+import 'dart:convert';
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
-import '../../../core/api/api_client.dart';
+import '../../../core/config/app_config.dart';
 
 class Doctor {
   final String id;
@@ -8,25 +10,14 @@ class Doctor {
   final String address;
   final String phone;
 
-  Doctor(
-      {required this.id,
-      required this.name,
-      required this.specialty,
-      required this.address,
-      required this.phone});
+  Doctor({required this.id, required this.name, required this.specialty, required this.address, required this.phone});
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
-    return Doctor(
-        id: json['id'] ?? '',
-        name: json['name'] ?? '',
-        specialty: json['specialty'] ?? '',
-        address: json['address'] ?? '',
-        phone: json['phone'] ?? '');
+    return Doctor(id: json['id'] ?? '', name: json['name'] ?? '', specialty: json['specialty'] ?? '', address: json['address'] ?? '', phone: json['phone'] ?? '');
   }
 }
 
 class HealthProvider extends ChangeNotifier {
-  final ApiClient _api = ApiClient();
   List<Doctor> _doctors = [];
   bool _isLoading = false;
   String? _error;
@@ -36,21 +27,14 @@ class HealthProvider extends ChangeNotifier {
   String? get error => _error;
 
   Future<void> searchDoctors({String? specialty}) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    _isLoading = true; _error = null; notifyListeners();
     try {
-      final query = specialty != null && specialty.isNotEmpty
-          ? '?specialty=${Uri.encodeComponent(specialty)}'
-          : '';
-      final response = await _api.get('/api/health/doctors$query');
-      _doctors =
-          (response['doctors'] as List).map((d) => Doctor.fromJson(d)).toList();
-    } catch (e) {
-      _error = 'Ärzte konnten nicht geladen werden: $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+      final query = specialty != null && specialty.isNotEmpty ? '?specialty=${Uri.encodeComponent(specialty)}' : '';
+      final url = '${AppConfig.backendUrl}/api/health/doctors$query';
+      final response = await html.HttpRequest.request(url, method: 'GET', requestHeaders: {'Content-Type': 'application/json'});
+      final data = json.decode(response.responseText!);
+      _doctors = (data['doctors'] as List).map((d) => Doctor.fromJson(d)).toList();
+    } catch (e) { _error = 'Ärzte konnten nicht geladen werden: $e'; }
+    finally { _isLoading = false; notifyListeners(); }
   }
 }

@@ -2,8 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'health_provider.dart';
 
-class HealthScreen extends StatelessWidget {
+class HealthScreen extends StatefulWidget {
   const HealthScreen({super.key});
+
+  @override
+  State<HealthScreen> createState() => _HealthScreenState();
+}
+
+class _HealthScreenState extends State<HealthScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HealthProvider>().searchDoctors();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,12 +24,9 @@ class HealthScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Gesundheit')),
       body: Consumer<HealthProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading)
-            return const Center(child: CircularProgressIndicator());
-          if (provider.error != null)
-            return Center(child: Text(provider.error!));
-          if (provider.doctors.isEmpty)
-            return const Center(child: Text('Keine \u00c4rzte gefunden'));
+          if (provider.isLoading) return const Center(child: CircularProgressIndicator());
+          if (provider.error != null) return Center(child: Text(provider.error!));
+          if (provider.doctors.isEmpty) return const Center(child: Text('Keine \u00c4rzte gefunden'));
           return ListView.builder(
             itemCount: provider.doctors.length,
             itemBuilder: (context, index) {
@@ -27,7 +37,6 @@ class HealthScreen extends StatelessWidget {
                   title: Text(doc.name),
                   subtitle: Text('${doc.specialty}\n${doc.address}'),
                   isThreeLine: true,
-                  trailing: const Icon(Icons.chevron_right),
                 ),
               );
             },
