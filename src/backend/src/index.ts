@@ -14,75 +14,35 @@ import { mobilityRouter } from './routes/mobility';
 import { financeRouter } from './routes/finance';
 import { healthRouter as healthServiceRouter } from './routes/healthService';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Security middleware
 app.use(helmet());
-
-// CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-});
-app.use(limiter);
-
-// Body parsing
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: 'Too many requests.' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-
-// Compression
 app.use(compression());
+app.use(morgan('combined', { stream: { write: (message: string) => logger.info(message.trim()) } }));
 
-// Logging
-app.use(morgan('combined', {
-  stream: {
-    write: (message: string) => logger.info(message.trim()),
-  },
-}));
-
-// Root route
 app.get('/', (req, res) => {
-  res.json({
-    name: 'HEIMAT 2.0 API',
-    version: '1.0.0',
-    status: 'running',
-    endpoints: {
-      health: '/health',
-      mobility: '/api/mobility',
-      finance: '/api/finance',
-      healthService: '/api/health',
-    },
-  });
+  res.json({ name: 'HEIMAT 2.0 API', version: '1.0.0', status: 'running' });
 });
 
-// Health check
 app.use('/health', healthRouter);
-
-// API routes
 app.use('/api/mobility', mobilityRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/health', healthServiceRouter);
 
-// Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`HEIMAT Backend running on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    logger.info(`HEIMAT Backend running on port ${PORT}`);
+  });
+}
 
 export default app;

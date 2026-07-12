@@ -1,0 +1,33 @@
+# Flutter
+src/mobile/.dart_tool/
+src/mobile/.packages
+src/mobile/build/
+src/mobile/.flutter-plugins
+src/mobile/.flutter-plugins-dependencies
+src/mobile/pubspec.lock
+src/mobile/.metadata
+src/mobile/devtools_options.yaml
+src/mobile/.dart_tool/chrome-device/
+
+# Node.js
+src/backend/node_modules/
+src/backend/dist/
+src/backend/.env
+
+# Docker
+.env
+docker/data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+*.lcov
