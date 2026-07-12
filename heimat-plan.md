@@ -973,3 +973,33 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 - App im Debug-Modus starten
 - Browser Console prüfen
 - Exakten Fehler analysieren
+
+---
+
+## Architecture-Analyse (aus Fehleranalyse)
+
+### Daten-Pipeline-Problem
+```
+PostgreSQL (DECIMAL) → Node.js pg (String) → JSON (String) → Flutter (.toDouble() scheitert)
+```
+
+### Fehler
+```
+NoSuchMethodError: 'toDouble' Dynamic call of null. Receiver: "52.52190000"
+```
+
+### Ursache
+- PostgreSQL gibt DECIMAL als Strings zurück
+- Node.js pg gibt diese Strings weiter
+- Flutter erwartet Numbers
+
+### Korrekte Lösung
+- Frontend: `double.parse(json['latitude'].toString())` verwenden
+- Oder: Backend: Daten-Typen ändern
+- Empfehlung: Frontend-Fix (einfachster Weg)
+
+### Nächste Schritte
+1. mobility_provider.dart fixen
+2. finance_provider.dart fixen
+3. health_provider.dart fixen
+4. App testen
