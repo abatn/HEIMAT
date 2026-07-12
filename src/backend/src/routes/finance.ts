@@ -1,11 +1,15 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/errorHandler';
 import { financeService } from '../services/financeService';
 
 export const financeRouter = Router();
 
+const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 // Get wallet balance
-financeRouter.get('/wallet/:userId', async (req: Request, res: Response) => {
+financeRouter.get('/wallet/:userId', asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   if (!userId) {
@@ -18,10 +22,10 @@ financeRouter.get('/wallet/:userId', async (req: Request, res: Response) => {
     status: 'ok',
     wallet,
   });
-});
+}));
 
 // Create payment
-financeRouter.post('/pay', async (req: Request, res: Response) => {
+financeRouter.post('/pay', asyncHandler(async (req: Request, res: Response) => {
   const { from, to, amount, currency } = req.body;
 
   if (!from || !to || !amount) {
@@ -43,10 +47,10 @@ financeRouter.post('/pay', async (req: Request, res: Response) => {
     status: 'ok',
     transaction,
   });
-});
+}));
 
 // Get transaction history
-financeRouter.get('/transactions/:userId', async (req: Request, res: Response) => {
+financeRouter.get('/transactions/:userId', asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   if (!userId) {
@@ -60,10 +64,10 @@ financeRouter.get('/transactions/:userId', async (req: Request, res: Response) =
     transactions,
     count: transactions.length,
   });
-});
+}));
 
 // Get balance
-financeRouter.get('/balance/:userId', async (req: Request, res: Response) => {
+financeRouter.get('/balance/:userId', asyncHandler(async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   if (!userId) {
@@ -77,4 +81,4 @@ financeRouter.get('/balance/:userId', async (req: Request, res: Response) => {
     balance,
     currency: 'EUR',
   });
-});
+}));

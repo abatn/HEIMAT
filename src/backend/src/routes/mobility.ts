@@ -1,11 +1,15 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/errorHandler';
 import { mobilityService } from '../services/mobilityService';
 
 export const mobilityRouter = Router();
 
+const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 // Get nearby stops
-mobilityRouter.get('/stops', async (req: Request, res: Response) => {
+mobilityRouter.get('/stops', asyncHandler(async (req: Request, res: Response) => {
   const { lat, lng, radius } = req.query;
 
   if (!lat || !lng) {
@@ -27,10 +31,10 @@ mobilityRouter.get('/stops', async (req: Request, res: Response) => {
     stops,
     count: stops.length,
   });
-});
+}));
 
 // Get stop by ID
-mobilityRouter.get('/stops/:id', async (req: Request, res: Response) => {
+mobilityRouter.get('/stops/:id', asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const stop = await mobilityService.getStopById(id);
@@ -39,10 +43,10 @@ mobilityRouter.get('/stops/:id', async (req: Request, res: Response) => {
     status: 'ok',
     stop,
   });
-});
+}));
 
 // Search stops
-mobilityRouter.get('/stops/search', async (req: Request, res: Response) => {
+mobilityRouter.get('/stops/search', asyncHandler(async (req: Request, res: Response) => {
   const { q } = req.query;
 
   if (!q) {
@@ -56,10 +60,10 @@ mobilityRouter.get('/stops/search', async (req: Request, res: Response) => {
     stops,
     count: stops.length,
   });
-});
+}));
 
 // Get route
-mobilityRouter.get('/route', async (req: Request, res: Response) => {
+mobilityRouter.get('/route', asyncHandler(async (req: Request, res: Response) => {
   const { from_lat, from_lng, to_lat, to_lng } = req.query;
 
   if (!from_lat || !from_lng || !to_lat || !to_lng) {
@@ -75,10 +79,10 @@ mobilityRouter.get('/route', async (req: Request, res: Response) => {
     status: 'ok',
     route,
   });
-});
+}));
 
 // Geocoding
-mobilityRouter.get('/geocode', async (req: Request, res: Response) => {
+mobilityRouter.get('/geocode', asyncHandler(async (req: Request, res: Response) => {
   const { address } = req.query;
 
   if (!address) {
@@ -91,4 +95,4 @@ mobilityRouter.get('/geocode', async (req: Request, res: Response) => {
     status: 'ok',
     results,
   });
-});
+}));

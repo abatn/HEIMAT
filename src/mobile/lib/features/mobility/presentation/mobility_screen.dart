@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
+import 'mobility_provider.dart';
 
 class MobilityScreen extends StatefulWidget {
   const MobilityScreen({super.key});
@@ -16,13 +18,17 @@ class _MobilityScreenState extends State<MobilityScreen> {
 
   LatLng? _startLocation;
   LatLng? _endLocation;
-  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
-    // Starte an aktueller Position (wird später implementiert)
     _startLocation = LatLng(52.5200, 13.4050); // Berlin als Default
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MobilityProvider>().loadNearbyStops(
+            _startLocation!.latitude,
+            _startLocation!.longitude,
+          );
+    });
   }
 
   @override
@@ -39,50 +45,11 @@ class _MobilityScreenState extends State<MobilityScreen> {
       ),
       body: Column(
         children: [
-          // Suchfelder
           _buildSearchBar(),
-          // Karte
           Expanded(
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                center: _startLocation ?? LatLng(52.5200, 13.4050),
-                zoom: 13.0,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'de.heimat.app',
-                ),
-                MarkerLayer(
-                  markers: [
-                    if (_startLocation != null)
-                      Marker(
-                        point: _startLocation!,
-                        width: 80,
-                        height: 80,
-                        builder: (ctx) => const Icon(
-                          Icons.location_on,
-                          color: Colors.green,
-                          size: 40,
-                        ),
-                      ),
-                    if (_endLocation != null)
-                      Marker(
-                        point: _endLocation!,
-                        width: 80,
-                        height: 80,
-                        builder: (ctx) => const Icon(
-                          Icons.location_on,
-                          color: Colors.red,
-                          size: 40,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+            child: _buildMap(),
           ),
+          _buildNearbyStopsList(),
         ],
       ),
       floatingActionButton: Column(
@@ -107,7 +74,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Column(
         children: [
           TextField(
@@ -120,10 +87,17 @@ class _MobilityScreenState extends State<MobilityScreen> {
                 icon: const Icon(Icons.my_location),
                 onPressed: () {
                   _startController.text = 'Aktuelle Position';
-                  _startLocation = LatLng(52.5200, 13.4050);
+                  setState(() {
+                    _startLocation = LatLng(52.5200, 13.4050);
+                  });
+                  context.read<MobilityProvider>().loadNearbyStops(
+                        _startLocation!.latitude,
+                        _startLocation!.longitude,
+                      );
                 },
               ),
             ),
+            onSubmitted: (value) => _searchLocation(value, false),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -137,17 +111,156 @@ class _MobilityScreenState extends State<MobilityScreen> {
                 onPressed: () => _showLocationSearch(true),
               ),
             ),
+            onSubmitted: (value) => _searchLocation(value, true),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildMap() {
+    return Consumer<MobilityProvider>(
+      builder: (context, provider, child) {
+        return FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _startLocation ?? LatLng(52.5200, 13.4050),
+            initialZoom: 13.0,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'de.heimat.app',
+            ),
+            MarkerLayer(
+              markers: [
+                if (_startLocation != null)
+                  Marker(
+                    point: _startLocation!,
+                    width: 80,
+                    height: 80,
+                    child: const Icon(
+                      Icons.location_on,
+                      color: Colors.green,
+                      size: 40,
+                    ),
+                  ),
+                if (_endLocation != null)
+                  Marker(
+                    point: _endLocation!,
+                    width: 80,
+                    height: 80,
+                    child: const Icon(
+                      Icons.location_on,
+                      color: Colors.red,
+                      size: 40,
+                    ),
+                  ),
+                // Haltestellen-Marker
+                for (final stop in provider.nearbyStops)
+                  Marker(
+                    point: stop.location,
+                    width: 60,
+                    height: 60,
+                    child: Tooltip(
+                      message: stop.name,
+                      child: Icon(
+                        Icons.train,
+                        color: Colors.blue,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildNearbyStopsList() {
+    return Consumer<MobilityProvider>(
+      builder: (context, provider, child) {
+        if (provider.nearbyStops.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          height: 120,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Haltestellen in der Nähe (${provider.nearbyStops.length})',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: provider.nearbyStops.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final stop = provider.nearbyStops[index];
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.train, color: Colors.blue),
+                            const SizedBox(height: 4),
+                            Text(
+                              stop.name,
+                              style: const TextStyle(fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _getCurrentLocation() {
-    // TODO: GPS-Position abrufen
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Aktuelle Position wird geladen...')),
     );
+  }
+
+  void _searchLocation(String address, bool isEnd) {
+    if (address.isEmpty) return;
+
+    context.read<MobilityProvider>().geocodeAddress(address).then((_) {
+      final results = context.read<MobilityProvider>().geocodeResults;
+      if (results.isNotEmpty) {
+        setState(() {
+          final result = results.first;
+          if (isEnd) {
+            _endLocation = LatLng(result.lat, result.lng);
+            _endController.text = result.displayName;
+          } else {
+            _startLocation = LatLng(result.lat, result.lng);
+            _startController.text = result.displayName;
+            context.read<MobilityProvider>().loadNearbyStops(
+                  result.lat,
+                  result.lng,
+                );
+          }
+        });
+        _mapController.move(
+          isEnd ? _endLocation! : _startLocation!,
+          14.0,
+        );
+      }
+    });
   }
 
   void _searchConnections() {
@@ -157,7 +270,8 @@ class _MobilityScreenState extends State<MobilityScreen> {
       );
       return;
     }
-    // TODO: ÖPNV-Verbindungen suchen
+
+    context.read<MobilityProvider>().getRoute(_startLocation!, _endLocation!);
     _showConnectionsDialog();
   }
 
@@ -168,14 +282,12 @@ class _MobilityScreenState extends State<MobilityScreen> {
       );
       return;
     }
-    // TODO: Navigation starten
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigation wird gestartet...')),
     );
   }
 
   void _showLocationSearch(bool isEnd) {
-    // TODO: Standortsuche mit Autocomplete
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -194,17 +306,8 @@ class _MobilityScreenState extends State<MobilityScreen> {
                 border: OutlineInputBorder(),
               ),
               onSubmitted: (value) {
-                // TODO: Adresse in Koordinaten umwandeln
-                setState(() {
-                  if (isEnd) {
-                    _endLocation = LatLng(52.5170, 13.3888); // Alexanderplatz
-                    _endController.text = value;
-                  } else {
-                    _startLocation = LatLng(52.5170, 13.3888);
-                    _startController.text = value;
-                  }
-                });
                 Navigator.pop(context);
+                _searchLocation(value, isEnd);
               },
             ),
           ],
@@ -214,7 +317,6 @@ class _MobilityScreenState extends State<MobilityScreen> {
   }
 
   void _showConnectionsDialog() {
-    // TODO: ÖPNV-Verbindungen von API laden
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -222,70 +324,46 @@ class _MobilityScreenState extends State<MobilityScreen> {
         initialChildSize: 0.7,
         minChildSize: 0.5,
         maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(16),
-          child: ListView(
-            controller: scrollController,
-            children: [
-              Text(
-                'ÖPNV-Verbindungen',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              // Beispiel-Verbindungen
-              _buildConnectionCard(
-                departure: '08:30',
-                arrival: '08:45',
-                duration: '15 Min',
-                transfers: 0,
-                line: 'U2',
-              ),
-              _buildConnectionCard(
-                departure: '08:35',
-                arrival: '08:55',
-                duration: '20 Min',
-                transfers: 1,
-                line: 'S-Bahn',
-              ),
-              _buildConnectionCard(
-                departure: '08:40',
-                arrival: '09:00',
-                duration: '20 Min',
-                transfers: 1,
-                line: 'Bus 100',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+        expand: false,
+        builder: (context, scrollController) => Consumer<MobilityProvider>(
+          builder: (context, provider, child) {
+            if (provider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-  Widget _buildConnectionCard({
-    required String departure,
-    required String arrival,
-    required String duration,
-    required int transfers,
-    required String line,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              departure,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(duration, style: const TextStyle(color: Colors.grey)),
-          ],
-        ),
-        title: Text(line),
-        subtitle: Text('$transfers Umstieg${transfers == 1 ? '' : 'e'}'),
-        trailing: Text(
-          arrival,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+            if (provider.error != null) {
+              return Center(child: Text(provider.error!));
+            }
+
+            final route = provider.currentRoute;
+            return Container(
+              padding: const EdgeInsets.all(16),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Text(
+                    'Route',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  if (route != null)
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.directions),
+                        title: Text(
+                          'Distanz: ${(route.distance / 1000).toStringAsFixed(1)} km',
+                        ),
+                        subtitle: Text(
+                          'Dauer: ${(route.duration / 60).toStringAsFixed(0)} Min',
+                        ),
+                      ),
+                    )
+                  else
+                    const Text('Keine Route gefunden'),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

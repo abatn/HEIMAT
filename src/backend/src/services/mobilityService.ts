@@ -25,18 +25,21 @@ export class MobilityService {
   private readonly osrmUrl = 'https://router.project-osrm.org';
 
   async getNearbyStops(lat: number, lng: number, radiusMeters: number = 1000): Promise<Stop[]> {
-    // PostgreSQL PostGIS-Abfrage für Haltestellen in der Nähe
+    // Haversine-Formel für Entfernungsberechnung (kein PostGIS nötig)
     const stops = await query<Stop>(
-      `SELECT id, name, latitude, longitude, stop_type
+      `SELECT id, name, latitude, longitude, stop_type,
+              (6371000 * acos(
+                cos(radians($2)) * cos(radians(latitude)) *
+                cos(radians(longitude) - radians($1)) +
+                sin(radians($2)) * sin(radians(latitude))
+              )) AS distance
        FROM stops
-       WHERE ST_Distance(
-         ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
-         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
-       ) < $3
-       ORDER BY ST_Distance(
-         ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography,
-         ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
-       )
+       WHERE (6371000 * acos(
+                cos(radians($2)) * cos(radians(latitude)) *
+                cos(radians(longitude) - radians($1)) +
+                sin(radians($2)) * sin(radians(latitude))
+              )) < $3
+       ORDER BY distance
        LIMIT 10`,
       [lng, lat, radiusMeters]
     );
