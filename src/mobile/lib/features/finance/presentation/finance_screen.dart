@@ -16,15 +16,23 @@ class FinanceScreen extends StatelessWidget {
           }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Card(elevation: 4, child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(children: [
-                  const Text('Aktuelles Guthaben', style: TextStyle(fontSize: 16, color: Colors.grey)),
-                  const SizedBox(height: 8),
-                  Text('${provider.balance.toStringAsFixed(2)} \u20ac', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.green)),
-                ]),
-              )),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(children: [
+                      const Text('Aktuelles Guthaben',
+                          style: TextStyle(fontSize: 16, color: Colors.grey)),
+                      const SizedBox(height: 8),
+                      Text('${provider.balance.toStringAsFixed(2)} \u20ac',
+                          style: const TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green)),
+                    ]),
+                  )),
             ]),
           );
         },

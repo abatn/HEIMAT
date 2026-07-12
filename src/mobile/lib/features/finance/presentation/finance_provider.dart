@@ -15,11 +15,18 @@ class FinanceProvider extends ChangeNotifier {
   bool get hasLoaded => _hasLoaded;
 
   Future<void> loadWallet() async {
-    _isLoading = true; _error = null; notifyListeners();
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
     try {
       final response = await _api.get('/api/finance/wallet/$_currentUserId');
       _balance = (response['wallet']['balance'] ?? 0).toDouble();
-    } catch (e) { _error = 'Wallet konnte nicht geladen werden: $e'; }
-    finally { _isLoading = false; _hasLoaded = true; notifyListeners(); }
+    } catch (e) {
+      _error = 'Wallet konnte nicht geladen werden: $e';
+    } finally {
+      _isLoading = false;
+      _hasLoaded = true;
+      notifyListeners();
+    }
   }
 }
