@@ -4,9 +4,10 @@ import { financeService } from '../services/financeService';
 
 export const financeRouter = Router();
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 // Get wallet balance
 financeRouter.get('/wallet/:userId', asyncHandler(async (req: Request, res: Response) => {

@@ -4,9 +4,10 @@ import { healthService } from '../services/healthService';
 
 export const healthRouter = Router();
 
-const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 // Search doctors
 healthRouter.get('/doctors', asyncHandler(async (req: Request, res: Response) => {
