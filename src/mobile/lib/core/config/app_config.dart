@@ -3,16 +3,18 @@ class AppConfig {
   static const String version = '1.0.0';
 
   static String get backendUrl {
-    return const String.fromEnvironment(
+    const url = String.fromEnvironment(
       'BACKEND_URL',
       defaultValue: 'http://localhost:3000',
     );
+    return url;
   }
 
   static String get mlServiceUrl {
-    return const String.fromEnvironment(
+    const url = String.fromEnvironment(
       'ML_SERVICE_URL',
       defaultValue: 'http://localhost:8000',
     );
+    return url;
   }
 }
