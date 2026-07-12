@@ -945,3 +945,31 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 **Status:** 🟢 ALLE AUTOMATISCHEN PHASEN ABGESCHLOSSEN
 **Nächster Schritt:** Manuelle Umsetzung der 7 Schritte
+
+---
+
+## Aktueller Stand (aus .loop.md)
+
+### Features die funktionieren müssen (aus README.md)
+- Mobilität: Karte + ÖPNV + Routing
+- Finanzen: P2P-Zahlungen (Taler)
+- Gesundheit: Arzt-Suche + Terminbuchung
+
+### Test-Checkliste (aus docs/endbenutzer-testing.md)
+- [ ] Karte lädt korrekt
+- [ ] ÖPNV-Suche funktioniert
+- [ ] Guthaben wird angezeigt
+- [ ] Zahlung funktioniert
+- [ ] Ärzte werden angezeigt
+- [ ] Terminbuchung funktioniert
+
+### Aktueller Status
+- CI/CD: 10/10 grün ✅
+- Backend: Port 3000 ✅
+- Web-Server: Port 8081 ✅
+- App: Runtime-Fehler ❌
+
+### Nächster Schritt
+- App im Debug-Modus starten
+- Browser Console prüfen
+- Exakten Fehler analysieren
