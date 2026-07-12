@@ -14,26 +14,50 @@ class FinanceScreen extends StatelessWidget {
           if (provider.isLoading && !provider.hasLoaded) {
             return const Center(child: CircularProgressIndicator());
           }
+          if (provider.error != null && !provider.hasLoaded) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(provider.error!),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => provider.loadWallet(),
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
+              ),
+            );
+          }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Card(
                   elevation: 4,
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Column(children: [
-                      const Text('Aktuelles Guthaben',
-                          style: TextStyle(fontSize: 16, color: Colors.grey)),
-                      const SizedBox(height: 8),
-                      Text('${provider.balance.toStringAsFixed(2)} \u20ac',
+                    child: Column(
+                      children: [
+                        const Text('Aktuelles Guthaben',
+                            style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${provider.balance.toStringAsFixed(2)} \u20ac',
                           style: const TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green)),
-                    ]),
-                  )),
-            ]),
+                              color: Colors.green),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),

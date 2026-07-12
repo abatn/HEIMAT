@@ -64,6 +64,12 @@ class _MobilityScreenState extends State<MobilityScreen> {
           Expanded(
             child: Consumer<MobilityProvider>(
               builder: (context, provider, child) {
+                if (provider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (provider.error != null) {
+                  return Center(child: Text(provider.error!));
+                }
                 return FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(

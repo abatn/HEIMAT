@@ -1,12 +1,12 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/app_config.dart';
 
 class ApiClient {
-  static const String baseUrl = 'http://10.0.2.2:3000'; // Android Emulator
-  // Für iOS: http://localhost:3000
-  // Für Web: http://localhost:3000
-
+  final String baseUrl;
   final http.Client _client = http.Client();
+
+  ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? AppConfig.backendUrl;
 
   Future<Map<String, dynamic>> get(String endpoint) async {
     try {
@@ -67,6 +67,3 @@ class ApiClient {
     _client.close();
   }
 }
-
-// Singleton
-final apiClient = ApiClient();
