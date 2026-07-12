@@ -13,7 +13,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
   final MapController _mapController = MapController();
   final TextEditingController _startController = TextEditingController();
   final TextEditingController _endController = TextEditingController();
-  
+
   LatLng? _startLocation;
   LatLng? _endLocation;
   bool _isSearching = false;

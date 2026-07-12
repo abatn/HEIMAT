@@ -25,7 +25,8 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> post(
+      String endpoint, Map<String, dynamic> body) async {
     try {
       final response = await _client.post(
         Uri.parse('$baseUrl$endpoint'),
@@ -43,7 +44,8 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> put(
+      String endpoint, Map<String, dynamic> body) async {
     try {
       final response = await _client.put(
         Uri.parse('$baseUrl$endpoint'),

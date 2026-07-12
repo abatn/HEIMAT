@@ -174,7 +174,8 @@ class _HealthScreenState extends State<HealthScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: doctor['available'] ? Colors.green : Colors.red,
                     borderRadius: BorderRadius.circular(12),
@@ -258,7 +259,8 @@ class _HealthScreenState extends State<HealthScreen> {
           ),
         ),
         title: Text(appointment['doctor']),
-        subtitle: Text('${appointment['specialty']}\n${appointment['date']} um ${appointment['time']}'),
+        subtitle: Text(
+            '${appointment['specialty']}\n${appointment['date']} um ${appointment['time']}'),
         trailing: PopupMenuButton(
           itemBuilder: (context) => [
             const PopupMenuItem(
@@ -372,7 +374,8 @@ class _HealthScreenState extends State<HealthScreen> {
             children: [
               Text(
                 'Termin bei ${doctor['name']}',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               const TextField(
@@ -434,7 +437,8 @@ class _HealthScreenState extends State<HealthScreen> {
     );
   }
 
-  void _handleAppointmentAction(Map<String, dynamic> appointment, String action) {
+  void _handleAppointmentAction(
+      Map<String, dynamic> appointment, String action) {
     setState(() {
       if (action == 'cancel') {
         appointment['status'] = 'cancelled';
