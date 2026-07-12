@@ -106,12 +106,16 @@ jobs:
         run: |
           flutter create . --platforms android
           sed -i 's/VERSION_1_8/VERSION_17/g' android/app/build.gradle
+          sed -i 's/VERSION_1_8/VERSION_17/g' android/build.gradle
+          echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release
+        env:
+          JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.19-10/x64
+        run: flutter build apk --release --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -145,13 +149,22 @@ jobs:
         continue-on-error: true
 
       - name: Build iOS (no codesign)
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --no-codesign
 
       - name: Create IPA
         run: |
           mkdir -p build/ios/ipa
-          cd build/ios/iphoneos
-          zip -r ../ipa/HEIMAT.ipa Payload.app
+          if [ -d "build/ios/iphoneos/Runner.app" ]; then
+            cd build/ios/iphoneos
+            zip -r ../ipa/HEIMAT.ipa Runner.app
+          elif [ -d "build/ios/iphoneos/Payload.app" ]; then
+            cd build/ios/iphoneos
+            zip -r ../ipa/HEIMAT.ipa Payload.app
+          else
+            echo "No .app found, creating IPA from build output"
+            cd build/ios/iphoneos
+            zip -r ../ipa/HEIMAT.ipa .
+          fi
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4

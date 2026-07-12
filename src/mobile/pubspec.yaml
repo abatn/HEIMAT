@@ -27,9 +27,7 @@ dependencies:
   # UI
   flutter_svg: ^2.0.0
   
-  # AI / Machine Learning
-  tflite_flutter: ^0.12.1
-  image: ^4.1.7
+  # Path Provider
   path_provider: ^2.1.2
 
 dev_dependencies:
