@@ -103,7 +103,9 @@ jobs:
           channel: stable
 
       - name: Enable Android platform
-        run: flutter create . --platforms android
+        run: |
+          flutter create . --platforms android
+          sed -i 's/VERSION_1_8/VERSION_17/g' android/app/build.gradle
 
       - name: Install dependencies
         run: flutter pub get
@@ -152,53 +154,3 @@ jobs:
         with:
           name: ios-ipa
           path: build/ios/ipa/HEIMAT.ipa
-
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs: [build-web, build-android, build-ios]
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download Web Build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-build
-          path: web-build/
-
-      - name: Download APK
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: apk/
-
-      - name: Download IPA
-        uses: actions/download-artifact@v4
-        with:
-          name: ios-ipa
-          path: ipa/
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.run_number }}
-          name: "HEIMAT 2.0 v${{ github.run_number }}"
-          body: |
-            ## HEIMAT 2.0 Release
-            
-            ### Downloads
-            - **Web App:** https://abatn.github.io/HEIMAT/
-            - **Android APK:** Siehe Anhänge
-            - **iOS IPA:** Siehe Anhänge
-            
-            ### Änderungen
-            - Automatischer Build via CI/CD
-            - Web + Android + iOS unterstützt
-          files: |
-            apk/app-release.apk
-            ipa/HEIMAT.ipa
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
