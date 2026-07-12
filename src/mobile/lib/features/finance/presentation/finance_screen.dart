@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'finance_provider.dart';
 
 class FinanceScreen extends StatefulWidget {
   const FinanceScreen({super.key});
@@ -8,27 +10,17 @@ class FinanceScreen extends StatefulWidget {
 }
 
 class _FinanceScreenState extends State<FinanceScreen> {
-  double _balance = 100.00;
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      'to': 'Max Mustermann',
-      'amount': -25.00,
-      'date': '2024-01-15',
-      'description': 'Lunch bezahlt',
-    },
-    {
-      'to': 'Anna Schmidt',
-      'amount': 15.00,
-      'date': '2024-01-14',
-      'description': 'Getränk bezahlt',
-    },
-    {
-      'to': 'Peter Müller',
-      'amount': -50.00,
-      'date': '2024-01-13',
-      'description': 'Ticket bezahlt',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<FinanceProvider>();
+      if (!provider.hasLoaded) {
+        provider.loadWallet();
+        provider.loadTransactions();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,26 +34,52 @@ class _FinanceScreenState extends State<FinanceScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Guthaben-Anzeige
-            _buildBalanceCard(),
-            const SizedBox(height: 24),
-            // Zahlung starten
-            _buildPaymentSection(),
-            const SizedBox(height: 24),
-            // Letzte Transaktionen
-            _buildRecentTransactions(),
-          ],
-        ),
+      body: Consumer<FinanceProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading && !provider.hasLoaded) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (provider.error != null && provider.wallet == null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(provider.error!),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      provider.loadWallet();
+                      provider.loadTransactions();
+                    },
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildBalanceCard(provider),
+                const SizedBox(height: 24),
+                _buildPaymentSection(provider),
+                const SizedBox(height: 24),
+                _buildRecentTransactions(provider),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildBalanceCard() {
+  Widget _buildBalanceCard(FinanceProvider provider) {
     return Card(
       elevation: 4,
       child: Padding(
@@ -74,7 +92,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '${_balance.toStringAsFixed(2)} €',
+              '${provider.balance.toStringAsFixed(2)} €',
               style: const TextStyle(
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
@@ -129,7 +147,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _buildPaymentSection() {
+  Widget _buildPaymentSection(FinanceProvider provider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -182,7 +200,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  Widget _buildRecentTransactions() {
+  Widget _buildRecentTransactions(FinanceProvider provider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -203,16 +221,25 @@ class _FinanceScreenState extends State<FinanceScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            ..._transactions.map((tx) => _buildTransactionTile(tx)),
+            if (provider.transactions.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('Noch keine Transaktionen'),
+                ),
+              )
+            else
+              ...provider.transactions.take(5).map(
+                    (tx) => _buildTransactionTile(tx),
+                  ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTransactionTile(Map<String, dynamic> transaction) {
-    final amount = transaction['amount'] as double;
-    final isPositive = amount > 0;
+  Widget _buildTransactionTile(Transaction transaction) {
+    final isPositive = transaction.amount > 0;
 
     return ListTile(
       leading: CircleAvatar(
@@ -222,10 +249,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
           color: Colors.white,
         ),
       ),
-      title: Text(transaction['to']),
-      subtitle: Text(transaction['date']),
+      title: Text(transaction.toWalletId),
+      subtitle: Text(transaction.createdAt),
       trailing: Text(
-        '${isPositive ? '+' : ''}${amount.toStringAsFixed(2)} €',
+        '${isPositive ? '+' : ''}${transaction.amount.toStringAsFixed(2)} €',
         style: TextStyle(
           fontWeight: FontWeight.bold,
           color: isPositive ? Colors.green : Colors.red,
@@ -343,18 +370,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
   }
 
   void _sendPayment() {
-    setState(() {
-      _balance -= 25.00;
-      _transactions.insert(0, {
-        'to': 'Neuer Empfänger',
-        'amount': -25.00,
-        'date': DateTime.now().toString().split(' ')[0],
-        'description': 'Zahlung',
-      });
-    });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Zahlung erfolgreich gesendet!')),
+      const SnackBar(content: Text('Zahlung wird gesendet...')),
     );
+    // TODO: Formular-Werte auslesen und sendPayment() aufrufen
   }
 
   void _showTransactionHistory() {
@@ -363,10 +382,18 @@ class _FinanceScreenState extends State<FinanceScreen> {
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(title: const Text('Transaktionshistorie')),
-          body: ListView.builder(
-            itemCount: _transactions.length,
-            itemBuilder: (context, index) {
-              return _buildTransactionTile(_transactions[index]);
+          body: Consumer<FinanceProvider>(
+            builder: (context, provider, child) {
+              if (provider.transactions.isEmpty) {
+                return const Center(
+                    child: Text('Keine Transaktionen vorhanden'));
+              }
+              return ListView.builder(
+                itemCount: provider.transactions.length,
+                itemBuilder: (context, index) {
+                  return _buildTransactionTile(provider.transactions[index]);
+                },
+              );
             },
           ),
         ),

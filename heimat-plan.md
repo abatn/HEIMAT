@@ -543,7 +543,58 @@ HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Ra
 ---
 
 *Erstellt am: $(date)*
-*Nächste Aktualisierung: Nach Phase 1 der Umsetzung*
+*Nächste Aktualisierung: Nach Schritt 19b (App-UI mit Backend-API verbinden)*
+
+---
+
+## Schritt 19b: App-UI mit Backend-API verbinden
+
+### Ziel
+Die Flutter-App muss echte Daten vom Backend laden und anzeigen. Aktuell zeigt die App nur eine Navigation-Bar ohne Inhalte.
+
+### Abhängigkeiten (erfüllt)
+- ✅ Backend API läuft auf Port 3000
+- ✅ PostgreSQL mit Schema (mobility, finance, health)
+- ✅ Flutter App kompiliert und läuft in Chrome
+- ✅ api_client.dart mit Base-URL konfiguriert
+
+### Implementierungs-Schritte
+
+#### 1. API-Client prüfen/erweitern
+- Datei: `src/mobile/lib/core/api/api_client.dart`
+- Endpoints: `/api/mobility/stops`, `/api/mobility/route`, `/api/finance/wallet`, `/api/finance/transactions`, `/api/health/doctors`, `/api/health/appointments`
+- HTTP-Methoden: GET für Reads, POST für Writes
+
+#### 2. Mobility Screen
+- Datei: `src/mobile/lib/features/mobility/presentation/mobility_screen.dart`
+- Funktionen: Haltestellen in der Nähe laden, Routing anzeigen
+- API-Aufrufe: `GET /api/mobility/stops?lat=X&lng=Y`, `POST /api/mobility/route`
+
+#### 3. Finance Screen
+- Datei: `src/mobile/lib/features/finance/presentation/finance_screen.dart`
+- Funktionen: Wallet-Balance anzeigen, Transaktionshistorie
+- API-Aufrufe: `GET /api/finance/wallet/:id`, `GET /api/finance/transactions/:walletId`
+
+#### 4. Health Screen
+- Datei: `src/mobile/lib/features/health/presentation/health_screen.dart`
+- Funktionen: Ärzte suchen, Termine anzeigen/buchen
+- API-Aufrufe: `GET /api/health/doctors`, `GET /api/health/appointments/:userId`, `POST /api/health/appointments`
+
+#### 5. UI-States
+- Loading Indicator während API-Aufrufe
+- Error-Handling mit retry-Möglichkeit
+- Empty-State wenn keine Daten vorhanden
+
+#### 6. Docker Compose Frontend
+- Flutter Web Build in nginx-Container
+- SPA-Routing (nginx.conf)
+- API-Proxy zum Backend
+
+### Erfolgskriterien
+- App zeigt echte Daten aus PostgreSQL
+- Navigation zwischen Screens funktioniert
+- Loading/Error-States sichtbar
+- Keine Mock-Daten, keine hardcoded Werte
 
 ---
 
@@ -941,7 +992,38 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 | 10-13 | Marketing ✅ |
 | 14-18 | Fördermittel ✅ |
 | 19 | Abschlussdokumentation ✅ |
-| **20** | **Manuelle Umsetzung** ⏳ |
+| **19b/20** | **App-UI mit Backend-API verbunden** ✅ |
+| **21** | **Förderanträge einreichen** ⏳ |
+| **22** | **Stiftungen anschreiben** ⏳ |
 
-**Status:** 🟢 ALLE AUTOMATISCHEN PHASEN ABGESCHLOSSEN
-**Nächster Schritt:** Manuelle Umsetzung der 7 Schritte
+**Status:** 🟢 APP-UI VERBUNDEN – ECHTE DATEN WERDEN GELADEN
+**Nächster Schritt:** Förderanträge einreichen (Schritt 21)
+
+### Dokumentierte Änderungen (Schritt 19b/20)
+
+**Neue Dateien:**
+- `src/mobile/lib/features/mobility/presentation/mobility_provider.dart` – Provider für Mobilität (Haltestellen, Routing, Geocoding)
+- `src/mobile/lib/features/finance/presentation/finance_provider.dart` – Provider für Finanzen (Wallet, Transaktionen, Zahlungen)
+- `src/mobile/lib/features/health/presentation/health_provider.dart` – Provider für Gesundheit (Ärzte, Termine)
+
+**Geänderte Dateien:**
+- `src/mobile/lib/main.dart` – MultiProvider-Integration
+- `src/mobile/lib/features/mobility/presentation/mobility_screen.dart` – Echte API-Aufrufe statt Mock-Daten
+- `src/mobile/lib/features/finance/presentation/finance_screen.dart` – Echte API-Aufrufe statt Mock-Daten
+- `src/mobile/lib/features/health/presentation/health_screen.dart` – Echte API-Aufrufe statt Mock-Daten
+- `src/mobile/lib/core/config/app_config.dart` – Plattformabhängige API-URLs
+- `src/backend/src/services/mobilityService.ts` – PostGIS durch Haversine-Formel ersetzt
+
+**API-Endpunkte (verifiziert):**
+- `GET /api/mobility/stops?lat=...&lng=...` – Haltestellen in der Nähe
+- `GET /api/mobility/stops/search?q=...` – Haltestellen suchen
+- `GET /api/mobility/route?from_lat=...&from_lng=...&to_lat=...&to_lng=...` – Route berechnen
+- `GET /api/mobility/geocode?address=...` – Adresse in Koordinaten umwandeln
+- `GET /api/finance/wallet/:userId` – Wallet abrufen
+- `GET /api/finance/transactions/:userId` – Transaktionshistorie
+- `POST /api/finance/pay` – Zahlung senden
+- `GET /api/health/doctors?specialty=...&location=...` – Ärzte suchen
+- `GET /api/health/doctors/:id/slots?date=...` – Verfügbare Termine
+- `POST /api/health/appointments` – Termin buchen
+- `GET /api/health/appointments/:patientName` – Patienten-Termine
+- `PUT /api/health/appointments/:id/cancel` – Termin stornieren
