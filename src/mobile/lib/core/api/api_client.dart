@@ -1,69 +1,35 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/app_config.dart';
 
-class ApiClient {
+// Conditional import für Web vs Mobile
+import 'api_client_web.dart' if (dart.library.io) 'api_client_io.dart';
+
+abstract class ApiClientBase {
+  Future<Map<String, dynamic>> get(String endpoint);
+  Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body);
+  Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body);
+  void dispose();
+}
+
+class ApiClient implements ApiClientBase {
   final String baseUrl;
-  final http.Client _client = http.Client();
+  final ApiClientBase _impl;
 
-  ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? AppConfig.backendUrl;
+  ApiClient({String? baseUrl})
+      : baseUrl = baseUrl ?? AppConfig.backendUrl,
+        _impl = createApiClient(baseUrl ?? AppConfig.backendUrl);
 
-  Future<Map<String, dynamic>> get(String endpoint) async {
-    try {
-      final response = await _client.get(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: {'Content-Type': 'application/json'},
-      );
+  @override
+  Future<Map<String, dynamic>> get(String endpoint) => _impl.get(endpoint);
 
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('API Error: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network Error: $e');
-    }
-  }
+  @override
+  Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body) =>
+      _impl.post(endpoint, body);
 
-  Future<Map<String, dynamic>> post(
-      String endpoint, Map<String, dynamic> body) async {
-    try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(body),
-      );
+  @override
+  Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body) =>
+      _impl.put(endpoint, body);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('API Error: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network Error: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>> put(
-      String endpoint, Map<String, dynamic> body) async {
-    try {
-      final response = await _client.put(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(body),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('API Error: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network Error: $e');
-    }
-  }
-
-  void dispose() {
-    _client.close();
-  }
+  @override
+  void dispose() => _impl.dispose();
 }
