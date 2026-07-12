@@ -105,8 +105,8 @@ jobs:
       - name: Enable Android platform
         run: |
           flutter create . --platforms android
-          sed -i 's/VERSION_1_8/VERSION_17/g' android/app/build.gradle
-          sed -i 's/VERSION_1_8/VERSION_17/g' android/build.gradle
+          find . -name "build.gradle" -exec sed -i 's/VERSION_1_8/VERSION_17/g' {} \;
+          find . -name "build.gradle.kts" -exec sed -i 's/VERSION_1_8/VERSION_17/g' {} \;
           echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
 
       - name: Install dependencies
