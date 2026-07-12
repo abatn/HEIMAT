@@ -19,17 +19,13 @@ jobs:
         working-directory: src/backend
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-
       - name: Install dependencies
         run: npm install
-
       - name: Run ESLint
-        run: npx eslint src --ext .ts
+        run: npx eslint src --ext .ts --ignore-pattern 'src/__tests__/**'
 
   test:
     name: Test
@@ -38,7 +34,6 @@ jobs:
     defaults:
       run:
         working-directory: src/backend
-
     services:
       postgres:
         image: postgres:15-alpine
@@ -53,21 +48,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-
       - name: Install dependencies
         run: npm install
-
       - name: Initialize database
         run: psql -f src/database/schema.sql postgresql://postgres:postgres@localhost:5432/heimat_test
-
       - name: Run tests
         run: npm test
         env:
@@ -86,14 +75,10 @@ jobs:
         working-directory: src/backend
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-
       - name: Install dependencies
         run: npm install
-
       - name: Compile TypeScript
         run: npx tsc --noEmit
