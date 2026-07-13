@@ -14,7 +14,8 @@ Future<Map<String, dynamic>> apiGet(String endpoint) async {
   return json.decode(response.body);
 }
 
-Future<Map<String, dynamic>> apiPost(String endpoint, Map<String, dynamic> body) async {
+Future<Map<String, dynamic>> apiPost(
+    String endpoint, Map<String, dynamic> body) async {
   final response = await _client.post(
     Uri.parse('$_baseUrl$endpoint'),
     headers: {'Content-Type': 'application/json'},
@@ -23,7 +24,8 @@ Future<Map<String, dynamic>> apiPost(String endpoint, Map<String, dynamic> body)
   return json.decode(response.body);
 }
 
-Future<Map<String, dynamic>> apiPut(String endpoint, Map<String, dynamic> body) async {
+Future<Map<String, dynamic>> apiPut(
+    String endpoint, Map<String, dynamic> body) async {
   final response = await _client.put(
     Uri.parse('$_baseUrl$endpoint'),
     headers: {'Content-Type': 'application/json'},

@@ -21,7 +21,8 @@ class ApiClientIO implements ApiClientBase {
   }
 
   @override
-  Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> post(
+      String endpoint, Map<String, dynamic> body) async {
     final response = await _client.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: {'Content-Type': 'application/json'},
@@ -31,7 +32,8 @@ class ApiClientIO implements ApiClientBase {
   }
 
   @override
-  Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> put(
+      String endpoint, Map<String, dynamic> body) async {
     final response = await _client.put(
       Uri.parse('$baseUrl$endpoint'),
       headers: {'Content-Type': 'application/json'},

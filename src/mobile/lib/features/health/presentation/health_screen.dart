@@ -24,9 +24,12 @@ class _HealthScreenState extends State<HealthScreen> {
       appBar: AppBar(title: const Text('Gesundheit')),
       body: Consumer<HealthProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading) return const Center(child: CircularProgressIndicator());
-          if (provider.error != null) return Center(child: Text(provider.error!));
-          if (provider.doctors.isEmpty) return const Center(child: Text('Keine \u00c4rzte gefunden'));
+          if (provider.isLoading)
+            return const Center(child: CircularProgressIndicator());
+          if (provider.error != null)
+            return Center(child: Text(provider.error!));
+          if (provider.doctors.isEmpty)
+            return const Center(child: Text('Keine \u00c4rzte gefunden'));
           return ListView.builder(
             itemCount: provider.doctors.length,
             itemBuilder: (context, index) {

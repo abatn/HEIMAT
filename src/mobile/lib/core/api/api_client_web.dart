@@ -25,7 +25,8 @@ class ApiClientWeb implements ApiClientBase {
   }
 
   @override
-  Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> post(
+      String endpoint, Map<String, dynamic> body) async {
     try {
       final response = await html.HttpRequest.request(
         '$baseUrl$endpoint',
@@ -40,7 +41,8 @@ class ApiClientWeb implements ApiClientBase {
   }
 
   @override
-  Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> put(
+      String endpoint, Map<String, dynamic> body) async {
     try {
       final response = await html.HttpRequest.request(
         '$baseUrl$endpoint',
