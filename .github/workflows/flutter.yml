@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: web-build
-          path: build/web/
+          path: src/mobile/build/web/
 
   build-android:
     name: Build Android APK
