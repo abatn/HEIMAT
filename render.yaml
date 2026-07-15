@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: heimat-backend
+    runtime: node
+    region: frankfurt
+    plan: free
+    buildCommand: cd src/backend && npm install
+    startCommand: cd src/backend && node dist/index.js
+    envVars:
+      - key: DB_HOST
+        value: sqbiqzwkcryhcyvftumb.supabase.co
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        sync: false
+      - key: NODE_ENV
+        value: production
