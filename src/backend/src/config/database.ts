@@ -1,17 +1,27 @@
 import { Pool, PoolConfig } from 'pg';
 import { logger } from '../utils/logger';
 
-const poolConfig: PoolConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'heimat',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-};
+// Support full connection string or individual params
+const connectionString = process.env.DATABASE_URL;
+
+const poolConfig: PoolConfig = connectionString
+  ? {
+      connectionString,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      database: process.env.DB_NAME || 'heimat',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+    };
 
 export const pool = new Pool(poolConfig);
 
