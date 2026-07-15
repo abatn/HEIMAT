@@ -10,6 +10,9 @@ const poolConfig: PoolConfig = connectionString
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
+      // Force IPv4 — Supabase defaults to IPv6, Render Free-Tier is IPv4-only
+      options: '-c client_encoding=UTF8',
+      family: 4,
     }
   : {
       host: process.env.DB_HOST || 'localhost',
@@ -21,6 +24,7 @@ const poolConfig: PoolConfig = connectionString
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+      family: 4,
     };
 
 export const pool = new Pool(poolConfig);
