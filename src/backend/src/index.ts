@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
@@ -13,7 +15,7 @@ import { healthRouter } from './routes/health';
 import { mobilityRouter } from './routes/mobility';
 import { financeRouter } from './routes/finance';
 import { healthRouter as healthServiceRouter } from './routes/healthService';
-import { testConnection } from './config/database';
+import { testConnection, pool } from './config/database';
 
 dotenv.config();
 
@@ -38,11 +40,8 @@ app.use('/api/health', healthServiceRouter);
 
 app.post('/api/migrate', async (req, res) => {
   try {
-    const fs = require('fs');
-    const path = require('path');
     const schemaPath = path.join(__dirname, 'database', 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
-    const { pool } = require('./config/database');
     await pool.query(schema);
     res.json({ status: 'ok', message: 'Schema loaded successfully' });
   } catch (error: any) {
