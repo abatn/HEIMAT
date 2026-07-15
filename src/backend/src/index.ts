@@ -13,6 +13,7 @@ import { healthRouter } from './routes/health';
 import { mobilityRouter } from './routes/mobility';
 import { financeRouter } from './routes/finance';
 import { healthRouter as healthServiceRouter } from './routes/healthService';
+import { testConnection } from './config/database';
 
 dotenv.config();
 
@@ -35,13 +36,28 @@ app.use('/api/mobility', mobilityRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/health', healthServiceRouter);
 
+app.post('/api/migrate', async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const schemaPath = path.join(__dirname, 'database', 'schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    const { pool } = require('./config/database');
+    await pool.query(schema);
+    res.json({ status: 'ok', message: 'Schema loaded successfully' });
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error?.message || 'Unknown error' });
+  }
+});
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
+  const PORT = parseInt(process.env.PORT || '3000', 10);
+  app.listen(PORT, '0.0.0.0', async () => {
     logger.info(`HEIMAT Backend running on port ${PORT}`);
+    await testConnection();
   });
 }
 

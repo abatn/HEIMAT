@@ -9,8 +9,8 @@ const poolConfig: PoolConfig = {
   password: process.env.DB_PASSWORD || 'postgres',
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
 };
 
 export const pool = new Pool(poolConfig);
@@ -27,6 +27,12 @@ pool.on('error', (err) => {
 // Test connection
 export async function testConnection(): Promise<boolean> {
   try {
+    logger.info('Attempting PostgreSQL connection...', {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      database: process.env.DB_NAME,
+      ssl: process.env.DB_SSL,
+    });
     const client = await pool.connect();
     logger.info('PostgreSQL connected successfully');
     client.release();
