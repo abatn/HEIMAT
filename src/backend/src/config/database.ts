@@ -3,7 +3,7 @@ import { logger } from '../utils/logger';
 import { URL } from 'url';
 
 // Parse connection string or use individual params
-function buildPoolConfig(): PoolConfig {
+function buildPoolConfig(): PoolConfig & { family?: number } {
   const connectionString = process.env.DATABASE_URL;
 
   if (connectionString) {
@@ -38,7 +38,7 @@ function buildPoolConfig(): PoolConfig {
 
 const poolConfig = buildPoolConfig();
 
-export const pool = new Pool(poolConfig);
+export const pool = new Pool(poolConfig as PoolConfig);
 
 pool.on('connect', () => {
   logger.info('New client connected to PostgreSQL');
