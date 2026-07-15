@@ -1,31 +1,42 @@
 import { Pool, PoolConfig } from 'pg';
 import { logger } from '../utils/logger';
+import { URL } from 'url';
 
-// Support full connection string or individual params
-const connectionString = process.env.DATABASE_URL;
+// Parse connection string or use individual params
+function buildPoolConfig(): PoolConfig {
+  const connectionString = process.env.DATABASE_URL;
 
-const poolConfig: PoolConfig = connectionString
-  ? {
-      connectionString,
+  if (connectionString) {
+    const url = new URL(connectionString);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port || '5432'),
+      database: url.pathname.replace('/', ''),
+      user: url.username,
+      password: url.password,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
-      // Force IPv4 — Supabase defaults to IPv6, Render Free-Tier is IPv4-only
-      options: '-c client_encoding=UTF8',
-      family: 4,
-    }
-  : {
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      database: process.env.DB_NAME || 'heimat',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-      family: 4,
+      ssl: url.searchParams.get('sslmode') === 'require' ? { rejectUnauthorized: false } : undefined,
+      family: 4, // Force IPv4 — Supabase defaults to IPv6, Render Free-Tier is IPv4-only
     };
+  }
+
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    database: process.env.DB_NAME || 'heimat',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+    family: 4,
+  };
+}
+
+const poolConfig = buildPoolConfig();
 
 export const pool = new Pool(poolConfig);
 
