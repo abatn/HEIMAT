@@ -30,6 +30,50 @@ class _MobilityScreenState extends State<MobilityScreen> {
     });
   }
 
+  LatLng? _resolveCity(String input) {
+    final lower = input.trim().toLowerCase();
+    if (MobilityProvider.cityCoords.containsKey(lower)) {
+      return MobilityProvider.cityCoords[lower];
+    }
+    final parts = RegExp(r'(-?\d+\.?\d*)').allMatches(input);
+    if (parts.length >= 2) {
+      return LatLng(
+        double.parse(parts.elementAt(0).group(0)!),
+        double.parse(parts.elementAt(1).group(0)!),
+      );
+    }
+    return null;
+  }
+
+  void _search() {
+    final start = _startController.text.trim();
+    final end = _endController.text.trim();
+    if (start.isEmpty) return;
+
+    final startCoords = _resolveCity(start);
+    if (startCoords != null) {
+      setState(() => _startLocation = startCoords);
+      context.read<MobilityProvider>().loadNearbyStops(
+            startCoords.latitude,
+            startCoords.longitude,
+          );
+      _mapController.move(startCoords, 13.0);
+    }
+
+    if (end.isNotEmpty) {
+      final endCoords = _resolveCity(end);
+      if (endCoords != null) {
+        setState(() => _endLocation = endCoords);
+        context.read<MobilityProvider>().loadRoute(
+              startCoords?.latitude ?? _startLocation!.latitude,
+              startCoords?.longitude ?? _startLocation!.longitude,
+              endCoords.latitude,
+              endCoords.longitude,
+            );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,7 +91,9 @@ class _MobilityScreenState extends State<MobilityScreen> {
                     labelText: 'Start',
                     prefixIcon: Icon(Icons.circle, color: Colors.green),
                     border: OutlineInputBorder(),
+                    hintText: 'z.B. Stuttgart',
                   ),
+                  onSubmitted: (_) => _search(),
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -56,6 +102,17 @@ class _MobilityScreenState extends State<MobilityScreen> {
                     labelText: 'Ziel',
                     prefixIcon: Icon(Icons.circle, color: Colors.red),
                     border: OutlineInputBorder(),
+                    hintText: 'z.B. Berlin',
+                  ),
+                  onSubmitted: (_) => _search(),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _search,
+                    icon: const Icon(Icons.search),
+                    label: const Text('Suchen'),
                   ),
                 ),
               ],
@@ -83,6 +140,16 @@ class _MobilityScreenState extends State<MobilityScreen> {
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'de.heimat.app',
                     ),
+                    if (provider.route.isNotEmpty)
+                      PolylineLayer(
+                        polylines: [
+                          Polyline(
+                            points: provider.route.first,
+                            color: Colors.blue,
+                            strokeWidth: 4.0,
+                          ),
+                        ],
+                      ),
                     MarkerLayer(
                       markers: [
                         if (_startLocation != null)

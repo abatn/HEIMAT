@@ -3,17 +3,51 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 
+class Transaction {
+  final String id;
+  final double amount;
+  final String currency;
+  final String status;
+  final String? description;
+  final String createdAt;
+
+  Transaction({
+    required this.id,
+    required this.amount,
+    required this.currency,
+    required this.status,
+    this.description,
+    required this.createdAt,
+  });
+
+  factory Transaction.fromJson(Map<String, dynamic> json) {
+    return Transaction(
+      id: json['id'] ?? '',
+      amount: json['amount'] is num
+          ? (json['amount'] as num).toDouble()
+          : double.parse(json['amount'].toString()),
+      currency: json['currency'] ?? 'EUR',
+      status: json['status'] ?? 'pending',
+      description: json['description'],
+      createdAt: json['created_at'] ?? '',
+    );
+  }
+}
+
 class FinanceProvider extends ChangeNotifier {
   static const String _currentUserId = 'user-demo-001';
   double _balance = 0.0;
   bool _isLoading = false;
   String? _error;
   bool _hasLoaded = false;
+  List<Transaction> _transactions = [];
 
   double get balance => _balance;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasLoaded => _hasLoaded;
+  List<Transaction> get transactions => _transactions;
+  String get currentUserId => _currentUserId;
 
   Future<void> loadWallet() async {
     _isLoading = true;
@@ -28,12 +62,65 @@ class FinanceProvider extends ChangeNotifier {
         throw Exception('Server error: ${response.statusCode}');
       }
       final data = json.decode(response.body);
-      _balance = double.parse(data['wallet']['balance'].toString());
+      final raw = data['wallet']['balance'];
+      _balance = raw is num ? raw.toDouble() : double.parse(raw.toString());
     } catch (e) {
       _error = 'Wallet konnte nicht geladen werden: $e';
     } finally {
       _isLoading = false;
       _hasLoaded = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadTransactions() async {
+    try {
+      final url =
+          '${AppConfig.backendUrl}/api/finance/transactions/$_currentUserId';
+      final response = await http.get(Uri.parse(url), headers: {
+        'Content-Type': 'application/json'
+      }).timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _transactions = (data['transactions'] as List)
+            .map((t) => Transaction.fromJson(t))
+            .toList();
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> sendMoney(String toUserId, double amount) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final url = '${AppConfig.backendUrl}/api/finance/pay';
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'from': _currentUserId,
+              'to': toUserId,
+              'amount': amount,
+              'currency': 'EUR',
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        await loadWallet();
+        await loadTransactions();
+        return true;
+      } else {
+        _error = 'Zahlung fehlgeschlagen: ${response.statusCode}';
+        return false;
+      }
+    } catch (e) {
+      _error = 'Zahlung fehlgeschlagen: $e';
+      return false;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }

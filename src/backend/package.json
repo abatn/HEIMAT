@@ -10,9 +10,7 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "test": "jest --coverage --forceExit",
-    "test:watch": "jest --watch",
-    "migrate": "ts-node src/database/migrate.ts",
-    "seed": "ts-node src/database/seed.ts"
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "express": "^4.18.2",
