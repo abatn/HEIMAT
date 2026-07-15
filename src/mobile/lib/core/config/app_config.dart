@@ -5,7 +5,7 @@ class AppConfig {
   static String get backendUrl {
     const url = String.fromEnvironment(
       'BACKEND_URL',
-      defaultValue: 'https://heimat-backend.fly.dev',
+      defaultValue: 'https://heimat-backend.onrender.com',
     );
     return url;
   }
