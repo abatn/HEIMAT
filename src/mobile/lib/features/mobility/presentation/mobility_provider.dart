@@ -47,9 +47,9 @@ class MobilityProvider extends ChangeNotifier {
     try {
       final url =
           '${AppConfig.backendUrl}/api/mobility/stops?lat=$lat&lng=$lng&radius=$radius';
-      final response = await http
-          .get(Uri.parse(url), headers: {'Content-Type': 'application/json'})
-          .timeout(const Duration(seconds: 30));
+      final response = await http.get(Uri.parse(url), headers: {
+        'Content-Type': 'application/json'
+      }).timeout(const Duration(seconds: 30));
       if (response.statusCode != 200) {
         throw Exception('Server error: ${response.statusCode}');
       }

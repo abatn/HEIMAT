@@ -45,9 +45,9 @@ class HealthProvider extends ChangeNotifier {
           ? '?specialty=${Uri.encodeComponent(specialty)}'
           : '';
       final url = '${AppConfig.backendUrl}/api/health/doctors$query';
-      final response = await http
-          .get(Uri.parse(url), headers: {'Content-Type': 'application/json'})
-          .timeout(const Duration(seconds: 30));
+      final response = await http.get(Uri.parse(url), headers: {
+        'Content-Type': 'application/json'
+      }).timeout(const Duration(seconds: 30));
       if (response.statusCode != 200) {
         throw Exception('Server error: ${response.statusCode}');
       }
