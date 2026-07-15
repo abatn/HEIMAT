@@ -37,7 +37,14 @@ class TimeSlot {
       required this.endTime,
       required this.isAvailable});
 
-  factory TimeSlot.fromJson(Map<String, dynamic> json) {
+  factory TimeSlot.fromJson(dynamic json) {
+    if (json is String) {
+      return TimeSlot(
+        startTime: json,
+        endTime: '',
+        isAvailable: true,
+      );
+    }
     return TimeSlot(
       startTime: json['start_time'] ?? json['startTime'] ?? '',
       endTime: json['end_time'] ?? json['endTime'] ?? '',

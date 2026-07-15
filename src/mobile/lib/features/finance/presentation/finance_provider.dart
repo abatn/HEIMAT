@@ -3,6 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 
+double _toDouble(dynamic v) =>
+    v == null ? 0.0 : (v is num ? v.toDouble() : double.parse(v.toString()));
+
 class Transaction {
   final String id;
   final double amount;
@@ -23,9 +26,7 @@ class Transaction {
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
       id: json['id'] ?? '',
-      amount: json['amount'] is num
-          ? (json['amount'] as num).toDouble()
-          : double.parse(json['amount'].toString()),
+      amount: _toDouble(json['amount']),
       currency: json['currency'] ?? 'EUR',
       status: json['status'] ?? 'pending',
       description: json['description'],
@@ -63,7 +64,7 @@ class FinanceProvider extends ChangeNotifier {
       }
       final data = json.decode(response.body);
       final raw = data['wallet']['balance'];
-      _balance = raw is num ? raw.toDouble() : double.parse(raw.toString());
+      _balance = _toDouble(raw);
     } catch (e) {
       _error = 'Wallet konnte nicht geladen werden: $e';
     } finally {

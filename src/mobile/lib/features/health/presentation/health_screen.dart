@@ -79,19 +79,21 @@ class _HealthScreenState extends State<HealthScreen> {
                     return Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: prov.slots
-                          .where((s) => s.isAvailable)
-                          .map((slot) => ChoiceChip(
-                                label:
-                                    Text('${slot.startTime}-${slot.endTime}'),
-                                selected: selectedTime == slot.startTime,
-                                onSelected: (_) {
-                                  setDialogState(() {
-                                    selectedTime = slot.startTime;
-                                  });
-                                },
-                              ))
-                          .toList(),
+                      children:
+                          prov.slots.where((s) => s.isAvailable).map((slot) {
+                        final label = slot.endTime.isNotEmpty
+                            ? '${slot.startTime}-${slot.endTime}'
+                            : slot.startTime;
+                        return ChoiceChip(
+                          label: Text(label),
+                          selected: selectedTime == slot.startTime,
+                          onSelected: (_) {
+                            setDialogState(() {
+                              selectedTime = slot.startTime;
+                            });
+                          },
+                        );
+                      }).toList(),
                     );
                   },
                 ),
