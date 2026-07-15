@@ -17,5 +17,3 @@ services:
         value: postgres
       - key: DB_PASSWORD
         sync: false
-      - key: NODE_ENV
-        value: production
