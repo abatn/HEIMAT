@@ -46,7 +46,11 @@ class HealthProvider extends ChangeNotifier {
           : '';
       final url = '${AppConfig.backendUrl}/api/health/doctors$query';
       final response = await http
-          .get(Uri.parse(url), headers: {'Content-Type': 'application/json'});
+          .get(Uri.parse(url), headers: {'Content-Type': 'application/json'})
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode != 200) {
+        throw Exception('Server error: ${response.statusCode}');
+      }
       final data = json.decode(response.body);
       _doctors =
           (data['doctors'] as List).map((d) => Doctor.fromJson(d)).toList();

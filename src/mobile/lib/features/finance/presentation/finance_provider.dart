@@ -22,7 +22,11 @@ class FinanceProvider extends ChangeNotifier {
     try {
       final url = '${AppConfig.backendUrl}/api/finance/wallet/$_currentUserId';
       final response = await http
-          .get(Uri.parse(url), headers: {'Content-Type': 'application/json'});
+          .get(Uri.parse(url), headers: {'Content-Type': 'application/json'})
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode != 200) {
+        throw Exception('Server error: ${response.statusCode}');
+      }
       final data = json.decode(response.body);
       _balance = double.parse(data['wallet']['balance'].toString());
     } catch (e) {
