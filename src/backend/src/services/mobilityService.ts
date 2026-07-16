@@ -16,7 +16,6 @@ interface OverpassElement {
 export class MobilityService {
   private readonly nominatimUrl = 'https://nominatim.openstreetmap.org';
   private readonly osrmUrl = 'https://router.project-osrm.org';
-  private readonly overpassUrl = 'https://overpass-api.de/api/interpreter';
   private readonly userAgent = 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
   private readonly cacheTtlHours = 168; // 7 Tage
 
@@ -28,6 +27,12 @@ export class MobilityService {
     return 'bus';
   }
 
+  private readonly overpassMirrors = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  ];
+
   private async fetchFromOverpass(lat: number, lng: number, radiusMeters: number): Promise<OverpassElement[]> {
     const r = Math.min(radiusMeters, 10000);
     const q = `[out:json][timeout:25];(` +
@@ -37,11 +42,21 @@ export class MobilityService {
       `node["railway"="tram_stop"](around:${r},${lat},${lng});` +
       `node["public_transport"="stop_position"](around:${r},${lat},${lng});` +
       `);out body 50;`;
-    const response = await axios.post(this.overpassUrl, `data=${encodeURIComponent(q)}`, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': this.userAgent },
-      timeout: 30000,
-    });
-    return (response.data?.elements ?? []) as OverpassElement[];
+    let lastError: unknown;
+    for (const mirror of this.overpassMirrors) {
+      try {
+        const response = await axios.post(mirror, `data=${encodeURIComponent(q)}`, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': this.userAgent },
+          timeout: 25000,
+        });
+        return (response.data?.elements ?? []) as OverpassElement[];
+      } catch (e) {
+        lastError = e;
+        const status = (e as any)?.response?.status;
+        logger.warn(`Overpass-Mirror ${mirror} fehlgeschlagen (status ${status ?? 'timeout'})`);
+      }
+    }
+    throw lastError;
   }
 
   private schemaEnsured = false;
