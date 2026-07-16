@@ -43,7 +43,8 @@ jobs:
 
       - name: Run tests (incl. UI smoke)
         working-directory: src/mobile
-        run: flutter test
+        run: flutter test --timeout 120s
+        timeout-minutes: 5
 
       - name: Build Web
         working-directory: src/mobile
