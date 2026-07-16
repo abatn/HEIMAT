@@ -126,11 +126,11 @@ Du bist der leitende Projektstratege für HEIMAT 2.0. Deine Aufgabe ist es, eine
     - **Start:** GitHub – nicht Hamburg
     - **Erste Nutzer:** Entwickler und Open-Source-Enthusiasten
     - **Erste Stadt:** Kontakt zu Open-Source-freundlichen Kommunen (z.B. München, wo Open Source gefördert wird)
-    - **12-Monats-Plan:**
-      - Monat 1-3: GitHub-Repository + Community-Aufbau
-      - Monat 4-6: Erste funktionierende Demo (Stadtinformationen + ÖPNV)
-      - Monat 7-9: Integration von Routing + P2P-Zahlungen
-      - Monat 10-12: Erste Pilot-Stadt (kostenlose Bereitstellung)
+    - **1-Tag-Plan:**
+      - Phase 1: GitHub-Repository + CI/CD + Supabase-DB
+      - Phase 2: MVP (Mobilität + Finanzen + Gesundheit) komplett
+      - Phase 3: Deploy auf GitHub Pages + Render
+      - Phase 4: UX-Modernisierung + Echte APIs (Overpass, OSRM, Nominatim)
 
 11. **Marketing-Kampagne (NEU)**
     - **Kanäle:** Mastodon, Open-Source-Foren, heise online, Linux-Magazin
