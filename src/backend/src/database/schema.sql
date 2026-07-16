@@ -104,6 +104,90 @@ CREATE TABLE appointments (
 );
 
 -- ============================================
+-- GTFS-ÖPNV-DATEN
+-- ============================================
+
+-- GTFS Haltestellen
+CREATE TABLE gtfs_stops (
+    stop_id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    zone_id VARCHAR(50),
+    stop_type VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GTFS Routen/Linien
+CREATE TABLE gtfs_routes (
+    route_id VARCHAR(255) PRIMARY KEY,
+    short_name VARCHAR(100),
+    long_name VARCHAR(255),
+    route_type INTEGER NOT NULL, -- 0=tram,1=subway,2=rail,3=bus
+    route_color VARCHAR(7), -- '#FF0000'
+    route_text_color VARCHAR(7), -- '#FFFFFF'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GTFS Fahrten
+CREATE TABLE gtfs_trips (
+    trip_id VARCHAR(255) PRIMARY KEY,
+    route_id VARCHAR(255) NOT NULL REFERENCES gtfs_routes(route_id),
+    headsign VARCHAR(255),
+    direction_id INTEGER, -- 0=outbound, 1=inbound
+    service_id VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GTFS Abfahrtszeiten
+CREATE TABLE gtfs_stop_times (
+    id SERIAL PRIMARY KEY,
+    trip_id VARCHAR(255) NOT NULL REFERENCES gtfs_trips(trip_id),
+    stop_id VARCHAR(255) NOT NULL REFERENCES gtfs_stops(stop_id),
+    arrival_time VARCHAR(8), -- 'HH:MM:SS'
+    departure_time VARCHAR(8),
+    stop_sequence INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GTFS Kalender (Verkehrstage)
+CREATE TABLE gtfs_calendar (
+    service_id VARCHAR(255) PRIMARY KEY,
+    monday BOOLEAN DEFAULT false,
+    tuesday BOOLEAN DEFAULT false,
+    wednesday BOOLEAN DEFAULT false,
+    thursday BOOLEAN DEFAULT false,
+    friday BOOLEAN DEFAULT false,
+    saturday BOOLEAN DEFAULT false,
+    sunday BOOLEAN DEFAULT false,
+    start_date VARCHAR(8), -- 'YYYYMMDD'
+    end_date VARCHAR(8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GTFS ↔ Overpass Stop-Matching
+CREATE TABLE gtfs_stop_match (
+    id SERIAL PRIMARY KEY,
+    overpass_osm_id BIGINT NOT NULL,
+    gtfs_stop_id VARCHAR(255) NOT NULL REFERENCES gtfs_stops(stop_id),
+    match_score REAL DEFAULT 0.0, -- 0.0-1.0
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(overpass_osm_id, gtfs_stop_id)
+);
+
+-- GTFS Indizes
+CREATE INDEX idx_gtfs_stops_location ON gtfs_stops(latitude, longitude);
+CREATE INDEX idx_gtfs_stops_name ON gtfs_stops(name);
+CREATE INDEX idx_gtfs_routes_type ON gtfs_routes(route_type);
+CREATE INDEX idx_gtfs_trips_route ON gtfs_trips(route_id);
+CREATE INDEX idx_gtfs_trips_service ON gtfs_trips(service_id);
+CREATE INDEX idx_gtfs_stop_times_trip ON gtfs_stop_times(trip_id);
+CREATE INDEX idx_gtfs_stop_times_stop ON gtfs_stop_times(stop_id);
+CREATE INDEX idx_gtfs_stop_times_departure ON gtfs_stop_times(departure_time);
+CREATE INDEX idx_gtfs_stop_match_osm ON gtfs_stop_match(overpass_osm_id);
+CREATE INDEX idx_gtfs_stop_match_gtfs ON gtfs_stop_match(gtfs_stop_id);
+
+-- ============================================
 -- INDIZES
 -- ============================================
 

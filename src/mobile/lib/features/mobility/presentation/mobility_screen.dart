@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
 import 'mobility_provider.dart';
+import 'departure_board.dart';
 
 class MobilityScreen extends StatefulWidget {
   const MobilityScreen({super.key});
@@ -602,6 +603,25 @@ class _MobilityScreenState extends State<MobilityScreen> {
             '${stop.latitude.toStringAsFixed(5)}, ${stop.longitude.toStringAsFixed(5)}',
             style:
                 const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                DepartureBoard.show(context, stop.name);
+              },
+              icon: const Icon(Icons.schedule, size: 18),
+              label: const Text('Abfahrten anzeigen'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
           ),
         ],
       ),

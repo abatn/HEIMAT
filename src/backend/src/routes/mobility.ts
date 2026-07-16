@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/errorHandler';
 import { mobilityService } from '../services/mobilityService';
+import { gtfsService } from '../services/gtfsService';
+import { raptorService } from '../services/raptorService';
 
 export const mobilityRouter = Router();
 
@@ -42,4 +44,46 @@ mobilityRouter.get('/geocode', asyncHandler(async (req: Request, res: Response) 
   if (!address) throw new AppError('Address is required', 400);
   const results = await mobilityService.geocodeAddress(address as string);
   res.json({ status: 'ok', results });
+}));
+
+// GTFS: Nächste Abfahrten an einer Haltestelle
+mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Response) => {
+  const { stop, limit } = req.query;
+  if (!stop) throw new AppError('Stop name is required', 400);
+  const departures = await gtfsService.getDepartures(stop as string, limit ? parseInt(limit as string) : 10);
+  res.json({ status: 'ok', departures, count: departures.length });
+}));
+
+// GTFS+RAPTOR: Verbindungssuche (Start → Ziel)
+mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) => {
+  const { from_lat, from_lng, to_lat, to_lng } = req.query;
+  if (!from_lat || !from_lng || !to_lat || !to_lng) throw new AppError('All coordinates are required', 400);
+  const fromLat = parseFloat(from_lat as string);
+  const fromLng = parseFloat(from_lng as string);
+  const toLat = parseFloat(to_lat as string);
+  const toLng = parseFloat(to_lng as string);
+  if (isNaN(fromLat) || isNaN(fromLng) || isNaN(toLat) || isNaN(toLng)) throw new AppError('Invalid coordinates', 400);
+  const journeys = await raptorService.findJourneys(fromLat, fromLng, toLat, toLng);
+  res.json({ status: 'ok', journeys, count: journeys.length });
+}));
+
+// GTFS: Overpass-Stop mit GTFS-Stop matchen
+mobilityRouter.get('/stops/match', asyncHandler(async (req: Request, res: Response) => {
+  const { lat, lng, name } = req.query;
+  if (!lat || !lng || !name) throw new AppError('lat, lng, and name are required', 400);
+  const match = gtfsService.matchStops(parseFloat(lat as string), parseFloat(lng as string), name as string);
+  res.json({ status: 'ok', match });
+}));
+
+// GTFS: Status
+mobilityRouter.get('/gtfs/status', asyncHandler(async (req: Request, res: Response) => {
+  await gtfsService.ensureLoaded();
+  res.json({
+    status: 'ok',
+    loaded: gtfsService.isLoaded(),
+    stops: gtfsService.getStops().length,
+    routes: gtfsService.getRoutes().length,
+    trips: gtfsService.getTrips().length,
+    stop_times: gtfsService.getStopTimes().length,
+  });
 }));
