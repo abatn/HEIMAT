@@ -81,8 +81,8 @@ npm run dev
 # PostgreSQL starten
 createdb heimat_dev
 
-# Migration ausführen (sobald verfügbar)
-npm run db:migrate
+# Schema laden (psql)
+psql -d heimat_dev -f src/database/schema.sql
 ```
 
 ---

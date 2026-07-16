@@ -378,12 +378,12 @@ Das erste Release enthält:
 
 ### 16. Lancierungs-Strategie
 
-| Phase | Zeitraum | Meilenstein |
-|-------|----------|-------------|
-| **Phase 1: Repo + Community** | Monat 1-3 | GitHub-Repository, CONTRIBUTING.md, Discord/Matrix, erste 5 Contributors |
-| **Phase 2: MVP Demo** | Monat 4-6 | Funktionierende App: Karte + ÖPNV-Suche + Routing |
-| **Phase 3: Integration** | Monat 7-9 | Taler-Integration + Arzt-Termine (Cal.com) |
-| **Phase 4: Pilot-Stadt** | Monat 10-12 | Erste bereitgestellte Stadt (Open-Source-Bürger-App) |
+| Phase | Status | Details |
+|-------|--------|---------|
+| **Phase 1: Repo + Community** | ✅ Abgeschlossen | GitHub-Repository, CONTRIBUTING.md, Matrix-Room |
+| **Phase 2: MVP Demo** | ✅ Abgeschlossen | Funktionierende App: Karte + ÖPNV-Suche + Routing |
+| **Phase 3: Integration** | 🔧 Teilweise | Arzt-Registrierung done, Taler Testnet ausstehend |
+| **Phase 4: Pilot-Stadt** | 📋 Geplant | Nächster Meilenstein |
 
 ---
 
@@ -538,12 +538,12 @@ Das erste Release enthält:
 
 HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Rahmen und starker Open-Source-Basis. Der Erfolg hängt von der Community ab – nicht von Investoren.
 
-**Nächster Schritt:** Phase 1 live umsetzen – GitHub-Repository erstellen, CONTRIBUTING.md schreiben, Matrix-Room einrichten.
+**Nächster Schritt:** Phase 3 abschließen – GNU Taler Testnet-Integration verwirklichen.
 
 ---
 
-*Erstellt am: $(date)*
-*Nächste Aktualisierung: Nach Phase 1 der Umsetzung*
+*Erstellt am: Juli 2024*
+*Nächste Aktualisierung: Nach Abschluss der Taler-Integration (Phase 3)*
 
 ---
 
@@ -714,7 +714,7 @@ HEIMAT/
 | **Blog** | 2x/Monat | Tutorials, Deep-Dives, Meinungen |
 | **Matrix** | Täglich | Community-Support, Fragen |
 
-### 40. Content-Kalender (Monat 1)
+### 40. Content-Kalender (historisch, Monat 1-4)
 
 | Woche | Mastodon | Blog | Matrix |
 |-------|----------|------|--------|

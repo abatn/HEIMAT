@@ -2,7 +2,7 @@
 
 ## Zusammenfassung
 
-HEIMAT 2.0 ist ein Open-Source-Projekt für eine datenschutzkonforme Super App für den deutschen Alltag. Das Projekt ist vollständig geplant und bereit zur Umsetzung.
+HEIMAT 2.0 ist ein Open-Source-Projekt für eine datenschutzkonforme Super App für den deutschen Alltag. Das Projekt befindet sich in aktiver Entwicklung.
 
 ---
 
@@ -31,7 +31,7 @@ HEIMAT 2.0 ist ein Open-Source-Projekt für eine datenschutzkonforme Super App f
 | Phase 17: Open Collective | ✅ Abgeschlossen |
 | Phase 18: Stiftungs-Anschreiben | ✅ Abgeschlossen |
 
-**Status:** 🟢 ALLE PHASEN ABGESCHLOSSEN
+**Status:** 🟢 Alle Planungsphasen abgeschlossen – Entwicklung läuft
 
 ---
 
@@ -150,28 +150,16 @@ HEIMAT/
 
 ---
 
-## Nächste Schritte (Manuell)
+## Nächste Schritte
 
-### Priorität 1 (Diese Woche)
-1. **Mastodon-Account** einrichten
-2. **Blog-Plattform** einrichten
-3. **Open Collective** Account erstellen
-
-### Priorität 2 (Nächste Woche)
-1. **Blog-Beiträge** veröffentlichen
-2. **Reddit-Posts** erstellen
-3. **GitHub Issues** öffnen
-
-### Priorität 3 (Nächster Monat)
-1. **heise.de-Artikel** einreichen
-2. **Linux-Magazin-Artikel** einreichen
-3. **Förderanträge** einreichen
-4. **Stiftungen** anschreiben
-
-### Priorität 4 (Laufend)
-1. **Community** aufbauen
-2. **Contributors** gewinnen
-3. **Erste Funktionen** implementieren
+### Umzusetzen
+1. ~~Mastodon-Account einrichten~~
+2. ~~Blog-Beiträge veröffentlichen~~ (5 Beiträge vorhanden)
+3. ~~GitHub Issues öffnen~~ (Good-First-Issues vorhanden)
+4. Open Collective Account einrichten
+5. heise.de-Artikel einreichen
+6. Förderanträge einreichen
+7. Stiftungen anschreiben
 
 ---
 
@@ -190,4 +178,5 @@ Das Projekt ist bereit zur Umsetzung – es braucht nur noch die manuelle Umsetz
 ---
 
 *Erstellt: Juli 2024*
-*Status: 🟢 ABGESCHLOSSEN – BEREIT ZUR UMSETZUNG*
+*Zuletzt aktualisiert: Juli 2026*
+*Status: 🟢 Planung abgeschlossen – Aktive Entwicklung*

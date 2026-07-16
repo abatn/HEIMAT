@@ -168,14 +168,12 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 
 ## Roadmap
 
-| Phase | Zeitraum | Meilenstein |
-|-------|----------|-------------|
-| Repository + Community | Monat 1-3 | GitHub-Repo, CONTRIBUTING.md, Matrix-Room |
-| MVP Demo | Monat 4-6 | Karte + ÖPNV-Suche + Routing |
-| Integration | Monat 7-9 | Taler + Arzt-Termine |
-| Pilot-Stadt | Monat 10-12 | Erste bereitgestellte Stadt |
-
-Detaillierter Plan: [heimat-plan.md](heimat-plan.md)
+| Phase | Status | Details |
+|-------|--------|---------|
+| Mobilität (OSM/Overpass/OSRM) | ✅ Abgeschlossen | Echte Haltestellen, Nominatim-Geocoding, Routing |
+| Gesundheit (OSM + Registrierung) | ✅ Abgeschlossen | Echte Ärzte aus Overpass, Arzt-Registrierung |
+| Finanzen (GNU Taler Testnet) | ⏳ Offen | Nächster Schritt |
+| UX-Modernisierung | ✅ Abgeschlossen | Gradient-Karten, Pill-Nav, Bottom Sheets |
 
 ---
 

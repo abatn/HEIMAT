@@ -127,18 +127,18 @@ Künstliche Intelligenz (KI) ist in aller Munde. Bei vielen Apps ist KI eine Bla
 
 ## Zukunftspläne
 
-### Phase 1 (Monat 6-9)
+### Phase 1: On-Device AI
 - Sprachsteuerung (Vosk)
 - Lokale Textklassifikation (TensorFlow Lite)
 
-### Phase 2 (Monat 9-12)
+### Phase 2: Cloud AI
 - Verspätungsvorhersage (LightGBM)
 - Termin-Empfehlungen (Surprise)
 
-### Phase 3 (Monat 12-15)
+### Phase 3: Generative AI
 - Code-Generierung für Mini-Apps (Code Llama)
 
-### Phase 4 (Monat 15-18)
+### Phase 4: Vollintegration
 - Vollständige KI-Integration
 
 ## Fazit

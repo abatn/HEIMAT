@@ -1,8 +1,8 @@
 # HEIMAT 2.0 – AI-Implementierungsplan
 
-## Zeitplan (Monate 6-18)
+## Zeitplan (relativ)
 
-### Phase 1: On-Device AI (Monat 6-9)
+### Phase 1: On-Device AI
 
 | Aufgabe | Tool | Verantwortlich | Status |
 |---------|------|----------------|--------|
@@ -26,7 +26,7 @@
 
 ---
 
-### Phase 2: Cloud AI (Monat 9-12)
+### Phase 2: Cloud AI
 
 | Aufgabe | Tool | Verantwortlich | Status |
 |---------|------|----------------|--------|
@@ -52,7 +52,7 @@
 
 ---
 
-### Phase 3: Generative AI (Monat 12-15)
+### Phase 3: Generative AI
 
 | Aufgabe | Tool | Verantwortlich | Status |
 |---------|------|----------------|--------|
@@ -77,7 +77,7 @@
 
 ---
 
-### Phase 4: Vollintegration (Monat 15-18)
+### Phase 4: Vollintegration
 
 | Aufgabe | Tool | Verantwortlich | Status |
 |---------|------|----------------|--------|
@@ -98,13 +98,13 @@
 
 ## Meilensteine
 
-| Monat | Meilenstein | Status |
-|-------|-------------|--------|
-| 6 | On-Device AI Setup | ⏳ |
-| 9 | Sprachsteuerung funktioniert | ⏳ |
-| 12 | Cloud AI Services verfügbar | ⏳ |
-| 15 | Code-Generierung funktioniert | ⏳ |
-| 18 | Vollständige AI-Integration | ⏳ |
+| Meilenstein | Status |
+|-------------|--------|
+| On-Device AI Setup | ⏳ Geplant |
+| Sprachsteuerung funktioniert | ⏳ Geplant |
+| Cloud AI Services verfügbar | ⏳ Geplant |
+| Code-Generierung funktioniert | ⏳ Geplant |
+| Vollständige AI-Integration | ⏳ Geplant |
 
 ---
 

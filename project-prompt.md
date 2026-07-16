@@ -127,10 +127,10 @@ Du bist der leitende Projektstratege für HEIMAT 2.0. Deine Aufgabe ist es, eine
     - **Erste Nutzer:** Entwickler und Open-Source-Enthusiasten
     - **Erste Stadt:** Kontakt zu Open-Source-freundlichen Kommunen (z.B. München, wo Open Source gefördert wird)
     - **1-Tag-Plan:**
-      - Phase 1: GitHub-Repository + CI/CD + Supabase-DB
-      - Phase 2: MVP (Mobilität + Finanzen + Gesundheit) komplett
-      - Phase 3: Deploy auf GitHub Pages + Render
-      - Phase 4: UX-Modernisierung + Echte APIs (Overpass, OSRM, Nominatim)
+      - [x] Phase 1: GitHub-Repository + CI/CD + Supabase-DB
+      - [x] Phase 2: MVP (Mobilität + Finanzen + Gesundheit) komplett
+      - [x] Phase 3: Deploy auf GitHub Pages + Render
+      - [x] Phase 4: UX-Modernisierung + Echte APIs (Overpass, OSRM, Nominatim)
 
 11. **Marketing-Kampagne (NEU)**
     - **Kanäle:** Mastodon, Open-Source-Foren, heise online, Linux-Magazin
@@ -194,9 +194,7 @@ Bitte erstelle einen **Open-Source-Umsetzungsplan** mit:
 
 ### 🏁 **STARTANWEISUNG**
 
-Beginne mit der **Phase 1: Marktanalyse & Positionierung (überarbeitet)**. Arbeite strukturiert und detailreich, mit Fokus auf Open-Source-Lösungen.
-
-**Los geht's! 🚀**
+Der aktuelle Schwerpunkt ist die Fertigstellung der Taler-Integration (Phase 3 des bauplan.md) und UX-Modernisierung.
 
 ---
 
@@ -282,12 +280,12 @@ Erstelle eine **DSGVO-konforme AI-Strategie**:
 
 Erstelle einen **detaillierten Zeitplan** für AI-Integration:
 
-| Phase | Zeitraum | Fokus | Meilenstein | Benötigte Contributors |
-|-------|----------|-------|-------------|----------------------|
-| **Phase 1: On-Device AI** | Monat 6-9 | TensorFlow Lite + Vosk | Sprachsteuerung, lokale Kategorisierung | 2 ML-Engineers |
-| **Phase 2: Cloud AI** | Monat 9-12 | MLflow + FastAPI | Verspätungsvorhersage, Termin-Empfehlungen | 2 Backend-Devs + 1 ML-Engineer |
-| **Phase 3: Generative AI** | Monat 12-15 | Code Llama | Code-Generierung für Mini-Apps | 1 ML-Engineer + 1 Dev |
-| **Phase 4: Vollintegration** | Monat 15-18 | Alle Systeme | Vollständige AI-Integration | 3 Developers |
+| Phase | Fokus | Meilenstein | Benötigte Contributors |
+|-------|-------|-------------|----------------------|
+| **Phase 1: On-Device AI** | TensorFlow Lite + Vosk | Sprachsteuerung, lokale Kategorisierung | 2 ML-Engineers |
+| **Phase 2: Cloud AI** | MLflow + FastAPI | Verspätungsvorhersage, Termin-Empfehlungen | 2 Backend-Devs + 1 ML-Engineer |
+| **Phase 3: Generative AI** | Code Llama | Code-Generierung für Mini-Apps | 1 ML-Engineer + 1 Dev |
+| **Phase 4: Vollintegration** | Alle Systeme | Vollständige AI-Integration | 3 Developers |
 
 **Für JEDE Phase:**
 - Welche konkreten Aufgaben müssen erledigt werden?
@@ -364,4 +362,4 @@ Erstelle folgende Dokumente:
 
 ### 🚀 STARTANWEISUNG FÜR AI
 
-Beginne mit **Phase 8.1: AI-Anwendungsfälle definieren** und erstelle dann die 5 Dokumente in der angegebenen Reihenfolge.
+Die AI-Dokumente (AI-Strategy.md, AI-Architektur.md, AI-Implementierungsplan.md, AI-Rechtliches.md, AI-Kosten.md) sind erstellt.

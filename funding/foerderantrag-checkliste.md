@@ -25,16 +25,16 @@
 |--------|---------|
 | **Fördersumme** | Spenden (unbegrenzt) |
 | **Förderzeitraum** | Laufend |
-| **Status** | ⏳ Offen |
+| **Status** | Nicht eingereicht |
 | **Nächster Schritt** | Account einrichten |
 
 ### 4. Stiftungen
 | Stiftung | Förderschwerpunkt | Status |
 |----------|-------------------|--------|
-| **Bosch Stiftung** | Digitale Teilhabe | ⏳ Offen |
-| **VW Stiftung** | Mobilität der Zukunft | ⏳ Offen |
-| **Telekom Stiftung** | Bildung | ⏳ Offen |
-| **Bertelsmann Stiftung** | Digitalisierung | ⏳ Offen |
+| **Bosch Stiftung** | Digitale Teilhabe | Nicht eingereicht |
+| **VW Stiftung** | Mobilität der Zukunft | Nicht eingereicht |
+| **Telekom Stiftung** | Bildung | Nicht eingereicht |
+| **Bertelsmann Stiftung** | Digitalisierung | Nicht eingereicht |
 
 ---
 
