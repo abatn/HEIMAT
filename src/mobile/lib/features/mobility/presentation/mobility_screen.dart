@@ -76,8 +76,29 @@ class _MobilityScreenState extends State<MobilityScreen> {
       _searchResults = [];
     });
 
-    context.read<MobilityProvider>().loadNearbyStops(lat, lng);
     _mapController.move(latLng, 13.0);
+
+    final provider = context.read<MobilityProvider>();
+    provider.loadNearbyStops(lat, lng);
+
+    if (_startLocation != null && _endLocation != null) {
+      provider
+          .loadRoute(
+            _startLocation!.latitude,
+            _startLocation!.longitude,
+            _endLocation!.latitude,
+            _endLocation!.longitude,
+          )
+          .then((_) => _fitRoute());
+    }
+  }
+
+  void _fitRoute() {
+    if (_startLocation == null || _endLocation == null) return;
+    final bounds = LatLngBounds.fromPoints([_startLocation!, _endLocation!]);
+    _mapController.fitCamera(
+      CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60)),
+    );
   }
 
   void _swapLocations() {
@@ -89,6 +110,17 @@ class _MobilityScreenState extends State<MobilityScreen> {
       _endLocation = tmpLoc;
       _endController.text = tmpCtrl;
     });
+    if (_startLocation != null && _endLocation != null) {
+      final provider = context.read<MobilityProvider>();
+      provider
+          .loadRoute(
+            _startLocation!.latitude,
+            _startLocation!.longitude,
+            _endLocation!.latitude,
+            _endLocation!.longitude,
+          )
+          .then((_) => _fitRoute());
+    }
   }
 
   void _showRouteInfo(MobilityProvider provider) {
