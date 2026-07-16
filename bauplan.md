@@ -117,6 +117,115 @@ Erst Taler-Testnet-Prototyp (KUDOS) lauffähig machen, dann UI anbinden.
 
 ## 10. Reihenfolge (nach `heimat-plan.md`-Priorität)
 
-1. **Mobilität (OSM/Overpass)** — schnellster sichtbarer Effekt gegen die Statik.
-2. **Gesundheit (OSM-Anzeige + Registrierung).**
-3. **Finanzen (GNU Taler Testnet)** — größter Aufwand zuletzt.
+1. **Mobilität (OSM/Overpass)** — schnellster sichtbarer Effekt gegen die Statik. ✅ ABGESCHLOSSEN
+2. **Gesundheit (OSM-Anzeige + Registrierung).** ⏳
+3. **Finanzen (GNU Taler Testnet)** — größter Aufwand zuletzt. ⏳
+
+---
+
+## 11. Phase 6 — UX-Modernisierung (Clean & Minimal)
+
+> **Ziel:** Alle drei Screens auf modernes, cleanes Niveau heben.
+> **Stil:** Clean & Minimal (wie Apple Maps / Google Maps 2024). Weiss/grau, einzige Farb-Akzente, viel Weissraum.
+> **Entscheidung:** Bottom Sheet statt AlertDialog, Pill-Indicator in Navigation, farbcodierte Marker.
+
+### Datei-Übersicht
+
+| Datei | Aktion | Inhalt |
+|---|---|---|
+| `core/theme/app_colors.dart` | **Neu** | Farbpalette (Primary, Secondary, Accent, Surface) |
+| `core/theme/app_theme.dart` | Ändern | Custom ColorScheme, CardTheme, AppBarTheme, Typography |
+| `core/widgets/heimat_bottom_sheet.dart` | **Neu** | Wiederverwendbares Bottom Sheet (Design-System) |
+| `core/widgets/skeleton_loader.dart` | **Neu** | Ladezustand-Animation (Skeleton statt Spinner) |
+| `core/widgets/empty_state.dart` | **Neu** | Leerer Zustand mit Illustration + Text |
+| `main.dart` | Ändern | NavigationBar mit Pill-Indicator |
+| `mobility_screen.dart` | Ändern | Autocomplete-Suche, Swap-Button, Routen-Bottom-Sheet, farbcodierte Marker |
+| `finance_screen.dart` | Ändern | Gradient-Guthaben-Karte, Bottom Sheet zum Senden, kategorisierte Transaktionen |
+| `health_screen.dart` | Ändern | Chip-Filter, Icon-Karten pro Fachrichtung, Buchungs-Bottom-Sheet |
+
+### 1. Theme (`app_theme.dart` + `app_colors.dart`)
+
+**app_colors.dart** — statische Farbpalette:
+- `primary`: tiefes Blau-Grün (#1B5E20 → #2E7D32, Navigation/Aktiv-Zustände)
+- `secondary`: warmes Orange (#FF6D00, Akzente/CTAs)
+- `surface`: fast-weiß (#F8F9FA)
+- `card`: rein-weiß (#FFFFFF) mit subtiler Schattierung
+- `textPrimary`: fast-schwarz (#1A1A1A)
+- `textSecondary`: dezent-grau (#6B7280)
+
+**app_theme.dart** — Custom Themes:
+- `CardTheme`: Elevation 0, Border 1px #E5E7EB, borderRadius 16
+- `AppBarTheme`: backgroundColor transparent, elevation 0, centerTitle false
+- `NavigationBarTheme`: Indicator = Pill-Shape (RoundedRectangle 12px Radius), Active = primary
+- `InputDecorationTheme`: Border dünner (1px), borderRadius 12, filled true mit surfaceFarbe
+- Typography: Title slightly larger (18-20sp)
+
+### 2. Mobilität — 3 Hauptänderungen
+
+**A) Suchfeld mit Autocomplete:**
+- 2 "Pill"-Container (abgerundet, schmal) für Start/Ziel, grün/rund links (wie Google Maps)
+- Swap-Button dazwischen
+- Tippen öffnet Vollbild-Suchansicht mit Nominatim-Live-Ergebnissen (debounced 300ms)
+- Kein Dropdown, kein AlertDialog — flüssige Vollbild-Suche
+
+**B) Routen-Bottom-Sheet (nach Routenberechnung):**
+- Distanz (z.B. "4,3 km") + Dauer (z.B. "8 Min")
+- Transport-Modus-Icons (Auto/Rad/Fuß)
+- "Navigieren"-Button (optional)
+- Karte bleibt sichtbar
+
+**C) Farbcodierte Haltestellen-Marker:**
+- `bus` → grün, `subway` → blau, `train` → orange, `tram` → lila
+- Circle-Marker mit weißem Icon
+- Bei Tap: Popup mit Name + Typ
+
+### 3. Finanzen — 2 Hauptänderungen
+
+**A) Gradient-Guthaben-Karte:**
+- Linearer Gradient (primary → secondary, subtil)
+- Große Betrag-Zahl (36sp, bold, weiß)
+- "Geld senden" als Pill-Button (weiß auf Gradient)
+
+**B) Transaktions-Bottom-Sheet (Senden):**
+- Bottom Sheet statt AlertDialog
+- Empfänger-Feld mit Such-Icon
+- Betrag-Feld mit Euro-Symbol-Prefix
+- "Senden" = voller Breite, Primary-Farbe
+
+### 4. Gesundheit — 2 Hauptänderungen
+
+**A) Fachrichtungs-Filter als Chips:**
+- Horizontale Scroll-Chip-Row (statt Dropdown)
+- Icon + Name pro Chip (🏥 Allgemein, 🦷 Zahnarzt, 👁 Augenarzt)
+- Aktiv = Primary gefüllt, inaktiv = Outline
+
+**B) Arzt-Karten + Buchungs-Bottom-Sheet:**
+- Card mit Icon je Fachrichtung (CircleAvatar), Name + Adresse, "Termin"-Button
+- Buchungs-Bottom-Sheet: Header, Name/E-Mail, Datum, Zeit-Chips, "Termin buchen"
+
+### 5. Navigation (`main.dart`)
+- Pill-Indicator (RoundedRectangle 12px) unter aktiven Tab
+- Aktiv = Primary, Inaktiv = textSecondary
+
+### 6. Shared Widgets
+
+**`heimat_bottom_sheet.dart`:** Header (Titel + Close), Content, Footer-Button. borderRadius 20 oben.
+**`skeleton_loader.dart`:** Animierter grauer Placeholder (Pulse). Für Mobility + Finance Ladezustände.
+**`empty_state.dart`:** Zentriert: SVG-Illustration + Titel + Beschreibung. Für leere Stops/Ärzte/Transaktionen.
+
+### Abhängigkeiten
+- `flutter_svg` — bereits in `pubspec.yaml`. Keine neuen Packages.
+
+### Reihenfolge der Umsetzung
+1. `app_colors.dart` + `app_theme.dart` (Fundament)
+2. Shared Widgets (bottom_sheet, skeleton, empty_state)
+3. `main.dart` (Navigation)
+4. Mobility Screen
+5. Finance Screen
+6. Health Screen
+
+### Verifikation
+- `flutter analyze --no-fatal-infos` → 0 Issues
+- `dart format lib/` → 0 changes
+- `flutter test` → grün
+- Web-Build live testen

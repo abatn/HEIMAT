@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/heimat_bottom_sheet.dart';
+import '../../../core/widgets/empty_state.dart';
 import 'finance_provider.dart';
 
 class FinanceScreen extends StatefulWidget {
@@ -20,60 +23,54 @@ class _FinanceScreenState extends State<FinanceScreen> {
     });
   }
 
-  void _showSendDialog() {
+  void _showSendSheet() {
     final toController = TextEditingController();
     final amountController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Geld senden'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: toController,
-              decoration: const InputDecoration(
-                labelText: 'Empfänger (User-ID)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountController,
-              decoration: const InputDecoration(
-                labelText: 'Betrag (EUR)',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-            ),
-          ],
+
+    showHeimatBottomSheet(
+      context,
+      title: 'Geld senden',
+      footer: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () async {
+            final to = toController.text.trim();
+            final amount = double.tryParse(amountController.text.trim());
+            if (to.isEmpty || amount == null || amount <= 0) return;
+            Navigator.pop(context);
+            final ok =
+                await context.read<FinanceProvider>().sendMoney(to, amount);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(ok
+                      ? '\u20ac${amount.toStringAsFixed(2)} gesendet an $to'
+                      : 'Zahlung fehlgeschlagen'),
+                  backgroundColor: ok ? AppColors.success : AppColors.error,
+                ),
+              );
+            }
+          },
+          child: const Text('Senden'),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Abbrechen'),
+      ),
+      child: Column(
+        children: [
+          TextField(
+            controller: toController,
+            decoration: const InputDecoration(
+              labelText: 'Empfänger (User-ID)',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final to = toController.text.trim();
-              final amount = double.tryParse(amountController.text.trim());
-              if (to.isEmpty || amount == null || amount <= 0) return;
-              Navigator.pop(ctx);
-              final ok =
-                  await context.read<FinanceProvider>().sendMoney(to, amount);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ok
-                        ? '€${amount.toStringAsFixed(2)} gesendet an $to'
-                        : 'Zahlung fehlgeschlagen'),
-                    backgroundColor: ok ? Colors.green : Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Senden'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: amountController,
+            decoration: const InputDecoration(
+              labelText: 'Betrag',
+              prefixIcon: Icon(Icons.euro),
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
         ],
       ),
@@ -83,7 +80,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Finanzen')),
       body: Consumer<FinanceProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && !provider.hasLoaded) {
@@ -91,18 +87,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
           }
           if (provider.error != null && !provider.hasLoaded) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(provider.error!),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => provider.loadWallet(),
-                    child: const Text('Erneut versuchen'),
-                  ),
-                ],
+              child: EmptyState(
+                icon: Icons.error_outline,
+                title: 'Fehler beim Laden',
+                description: provider.error!,
+                action: ElevatedButton(
+                  onPressed: () => provider.loadWallet(),
+                  child: const Text('Erneut versuchen'),
+                ),
               ),
             );
           }
@@ -111,75 +103,155 @@ class _FinanceScreenState extends State<FinanceScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        Text('User: ${provider.currentUserId}',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
-                        const SizedBox(height: 4),
-                        const Text('Aktuelles Guthaben',
-                            style: TextStyle(fontSize: 16, color: Colors.grey)),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${provider.balance.toStringAsFixed(2)} \u20ac',
-                          style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _showSendDialog,
-                            icon: const Icon(Icons.send),
-                            label: const Text('Geld senden'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // Gradient-Guthaben-Karte
+                _buildBalanceCard(provider),
                 const SizedBox(height: 24),
+                // Transaktionen
                 const Text('Transaktionen',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    )),
+                const SizedBox(height: 12),
                 if (provider.transactions.isEmpty)
-                  const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('Noch keine Transaktionen'),
-                    ),
+                  const EmptyState(
+                    icon: Icons.receipt_long,
+                    title: 'Noch keine Transaktionen',
+                    description: 'Sende Geld an einen Freund, um loszulegen.',
                   )
                 else
-                  for (final tx in provider.transactions)
-                    Card(
-                      child: ListTile(
-                        leading: Icon(
-                          tx.amount > 0
-                              ? Icons.arrow_downward
-                              : Icons.arrow_upward,
-                          color: tx.amount > 0 ? Colors.green : Colors.red,
-                        ),
-                        title: Text(
-                            '${tx.amount.toStringAsFixed(2)} ${tx.currency}'),
-                        subtitle: Text(tx.description ?? tx.status),
-                        trailing: Text(
-                          tx.createdAt.substring(0, 10),
-                          style:
-                              const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ),
-                    ),
+                  ...provider.transactions
+                      .map((tx) => _buildTransactionTile(tx)),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard(FinanceProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            AppColors.primaryDark,
+            AppColors.primary,
+            AppColors.primaryLight
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'User: ${provider.currentUserId}',
+            style:
+                TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Aktuelles Guthaben',
+            style:
+                TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                provider.balance.toStringAsFixed(2),
+                style: const TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6, left: 4),
+                child: Text(
+                  '\u20ac',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _showSendSheet,
+              icon: const Icon(Icons.send, size: 18),
+              label: const Text('Geld senden'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primaryDark,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionTile(tx) {
+    final isIncoming = tx.amount > 0;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: (isIncoming ? AppColors.success : AppColors.error)
+                .withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isIncoming ? Icons.arrow_downward : Icons.arrow_upward,
+            color: isIncoming ? AppColors.success : AppColors.error,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          '${isIncoming ? '+' : '-'}${tx.amount.toStringAsFixed(2)} ${tx.currency}',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: isIncoming ? AppColors.success : AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          tx.description ?? tx.status,
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        trailing: Text(
+          tx.createdAt.substring(0, 10),
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
       ),
     );
   }
