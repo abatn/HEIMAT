@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
 import 'mobility_provider.dart';
 import 'departure_board.dart';
+import 'journey_planner.dart';
 
 class MobilityScreen extends StatefulWidget {
   const MobilityScreen({super.key});
@@ -367,7 +368,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
               },
             ),
 
-          // Routen-Button
+          // Routen- + Reise-Buttons
           if (!_showSearch)
             Consumer<MobilityProvider>(
               builder: (context, provider, _) {
@@ -375,12 +376,42 @@ class _MobilityScreenState extends State<MobilityScreen> {
                 return Positioned(
                   bottom: 24,
                   right: 16,
-                  child: FloatingActionButton.extended(
-                    onPressed: () => _showRouteInfo(provider),
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    icon: const Icon(Icons.info_outline),
-                    label: const Text('Route'),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FloatingActionButton.extended(
+                        heroTag: 'journey',
+                        onPressed: () async {
+                          final provider = context.read<MobilityProvider>();
+                          await provider.loadJourney(
+                            _startLocation!.latitude,
+                            _startLocation!.longitude,
+                            _endLocation!.latitude,
+                            _endLocation!.longitude,
+                          );
+                          if (context.mounted) {
+                            JourneyPlanner.show(
+                              context,
+                              _startController.text,
+                              _endController.text,
+                            );
+                          }
+                        },
+                        backgroundColor: AppColors.secondary,
+                        foregroundColor: Colors.white,
+                        icon: const Icon(Icons.route),
+                        label: const Text('Reise'),
+                      ),
+                      const SizedBox(height: 8),
+                      FloatingActionButton.extended(
+                        heroTag: 'routeInfo',
+                        onPressed: () => _showRouteInfo(provider),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        icon: const Icon(Icons.info_outline),
+                        label: const Text('Route'),
+                      ),
+                    ],
                   ),
                 );
               },
