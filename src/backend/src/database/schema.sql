@@ -8,9 +8,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- MOBILITÄT
 -- ============================================
 
--- Haltestellen
+-- Haltestellen (Cache fuer OpenStreetMap/Overpass-Daten)
 CREATE TABLE stops (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    osm_id BIGINT UNIQUE,
     name VARCHAR(255) NOT NULL,
     latitude DECIMAL(10, 8) NOT NULL,
     longitude DECIMAL(11, 8) NOT NULL,
@@ -138,13 +139,7 @@ CREATE INDEX idx_appointments_status ON appointments(status);
 -- SEED DATA
 -- ============================================
 
--- Demo-Stops (Berlin)
-INSERT INTO stops (name, latitude, longitude, stop_type) VALUES
-('Hauptbahnhof Berlin', 52.5250, 13.3694, 'train'),
-('Alexanderplatz', 52.5219, 13.4132, 'subway'),
-('Friedrichstraße', 52.5204, 13.3863, 'train'),
-('Potsdamer Platz', 52.5095, 13.3769, 'subway'),
-('Zoologischer Garten', 52.5078, 13.3366, 'train');
+-- Haltestellen kommen live aus OpenStreetMap/Overpass (kein Seed noetig).
 
 -- Demo-Ärzte (Berlin)
 INSERT INTO doctors (name, specialty, address, phone, latitude, longitude) VALUES

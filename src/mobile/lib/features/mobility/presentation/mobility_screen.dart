@@ -30,27 +30,43 @@ class _MobilityScreenState extends State<MobilityScreen> {
     });
   }
 
-  LatLng? _resolveCity(String input) {
-    final lower = input.trim().toLowerCase();
-    if (MobilityProvider.cityCoords.containsKey(lower)) {
-      return MobilityProvider.cityCoords[lower];
-    }
-    final parts = RegExp(r'(-?\d+\.?\d*)').allMatches(input);
+  Future<LatLng?> _resolveLocation(String input) async {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+
+    // 1. Direkte Koordinaten-Eingabe (z.B. "52.52, 13.40")
+    final parts = RegExp(r'(-?\d+\.\d+)').allMatches(trimmed);
     if (parts.length >= 2) {
       return LatLng(
         double.parse(parts.elementAt(0).group(0)!),
         double.parse(parts.elementAt(1).group(0)!),
       );
     }
+
+    // 2. Bekannte Stadt (schneller Pfad ohne Netzwerk)
+    final lower = trimmed.toLowerCase();
+    if (MobilityProvider.cityCoords.containsKey(lower)) {
+      return MobilityProvider.cityCoords[lower];
+    }
+
+    // 3. Echtes Geocoding: jede reale Adresse/Ort via Nominatim (OpenStreetMap)
+    final results = await context.read<MobilityProvider>().geocode(trimmed);
+    if (results.isNotEmpty) {
+      return LatLng(
+        double.parse(results.first['lat'].toString()),
+        double.parse(results.first['lng'].toString()),
+      );
+    }
     return null;
   }
 
-  void _search() {
+  Future<void> _search() async {
     final start = _startController.text.trim();
     final end = _endController.text.trim();
     if (start.isEmpty) return;
 
-    final startCoords = _resolveCity(start);
+    final startCoords = await _resolveLocation(start);
+    if (!mounted) return;
     if (startCoords != null) {
       setState(() => _startLocation = startCoords);
       context.read<MobilityProvider>().loadNearbyStops(
@@ -58,15 +74,21 @@ class _MobilityScreenState extends State<MobilityScreen> {
             startCoords.longitude,
           );
       _mapController.move(startCoords, 13.0);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ort "$start" nicht gefunden')),
+      );
+      return;
     }
 
     if (end.isNotEmpty) {
-      final endCoords = _resolveCity(end);
+      final endCoords = await _resolveLocation(end);
+      if (!mounted) return;
       if (endCoords != null) {
         setState(() => _endLocation = endCoords);
         context.read<MobilityProvider>().loadRoute(
-              startCoords?.latitude ?? _startLocation!.latitude,
-              startCoords?.longitude ?? _startLocation!.longitude,
+              startCoords.latitude,
+              startCoords.longitude,
               endCoords.latitude,
               endCoords.longitude,
             );
