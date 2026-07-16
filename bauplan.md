@@ -118,7 +118,7 @@ Erst Taler-Testnet-Prototyp (KUDOS) lauffähig machen, dann UI anbinden.
 ## 10. Reihenfolge (nach `heimat-plan.md`-Priorität)
 
 1. **Mobilität (OSM/Overpass)** — schnellster sichtbarer Effekt gegen die Statik. ✅ ABGESCHLOSSEN
-2. **Gesundheit (OSM-Anzeige + Registrierung).** ⏳
+2. **Gesundheit (OSM-Anzeige + Registrierung).** ✅ ABGESCHLOSSEN
 3. **Finanzen (GNU Taler Testnet)** — größter Aufwand zuletzt. ⏳
 
 ---
