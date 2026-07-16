@@ -141,13 +141,7 @@ CREATE INDEX idx_appointments_status ON appointments(status);
 
 -- Haltestellen kommen live aus OpenStreetMap/Overpass (kein Seed noetig).
 
--- Demo-Ärzte (Berlin)
-INSERT INTO doctors (name, specialty, address, phone, latitude, longitude) VALUES
-('Dr. Anna Schmidt', 'Allgemeinmedizin', 'Hauptstraße 10, 10115 Berlin', '+49 30 12345678', 52.5200, 13.4050),
-('Dr. Markus Weber', 'Zahnarzt', 'Berlinstraße 20, 10178 Berlin', '+49 30 87654321', 52.5170, 13.3888),
-('Dr. Lisa Müller', 'Augenarzt', 'Auguststraße 5, 10117 Berlin', '+49 30 11223344', 52.5250, 13.4020),
-('Dr. Thomas Koch', 'HNO-Arzt', 'Kantstraße 15, 10623 Berlin', '+49 30 5556667', 52.5055, 13.3380),
-('Dr. Sarah Fischer', 'Hautarzt', 'Schloßstraße 8, 12163 Berlin', '+49 30 9998887', 52.4840, 13.3840);
+-- Ärzte kommen live aus OpenStreetMap/Overpass + user-Registrierung (kein Seed noetig).
 
 -- Demo-Wallets
 INSERT INTO wallets (user_id, balance, currency) VALUES
@@ -155,11 +149,4 @@ INSERT INTO wallets (user_id, balance, currency) VALUES
 ('user2', 75.50, 'EUR'),
 ('user3', 200.00, 'EUR');
 
--- Demo-Ärzte-Slots (Montag-Freitag 8-17 Uhr)
-INSERT INTO doctor_slots (doctor_id, day_of_week, start_time, end_time)
-SELECT id, generate_series(1, 5), '08:00'::TIME, '12:00'::TIME
-FROM doctors;
-
-INSERT INTO doctor_slots (doctor_id, day_of_week, start_time, end_time)
-SELECT id, generate_series(1, 5), '13:00'::TIME, '17:00'::TIME
-FROM doctors;
+-- Demo-Ärzte-Slots generieren sich automatisch bei Registrierung.
