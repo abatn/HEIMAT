@@ -1,4 +1,4 @@
-import { query, queryOne, execute } from '../config/database';
+import { query, queryOne } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import axios from 'axios';
@@ -139,7 +139,7 @@ export class HealthService {
     }
 
     sql += ' ORDER BY name';
-    const dbDoctors = (await query<Doctor>(sql, params)).map(d => ({
+    const dbDoctors: Doctor[] = (await query<Doctor>(sql, params)).map(d => ({
       ...d,
       source: 'db' as const,
     }));
@@ -204,7 +204,7 @@ export class HealthService {
       [lng, lat, radiusMeters]
     );
 
-    const dbMarked = dbDoctors.map(d => ({ ...d, source: 'db' as const }));
+    const dbMarked: Doctor[] = dbDoctors.map(d => ({ ...d, source: 'db' as const }));
 
     // 2. Overpass: echte OSM-Praxen
     let osmDoctors: Doctor[] = [];

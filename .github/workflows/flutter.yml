@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.24.5'
           channel: stable
       - name: Install dependencies
         run: flutter pub get
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.24.5'
           channel: stable
       - name: Install dependencies
         run: flutter pub get
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.24.5'
           channel: stable
       - name: Install dependencies
         run: flutter pub get
@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.24.5'
           channel: stable
       - name: Install dependencies
         run: flutter pub get
@@ -106,7 +106,7 @@ jobs:
           java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.24.5'
           channel: stable
       - name: Enable Android platform
         run: |
@@ -136,7 +136,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.24.5'
           channel: stable
       - name: Enable iOS platform
         run: flutter create . --platforms ios
