@@ -112,7 +112,7 @@ class MobilityProvider extends ChangeNotifier {
       final data = json.decode(response.body);
       final routeData = data['route'];
       if (routeData != null && routeData['geometry'] != null) {
-        final coords = routeData['geometry'] as List;
+        final coords = routeData['geometry']['coordinates'] as List;
         _route = [
           coords.map((c) => LatLng(_toDouble(c[1]), _toDouble(c[0]))).toList()
         ];
