@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================
 
 -- Haltestellen (Cache fuer OpenStreetMap/Overpass-Daten)
-CREATE TABLE stops (
+CREATE TABLE IF NOT EXISTS stops (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     osm_id BIGINT UNIQUE,
     name VARCHAR(255) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE stops (
 );
 
 -- Verbindungen
-CREATE TABLE connections (
+CREATE TABLE IF NOT EXISTS connections (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     departure_stop_id UUID REFERENCES stops(id),
     arrival_stop_id UUID REFERENCES stops(id),
@@ -37,7 +37,7 @@ CREATE TABLE connections (
 -- ============================================
 
 -- Wallets
-CREATE TABLE wallets (
+CREATE TABLE IF NOT EXISTS wallets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id VARCHAR(255) NOT NULL UNIQUE,
     balance DECIMAL(10, 2) DEFAULT 0.00,
@@ -47,7 +47,7 @@ CREATE TABLE wallets (
 );
 
 -- Transaktionen
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     from_wallet_id UUID REFERENCES wallets(id),
     to_wallet_id UUID REFERENCES wallets(id),
@@ -64,7 +64,7 @@ CREATE TABLE transactions (
 -- ============================================
 
 -- Ärzte
-CREATE TABLE doctors (
+CREATE TABLE IF NOT EXISTS doctors (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     specialty VARCHAR(100) NOT NULL,
@@ -78,7 +78,7 @@ CREATE TABLE doctors (
 );
 
 -- Verfügbare Zeitslots
-CREATE TABLE doctor_slots (
+CREATE TABLE IF NOT EXISTS doctor_slots (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     doctor_id UUID REFERENCES doctors(id) ON DELETE CASCADE,
     day_of_week INTEGER NOT NULL, -- 0=Sunday, 6=Saturday
@@ -89,7 +89,7 @@ CREATE TABLE doctor_slots (
 );
 
 -- Termine
-CREATE TABLE appointments (
+CREATE TABLE IF NOT EXISTS appointments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     doctor_id UUID REFERENCES doctors(id),
     patient_name VARCHAR(255) NOT NULL,
@@ -192,32 +192,32 @@ CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_gtfs ON gtfs_stop_match(gtfs_stop
 -- ============================================
 
 -- Stops
-CREATE INDEX idx_stops_location ON stops(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_stops_location ON stops(latitude, longitude);
 
 -- Connections
-CREATE INDEX idx_connections_departure ON connections(departure_stop_id);
-CREATE INDEX idx_connections_arrival ON connections(arrival_stop_id);
+CREATE INDEX IF NOT EXISTS idx_connections_departure ON connections(departure_stop_id);
+CREATE INDEX IF NOT EXISTS idx_connections_arrival ON connections(arrival_stop_id);
 
 -- Wallets
-CREATE INDEX idx_wallets_user ON wallets(user_id);
+CREATE INDEX IF NOT EXISTS idx_wallets_user ON wallets(user_id);
 
 -- Transactions
-CREATE INDEX idx_transactions_from ON transactions(from_wallet_id);
-CREATE INDEX idx_transactions_to ON transactions(to_wallet_id);
-CREATE INDEX idx_transactions_status ON transactions(status);
+CREATE INDEX IF NOT EXISTS idx_transactions_from ON transactions(from_wallet_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_to ON transactions(to_wallet_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
 
 -- Doctors
-CREATE INDEX idx_doctors_specialty ON doctors(specialty);
-CREATE INDEX idx_doctors_location ON doctors(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_doctors_specialty ON doctors(specialty);
+CREATE INDEX IF NOT EXISTS idx_doctors_location ON doctors(latitude, longitude);
 
 -- Doctor Slots
-CREATE INDEX idx_doctor_slots_doctor ON doctor_slots(doctor_id);
-CREATE INDEX idx_doctor_slots_day ON doctor_slots(day_of_week);
+CREATE INDEX IF NOT EXISTS idx_doctor_slots_doctor ON doctor_slots(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_doctor_slots_day ON doctor_slots(day_of_week);
 
 -- Appointments
-CREATE INDEX idx_appointments_doctor ON appointments(doctor_id);
-CREATE INDEX idx_appointments_date ON appointments(appointment_date);
-CREATE INDEX idx_appointments_status ON appointments(status);
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor ON appointments(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
 
 -- ============================================
 -- TALER EXCHANGE (Simulator)
