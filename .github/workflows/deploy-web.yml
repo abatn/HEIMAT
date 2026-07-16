@@ -32,6 +32,18 @@ jobs:
         working-directory: src/mobile
         run: flutter pub get
 
+      - name: Check formatting
+        working-directory: src/mobile
+        run: dart format --set-exit-if-changed .
+
+      - name: Analyze
+        working-directory: src/mobile
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests (incl. UI smoke)
+        working-directory: src/mobile
+        run: flutter test
+
       - name: Build Web
         working-directory: src/mobile
         run: flutter build web --release --base-href "/HEIMAT/"

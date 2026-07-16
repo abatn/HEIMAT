@@ -50,10 +50,28 @@ jobs:
       - name: Run tests
         run: flutter test --coverage
 
+  smoke:
+    name: Smoke (UI Tabs)
+    runs-on: ubuntu-latest
+    needs: [analyze]
+    defaults:
+      run:
+        working-directory: src/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: stable
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Run UI smoke tests
+        run: flutter test test/app_smoke_test.dart
+
   build-web:
     name: Build Web
     runs-on: ubuntu-latest
-    needs: [analyze, test]
+    needs: [analyze, test, smoke]
     defaults:
       run:
         working-directory: src/mobile
@@ -76,7 +94,7 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
-    needs: [analyze, test]
+    needs: [analyze, test, smoke]
     defaults:
       run:
         working-directory: src/mobile
@@ -110,7 +128,7 @@ jobs:
   build-ios:
     name: Build iOS IPA
     runs-on: macos-latest
-    needs: [analyze, test]
+    needs: [analyze, test, smoke]
     defaults:
       run:
         working-directory: src/mobile
