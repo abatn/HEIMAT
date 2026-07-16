@@ -108,7 +108,7 @@ CREATE TABLE appointments (
 -- ============================================
 
 -- GTFS Haltestellen
-CREATE TABLE gtfs_stops (
+CREATE TABLE IF NOT EXISTS gtfs_stops (
     stop_id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     latitude DECIMAL(10, 8) NOT NULL,
@@ -119,7 +119,7 @@ CREATE TABLE gtfs_stops (
 );
 
 -- GTFS Routen/Linien
-CREATE TABLE gtfs_routes (
+CREATE TABLE IF NOT EXISTS gtfs_routes (
     route_id VARCHAR(255) PRIMARY KEY,
     short_name VARCHAR(100),
     long_name VARCHAR(255),
@@ -130,7 +130,7 @@ CREATE TABLE gtfs_routes (
 );
 
 -- GTFS Fahrten
-CREATE TABLE gtfs_trips (
+CREATE TABLE IF NOT EXISTS gtfs_trips (
     trip_id VARCHAR(255) PRIMARY KEY,
     route_id VARCHAR(255) NOT NULL REFERENCES gtfs_routes(route_id),
     headsign VARCHAR(255),
@@ -140,7 +140,7 @@ CREATE TABLE gtfs_trips (
 );
 
 -- GTFS Abfahrtszeiten
-CREATE TABLE gtfs_stop_times (
+CREATE TABLE IF NOT EXISTS gtfs_stop_times (
     id SERIAL PRIMARY KEY,
     trip_id VARCHAR(255) NOT NULL REFERENCES gtfs_trips(trip_id),
     stop_id VARCHAR(255) NOT NULL REFERENCES gtfs_stops(stop_id),
@@ -151,7 +151,7 @@ CREATE TABLE gtfs_stop_times (
 );
 
 -- GTFS Kalender (Verkehrstage)
-CREATE TABLE gtfs_calendar (
+CREATE TABLE IF NOT EXISTS gtfs_calendar (
     service_id VARCHAR(255) PRIMARY KEY,
     monday BOOLEAN DEFAULT false,
     tuesday BOOLEAN DEFAULT false,
@@ -166,7 +166,7 @@ CREATE TABLE gtfs_calendar (
 );
 
 -- GTFS ↔ Overpass Stop-Matching
-CREATE TABLE gtfs_stop_match (
+CREATE TABLE IF NOT EXISTS gtfs_stop_match (
     id SERIAL PRIMARY KEY,
     overpass_osm_id BIGINT NOT NULL,
     gtfs_stop_id VARCHAR(255) NOT NULL REFERENCES gtfs_stops(stop_id),
@@ -176,16 +176,16 @@ CREATE TABLE gtfs_stop_match (
 );
 
 -- GTFS Indizes
-CREATE INDEX idx_gtfs_stops_location ON gtfs_stops(latitude, longitude);
-CREATE INDEX idx_gtfs_stops_name ON gtfs_stops(name);
-CREATE INDEX idx_gtfs_routes_type ON gtfs_routes(route_type);
-CREATE INDEX idx_gtfs_trips_route ON gtfs_trips(route_id);
-CREATE INDEX idx_gtfs_trips_service ON gtfs_trips(service_id);
-CREATE INDEX idx_gtfs_stop_times_trip ON gtfs_stop_times(trip_id);
-CREATE INDEX idx_gtfs_stop_times_stop ON gtfs_stop_times(stop_id);
-CREATE INDEX idx_gtfs_stop_times_departure ON gtfs_stop_times(departure_time);
-CREATE INDEX idx_gtfs_stop_match_osm ON gtfs_stop_match(overpass_osm_id);
-CREATE INDEX idx_gtfs_stop_match_gtfs ON gtfs_stop_match(gtfs_stop_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_stops_location ON gtfs_stops(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_gtfs_stops_name ON gtfs_stops(name);
+CREATE INDEX IF NOT EXISTS idx_gtfs_routes_type ON gtfs_routes(route_type);
+CREATE INDEX IF NOT EXISTS idx_gtfs_trips_route ON gtfs_trips(route_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_trips_service ON gtfs_trips(service_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_stop_times_trip ON gtfs_stop_times(trip_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_stop_times_stop ON gtfs_stop_times(stop_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_stop_times_departure ON gtfs_stop_times(departure_time);
+CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_osm ON gtfs_stop_match(overpass_osm_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_gtfs ON gtfs_stop_match(gtfs_stop_id);
 
 -- ============================================
 -- INDIZES
@@ -220,17 +220,63 @@ CREATE INDEX idx_appointments_date ON appointments(appointment_date);
 CREATE INDEX idx_appointments_status ON appointments(status);
 
 -- ============================================
+-- TALER EXCHANGE (Simulator)
+-- ============================================
+
+-- Taler Wallets (ein Wallet pro User, echte EdDSA-Key-Paare)
+CREATE TABLE IF NOT EXISTS taler_wallets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL UNIQUE,
+    wallet_pub TEXT NOT NULL,
+    wallet_priv TEXT NOT NULL,
+    balance VARCHAR(50) NOT NULL DEFAULT '0',
+    currency VARCHAR(10) NOT NULL DEFAULT 'KUDOS',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Taler Purses (ephemeral P2P-Transfer-Objekte)
+CREATE TABLE IF NOT EXISTS taler_purses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    purse_pub TEXT NOT NULL,
+    purse_priv TEXT NOT NULL,
+    amount VARCHAR(50) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'KUDOS',
+    contract_hash VARCHAR(128),
+    sender_wallet_id UUID NOT NULL REFERENCES taler_wallets(id),
+    receiver_wallet_id UUID REFERENCES taler_wallets(id),
+    status VARCHAR(20) NOT NULL DEFAULT 'created',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    merged_at TIMESTAMP
+);
+
+-- Taler Transaktions-Log (alle Geldbewegungen)
+CREATE TABLE IF NOT EXISTS taler_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    purse_id UUID REFERENCES taler_purses(id),
+    from_wallet_id VARCHAR(255) NOT NULL,
+    to_wallet_id VARCHAR(255) NOT NULL,
+    amount VARCHAR(50) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'KUDOS',
+    contract_hash VARCHAR(128),
+    status VARCHAR(20) DEFAULT 'completed',
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Taler Indizes
+CREATE INDEX IF NOT EXISTS idx_taler_wallets_user ON taler_wallets(user_id);
+CREATE INDEX IF NOT EXISTS idx_taler_purses_sender ON taler_purses(sender_wallet_id);
+CREATE INDEX IF NOT EXISTS idx_taler_purses_receiver ON taler_purses(receiver_wallet_id);
+CREATE INDEX IF NOT EXISTS idx_taler_purses_status ON taler_purses(status);
+CREATE INDEX IF NOT EXISTS idx_taler_transactions_purse ON taler_transactions(purse_id);
+CREATE INDEX IF NOT EXISTS idx_taler_transactions_from ON taler_transactions(from_wallet_id);
+CREATE INDEX IF NOT EXISTS idx_taler_transactions_to ON taler_transactions(to_wallet_id);
+
+-- ============================================
 -- SEED DATA
 -- ============================================
 
--- Haltestellen kommen live aus OpenStreetMap/Overpass (kein Seed noetig).
-
--- Ärzte kommen live aus OpenStreetMap/Overpass + user-Registrierung (kein Seed noetig).
-
--- Demo-Wallets
-INSERT INTO wallets (user_id, balance, currency) VALUES
-('user1', 150.00, 'EUR'),
-('user2', 75.50, 'EUR'),
-('user3', 200.00, 'EUR');
-
--- Demo-Ärzte-Slots generieren sich automatisch bei Registrierung.
+-- Keine Seed-Daten: Haltestellen/Ärzte live aus Overpass, Wallets via GNU Taler (Phase 3).
+-- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.

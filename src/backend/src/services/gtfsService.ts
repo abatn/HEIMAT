@@ -61,6 +61,11 @@ export class GtfsService {
   }
 
   private async downloadAndImport(): Promise<void> {
+    await this.downloadAndParse();
+    await this.importToDatabase();
+  }
+
+  async downloadAndParse(): Promise<void> {
     try {
       if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
@@ -139,12 +144,22 @@ export class GtfsService {
         end_date: r.end_date || '',
       }));
 
-      // In DB laden
-      await this.importToDb();
-      logger.info(`GTFS: Import abgeschlossen — ${this.stopsCache.length} Stops, ${this.routesCache.length} Routes`);
+      logger.info(`GTFS: Parse abgeschlossen — ${this.stopsCache.length} Stops, ${this.routesCache.length} Routes, ${this.tripsCache.length} Trips, ${this.stopTimesCache.length} StopTimes`);
     } catch (error) {
-      logger.error(`GTFS: Download/Import fehlgeschlagen: ${error}`);
+      logger.error(`GTFS: Download/Parse fehlgeschlagen: ${error}`);
+      throw error;
     }
+  }
+
+  async importToDatabase(): Promise<{ stops: number; routes: number; trips: number; stopTimes: number; calendar: number }> {
+    const result = await this.importToDb();
+    return {
+      stops: this.stopsCache.length,
+      routes: this.routesCache.length,
+      trips: this.tripsCache.length,
+      stopTimes: this.stopTimesCache.length,
+      calendar: this.calendarCache.length,
+    };
   }
 
   private async importToDb(): Promise<void> {
@@ -154,49 +169,45 @@ export class GtfsService {
       return result;
     };
 
-    try {
-      // Stops
-      for (const batch of chunk(this.stopsCache, 500)) {
-        const values = batch.map((_, i) => `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`).join(',');
-        const params = batch.flatMap(s => [s.stop_id, s.name, s.latitude, s.longitude, s.zone_id]);
-        await execute(`INSERT INTO gtfs_stops (stop_id, name, latitude, longitude, zone_id) VALUES ${values} ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude`, params);
-      }
-
-      // Routes
-      for (const batch of chunk(this.routesCache, 500)) {
-        const values = batch.map((_, i) => `($${i * 6 + 1}, $${i * 6 + 2}, $${i * 6 + 3}, $${i * 6 + 4}, $${i * 6 + 5}, $${i * 6 + 6})`).join(',');
-        const params = batch.flatMap(r => [r.route_id, r.short_name, r.long_name, r.route_type, r.route_color, r.route_text_color]);
-        await execute(`INSERT INTO gtfs_routes (route_id, short_name, long_name, route_type, route_color, route_text_color) VALUES ${values} ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name`, params);
-      }
-
-      // Trips
-      for (const batch of chunk(this.tripsCache, 500)) {
-        const values = batch.map((_, i) => `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`).join(',');
-        const params = batch.flatMap(t => [t.trip_id, t.route_id, t.headsign, t.direction_id, t.service_id]);
-        await execute(`INSERT INTO gtfs_trips (trip_id, route_id, headsign, direction_id, service_id) VALUES ${values} ON CONFLICT (trip_id) DO NOTHING`, params);
-      }
-
-      // Stop Times (in großen Batches wegen Millions von Einträgen)
-      for (const batch of chunk(this.stopTimesCache, 1000)) {
-        const values = batch.map((_, i) => `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`).join(',');
-        const params = batch.flatMap(st => [st.trip_id, st.stop_id, st.arrival_time, st.departure_time, st.stop_sequence]);
-        await execute(`INSERT INTO gtfs_stop_times (trip_id, stop_id, arrival_time, departure_time, stop_sequence) VALUES ${values}`, params);
-      }
-
-      // Calendar
-      for (const batch of chunk(this.calendarCache, 500)) {
-        const values = batch.map((_, i) => {
-          const b = i * 10;
-          return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10})`;
-        }).join(',');
-        const params = batch.flatMap(c => [c.service_id, c.monday, c.tuesday, c.wednesday, c.thursday, c.friday, c.saturday, c.sunday, c.start_date, c.end_date]);
-        await execute(`INSERT INTO gtfs_calendar (service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday, start_date, end_date) VALUES ${values} ON CONFLICT (service_id) DO NOTHING`, params);
-      }
-
-      logger.info('GTFS: DB-Import abgeschlossen');
-    } catch (error) {
-      logger.error(`GTFS: DB-Import fehlgeschlagen: ${error}`);
+    // Stops
+    for (const batch of chunk(this.stopsCache, 500)) {
+      const values = batch.map((_, i) => `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`).join(',');
+      const params = batch.flatMap(s => [s.stop_id, s.name, s.latitude, s.longitude, s.zone_id]);
+      await execute(`INSERT INTO gtfs_stops (stop_id, name, latitude, longitude, zone_id) VALUES ${values} ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude`, params);
     }
+
+    // Routes
+    for (const batch of chunk(this.routesCache, 500)) {
+      const values = batch.map((_, i) => `($${i * 6 + 1}, $${i * 6 + 2}, $${i * 6 + 3}, $${i * 6 + 4}, $${i * 6 + 5}, $${i * 6 + 6})`).join(',');
+      const params = batch.flatMap(r => [r.route_id, r.short_name, r.long_name, r.route_type, r.route_color, r.route_text_color]);
+      await execute(`INSERT INTO gtfs_routes (route_id, short_name, long_name, route_type, route_color, route_text_color) VALUES ${values} ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name`, params);
+    }
+
+    // Trips
+    for (const batch of chunk(this.tripsCache, 500)) {
+      const values = batch.map((_, i) => `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`).join(',');
+      const params = batch.flatMap(t => [t.trip_id, t.route_id, t.headsign, t.direction_id, t.service_id]);
+      await execute(`INSERT INTO gtfs_trips (trip_id, route_id, headsign, direction_id, service_id) VALUES ${values} ON CONFLICT (trip_id) DO NOTHING`, params);
+    }
+
+    // Stop Times (in großen Batches wegen Millions von Einträgen)
+    for (const batch of chunk(this.stopTimesCache, 1000)) {
+      const values = batch.map((_, i) => `($${i * 5 + 1}, $${i * 5 + 2}, $${i * 5 + 3}, $${i * 5 + 4}, $${i * 5 + 5})`).join(',');
+      const params = batch.flatMap(st => [st.trip_id, st.stop_id, st.arrival_time, st.departure_time, st.stop_sequence]);
+      await execute(`INSERT INTO gtfs_stop_times (trip_id, stop_id, arrival_time, departure_time, stop_sequence) VALUES ${values}`, params);
+    }
+
+    // Calendar
+    for (const batch of chunk(this.calendarCache, 500)) {
+      const values = batch.map((_, i) => {
+        const b = i * 10;
+        return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10})`;
+      }).join(',');
+      const params = batch.flatMap(c => [c.service_id, c.monday, c.tuesday, c.wednesday, c.thursday, c.friday, c.saturday, c.sunday, c.start_date, c.end_date]);
+      await execute(`INSERT INTO gtfs_calendar (service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday, start_date, end_date) VALUES ${values} ON CONFLICT (service_id) DO NOTHING`, params);
+    }
+
+    logger.info('GTFS: DB-Import abgeschlossen');
   }
 
   private async loadFromDb(): Promise<void> {

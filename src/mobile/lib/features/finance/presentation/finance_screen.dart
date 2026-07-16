@@ -44,7 +44,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(ok
-                      ? '\u20ac${amount.toStringAsFixed(2)} gesendet an $to'
+                      ? '${amount.toStringAsFixed(2)} KUDOS gesendet an $to'
                       : 'Zahlung fehlgeschlagen'),
                   backgroundColor: ok ? AppColors.success : AppColors.error,
                 ),
@@ -68,7 +68,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
             controller: amountController,
             decoration: const InputDecoration(
               labelText: 'Betrag',
-              prefixIcon: Icon(Icons.euro),
+              prefixIcon: Icon(Icons.monetization_on),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
@@ -180,12 +180,12 @@ class _FinanceScreenState extends State<FinanceScreen> {
                   color: Colors.white,
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6, left: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6, left: 4),
                 child: Text(
-                  '\u20ac',
-                  style: TextStyle(
-                    fontSize: 20,
+                  provider.currency,
+                  style: const TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white70,
                   ),
@@ -217,7 +217,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
   }
 
   Widget _buildTransactionTile(tx) {
-    final isIncoming = tx.amount > 0;
+    final provider = context.read<FinanceProvider>();
+    final isIncoming = tx.toWalletId == provider.walletId;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(

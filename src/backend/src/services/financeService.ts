@@ -1,5 +1,5 @@
-import { query, queryOne, execute } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
+import { talerService, TalerWallet, TalerTransaction } from './talerService';
 
 interface Wallet {
   id: string;
@@ -15,99 +15,76 @@ interface Transaction {
   amount: number;
   currency: string;
   status: string;
+  description: string | null;
   created_at: string;
 }
 
 export class FinanceService {
   async getWallet(userId: string): Promise<Wallet> {
-    const wallet = await queryOne<Wallet>(
-      'SELECT * FROM wallets WHERE user_id = $1',
-      [userId]
-    );
-
-    if (!wallet) {
-      // Wallet erstellen falls nicht vorhanden
-      const newWallet = await queryOne<Wallet>(
-        'INSERT INTO wallets (user_id, balance, currency) VALUES ($1, 0.00, $2) RETURNING *',
-        [userId, 'EUR']
-      );
-      return newWallet!;
-    }
-
-    return wallet;
+    const talerWallet: TalerWallet = await talerService.getWallet(userId);
+    return {
+      id: talerWallet.id,
+      user_id: talerWallet.user_id,
+      balance: parseFloat(talerWallet.balance),
+      currency: talerWallet.currency,
+    };
   }
 
-  async createPayment(fromUserId: string, toUserId: string, amount: number, currency: string = 'EUR'): Promise<Transaction> {
+  async getBalance(userId: string): Promise<number> {
+    const { balance } = await talerService.getBalance(userId);
+    return balance;
+  }
+
+  async createPayment(
+    fromUserId: string,
+    toUserId: string,
+    amount: number,
+    _currency: string = 'KUDOS',
+    description?: string
+  ): Promise<Transaction> {
     if (amount <= 0) {
       throw new AppError('Amount must be positive', 400);
     }
 
-    // Wallets abrufen oder erstellen
-    const fromWallet = await this.getWallet(fromUserId);
-    const toWallet = await this.getWallet(toUserId);
-
-    if (fromWallet.balance < amount) {
-      throw new AppError('Insufficient balance', 400);
-    }
-
-    // Transaktion in Datenbank durchführen
-    const transaction = await queryOne<Transaction>(
-      `INSERT INTO transactions (from_wallet_id, to_wallet_id, amount, currency, status)
-       VALUES ($1, $2, $3, $4, 'completed')
-       RETURNING *`,
-      [fromWallet.id, toWallet.id, amount, currency]
+    const purse = await talerService.createPurse(
+      fromUserId,
+      toUserId,
+      amount,
+      undefined,
+      description
     );
 
-    // Guthaben aktualisieren
-    await execute(
-      'UPDATE wallets SET balance = balance - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      [amount, fromWallet.id]
+    const { purse: fundedPurse, transaction } = await talerService.depositToPurse(
+      purse.id,
+      fromUserId
     );
 
-    await execute(
-      'UPDATE wallets SET balance = balance + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      [amount, toWallet.id]
-    );
+    const { purse: mergedPurse } = await talerService.mergePurse(purse.id, toUserId);
 
-    return transaction!;
+    return {
+      id: transaction.id,
+      from_wallet_id: fundedPurse.sender_wallet_id,
+      to_wallet_id: mergedPurse.receiver_wallet_id || '',
+      amount: parseFloat(transaction.amount),
+      currency: transaction.currency,
+      status: mergedPurse.status === 'merged' ? 'completed' : transaction.status,
+      description: transaction.description,
+      created_at: transaction.created_at,
+    };
   }
 
   async getTransactions(userId: string): Promise<Transaction[]> {
-    return query<Transaction>(
-      `SELECT t.* 
-       FROM transactions t
-       JOIN wallets w ON t.from_wallet_id = w.id OR t.to_wallet_id = w.id
-       WHERE w.user_id = $1
-       ORDER BY t.created_at DESC
-       LIMIT 50`,
-      [userId]
-    );
-  }
-
-  async getBalance(userId: string): Promise<number> {
-    const wallet = await queryOne<Wallet>(
-      'SELECT balance FROM wallets WHERE user_id = $1',
-      [userId]
-    );
-
-    if (!wallet) {
-      return 0;
-    }
-
-    return Number(wallet.balance);
-  }
-
-  async getWalletById(walletId: string): Promise<Wallet> {
-    const wallet = await queryOne<Wallet>(
-      'SELECT * FROM wallets WHERE id = $1',
-      [walletId]
-    );
-
-    if (!wallet) {
-      throw new AppError('Wallet not found', 404);
-    }
-
-    return wallet;
+    const txs: TalerTransaction[] = await talerService.getTransactions(userId);
+    return txs.map(tx => ({
+      id: tx.id,
+      from_wallet_id: tx.from_wallet_id,
+      to_wallet_id: tx.to_wallet_id,
+      amount: parseFloat(tx.amount),
+      currency: tx.currency,
+      status: tx.status,
+      description: tx.description,
+      created_at: tx.created_at,
+    }));
   }
 }
 
