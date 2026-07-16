@@ -18,16 +18,16 @@ mobilityRouter.get('/stops', asyncHandler(async (req: Request, res: Response) =>
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 
-mobilityRouter.get('/stops/:id', asyncHandler(async (req: Request, res: Response) => {
-  const stop = await mobilityService.getStopById(req.params.id);
-  res.json({ status: 'ok', stop });
-}));
-
 mobilityRouter.get('/stops/search', asyncHandler(async (req: Request, res: Response) => {
   const { q } = req.query;
   if (!q) throw new AppError('Search query is required', 400);
   const stops = await mobilityService.searchStops(q as string);
   res.json({ status: 'ok', stops, count: stops.length });
+}));
+
+mobilityRouter.get('/stops/:id', asyncHandler(async (req: Request, res: Response) => {
+  const stop = await mobilityService.getStopById(req.params.id);
+  res.json({ status: 'ok', stop });
 }));
 
 mobilityRouter.get('/route', asyncHandler(async (req: Request, res: Response) => {

@@ -183,10 +183,13 @@ export class MobilityService {
     } catch (error) { throw new AppError('Geocoding failed', 500); }
   }
 
-  async getRoute(from: { lat: number; lng: number }, to: { lat: number; lng: number }): Promise<any> {
+  async getRoute(from: { lat: number; lng: number }, to: { lat: number; lng: number }): Promise<{ distance: number; duration: number; geometry: any }> {
     try {
-      const response = await axios.get(`${this.osrmUrl}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}`, { params: { overview: 'full', geometries: 'geojson' }, timeout: 30000 });
-      if (response.data.routes && response.data.routes.length > 0) return response.data.routes[0];
+      const response = await axios.get(`${this.osrmUrl}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}`, { params: { overview: 'full', geometries: 'geojson' }, headers: { 'User-Agent': this.userAgent }, timeout: 30000 });
+      if (response.data.routes && response.data.routes.length > 0) {
+        const r = response.data.routes[0];
+        return { distance: r.distance, duration: r.duration, geometry: r.geometry };
+      }
       throw new AppError('No route found', 404);
     } catch (error) {
       if (error instanceof AppError) throw error;

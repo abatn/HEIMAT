@@ -41,33 +41,19 @@ class RoutePoint {
 }
 
 class MobilityProvider extends ChangeNotifier {
-  static const Map<String, LatLng> cityCoords = {
-    'berlin': LatLng(52.5200, 13.4050),
-    'stuttgart': LatLng(48.7758, 9.1829),
-    'münchen': LatLng(48.1351, 11.5820),
-    'hamburg': LatLng(53.5511, 9.9937),
-    'köln': LatLng(50.9375, 6.9603),
-    'frankfurt': LatLng(50.1109, 8.6821),
-    'düsseldorf': LatLng(51.2277, 6.7735),
-    'dortmund': LatLng(51.5136, 7.4653),
-    'essen': LatLng(51.4556, 7.0116),
-    'leipzig': LatLng(51.3397, 12.3731),
-    'hannover': LatLng(52.3759, 9.7320),
-    'dresden': LatLng(51.0504, 13.7373),
-    'nürnberg': LatLng(49.4521, 11.0767),
-    'freiburg': LatLng(47.999, 7.8421),
-    'rostock': LatLng(54.0924, 12.0991),
-  };
-
   List<Stop> _nearbyStops = [];
   bool _isLoading = false;
   String? _error;
   List<List<LatLng>> _route = [];
+  double _routeDistance = 0;
+  double _routeDuration = 0;
 
   List<Stop> get nearbyStops => _nearbyStops;
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<List<LatLng>> get route => _route;
+  double get routeDistance => _routeDistance;
+  double get routeDuration => _routeDuration;
 
   Future<void> loadNearbyStops(double lat, double lng,
       {double radius = 5000}) async {
@@ -99,6 +85,8 @@ class MobilityProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     _route = [];
+    _routeDistance = 0;
+    _routeDuration = 0;
     notifyListeners();
     try {
       final url =
@@ -111,11 +99,15 @@ class MobilityProvider extends ChangeNotifier {
       }
       final data = json.decode(response.body);
       final routeData = data['route'];
-      if (routeData != null && routeData['geometry'] != null) {
-        final coords = routeData['geometry']['coordinates'] as List;
-        _route = [
-          coords.map((c) => LatLng(_toDouble(c[1]), _toDouble(c[0]))).toList()
-        ];
+      if (routeData != null) {
+        _routeDistance = _toDouble(routeData['distance']);
+        _routeDuration = _toDouble(routeData['duration']);
+        if (routeData['geometry'] != null) {
+          final coords = routeData['geometry']['coordinates'] as List;
+          _route = [
+            coords.map((c) => LatLng(_toDouble(c[1]), _toDouble(c[0]))).toList()
+          ];
+        }
       }
     } catch (e) {
       _error = 'Route konnte nicht geladen werden: $e';

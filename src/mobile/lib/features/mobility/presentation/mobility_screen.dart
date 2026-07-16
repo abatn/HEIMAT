@@ -93,13 +93,8 @@ class _MobilityScreenState extends State<MobilityScreen> {
 
   void _showRouteInfo(MobilityProvider provider) {
     if (provider.route.isEmpty) return;
-    final route = provider.route.first;
-    double totalDist = 0;
-    for (var i = 0; i < route.length - 1; i++) {
-      totalDist += Distance().distance(route[i], route[i + 1]);
-    }
-    final distKm = (totalDist / 1000).toStringAsFixed(1);
-    final distMin = (totalDist / 80).round();
+    final distKm = (provider.routeDistance / 1000).toStringAsFixed(1);
+    final distMin = (provider.routeDuration / 60).round();
 
     showHeimatBottomSheet(
       context,
