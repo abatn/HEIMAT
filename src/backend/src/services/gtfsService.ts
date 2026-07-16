@@ -53,16 +53,12 @@ export class GtfsService {
     if (this.loaded) return;
     await this.loadFromDb();
     if (this.stopsCache.length === 0) {
-      logger.info('GTFS: Keine Daten in DB, lade Feed...');
-      await this.downloadAndImport();
+      logger.warn('GTFS: Keine Daten in DB — Feed-Import über /api/admin/import-gtfs auslösen');
+      this.loaded = true;
+      return;
     }
     this.loaded = true;
     logger.info(`GTFS geladen: ${this.stopsCache.length} Stops, ${this.routesCache.length} Routes, ${this.tripsCache.length} Trips`);
-  }
-
-  private async downloadAndImport(): Promise<void> {
-    await this.downloadAndParse();
-    await this.importToDatabase();
   }
 
   async downloadAndParse(): Promise<void> {

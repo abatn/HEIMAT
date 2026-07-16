@@ -109,6 +109,10 @@ export class RaptorService {
 
   // Finde nächste Haltestellen in der Nähe
   findNearbyStops(lat: number, lng: number, maxDist: number = 1000, limit: number = 5): { stop: RaptorStop; distance: number }[] {
+    if (gtfsService.getStops().length === 0) {
+      logger.warn('RAPTOR: Keine GTFS-Daten verfügbar');
+      return [];
+    }
     const results: { stop: RaptorStop; distance: number }[] = [];
     for (const stop of this.stops.values()) {
       const dist = this.haversineMeters(lat, lng, stop.lat, stop.lng);
@@ -122,6 +126,11 @@ export class RaptorService {
   // Vereinfachter RAPTOR: Findet Verbindungen von A nach B
   async findJourneys(fromLat: number, fromLng: number, toLat: number, toLng: number, maxTransfers: number = 3): Promise<Journey[]> {
     await this.initialize();
+
+    if (gtfsService.getStops().length === 0) {
+      logger.warn('RAPTOR: Keine GTFS-Daten verfügbar');
+      return [];
+    }
 
     const nearbyFrom = this.findNearbyStops(fromLat, fromLng, 1000, 5);
     const nearbyTo = this.findNearbyStops(toLat, toLng, 1000, 5);
