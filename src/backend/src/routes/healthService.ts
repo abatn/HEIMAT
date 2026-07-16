@@ -34,11 +34,19 @@ healthRouter.get('/doctors/:id', asyncHandler(async (req: Request, res: Response
   res.json({ status: 'ok', doctor });
 }));
 
-// POST /api/health/doctors — Arzt registrieren
+// POST /api/health/doctors — Arzt registrieren (mit optionalen Slots)
 healthRouter.post('/doctors', asyncHandler(async (req: Request, res: Response) => {
-  const { name, specialty, address, phone, email, latitude, longitude } = req.body;
+  const { name, specialty, address, phone, email, latitude, longitude, slots } = req.body;
   if (!name || !specialty || !address) {
     throw new AppError('Name, specialty, and address are required', 400);
+  }
+  // Slots validieren falls angegeben
+  if (slots && Array.isArray(slots)) {
+    for (const s of slots) {
+      if (s.day_of_week == null || !s.start_time || !s.end_time) {
+        throw new AppError('Each slot needs day_of_week, start_time, end_time', 400);
+      }
+    }
   }
   const doctor = await healthService.registerDoctor({
     name,
@@ -48,8 +56,9 @@ healthRouter.post('/doctors', asyncHandler(async (req: Request, res: Response) =
     email,
     latitude,
     longitude,
+    slots: slots || undefined,
   });
-  res.status(201).json({ status: 'ok', doctor, message: 'Arzt registriert.' });
+  res.status(201).json({ status: 'ok', doctor, message: 'Arzt registriert mit Standard-Slots (Mo-Fr 8-12, 13-17).' });
 }));
 
 // GET /api/health/doctors/:id/slots

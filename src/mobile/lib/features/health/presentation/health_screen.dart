@@ -69,7 +69,7 @@ class _HealthScreenState extends State<HealthScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(ok
-                      ? '$name wurde registriert.'
+                      ? '$name registriert (Slots: Mo-Fr 8-12, 13-17).'
                       : 'Registrierung fehlgeschlagen'),
                   backgroundColor: ok ? AppColors.success : AppColors.error,
                 ),
@@ -128,6 +128,28 @@ class _HealthScreenState extends State<HealthScreen> {
               prefixIcon: Icon(Icons.email_outlined),
             ),
             keyboardType: TextInputType.emailAddress,
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline,
+                    size: 18, color: AppColors.textSecondary),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Standard-Slots: Mo-Fr 8:00-12:00, 13:00-17:00',
+                    style:
+                        TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

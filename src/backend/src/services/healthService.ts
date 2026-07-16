@@ -124,7 +124,7 @@ export class HealthService {
   }
 
   async searchDoctors(specialty?: string, location?: string): Promise<Doctor[]> {
-    // 1. Immer DB-Ärzte laden
+    // 1. DB-Ärzte laden
     let sql = 'SELECT * FROM doctors WHERE 1=1';
     const params: any[] = [];
 
@@ -143,6 +143,45 @@ export class HealthService {
       ...d,
       source: 'db' as const,
     }));
+
+    // 2. Wenn Location angegeben: Geocoding → Overpass nearby (OSM-Praxen)
+    if (location && location.trim()) {
+      try {
+        const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&countrycodes=de`;
+        const geoResp = await axios.get(geoUrl, {
+          headers: { 'User-Agent': this.userAgent },
+          timeout: 10000,
+        });
+        if (geoResp.data?.length > 0) {
+          const lat = parseFloat(geoResp.data[0].lat);
+          const lng = parseFloat(geoResp.data[0].lon);
+          const elements = await this.fetchDoctorsFromOverpass(lat, lng, 5000);
+          const osmDoctors = elements
+            .filter(el => el.tags && (el.tags.name || el.tags['name:de']))
+            .map(el => this.overpassToDoctor(el));
+
+          // Mergen: DB hat Vorrang
+          const seenKeys = new Set(
+            dbDoctors.map(d => `${d.name.toLowerCase()}|${d.latitude?.toFixed(4)}|${d.longitude?.toFixed(4)}`)
+          );
+          for (const osm of osmDoctors) {
+            const key = `${osm.name.toLowerCase()}|${osm.latitude.toFixed(4)}|${osm.longitude.toFixed(4)}`;
+            if (!seenKeys.has(key)) {
+              dbDoctors.push(osm);
+              seenKeys.add(key);
+            }
+          }
+        }
+      } catch (e) {
+        logger.warn(`Overpass-Suche fuer Location "${location}" fehlgeschlagen: ${e}`);
+      }
+    }
+
+    // 3. Optional nach Fachrichtung filtern (auch OSM-Einträge)
+    if (specialty && specialty.trim()) {
+      const lower = specialty.toLowerCase();
+      return dbDoctors.filter(d => d.specialty.toLowerCase().includes(lower));
+    }
 
     return dbDoctors;
   }
@@ -229,6 +268,7 @@ export class HealthService {
     email?: string;
     latitude?: number;
     longitude?: number;
+    slots?: Array<{ day_of_week: number; start_time: string; end_time: string }>;
   }): Promise<Doctor> {
     const result = await queryOne<Doctor>(
       `INSERT INTO doctors (name, specialty, address, phone, email, latitude, longitude)
@@ -244,7 +284,32 @@ export class HealthService {
         data.longitude || null,
       ]
     );
+
+    // Slots erstellen: entweder explizite oder Default (Mo-Fr 8-12, 13-17)
+    const doctorId = result!.id;
+    const slotsToCreate = data.slots && data.slots.length > 0
+      ? data.slots
+      : this.defaultSlots();
+
+    for (const slot of slotsToCreate) {
+      await query(
+        `INSERT INTO doctor_slots (doctor_id, day_of_week, start_time, end_time)
+         VALUES ($1, $2, $3, $4)`,
+        [doctorId, slot.day_of_week, slot.start_time, slot.end_time]
+      );
+    }
+
     return { ...result!, source: 'db' };
+  }
+
+  private defaultSlots(): Array<{ day_of_week: number; start_time: string; end_time: string }> {
+    const slots: Array<{ day_of_week: number; start_time: string; end_time: string }> = [];
+    // Montag(1) bis Freitag(5): 8:00-12:00, 13:00-17:00
+    for (let day = 1; day <= 5; day++) {
+      slots.push({ day_of_week: day, start_time: '08:00', end_time: '12:00' });
+      slots.push({ day_of_week: day, start_time: '13:00', end_time: '17:00' });
+    }
+    return slots;
   }
 
   async getAvailableSlots(doctorId: string, date: string): Promise<string[]> {
