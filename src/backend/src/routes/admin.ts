@@ -114,9 +114,6 @@ adminRouter.get('/net-test', async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message || 'net test failed' });
   }
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'selftest failed' });
-  }
 });
 
 export default adminRouter;
