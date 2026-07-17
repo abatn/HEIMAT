@@ -46,4 +46,31 @@ adminRouter.get('/efa-status', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin/efa-selftest – testet jeden Endpunkt mit findStop + ersten Departures
+adminRouter.get('/efa-selftest', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const { efaService } = await import('../services/efaService');
+    const query = (req.query.q as string) || 'Hauptbahnhof';
+    const results: any[] = [];
+    for (const ep of Object.values(EFA_ENDPOINTS)) {
+      const t0 = Date.now();
+      try {
+        const stops = await efaService.findStop(query, 3, ep.center[0], ep.center[1]);
+        let deps = 0;
+        if (stops.length > 0) {
+          const d = await efaService.getDepartures(stops[0].id, 3, ep.key);
+          deps = d.length;
+        }
+        results.push({ key: ep.key, name: ep.name, ms: Date.now() - t0, stops: stops.length, departures: deps, sampleStop: stops[0]?.name || null });
+      } catch (e: any) {
+        results.push({ key: ep.key, name: ep.name, ms: Date.now() - t0, error: e?.message || String(e) });
+      }
+    }
+    res.json({ success: true, query, results });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'selftest failed' });
+  }
+});
+
 export default adminRouter;
