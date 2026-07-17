@@ -76,6 +76,8 @@ adminRouter.get('/efa-selftest', async (req: Request, res: Response) => {
       }
     }
     res.json({ success: true, query, results });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'selftest failed' });
   }
 });
 
