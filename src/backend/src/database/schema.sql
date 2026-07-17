@@ -147,7 +147,8 @@ CREATE TABLE IF NOT EXISTS gtfs_stop_times (
     arrival_time VARCHAR(8), -- 'HH:MM:SS'
     departure_time VARCHAR(8),
     stop_sequence INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (trip_id, stop_id, stop_sequence)
 );
 
 -- GTFS Kalender (Verkehrstage)

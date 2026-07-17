@@ -142,7 +142,7 @@ export class GtfsService {
         'stops.txt': { table: 'gtfs_stops', cols: ['stop_id', 'name', 'latitude', 'longitude', 'zone_id'], conflict: 'ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude' },
         'routes.txt': { table: 'gtfs_routes', cols: ['route_id', 'short_name', 'long_name', 'route_type', 'route_color', 'route_text_color'], conflict: 'ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name' },
         'trips.txt': { table: 'gtfs_trips', cols: ['trip_id', 'route_id', 'headsign', 'direction_id', 'service_id'], conflict: 'ON CONFLICT (trip_id) DO NOTHING' },
-        'stop_times.txt': { table: 'gtfs_stop_times', cols: ['trip_id', 'stop_id', 'arrival_time', 'departure_time', 'stop_sequence'], conflict: '' },
+        'stop_times.txt': { table: 'gtfs_stop_times', cols: ['trip_id', 'stop_id', 'arrival_time', 'departure_time', 'stop_sequence'], conflict: 'ON CONFLICT (trip_id, stop_id, stop_sequence) DO NOTHING' },
         'calendar.txt': { table: 'gtfs_calendar', cols: ['service_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'start_date', 'end_date'], conflict: 'ON CONFLICT (service_id) DO NOTHING' },
       };
       const rowFor = (name: string, r: Record<string, string>): any[] | null => {
