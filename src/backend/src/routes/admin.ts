@@ -76,6 +76,42 @@ adminRouter.get('/efa-selftest', async (req: Request, res: Response) => {
       }
     }
     res.json({ success: true, query, results });
+  }
+});
+
+// GET /api/admin/net-test – prüft Erreichbarkeit generischer ÖPNV-Kandidaten von Render aus
+adminRouter.get('/net-test', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const axios = (await import('axios')).default;
+    const candidates = [
+      'https://v6.vbb.bahn.de/efa/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
+      'https://v6.bvg.transport.rest/stops/nearby?latitude=52.52&longitude=13.40',
+      'https://v6.vbb.transport.rest/stops/nearby?latitude=52.52&longitude=13.40',
+      'https://api.deutschebahn.com/freeplan/v1/location?query=Hauptbahnhof',
+      'https://vrrf.finalrewind.org/XML_DM_REQUEST?type_dm=stop&name_dm=Hauptbahnhof&limit=1',
+      'https://www.vrr.de/efa/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
+      'https://efa.vrr.de/standard/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
+      'https://www.vrs.de/viso/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
+      'https://netex.ivb.no/geocoder/2.0/Autocomplete?text=Hauptbahnhof',
+      'https://www2.vvs.de/viso/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
+      'https://www.openstreetmap.org/api/0.6/map?bbox=13.39,52.51,13.41,52.53',
+      'https://overpass-api.de/api/interpreter?data=%5Bout%5D%3B',
+    ];
+    const out: any[] = [];
+    for (const url of candidates) {
+      const t0 = Date.now();
+      try {
+        const r = await axios.get(url, { timeout: 8000, validateStatus: () => true, headers: { 'User-Agent': 'HEIMAT/1.0' } });
+        out.push({ url, status: r.status, ms: Date.now() - t0, len: (r.data?.length || 0) });
+      } catch (e: any) {
+        out.push({ url, error: e?.code || e?.message || String(e), ms: Date.now() - t0 });
+      }
+    }
+    res.json({ success: true, results: out });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'net test failed' });
+  }
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message || 'selftest failed' });
   }
