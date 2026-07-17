@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { pool, query } from '../config/database';
-import { gtfsService } from '../services/gtfsService';
+import { pool } from '../config/database';
+import { EFA_ENDPOINTS } from '../services/efaService';
 import { logger } from '../utils/logger';
 
 const adminRouter = Router();
@@ -33,37 +33,15 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/import-gtfs – GTFS-Feed herunterladen, parsen und importieren
-// Läuft asynchron im Hintergrund (Render Request-Timeout sonst zu kurz).
-adminRouter.post('/import-gtfs', async (req: Request, res: Response) => {
-  if (!requireAdmin(req, res)) return;
-
-  res.json({ success: true, message: 'GTFS-Import gestartet (läuft im Hintergrund). Status via /api/admin/gtfs-status prüfen.' });
-
-  // Fire-and-forget: Import im Hintergrund ausführen
-  gtfsService.streamingImport().catch((err: any) => {
-    logger.error(`Admin GTFS import failed: ${err?.message || err}`);
-  });
-});
-
-// GET /api/admin/gtfs-status – Anzahl Rows pro GTFS-Tabelle + Import-Fortschritt
-adminRouter.get('/gtfs-status', async (req: Request, res: Response) => {
+// GET /api/admin/efa-status – Liste der verfügbaren EFA-Endpunkte
+adminRouter.get('/efa-status', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   try {
-    const tables = ['gtfs_stops', 'gtfs_routes', 'gtfs_trips', 'gtfs_stop_times', 'gtfs_calendar', 'gtfs_stop_match'];
-    const counts: Record<string, number> = {};
-
-    for (const table of tables) {
-      const rows = await query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM ${table}`);
-      counts[table] = parseInt(rows[0]?.count || '0', 10);
-    }
-
-    const importStatus = await gtfsService.getImportStatus();
-
-    res.json({ success: true, counts, import: importStatus });
+    const endpoints = Object.values(EFA_ENDPOINTS).map(e => ({ key: e.key, name: e.name }));
+    res.json({ success: true, endpoints, count: endpoints.length });
   } catch (error: any) {
-    logger.error(`Admin GTFS status failed: ${error.message}`);
+    logger.error(`Admin EFA status failed: ${error.message}`);
     res.status(500).json({ success: false, message: error.message || 'Status check failed' });
   }
 });

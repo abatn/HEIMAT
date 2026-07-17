@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/errorHandler';
 import { mobilityService } from '../services/mobilityService';
-import { gtfsService } from '../services/gtfsService';
-import { raptorService } from '../services/raptorService';
+import { efaService } from '../services/efaService';
+import { logger } from '../utils/logger';
 
 export const mobilityRouter = Router();
 
@@ -46,44 +46,66 @@ mobilityRouter.get('/geocode', asyncHandler(async (req: Request, res: Response) 
   res.json({ status: 'ok', results });
 }));
 
-// GTFS: Nächste Abfahrten an einer Haltestelle
+// EFA: Nächste Abfahrten an einer Haltestelle
 mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Response) => {
-  const { stop, limit } = req.query;
-  if (!stop) throw new AppError('Stop name is required', 400);
-  const departures = await gtfsService.getDepartures(stop as string, limit ? parseInt(limit as string) : 10);
-  res.json({ status: 'ok', departures, count: departures.length });
+  const { stop, stopId, limit } = req.query;
+  if (!stop && !stopId) throw new AppError('Stop name or stopId is required', 400);
+  try {
+    // IFOPT-ID direkt nutzen, sonst Haltestelle über EFA suchen
+    let id: string | undefined = stopId as string | undefined;
+    let stopName = (stop as string) || (stopId as string) || '';
+    if (!id && stop) {
+      const found = await efaService.findStop(stop as string, 1);
+      if (found.length > 0) { id = found[0].id; stopName = found[0].name; }
+    }
+    if (!id) { res.json({ status: 'ok', stop: stopName, departures: [], count: 0 }); return; }
+    const limitNum = limit ? parseInt(limit as string) : 10;
+    const dep = await efaService.getDepartures(id, limitNum);
+    const departures = dep.map(d => ({
+      line: d.line,
+      direction: d.direction,
+      mode: d.mode,
+      plannedDeparture: d.plannedDeparture,
+      realtimeDeparture: d.realtimeDeparture,
+      delay: d.delayMinutes,
+      platform: d.platform,
+    }));
+    res.json({ status: 'ok', stop: stopName, departures, count: departures.length });
+  } catch (e) {
+    logger.warn(`EFA departures fehlgeschlagen: ${e}`);
+    res.json({ status: 'ok', departures: [], count: 0 });
+  }
 }));
 
-// GTFS+RAPTOR: Verbindungssuche (Start → Ziel)
+// EFA: Verbindungssuche (Start → Ziel)
 mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) => {
-  const { from_lat, from_lng, to_lat, to_lng } = req.query;
-  if (!from_lat || !from_lng || !to_lat || !to_lng) throw new AppError('All coordinates are required', 400);
-  const fromLat = parseFloat(from_lat as string);
-  const fromLng = parseFloat(from_lng as string);
-  const toLat = parseFloat(to_lat as string);
-  const toLng = parseFloat(to_lng as string);
-  if (isNaN(fromLat) || isNaN(fromLng) || isNaN(toLat) || isNaN(toLng)) throw new AppError('Invalid coordinates', 400);
-  const journeys = await raptorService.findJourneys(fromLat, fromLng, toLat, toLng);
-  res.json({ status: 'ok', journeys, count: journeys.length });
-}));
+  const { from_lat, from_lng, to_lat, to_lng, from_id, to_id } = req.query;
+  try {
+    let fromId = from_id as string | undefined;
+    let toId = to_id as string | undefined;
 
-// GTFS: Overpass-Stop mit GTFS-Stop matchen
-mobilityRouter.get('/stops/match', asyncHandler(async (req: Request, res: Response) => {
-  const { lat, lng, name } = req.query;
-  if (!lat || !lng || !name) throw new AppError('lat, lng, and name are required', 400);
-  const match = gtfsService.matchStops(parseFloat(lat as string), parseFloat(lng as string), name as string);
-  res.json({ status: 'ok', match });
-}));
+    // Koordinaten: nächste Haltestelle via Overpass suchen
+    if (!fromId && from_lat && from_lng) {
+      const fl = parseFloat(from_lat as string);
+      const fg = parseFloat(from_lng as string);
+      if (isNaN(fl) || isNaN(fg)) throw new AppError('Invalid from coordinates', 400);
+      const stops = await mobilityService.getNearbyStops(fl, fg, 1000);
+      if (stops.length > 0) fromId = stops[0].id;
+    }
+    if (!toId && to_lat && to_lng) {
+      const tl = parseFloat(to_lat as string);
+      const tg = parseFloat(to_lng as string);
+      if (isNaN(tl) || isNaN(tg)) throw new AppError('Invalid to coordinates', 400);
+      const stops = await mobilityService.getNearbyStops(tl, tg, 1000);
+      if (stops.length > 0) toId = stops[0].id;
+    }
 
-// GTFS: Status
-mobilityRouter.get('/gtfs/status', asyncHandler(async (req: Request, res: Response) => {
-  const counts = await gtfsService.getCounts();
-  res.json({
-    status: 'ok',
-    loaded: gtfsService.isLoaded(),
-    stops: counts.stops,
-    routes: counts.routes,
-    trips: counts.trips,
-    stop_times: counts.stop_times,
-  });
+    if (!fromId || !toId) throw new AppError('Start and destination are required (from_id/to_id or coordinates)', 400);
+
+    const journeys = await efaService.getJourney(fromId, toId);
+    res.json({ status: 'ok', journeys });
+  } catch (e) {
+    logger.warn(`EFA journey fehlgeschlagen: ${e}`);
+    res.json({ status: 'ok', journeys: [] });
+  }
 }));
