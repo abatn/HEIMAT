@@ -350,7 +350,7 @@ export class GtfsService {
     const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
 
     const sql = `
-      SELECT s.name AS stop_name, r.route_short_name, r.route_long_name,
+      SELECT s.name AS stop_name, r.short_name AS route_short_name, r.long_name AS route_long_name,
              r.route_type, r.route_color, t.headsign, st.departure_time, st.trip_id
       FROM gtfs_stop_times st
       JOIN gtfs_stops s ON s.stop_id = st.stop_id
