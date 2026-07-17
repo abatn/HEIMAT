@@ -51,10 +51,18 @@ adminRouter.get('/efa-selftest', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   try {
     const { efaService } = await import('../services/efaService');
+    const axios = (await import('axios')).default;
     const query = (req.query.q as string) || 'Hauptbahnhof';
     const results: any[] = [];
     for (const ep of Object.values(EFA_ENDPOINTS)) {
       const t0 = Date.now();
+      let rawStatus = 'n/a';
+      try {
+        const raw = await axios.get(ep.baseUrl, { timeout: 5000, validateStatus: () => true, headers: { 'User-Agent': 'HEIMAT/1.0' } });
+        rawStatus = `HTTP ${raw.status}`;
+      } catch (e: any) {
+        rawStatus = `ERR: ${e?.code || e?.message || e}`;
+      }
       try {
         const stops = await efaService.findStop(query, 3, ep.center[0], ep.center[1]);
         let deps = 0;
@@ -62,9 +70,9 @@ adminRouter.get('/efa-selftest', async (req: Request, res: Response) => {
           const d = await efaService.getDepartures(stops[0].id, 3, ep.key);
           deps = d.length;
         }
-        results.push({ key: ep.key, name: ep.name, ms: Date.now() - t0, stops: stops.length, departures: deps, sampleStop: stops[0]?.name || null });
+        results.push({ key: ep.key, name: ep.name, ms: Date.now() - t0, rawBase: rawStatus, stops: stops.length, departures: deps, sampleStop: stops[0]?.name || null });
       } catch (e: any) {
-        results.push({ key: ep.key, name: ep.name, ms: Date.now() - t0, error: e?.message || String(e) });
+        results.push({ key: ep.key, name: ep.name, ms: Date.now() - t0, rawBase: rawStatus, error: e?.message || String(e) });
       }
     }
     res.json({ success: true, query, results });
