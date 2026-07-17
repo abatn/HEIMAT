@@ -46,7 +46,7 @@ adminRouter.post('/import-gtfs', async (req: Request, res: Response) => {
   });
 });
 
-// GET /api/admin/gtfs-status – Anzahl Rows pro GTFS-Tabelle
+// GET /api/admin/gtfs-status – Anzahl Rows pro GTFS-Tabelle + Import-Fortschritt
 adminRouter.get('/gtfs-status', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
@@ -59,7 +59,9 @@ adminRouter.get('/gtfs-status', async (req: Request, res: Response) => {
       counts[table] = parseInt(rows[0]?.count || '0', 10);
     }
 
-    res.json({ success: true, counts });
+    const importStatus = await gtfsService.getImportStatus();
+
+    res.json({ success: true, counts, import: importStatus });
   } catch (error: any) {
     logger.error(`Admin GTFS status failed: ${error.message}`);
     res.status(500).json({ success: false, message: error.message || 'Status check failed' });

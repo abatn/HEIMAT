@@ -78,113 +78,132 @@ export class GtfsService {
 
   // STREAMING-Import: Feed als Stream -> Temp-Datei -> pro GTFS-Datei streaming
   // parsen und direkt in die DB schreiben. Keine RAM-Caches (Render Free-Tier: 512MB).
+  // Status wird in gtfs_import_status persistiert (pollbar via /api/admin/gtfs-status).
   async streamingImport(onProgress?: (msg: string) => void): Promise<void> {
     const log = onProgress || ((m: string) => logger.info(m));
-    log('GTFS: Lade Feed (Stream)...');
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gtfs-'));
-    const zipPath = path.join(tmpDir, 'latest.zip');
-    const writer = fs.createWriteStream(zipPath);
-    const response = await axios.get(GTFS_URL, { responseType: 'stream', timeout: 600000 });
-    await new Promise<void>((resolve, reject) => {
-      (response.data as Readable).pipe(writer);
-      writer.on('finish', () => resolve());
-      writer.on('error', reject);
-    });
-    log(`GTFS: Download abgeschlossen -> ${zipPath}`);
-
-    const zip = new AdmZip(zipPath);
-    const entryFile = (name: string): string | null => {
-      const e = zip.getEntries().find(x => x.entryName.endsWith(name));
-      return e ? path.join(tmpDir, name) : null;
+    const setStatus = async (status: string, stage: string, message: string, progress = 0) => {
+      await query(
+        `INSERT INTO gtfs_import_status (status, stage, message, progress, updated_at) VALUES ($1,$2,$3,$4,NOW())`,
+        [status, stage, message, progress]
+      );
     };
-    // AdmZip entpackt einzelne Dateien bei Bedarf; wir entpacken alle relevanten.
-    for (const f of ['stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'calendar.txt']) {
-      const e = zip.getEntries().find(x => x.entryName.endsWith(f));
-      if (e) (e as any).extractEntryTo(path.join(tmpDir, f), '', false, true);
-    }
+    try {
+      await setStatus('running', 'download', 'Starte Download', 0);
+      log('GTFS: Lade Feed (Stream)...');
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gtfs-'));
+      const zipPath = path.join(tmpDir, 'latest.zip');
+      const writer = fs.createWriteStream(zipPath);
+      const response = await axios.get(GTFS_URL, { responseType: 'stream', timeout: 600000 });
+      let downloaded = 0;
+      const total = parseInt((response.headers as any)['content-length'] || '0', 10);
+      response.data.on('data', (chunk: Buffer) => {
+        downloaded += chunk.length;
+        if (total > 0 && downloaded % (20 * 1024 * 1024) < chunk.length) {
+          const pct = Math.round((downloaded / total) * 30);
+          setStatus('running', 'download', `Download ${(downloaded / 1024 / 1024).toFixed(0)}/${(total / 1024 / 1024).toFixed(0)} MB`, pct).catch(() => {});
+        }
+      });
+      await new Promise<void>((resolve, reject) => {
+        (response.data as Readable).pipe(writer);
+        writer.on('finish', () => resolve());
+        writer.on('error', reject);
+      });
+      await setStatus('running', 'extract', `Download abgeschlossen (${(downloaded / 1024 / 1024).toFixed(0)} MB)`, 30);
+      log(`GTFS: Download abgeschlossen -> ${zipPath}`);
 
-    const BATCH = 2000;
-    const insertBatch = async (table: string, cols: string[], rows: any[][], conflict: string) => {
-      if (rows.length === 0) return 0;
-      const placeholders = rows.map((_, i) => {
-        const start = i * cols.length;
-        return `($${start + 1}, $${start + 2}, $${start + 3}, $${start + 4}, $${start + 5}${cols.length > 5 ? `, $${start + 6}, $${start + 7}, $${start + 8}, $${start + 9}, $${start + 10}` : ''})`;
-      }).join(',');
-      const params = rows.flat();
-      const sql = `INSERT INTO ${table} (${cols.join(', ')}) VALUES ${placeholders} ${conflict}`;
-      const r = await pool.query(sql, params);
-      return r.rowCount || 0;
-    };
+      // yauzl: echtes Streaming — nur eine Datei gleichzeitig im RAM
+      const yauzl = require('yauzl');
+      const openZip = (): Promise<any> => new Promise((resolve, reject) =>
+        yauzl.open(zipPath, { lazyEntries: true }, (err: any, zipfile: any) => err ? reject(err) : resolve(zipfile))
+      );
+      const zipfile = await openZip();
+      const readEntry = (zf: any, entry: any): Promise<Buffer> => new Promise((resolve, reject) => {
+        zf.openReadStream(entry, (err: any, rs: Readable) => {
+          if (err) return reject(err);
+          const chunks: Buffer[] = [];
+          rs.on('data', (c: Buffer) => chunks.push(c));
+          rs.on('end', () => resolve(Buffer.concat(chunks)));
+          rs.on('error', reject);
+        });
+      });
 
-    // STOPS
-    {
-      let rows: any[][] = []; let n = 0;
-      const stream = parseStream(path.join(tmpDir, 'stops.txt'));
-      for await (const r of stream) {
-        if (!r.stop_id || !r.stop_name || !r.stop_lat || !r.stop_lon) continue;
-        rows.push([r.stop_id, r.stop_name, parseFloat(r.stop_lat) || 0, parseFloat(r.stop_lon) || 0, r.zone_id || '']);
-        if (rows.length >= BATCH) { n += await insertBatch('gtfs_stops', ['stop_id', 'name', 'latitude', 'longitude', 'zone_id'], rows, 'ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude'); rows = []; }
-      }
-      if (rows.length) n += await insertBatch('gtfs_stops', ['stop_id', 'name', 'latitude', 'longitude', 'zone_id'], rows, 'ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude');
-      log(`GTFS: ${n} Stops importiert`);
-    }
+      const BATCH = 2000;
+      const insertBatch = async (table: string, cols: string[], rows: any[][], conflict: string) => {
+        if (rows.length === 0) return 0;
+        const max = cols.length;
+        const placeholders = rows.map((_, i) => {
+          const start = i * max;
+          return `(${cols.map((_, j) => `$${start + j + 1}`).join(', ')})`;
+        }).join(',');
+        const params = rows.flat();
+        const sql = `INSERT INTO ${table} (${cols.join(', ')}) VALUES ${placeholders} ${conflict}`;
+        const r = await pool.query(sql, params);
+        return r.rowCount || 0;
+      };
 
-    // ROUTES
-    {
-      let rows: any[][] = []; let n = 0;
-      const stream = parseStream(path.join(tmpDir, 'routes.txt'));
-      for await (const r of stream) {
-        if (!r.route_id) continue;
-        rows.push([r.route_id, r.route_short_name || '', r.route_long_name || '', parseInt(r.route_type) || 3, r.route_color ? `#${r.route_color}` : '#6B7280', r.route_text_color ? `#${r.route_text_color}` : '#FFFFFF']);
-        if (rows.length >= BATCH) { n += await insertBatch('gtfs_routes', ['route_id', 'short_name', 'long_name', 'route_type', 'route_color', 'route_text_color'], rows, 'ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name'); rows = []; }
-      }
-      if (rows.length) n += await insertBatch('gtfs_routes', ['route_id', 'short_name', 'long_name', 'route_type', 'route_color', 'route_text_color'], rows, 'ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name');
-      log(`GTFS: ${n} Routes importiert`);
-    }
+      const importEntry = async (entryName: string, handler: (rec: Record<string, string>) => any[] | null, table: string, cols: string[], conflict: string) => {
+        const entry = zipfile.entries.find((e: any) => e.fileName.endsWith(entryName));
+        if (!entry) { log(`GTFS: ${entryName} fehlt im Feed`); return; }
+        await setStatus('running', entryName.replace('.txt', ''), `Importiere ${entryName}`, 35);
+        const buf = await readEntry(zipfile, entry);
+        const records = parseSync(buf.toString('utf-8'), { columns: true, skip_empty_lines: true, trim: true, relax_column_count: true }) as Record<string, string>[];
+        let rows: any[][] = []; let n = 0; let totalRec = 0;
+        for (const rec of records) {
+          const row = handler(rec);
+          if (!row) continue;
+          rows.push(row);
+          totalRec++;
+          if (rows.length >= BATCH) { n += await insertBatch(table, cols, rows, conflict); rows = []; if (totalRec % 1000000 === 0) log(`GTFS: ${totalRec} ${entryName} verarbeitet`); }
+        }
+        if (rows.length) n += await insertBatch(table, cols, rows, conflict);
+        log(`GTFS: ${n} ${entryName} importiert (${totalRec} gelesen)`);
+      };
 
-    // TRIPS
-    {
-      let rows: any[][] = []; let n = 0;
-      const stream = parseStream(path.join(tmpDir, 'trips.txt'));
-      for await (const r of stream) {
-        if (!r.trip_id) continue;
-        rows.push([r.trip_id, r.route_id || '', r.trip_headsign || '', parseInt(r.direction_id) || 0, r.service_id || '']);
-        if (rows.length >= BATCH) { n += await insertBatch('gtfs_trips', ['trip_id', 'route_id', 'headsign', 'direction_id', 'service_id'], rows, 'ON CONFLICT (trip_id) DO NOTHING'); rows = []; }
-      }
-      if (rows.length) n += await insertBatch('gtfs_trips', ['trip_id', 'route_id', 'headsign', 'direction_id', 'service_id'], rows, 'ON CONFLICT (trip_id) DO NOTHING');
-      log(`GTFS: ${n} Trips importiert`);
-    }
+      await importEntry('stops.txt', (r) =>
+        (!r.stop_id || !r.stop_name || !r.stop_lat || !r.stop_lon) ? null :
+        [r.stop_id, r.stop_name, parseFloat(r.stop_lat) || 0, parseFloat(r.stop_lon) || 0, r.zone_id || ''],
+        'gtfs_stops', ['stop_id', 'name', 'latitude', 'longitude', 'zone_id'],
+        'ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude');
 
-    // STOP_TIMES (sehr groß)
-    {
-      let rows: any[][] = []; let n = 0; let total = 0;
-      const stream = parseStream(path.join(tmpDir, 'stop_times.txt'));
-      for await (const r of stream) {
-        if (!r.trip_id || !r.stop_id) continue;
-        rows.push([r.trip_id, r.stop_id, r.arrival_time || '', r.departure_time || '', parseInt(r.stop_sequence) || 0]);
-        total++;
-        if (rows.length >= BATCH) { n += await insertBatch('gtfs_stop_times', ['trip_id', 'stop_id', 'arrival_time', 'departure_time', 'stop_sequence'], rows, ''); rows = []; if (total % 2000000 === 0) log(`GTFS: ${total} StopTimes verarbeitet`); }
-      }
-      if (rows.length) n += await insertBatch('gtfs_stop_times', ['trip_id', 'stop_id', 'arrival_time', 'departure_time', 'stop_sequence'], rows, '');
-      log(`GTFS: ${n} StopTimes importiert (${total} gelesen)`);
-    }
+      await importEntry('routes.txt', (r) =>
+        !r.route_id ? null :
+        [r.route_id, r.route_short_name || '', r.route_long_name || '', parseInt(r.route_type) || 3, r.route_color ? `#${r.route_color}` : '#6B7280', r.route_text_color ? `#${r.route_text_color}` : '#FFFFFF'],
+        'gtfs_routes', ['route_id', 'short_name', 'long_name', 'route_type', 'route_color', 'route_text_color'],
+        'ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name');
 
-    // CALENDAR
-    {
-      let rows: any[][] = []; let n = 0;
-      const stream = parseStream(path.join(tmpDir, 'calendar.txt'));
-      for await (const r of stream) {
-        if (!r.service_id) continue;
+      await importEntry('trips.txt', (r) =>
+        !r.trip_id ? null :
+        [r.trip_id, r.route_id || '', r.trip_headsign || '', parseInt(r.direction_id) || 0, r.service_id || ''],
+        'gtfs_trips', ['trip_id', 'route_id', 'headsign', 'direction_id', 'service_id'],
+        'ON CONFLICT (trip_id) DO NOTHING');
+
+      await importEntry('stop_times.txt', (r) =>
+        (!r.trip_id || !r.stop_id) ? null :
+        [r.trip_id, r.stop_id, r.arrival_time || '', r.departure_time || '', parseInt(r.stop_sequence) || 0],
+        'gtfs_stop_times', ['trip_id', 'stop_id', 'arrival_time', 'departure_time', 'stop_sequence'], '');
+
+      await importEntry('calendar.txt', (r) => {
+        if (!r.service_id) return null;
         const b = (v: string) => v === '1' || v === 'true';
-        rows.push([r.service_id, b(r.monday), b(r.tuesday), b(r.wednesday), b(r.thursday), b(r.friday), b(r.saturday), b(r.sunday), r.start_date || '', r.end_date || '']);
-        if (rows.length >= BATCH) { n += await insertBatch('gtfs_calendar', ['service_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'start_date', 'end_date'], rows, 'ON CONFLICT (service_id) DO NOTHING'); rows = []; }
-      }
-      if (rows.length) n += await insertBatch('gtfs_calendar', ['service_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'start_date', 'end_date'], rows, 'ON CONFLICT (service_id) DO NOTHING');
-      log(`GTFS: ${n} Calendar importiert`);
-    }
+        return [r.service_id, b(r.monday), b(r.tuesday), b(r.wednesday), b(r.thursday), b(r.friday), b(r.saturday), b(r.sunday), r.start_date || '', r.end_date || ''];
+      }, 'gtfs_calendar', ['service_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'start_date', 'end_date'], 'ON CONFLICT (service_id) DO NOTHING');
 
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-    log('GTFS: Import abgeschlossen');
+      zipfile.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      await setStatus('done', 'complete', 'Import abgeschlossen', 100);
+      log('GTFS: Import abgeschlossen');
+    } catch (error: any) {
+      logger.error(`GTFS: Import fehlgeschlagen: ${error?.message || error}`);
+      await setStatus('failed', 'error', error?.message || String(error), 0).catch(() => {});
+      throw error;
+    }
+  }
+
+  async getImportStatus(): Promise<{ status: string; stage: string; message: string; progress: number; updated_at: string } | null> {
+    const rows = await query<{ status: string; stage: string; message: string; progress: number; updated_at: string }>(
+      `SELECT status, stage, message, progress, updated_at FROM gtfs_import_status ORDER BY id DESC LIMIT 1`
+    );
+    return rows[0] || null;
   }
 
   async downloadAndParse(): Promise<void> {

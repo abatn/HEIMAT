@@ -187,6 +187,16 @@ CREATE INDEX IF NOT EXISTS idx_gtfs_stop_times_departure ON gtfs_stop_times(depa
 CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_osm ON gtfs_stop_match(overpass_osm_id);
 CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_gtfs ON gtfs_stop_match(gtfs_stop_id);
 
+-- GTFS Import-Status (polling von /api/admin/gtfs-status)
+CREATE TABLE IF NOT EXISTS gtfs_import_status (
+    id SERIAL PRIMARY KEY,
+    status VARCHAR(20) NOT NULL, -- 'running'|'done'|'failed'
+    message TEXT,
+    stage VARCHAR(40),           -- 'download'|'extract'|'stops'|'routes'|'trips'|'stop_times'|'calendar'
+    progress INTEGER DEFAULT 0,   -- 0-100
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============================================
 -- INDIZES
 -- ============================================

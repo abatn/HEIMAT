@@ -10,7 +10,9 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "test": "jest --coverage --forceExit",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "import:gtfs": "ts-node scripts/import-gtfs-local.ts",
+    "test:gtfs": "ts-node scripts/test-gtfs-parse.ts"
   },
   "dependencies": {
     "adm-zip": "^0.6.0",
@@ -28,6 +30,7 @@
     "pg": "^8.11.3",
     "redis": "^4.6.10",
     "winston": "^3.11.0",
+    "yauzl": "^2.10.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
