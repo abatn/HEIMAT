@@ -77,13 +77,13 @@ mobilityRouter.get('/stops/match', asyncHandler(async (req: Request, res: Respon
 
 // GTFS: Status
 mobilityRouter.get('/gtfs/status', asyncHandler(async (req: Request, res: Response) => {
-  await gtfsService.ensureLoaded();
+  const counts = await gtfsService.getCounts();
   res.json({
     status: 'ok',
     loaded: gtfsService.isLoaded(),
-    stops: gtfsService.getStops().length,
-    routes: gtfsService.getRoutes().length,
-    trips: gtfsService.getTrips().length,
-    stop_times: gtfsService.getStopTimes().length,
+    stops: counts.stops,
+    routes: counts.routes,
+    trips: counts.trips,
+    stop_times: counts.stop_times,
   });
 }));

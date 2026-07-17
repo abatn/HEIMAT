@@ -34,17 +34,16 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
 });
 
 // POST /api/admin/import-gtfs – GTFS-Feed herunterladen, parsen und importieren
+// Läuft asynchron im Hintergrund (Render Request-Timeout sonst zu kurz).
 adminRouter.post('/import-gtfs', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
-  try {
-    await gtfsService.downloadAndParse();
-    const stats = await gtfsService.importToDatabase();
-    res.json({ success: true, message: 'GTFS imported', stats });
-  } catch (error: any) {
-    logger.error(`Admin GTFS import failed: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message || 'GTFS import failed' });
-  }
+  res.json({ success: true, message: 'GTFS-Import gestartet (läuft im Hintergrund). Status via /api/admin/gtfs-status prüfen.' });
+
+  // Fire-and-forget: Import im Hintergrund ausführen
+  gtfsService.streamingImport().catch((err: any) => {
+    logger.error(`Admin GTFS import failed: ${err?.message || err}`);
+  });
 });
 
 // GET /api/admin/gtfs-status – Anzahl Rows pro GTFS-Tabelle
