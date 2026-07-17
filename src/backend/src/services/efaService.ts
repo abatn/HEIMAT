@@ -104,30 +104,33 @@ export interface EfaEndpoint {
   key: string;
   /** Anzeigename des Verkehrsverbunds */
   name: string;
-  /** Basis-URL der EFA-API (ohne trailing slash) */
-  baseUrl: string;
+  /** EFA-Shortname fuer den einheitlichen Proxy dbf.finalrewind.org (z.B. 'VRR') */
+  short: string;
   /** Ungefaehrer Mittelpunkt des Versorgungsgebiets [lat, lng] fuer Endpunkt-Wahl */
   center: [number, number];
 }
 
 export const EFA_ENDPOINTS: Record<string, EfaEndpoint> = {
-  vbb:   { key: 'vbb',   name: 'VBB Berlin-Brandenburg',                  baseUrl: 'https://v6.vbb.bahn.de/efa/XML',                 center: [52.5200, 13.4050] },
-  mvv:   { key: 'mvv',   name: 'MVV München',                            baseUrl: 'https://efa.mvv-muenchen.de/efaws2',              center: [48.1374, 11.5755] },
-  vrr:   { key: 'vrr',   name: 'VRR Rhein-Ruhr',                         baseUrl: 'https://efa.vrr.de/standard',                    center: [51.2277, 6.7735] },
-  vrs:   { key: 'vrs',   name: 'VRS Verkehrsverbund Rhein-Sieg',         baseUrl: 'https://efa.vrs.de/viso/XML',                     center: [50.9375, 6.9603] },
-  vvs:   { key: 'vvs',   name: 'VVS Stuttgart',                          baseUrl: 'https://www2.vvs.de/viso/XML',                    center: [48.7758, 9.1829] },
-  vgn:   { key: 'vgn',   name: 'VGN Nürnberg',                           baseUrl: 'https://efa.vgn.de/efaws2',                       center: [49.4521, 11.0767] },
-  kvv:   { key: 'kvv',   name: 'KVV Karlsruhe',                          baseUrl: 'https://efa.kvv.de/viso/XML',                     center: [49.0069, 8.4037] },
-  nvv:   { key: 'nvv',   name: 'NVV Nordhessen',                         baseUrl: 'https://efa.nvv.de/viso/XML',                     center: [51.3127, 9.4797] },
-  gvh:   { key: 'gvh',   name: 'GVH Hannover',                           baseUrl: 'https://efa.gvh.de/viso/XML',                     center: [52.3745, 9.7376] },
-  hvv:   { key: 'hvv',   name: 'HVV Hamburg',                            baseUrl: 'https://hvv.efa.de/efa',                          center: [53.5511, 9.9937] },
-  madd:  { key: 'madd',  name: 'MDV Mitteldeutscher Verkehrsverbund',    baseUrl: 'https://efa.madd.de/',                            center: [51.3397, 12.3731] },
-  vvo:   { key: 'vvo',   name: 'VVO Dresden',                            baseUrl: 'https://efa.vvo-online.de/std3',                  center: [51.0504, 13.7373] },
-  vrn:   { key: 'vrn',   name: 'VRN Verkehrsverbund Rhein-Neckar',       baseUrl: 'https://efa.vrn.de/viso/XML',                     center: [49.4875, 8.4660] },
-  avv:   { key: 'avv',   name: 'AVV Augsburg',                           baseUrl: 'https://efa.avv-augsburg.de/viso/XML',            center: [48.3705, 10.8978] },
-  vmv:   { key: 'vmv',   name: 'VMV Vorpommern',                         baseUrl: 'https://www.fahrplanauskunft-mv.de/vmv-efa',      center: [54.0924, 13.3994] },
-  vgs:   { key: 'vgs',   name: 'VGS Saarland',                           baseUrl: 'https://efa.saarvv.de/viso/XML',                  center: [49.2403, 7.0028] },
-  vbn:   { key: 'vbn',   name: 'VBN Verkehrsverbund Bremen/Niedersachsen', baseUrl: 'https://efa.vbn.de/viso/XML',                    center: [53.0793, 8.8017] },
+  vbb:   { key: 'vbb',   name: 'VBB Berlin-Brandenburg',                  short: 'VBB',  center: [52.5200, 13.4050] },
+  mvv:   { key: 'mvv',   name: 'MVV München',                            short: 'MVV',  center: [48.1374, 11.5755] },
+  vrr:   { key: 'vrr',   name: 'VRR Rhein-Ruhr',                         short: 'VRR',  center: [51.2277, 6.7735] },
+  vrs:   { key: 'vrs',   name: 'VRS Verkehrsverbund Rhein-Sieg',         short: 'VRS',  center: [50.9375, 6.9603] },
+  vvs:   { key: 'vvs',   name: 'VVS Stuttgart',                          short: 'VVS',  center: [48.7758, 9.1829] },
+  vgn:   { key: 'vgn',   name: 'VGN Nürnberg',                           short: 'VGN',  center: [49.4521, 11.0767] },
+  kvv:   { key: 'kvv',   name: 'KVV Karlsruhe',                          short: 'KVV',  center: [49.0069, 8.4037] },
+  nvv:   { key: 'nvv',   name: 'NVV Nordhessen',                         short: 'NVV',  center: [51.3127, 9.4797] },
+  gvh:   { key: 'gvh',   name: 'GVH Hannover',                           short: 'GVH',  center: [52.3745, 9.7376] },
+  hvv:   { key: 'hvv',   name: 'HVV Hamburg',                            short: 'HVV',  center: [53.5511, 9.9937] },
+  madd:  { key: 'madd',  name: 'MDV Mitteldeutscher Verkehrsverbund',    short: 'MDV',  center: [51.3397, 12.3731] },
+  vvo:   { key: 'vvo',   name: 'VVO Dresden',                            short: 'VVO',  center: [51.0504, 13.7373] },
+  vrn:   { key: 'vrn',   name: 'VRN Verkehrsverbund Rhein-Neckar',       short: 'VRN',  center: [49.4875, 8.4660] },
+  avv:   { key: 'avv',   name: 'AVV Augsburg',                           short: 'AVV',  center: [48.3705, 10.8978] },
+  vmv:   { key: 'vmv',   name: 'VMV Vorpommern',                         short: 'VMV',  center: [54.0924, 13.3994] },
+  vgs:   { key: 'vgs',   name: 'VGS Saarland',                           short: 'VGS',  center: [49.2403, 7.0028] },
+  vbn:   { key: 'vbn',   name: 'VBN Verkehrsverbund Bremen/Niedersachsen', short: 'VBN', center: [53.0793, 8.8017] },
+  ding:  { key: 'ding',  name: 'DING Donau-Iller',                       short: 'DING', center: [48.4000, 10.0000] },
+  bsvg:  { key: 'bsvg',  name: 'BSVG Braunschweig',                      short: 'BSVG', center: [52.2700, 10.5200] },
+  nvbw:  { key: 'nvbw',  name: 'NVBW Baden-Württemberg',                 short: 'NVBW', center: [48.7800, 9.1800] },
 };
 
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -150,14 +153,10 @@ export class EfaClient {
     private readonly timeoutMs: number = EFA_TIMEOUT_MS,
   ) {}
 
-  private get baseUrl(): string {
-    return this.endpoint.baseUrl.replace(/\/$/, '');
-  }
-
   private async request(path: string, params: Record<string, string | number>): Promise<any | null> {
     try {
-      const response = await axios.get(`${this.baseUrl}/${path}`, {
-        params,
+      const response = await axios.get(`https://dbf.finalrewind.org/${path}`, {
+        params: { efa: this.endpoint.short, ...params },
         timeout: this.timeoutMs,
         headers: { 'User-Agent': 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)' },
         responseType: 'text',
@@ -430,12 +429,11 @@ export class EfaService {
     }
   }
 
-  private guessEndpointFromStopId(stopId: string): string | undefined {
-    // IFOPT-Format "de:09162:10" -> 09162 ist die NVK-Nummer; bisher nicht
-    // zentral gemappt, daher Fallback auf expliziten Endpoint-Parameter.
-    for (const [key, client] of this.clients) {
-      if (stopId.startsWith(key)) return key;
-    }
+  private guessEndpointFromStopId(_stopId: string): string | undefined {
+    // Stop-IDs kommen nun vom finalrewind.org-Proxy; ein zuverlaessiger
+    // IFOPT-Prefix-Match ist hier nicht moeglich. Daher kein automatisches
+    // Mapping -> es wird ein expliziter `endpoint`-Parameter erwartet (bzw.
+    // bei findStop wird automatisch der naechste Verbund probiert).
     return undefined;
   }
 }

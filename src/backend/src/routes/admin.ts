@@ -58,7 +58,7 @@ adminRouter.get('/efa-selftest', async (req: Request, res: Response) => {
       const t0 = Date.now();
       let rawStatus = 'n/a';
       try {
-        const raw = await axios.get(ep.baseUrl, { timeout: 5000, validateStatus: () => true, headers: { 'User-Agent': 'HEIMAT/1.0' } });
+        const raw = await axios.get(`https://dbf.finalrewind.org/XML_STOPFINDER_REQUEST?efa=${ep.short}`, { timeout: 5000, validateStatus: () => true, headers: { 'User-Agent': 'HEIMAT/1.0' } });
         rawStatus = `HTTP ${raw.status}`;
       } catch (e: any) {
         rawStatus = `ERR: ${e?.code || e?.message || e}`;
