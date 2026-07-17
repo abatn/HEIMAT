@@ -143,22 +143,31 @@ export class GtfsService {
       // Alle Entries durchiterieren (lazyEntries), nur die 5 relevanten verarbeiten
       const targets = ['stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'calendar.txt'];
       const pending: Record<string, any> = {};
-      const importEntry = async (entry: any, entryName: string) => {
-        await setStatus('running', entryName.replace('.txt', ''), `Importiere ${entryName}`, 35);
-        const buf = await readEntryStream(entry);
-        const records = parseSync(buf.toString('utf-8'), { columns: true, skip_empty_lines: true, trim: true, relax_column_count: true }) as Record<string, string>[];
-        let rows: any[][] = []; let n = 0; let totalRec = 0;
-        const handler = handlers[entryName];
-        for (const rec of records) {
-          const row = handler(rec);
-          if (!row) continue;
-          rows.push(row);
-          totalRec++;
-          if (rows.length >= BATCH) { n += await insertBatch(tablesCfg[entryName].table, tablesCfg[entryName].cols, rows, tablesCfg[entryName].conflict); rows = []; if (totalRec % 1000000 === 0) log(`GTFS: ${totalRec} ${entryName} verarbeitet`); }
-        }
-        if (rows.length) n += await insertBatch(tablesCfg[entryName].table, tablesCfg[entryName].cols, rows, tablesCfg[entryName].conflict);
-        log(`GTFS: ${n} ${entryName} importiert (${totalRec} gelesen)`);
-      };
+      const importEntry = (entry: any, entryName: string): Promise<void> => new Promise((resolve, reject) => {
+        setStatus('running', entryName.replace('.txt', ''), `Importiere ${entryName}`, 35).catch(() => {});
+        zipfile.openReadStream(entry, (err: any, rs: Readable) => {
+          if (err) return reject(err);
+          const parser = parse({ columns: true, skip_empty_lines: true, trim: true, relax_column_count: true }) as any;
+          rs.pipe(parser);
+          let rows: any[][] = []; let n = 0; let totalRec = 0;
+          const handler = handlers[entryName];
+          const cfg = tablesCfg[entryName];
+          parser.on('data', (rec: Record<string, string>) => {
+            const row = handler(rec);
+            if (!row) return;
+            rows.push(row);
+            totalRec++;
+            if (rows.length >= BATCH) {
+              insertBatch(cfg.table, cfg.cols, rows, cfg.conflict).then((c) => { n += c; rows = []; if (totalRec % 1000000 === 0) log(`GTFS: ${totalRec} ${entryName} verarbeitet`); }).catch(reject);
+            }
+          });
+          parser.on('end', () => {
+            if (rows.length) insertBatch(cfg.table, cfg.cols, rows, cfg.conflict).then((c) => { n += c; log(`GTFS: ${n} ${entryName} importiert (${totalRec} gelesen)`); resolve(); }).catch(reject);
+            else { log(`GTFS: ${n} ${entryName} importiert (${totalRec} gelesen)`); resolve(); }
+          });
+          parser.on('error', reject);
+        });
+      });
 
       const handlers: Record<string, (r: Record<string, string>) => any[] | null> = {
         'stops.txt': (r) => (!r.stop_id || !r.stop_name || !r.stop_lat || !r.stop_lon) ? null : [r.stop_id, r.stop_name, parseFloat(r.stop_lat) || 0, parseFloat(r.stop_lon) || 0, r.zone_id || ''],
