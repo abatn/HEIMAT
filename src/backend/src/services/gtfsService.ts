@@ -113,12 +113,11 @@ export class GtfsService {
 
       // yauzl: echtes Streaming — nur eine Datei gleichzeitig im RAM
       const yauzl = require('yauzl');
-      const openZip = (): Promise<any> => new Promise((resolve, reject) =>
-        yauzl.open(zipPath, { lazyEntries: true }, (err: any, zipfile: any) => err ? reject(err) : resolve(zipfile))
+      const zipfile: any = await new Promise((resolve, reject) =>
+        yauzl.open(zipPath, { lazyEntries: true, autoClose: false }, (err: any, zf: any) => err ? reject(err) : resolve(zf))
       );
-      const zipfile = await openZip();
-      const readEntry = (zf: any, entry: any): Promise<Buffer> => new Promise((resolve, reject) => {
-        zf.openReadStream(entry, (err: any, rs: Readable) => {
+      const readEntryStream = (entry: any): Promise<Buffer> => new Promise((resolve, reject) => {
+        zipfile.openReadStream(entry, (err: any, rs: Readable) => {
           if (err) return reject(err);
           const chunks: Buffer[] = [];
           rs.on('data', (c: Buffer) => chunks.push(c));
@@ -141,52 +140,68 @@ export class GtfsService {
         return r.rowCount || 0;
       };
 
-      const importEntry = async (entryName: string, handler: (rec: Record<string, string>) => any[] | null, table: string, cols: string[], conflict: string) => {
-        const entry = zipfile.entries.find((e: any) => e.fileName.endsWith(entryName));
-        if (!entry) { log(`GTFS: ${entryName} fehlt im Feed`); return; }
+      // Alle Entries durchiterieren (lazyEntries), nur die 5 relevanten verarbeiten
+      const targets = ['stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'calendar.txt'];
+      const pending: Record<string, any> = {};
+      const importEntry = async (entry: any, entryName: string) => {
         await setStatus('running', entryName.replace('.txt', ''), `Importiere ${entryName}`, 35);
-        const buf = await readEntry(zipfile, entry);
+        const buf = await readEntryStream(entry);
         const records = parseSync(buf.toString('utf-8'), { columns: true, skip_empty_lines: true, trim: true, relax_column_count: true }) as Record<string, string>[];
         let rows: any[][] = []; let n = 0; let totalRec = 0;
+        const handler = handlers[entryName];
         for (const rec of records) {
           const row = handler(rec);
           if (!row) continue;
           rows.push(row);
           totalRec++;
-          if (rows.length >= BATCH) { n += await insertBatch(table, cols, rows, conflict); rows = []; if (totalRec % 1000000 === 0) log(`GTFS: ${totalRec} ${entryName} verarbeitet`); }
+          if (rows.length >= BATCH) { n += await insertBatch(tablesCfg[entryName].table, tablesCfg[entryName].cols, rows, tablesCfg[entryName].conflict); rows = []; if (totalRec % 1000000 === 0) log(`GTFS: ${totalRec} ${entryName} verarbeitet`); }
         }
-        if (rows.length) n += await insertBatch(table, cols, rows, conflict);
+        if (rows.length) n += await insertBatch(tablesCfg[entryName].table, tablesCfg[entryName].cols, rows, tablesCfg[entryName].conflict);
         log(`GTFS: ${n} ${entryName} importiert (${totalRec} gelesen)`);
       };
 
-      await importEntry('stops.txt', (r) =>
-        (!r.stop_id || !r.stop_name || !r.stop_lat || !r.stop_lon) ? null :
-        [r.stop_id, r.stop_name, parseFloat(r.stop_lat) || 0, parseFloat(r.stop_lon) || 0, r.zone_id || ''],
-        'gtfs_stops', ['stop_id', 'name', 'latitude', 'longitude', 'zone_id'],
-        'ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude');
+      const handlers: Record<string, (r: Record<string, string>) => any[] | null> = {
+        'stops.txt': (r) => (!r.stop_id || !r.stop_name || !r.stop_lat || !r.stop_lon) ? null : [r.stop_id, r.stop_name, parseFloat(r.stop_lat) || 0, parseFloat(r.stop_lon) || 0, r.zone_id || ''],
+        'routes.txt': (r) => !r.route_id ? null : [r.route_id, r.route_short_name || '', r.route_long_name || '', parseInt(r.route_type) || 3, r.route_color ? `#${r.route_color}` : '#6B7280', r.route_text_color ? `#${r.route_text_color}` : '#FFFFFF'],
+        'trips.txt': (r) => !r.trip_id ? null : [r.trip_id, r.route_id || '', r.trip_headsign || '', parseInt(r.direction_id) || 0, r.service_id || ''],
+        'stop_times.txt': (r) => (!r.trip_id || !r.stop_id) ? null : [r.trip_id, r.stop_id, r.arrival_time || '', r.departure_time || '', parseInt(r.stop_sequence) || 0],
+        'calendar.txt': (r) => { if (!r.service_id) return null; const b = (v: string) => v === '1' || v === 'true'; return [r.service_id, b(r.monday), b(r.tuesday), b(r.wednesday), b(r.thursday), b(r.friday), b(r.saturday), b(r.sunday), r.start_date || '', r.end_date || '']; },
+      };
+      const tablesCfg: Record<string, { table: string; cols: string[]; conflict: string }> = {
+        'stops.txt': { table: 'gtfs_stops', cols: ['stop_id', 'name', 'latitude', 'longitude', 'zone_id'], conflict: 'ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude' },
+        'routes.txt': { table: 'gtfs_routes', cols: ['route_id', 'short_name', 'long_name', 'route_type', 'route_color', 'route_text_color'], conflict: 'ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name' },
+        'trips.txt': { table: 'gtfs_trips', cols: ['trip_id', 'route_id', 'headsign', 'direction_id', 'service_id'], conflict: 'ON CONFLICT (trip_id) DO NOTHING' },
+        'stop_times.txt': { table: 'gtfs_stop_times', cols: ['trip_id', 'stop_id', 'arrival_time', 'departure_time', 'stop_sequence'], conflict: '' },
+        'calendar.txt': { table: 'gtfs_calendar', cols: ['service_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'start_date', 'end_date'], conflict: 'ON CONFLICT (service_id) DO NOTHING' },
+      };
 
-      await importEntry('routes.txt', (r) =>
-        !r.route_id ? null :
-        [r.route_id, r.route_short_name || '', r.route_long_name || '', parseInt(r.route_type) || 3, r.route_color ? `#${r.route_color}` : '#6B7280', r.route_text_color ? `#${r.route_text_color}` : '#FFFFFF'],
-        'gtfs_routes', ['route_id', 'short_name', 'long_name', 'route_type', 'route_color', 'route_text_color'],
-        'ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name');
+      await new Promise<void>((resolveEntries, rejectEntries) => {
+        zipfile.on('entry', (entry: any) => {
+          const name = entry.fileName.split('/').pop() || '';
+          if (targets.includes(name) && !entry.fileName.endsWith('/')) {
+            importEntry(entry, name).then(() => zipfile.readEntry()).catch(rejectEntries);
+          } else {
+            zipfile.readEntry();
+          }
+        });
+        zipfile.on('end', () => resolveEntries());
+        zipfile.on('error', rejectEntries);
+        zipfile.readEntry();
+      });
 
-      await importEntry('trips.txt', (r) =>
-        !r.trip_id ? null :
-        [r.trip_id, r.route_id || '', r.trip_headsign || '', parseInt(r.direction_id) || 0, r.service_id || ''],
-        'gtfs_trips', ['trip_id', 'route_id', 'headsign', 'direction_id', 'service_id'],
-        'ON CONFLICT (trip_id) DO NOTHING');
-
-      await importEntry('stop_times.txt', (r) =>
-        (!r.trip_id || !r.stop_id) ? null :
-        [r.trip_id, r.stop_id, r.arrival_time || '', r.departure_time || '', parseInt(r.stop_sequence) || 0],
-        'gtfs_stop_times', ['trip_id', 'stop_id', 'arrival_time', 'departure_time', 'stop_sequence'], '');
-
-      await importEntry('calendar.txt', (r) => {
-        if (!r.service_id) return null;
-        const b = (v: string) => v === '1' || v === 'true';
-        return [r.service_id, b(r.monday), b(r.tuesday), b(r.wednesday), b(r.thursday), b(r.friday), b(r.saturday), b(r.sunday), r.start_date || '', r.end_date || ''];
-      }, 'gtfs_calendar', ['service_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'start_date', 'end_date'], 'ON CONFLICT (service_id) DO NOTHING');
+      await new Promise<void>((resolveEntries, rejectEntries) => {
+        zipfile.on('entry', (entry: any) => {
+          const name = entry.fileName.split('/').pop() || '';
+          if (targets.includes(name) && !entry.fileName.endsWith('/')) {
+            importEntry(entry, name).then(() => zipfile.readEntry()).catch(rejectEntries);
+          } else {
+            zipfile.readEntry();
+          }
+        });
+        zipfile.on('end', () => resolveEntries());
+        zipfile.on('error', rejectEntries);
+        zipfile.readEntry();
+      });
 
       zipfile.close();
       fs.rmSync(tmpDir, { recursive: true, force: true });
