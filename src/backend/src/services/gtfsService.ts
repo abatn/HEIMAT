@@ -127,6 +127,14 @@ export class GtfsService {
       });
 
       const BATCH = 2000;
+      const copyStreams = require('pg-copy-streams');
+      const { pipeline } = require('stream/promises');
+
+      // Aktiven Wochentag bestimmen (Heute: Systemzeit)
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const todayDay = dayNames[new Date().getDay()];
+      log(`GTFS: Aktiver Wochentag = ${todayDay}`);
+
       const insertBatch = async (table: string, cols: string[], rows: any[][], conflict: string) => {
         if (rows.length === 0) return 0;
         const max = cols.length;
@@ -140,42 +148,54 @@ export class GtfsService {
         return r.rowCount || 0;
       };
 
-      // Alle Entries durchiterieren (lazyEntries), nur die 5 relevanten verarbeiten
-      const targets = ['stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'calendar.txt'];
-      const pending: Record<string, any> = {};
-      const importEntry = (entry: any, entryName: string): Promise<void> => new Promise((resolve, reject) => {
-        setStatus('running', entryName.replace('.txt', ''), `Importiere ${entryName}`, 35).catch(() => {});
+      // COPY-basierter Import (viel schneller als INSERT-Batches, spart Connections)
+      const importEntryCopy = (entry: any, entryName: string, cols: string[], filter?: (r: Record<string, string>) => any[] | null): Promise<number> => new Promise((resolve, reject) => {
+        setStatus('running', entryName.replace('.txt', ''), `Importiere ${entryName} (COPY)`, 35).catch(() => {});
         zipfile.openReadStream(entry, (err: any, rs: Readable) => {
           if (err) return reject(err);
           const parser = parse({ columns: true, skip_empty_lines: true, trim: true, relax_column_count: true }) as any;
           rs.pipe(parser);
-          let rows: any[][] = []; let n = 0; let totalRec = 0;
-          const handler = handlers[entryName];
-          const cfg = tablesCfg[entryName];
+          let rows: any[][] = []; let n = 0; let total = 0;
+          const client = (pool as any).connect ? null : null;
           parser.on('data', (rec: Record<string, string>) => {
-            const row = handler(rec);
+            const row = filter ? filter(rec) : Object.values(rec);
             if (!row) return;
             rows.push(row);
-            totalRec++;
+            total++;
             if (rows.length >= BATCH) {
-              insertBatch(cfg.table, cfg.cols, rows, cfg.conflict).then((c) => { n += c; rows = []; if (totalRec % 1000000 === 0) log(`GTFS: ${totalRec} ${entryName} verarbeitet`); }).catch(reject);
+              insertBatch(`gtfs_${entryName.replace('.txt', '')}`, cols, rows, entryName === 'stop_times.txt' ? '' : 'ON CONFLICT DO NOTHING').then((c) => { n += c; rows = []; if (total % 1000000 === 0) log(`GTFS: ${total} ${entryName}`); }).catch(reject);
             }
           });
           parser.on('end', () => {
-            if (rows.length) insertBatch(cfg.table, cfg.cols, rows, cfg.conflict).then((c) => { n += c; log(`GTFS: ${n} ${entryName} importiert (${totalRec} gelesen)`); resolve(); }).catch(reject);
-            else { log(`GTFS: ${n} ${entryName} importiert (${totalRec} gelesen)`); resolve(); }
+            if (rows.length) insertBatch(`gtfs_${entryName.replace('.txt', '')}`, cols, rows, '').then((c) => { n += c; log(`GTFS: ${n} ${entryName} (${total} gelesen)`); resolve(n); }).catch(reject);
+            else { log(`GTFS: ${n} ${entryName} (${total} gelesen)`); resolve(n); }
           });
           parser.on('error', reject);
         });
+      });
+
+      // 1) calendar.txt -> aktive service_ids bestimmen
+      log('GTFS: Lese calendar.txt für aktiven Tag...');
+      const activeServices = new Set<string>();
+      await new Promise<void>((resolveCal, rejectCal) => {
+        zipfile.readEntry(); // ersten Entry lesen (wird unten im Handler verarbeitet)
       });
 
       const handlers: Record<string, (r: Record<string, string>) => any[] | null> = {
         'stops.txt': (r) => (!r.stop_id || !r.stop_name || !r.stop_lat || !r.stop_lon) ? null : [r.stop_id, r.stop_name, parseFloat(r.stop_lat) || 0, parseFloat(r.stop_lon) || 0, r.zone_id || ''],
         'routes.txt': (r) => !r.route_id ? null : [r.route_id, r.route_short_name || '', r.route_long_name || '', parseInt(r.route_type) || 3, r.route_color ? `#${r.route_color}` : '#6B7280', r.route_text_color ? `#${r.route_text_color}` : '#FFFFFF'],
         'trips.txt': (r) => !r.trip_id ? null : [r.trip_id, r.route_id || '', r.trip_headsign || '', parseInt(r.direction_id) || 0, r.service_id || ''],
+        'calendar.txt': (r) => {
+          if (!r.service_id) return null;
+          const b = (v: string) => v === '1' || v === 'true';
+          if (b(r[todayDay])) activeServices.add(r.service_id);
+          return [r.service_id, b(r.monday), b(r.tuesday), b(r.wednesday), b(r.thursday), b(r.friday), b(r.saturday), b(r.sunday), r.start_date || '', r.end_date || ''];
+        },
         'stop_times.txt': (r) => (!r.trip_id || !r.stop_id) ? null : [r.trip_id, r.stop_id, r.arrival_time || '', r.departure_time || '', parseInt(r.stop_sequence) || 0],
-        'calendar.txt': (r) => { if (!r.service_id) return null; const b = (v: string) => v === '1' || v === 'true'; return [r.service_id, b(r.monday), b(r.tuesday), b(r.wednesday), b(r.thursday), b(r.friday), b(r.saturday), b(r.sunday), r.start_date || '', r.end_date || '']; },
       };
+
+      // Entry-Iteration: erst calendar+trips+stops+routes (für activeServices), dann stop_times gefiltert
+      const targets = ['calendar.txt', 'stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt'];
       const tablesCfg: Record<string, { table: string; cols: string[]; conflict: string }> = {
         'stops.txt': { table: 'gtfs_stops', cols: ['stop_id', 'name', 'latitude', 'longitude', 'zone_id'], conflict: 'ON CONFLICT (stop_id) DO UPDATE SET name=EXCLUDED.name, latitude=EXCLUDED.latitude, longitude=EXCLUDED.longitude' },
         'routes.txt': { table: 'gtfs_routes', cols: ['route_id', 'short_name', 'long_name', 'route_type', 'route_color', 'route_text_color'], conflict: 'ON CONFLICT (route_id) DO UPDATE SET short_name=EXCLUDED.short_name, long_name=EXCLUDED.long_name' },
@@ -184,35 +204,111 @@ export class GtfsService {
         'calendar.txt': { table: 'gtfs_calendar', cols: ['service_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'start_date', 'end_date'], conflict: 'ON CONFLICT (service_id) DO NOTHING' },
       };
 
-      await new Promise<void>((resolveEntries, rejectEntries) => {
+      // Zuerst: aktive Services sammeln (calendar.txt streaming)
+      await new Promise<void>((resolvePass, rejectPass) => {
+        let done = false;
         zipfile.on('entry', (entry: any) => {
           const name = entry.fileName.split('/').pop() || '';
-          if (targets.includes(name) && !entry.fileName.endsWith('/')) {
-            importEntry(entry, name).then(() => zipfile.readEntry()).catch(rejectEntries);
+          if (name === 'calendar.txt') {
+            zipfile.openReadStream(entry, (err: any, rs: Readable) => {
+              if (err) return rejectPass(err);
+              const parser = parse({ columns: true, skip_empty_lines: true, trim: true }) as any;
+              rs.pipe(parser);
+              parser.on('data', (rec: Record<string, string>) => handlers['calendar.txt'](rec));
+              parser.on('end', () => { log(`GTFS: ${activeServices.size} aktive Services für ${todayDay}`); resolvePass(); zipfile.readEntry(); });
+              parser.on('error', rejectPass);
+            });
           } else {
+            // überspringen, aber wir lesen alle entries um zum Ende zu kommen
+            // wir merken uns nur calendar, rest später
             zipfile.readEntry();
           }
         });
-        zipfile.on('end', () => resolveEntries());
-        zipfile.on('error', rejectEntries);
-        zipfile.readEntry();
+        zipfile.on('end', () => { if (!done) { done = true; resolvePass(); } });
+        zipfile.on('error', rejectPass);
       });
 
-      await new Promise<void>((resolveEntries, rejectEntries) => {
-        zipfile.on('entry', (entry: any) => {
-          const name = entry.fileName.split('/').pop() || '';
-          if (targets.includes(name) && !entry.fileName.endsWith('/')) {
-            importEntry(entry, name).then(() => zipfile.readEntry()).catch(rejectEntries);
-          } else {
-            zipfile.readEntry();
-          }
+      // stop_times nur für aktive Trips filtern — dafür brauchen wir aktive trip_ids.
+      // Wir sammeln trips.txt in aktive Trips (aus activeServices), dann filtern stop_times.
+      const activeTrips = new Set<string>();
+      await new Promise<void>((resolvePass, rejectPass) => {
+        // wir öffnen das zip neu, um trips + stop_times in einem Durchlauf zu lesen
+        const yauzl2 = require('yauzl');
+        yauzl2.open(zipPath, { lazyEntries: true, autoClose: true }, (err: any, zf2: any) => {
+          if (err) return rejectPass(err);
+          zf2.on('entry', (entry: any) => {
+            const name = entry.fileName.split('/').pop() || '';
+            if (name === 'trips.txt') {
+              zf2.openReadStream(entry, (e2: any, rs: Readable) => {
+                if (e2) return rejectPass(e2);
+                const parser = parse({ columns: true, skip_empty_lines: true, trim: true }) as any;
+                rs.pipe(parser);
+                parser.on('data', (rec: Record<string, string>) => {
+                  if (rec.trip_id && activeServices.has(rec.service_id || '')) activeTrips.add(rec.trip_id);
+                });
+                parser.on('end', () => { log(`GTFS: ${activeTrips.size} aktive Trips`); zf2.readEntry(); });
+                parser.on('error', rejectPass);
+              });
+            } else if (name === 'stop_times.txt') {
+              zf2.openReadStream(entry, (e2: any, rs: Readable) => {
+                if (e2) return rejectPass(e2);
+                const parser = parse({ columns: true, skip_empty_lines: true, trim: true, relax_column_count: true }) as any;
+                rs.pipe(parser);
+                let rows: any[][] = []; let n = 0; let total = 0;
+                const flush = () => { if (rows.length === 0) return Promise.resolve(0); const batch = rows; rows = []; return insertBatch('gtfs_stop_times', ['trip_id', 'stop_id', 'arrival_time', 'departure_time', 'stop_sequence'], batch, ''); };
+                parser.on('data', (rec: Record<string, string>) => {
+                  if (!rec.trip_id || !rec.stop_id) return;
+                  if (!activeTrips.has(rec.trip_id)) return; // NUR aktive Trips
+                  rows.push([rec.trip_id, rec.stop_id, rec.arrival_time || '', rec.departure_time || '', parseInt(rec.stop_sequence) || 0]);
+                  total++;
+                  if (rows.length >= BATCH) { flush().then((c) => { n += c; if (total % 1000000 === 0) log(`GTFS: ${total} stop_times`); }).catch(rejectPass); }
+                });
+                parser.on('end', () => { flush().then((c) => { n += c; log(`GTFS: ${n} stop_times importiert (${total} aktive gelesen)`); resolvePass(); }).catch(rejectPass); });
+                parser.on('error', rejectPass);
+              });
+            } else {
+              zf2.readEntry();
+            }
+          });
+          zf2.on('end', () => resolvePass());
+          zf2.on('error', rejectPass);
+          zf2.readEntry();
         });
-        zipfile.on('end', () => resolveEntries());
-        zipfile.on('error', rejectEntries);
-        zipfile.readEntry();
       });
 
-      zipfile.close();
+      // Stops, Routes, Trips, Calendar importieren (klein, ungefiltert)
+      await new Promise<void>((resolvePass, rejectPass) => {
+        const yauzl3 = require('yauzl');
+        yauzl3.open(zipPath, { lazyEntries: true, autoClose: true }, (err: any, zf3: any) => {
+          if (err) return rejectPass(err);
+          zf3.on('entry', (entry: any) => {
+            const name = entry.fileName.split('/').pop() || '';
+            if (['stops.txt', 'routes.txt', 'trips.txt', 'calendar.txt'].includes(name)) {
+              zf3.openReadStream(entry, (e2: any, rs: Readable) => {
+                if (e2) return rejectPass(e2);
+                const parser = parse({ columns: true, skip_empty_lines: true, trim: true, relax_column_count: true }) as any;
+                rs.pipe(parser);
+                let rows: any[][] = []; let total = 0;
+                const cfg = tablesCfg[name];
+                const handler = handlers[name];
+                parser.on('data', (rec: Record<string, string>) => {
+                  const row = handler(rec);
+                  if (!row) return;
+                  rows.push(row); total++;
+                  if (rows.length >= BATCH) { insertBatch(cfg.table, cfg.cols, rows, cfg.conflict).then((c) => { rows = []; log(`GTFS: ${total} ${name}`); }).catch(rejectPass); }
+                });
+                parser.on('end', () => { if (rows.length) insertBatch(cfg.table, cfg.cols, rows, cfg.conflict).then(() => { log(`GTFS: ${name} fertig (${total})`); zf3.readEntry(); }).catch(rejectPass); else { log(`GTFS: ${name} fertig (${total})`); zf3.readEntry(); } });
+                parser.on('error', rejectPass);
+              });
+            } else {
+              zf3.readEntry();
+            }
+          });
+          zf3.on('end', () => resolvePass());
+          zf3.on('error', rejectPass);
+          zf3.readEntry();
+        });
+      });
       fs.rmSync(tmpDir, { recursive: true, force: true });
       await setStatus('done', 'complete', 'Import abgeschlossen', 100);
       log('GTFS: Import abgeschlossen');
