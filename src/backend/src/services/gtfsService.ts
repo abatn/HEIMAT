@@ -87,6 +87,7 @@ export class GtfsService {
         [status, stage, message, progress]
       );
     };
+    let importClient: any = null;
     try {
       await setStatus('running', 'download', 'Starte Download', 0);
       log('GTFS: Lade Feed (Stream)...');
@@ -117,7 +118,8 @@ export class GtfsService {
         yauzl.open(zipPath, { lazyEntries: true, autoClose: true }, (err: any, zf: any) => err ? reject(err) : resolve(zf))
       );
 
-      const BATCH = 2000;
+      const BATCH = 1000;
+      importClient = await pool.connect();
       const insertBatch = async (table: string, cols: string[], rows: any[][], conflict: string) => {
         if (rows.length === 0) return 0;
         const max = cols.length;
@@ -127,7 +129,7 @@ export class GtfsService {
         }).join(',');
         const params = rows.flat();
         const sql = `INSERT INTO ${table} (${cols.join(', ')}) VALUES ${placeholders} ${conflict}`;
-        const r = await pool.query(sql, params);
+        const r = await importClient.query(sql, params);
         return r.rowCount || 0;
       };
 
@@ -159,7 +161,6 @@ export class GtfsService {
       let stage = '';
 
       await new Promise<void>((resolveAll, rejectAll) => {
-        const flushSimple = async (name: string, rows: any[][]) => { if (rows.length) await insertBatch(tablesCfg[name].table, tablesCfg[name].cols, rows, tablesCfg[name].conflict); };
         zipfile.on('entry', (entry: any) => {
           const name = entry.fileName.split('/').pop() || '';
           if (!['stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'calendar.txt'].includes(name) || entry.fileName.endsWith('/')) {
@@ -171,7 +172,14 @@ export class GtfsService {
             const parser = parse({ columns: true, skip_empty_lines: true, trim: true, relax_column_count: true }) as any;
             rs.pipe(parser);
             let rows: any[][] = []; let total = 0; let n = 0;
-            parser.on('data', (rec: Record<string, string>) => {
+            const flush = async () => {
+              if (rows.length === 0) return;
+              const batch = rows; rows = [];
+              n += await insertBatch(tablesCfg[name].table, tablesCfg[name].cols, batch, tablesCfg[name].conflict);
+              if (total % 1000000 < BATCH) log(`GTFS: ${total} ${name} verarbeitet`);
+            };
+            parser.on('data', async (rec: Record<string, string>) => {
+              parser.pause(); // RAM kontrollieren: nicht schneller lesen als DB schreibt
               if (name === 'calendar.txt') {
                 if (rec.service_id && (rec[todayDay] === '1' || rec[todayDay] === 'true')) activeServices.add(rec.service_id);
                 const row = rowFor(name, rec); if (row) rows.push(row);
@@ -179,21 +187,20 @@ export class GtfsService {
                 if (rec.trip_id && activeServices.has(rec.service_id || '')) activeTrips.add(rec.trip_id);
                 const row = rowFor(name, rec); if (row) rows.push(row);
               } else if (name === 'stop_times.txt') {
-                if (!rec.trip_id || !rec.stop_id) return;
-                if (!activeTrips.has(rec.trip_id)) return; // NUR aktive Trips
+                if (!rec.trip_id || !rec.stop_id) { parser.resume(); return; }
+                if (!activeTrips.has(rec.trip_id)) { parser.resume(); return; } // NUR aktive Trips
                 rows.push([rec.trip_id, rec.stop_id, rec.arrival_time || '', rec.departure_time || '', parseInt(rec.stop_sequence) || 0]);
               } else {
                 const row = rowFor(name, rec); if (row) rows.push(row);
               }
               total++;
-              if (rows.length >= BATCH) {
-                const batch = rows; rows = [];
-                insertBatch(tablesCfg[name].table, tablesCfg[name].cols, batch, tablesCfg[name].conflict).then((c) => { n += c; if (total % 1000000 === 0) log(`GTFS: ${total} ${name}`); }).catch(rejectAll);
-              }
+              if (rows.length >= BATCH) { await flush(); }
+              parser.resume();
             });
-            parser.on('end', () => {
-              if (rows.length) insertBatch(tablesCfg[name].table, tablesCfg[name].cols, rows, tablesCfg[name].conflict).then(() => { log(`GTFS: ${n} ${name} (${total} gelesen)`); zipfile.readEntry(); }).catch(rejectAll);
-              else { log(`GTFS: ${name} (${total} gelesen)`); zipfile.readEntry(); }
+            parser.on('end', async () => {
+              await flush();
+              log(`GTFS: ${n} ${name} importiert (${total} gelesen)`);
+              zipfile.readEntry();
             });
             parser.on('error', rejectAll);
           });
@@ -204,10 +211,12 @@ export class GtfsService {
       });
       log(`GTFS: Aktive Services=${activeServices.size}, Aktive Trips=${activeTrips.size}`);
       fs.rmSync(tmpDir, { recursive: true, force: true });
+      if (importClient) importClient.release();
       await setStatus('done', 'complete', 'Import abgeschlossen', 100);
       log('GTFS: Import abgeschlossen');
     } catch (error: any) {
       logger.error(`GTFS: Import fehlgeschlagen: ${error?.message || error}`);
+      if (importClient) importClient.release();
       await setStatus('failed', 'error', error?.message || String(error), 0).catch(() => {});
       throw error;
     }
