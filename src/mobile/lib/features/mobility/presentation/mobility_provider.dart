@@ -41,54 +41,48 @@ class RoutePoint {
 }
 
 class Departure {
-  final String stopName;
-  final String routeShortName;
-  final String routeLongName;
-  final int routeType;
-  final String routeColor;
-  final String headsign;
+  final String line;
+  final String direction;
   final String departureTime;
+  final int delay;
+  final String platform;
 
   Departure({
-    required this.stopName,
-    required this.routeShortName,
-    required this.routeLongName,
-    required this.routeType,
-    required this.routeColor,
-    required this.headsign,
+    required this.line,
+    required this.direction,
     required this.departureTime,
+    required this.delay,
+    required this.platform,
   });
 
   factory Departure.fromJson(Map<String, dynamic> json) {
+    // db-rest Format: plannedDeparture / realtimeDeparture / delay
+    // Legacy Format: departureTime / delay
+    final plannedDep = json['plannedDeparture'] ?? '';
+    final depTime =
+        plannedDep.isNotEmpty ? plannedDep : (json['departureTime'] ?? '');
+
     return Departure(
-      stopName: json['stop_name'] ?? '',
-      routeShortName: json['route_short_name'] ?? '',
-      routeLongName: json['route_long_name'] ?? '',
-      routeType: json['route_type'] ?? 3,
-      routeColor: json['route_color'] ?? '#6B7280',
-      headsign: json['headsign'] ?? '',
-      departureTime: json['departure_time'] ?? '',
+      line: json['line'] ?? '',
+      direction: json['direction'] ?? '',
+      departureTime: depTime,
+      delay: json['delay'] ?? 0,
+      platform: json['platform'] ?? '',
     );
   }
 
-  String get transportIcon => switch (routeType) {
-        0 => '🚋',
-        1 => '🚇',
-        2 => '🚆',
-        3 => '🚌',
-        4 => '⛴',
-        _ => '🚌',
-      };
+  String get lineLabel => line.isNotEmpty ? line : '—';
+  String get directionLabel => direction.isNotEmpty ? direction : '—';
 }
 
 class JourneyLeg {
   final String type;
   final String from;
   final String to;
-  final String? route;
+  final String? line;
+  final String? direction;
+  final String? platform;
   final String? routeColor;
-  final int? routeType;
-  final String? headsign;
   final String departure;
   final String arrival;
   final int durationMin;
@@ -97,29 +91,40 @@ class JourneyLeg {
     required this.type,
     required this.from,
     required this.to,
-    this.route,
+    this.line,
+    this.direction,
+    this.platform,
     this.routeColor,
-    this.routeType,
-    this.headsign,
     required this.departure,
     required this.arrival,
     required this.durationMin,
   });
 
   factory JourneyLeg.fromJson(Map<String, dynamic> json) {
+    // db-rest Format: mode, line, originName, destinationName, durationMinutes
+    // Legacy Format: type, from, to, line, duration_min
+    final mode = json['mode'] ?? json['type'] ?? 'walk';
+    final isTransit = mode != 'walk';
+
     return JourneyLeg(
-      type: json['type'] ?? 'walk',
-      from: json['from'] ?? '',
-      to: json['to'] ?? '',
-      route: json['route'],
-      routeColor: json['route_color'],
-      routeType: json['route_type'],
-      headsign: json['headsign'],
-      departure: json['departure'] ?? '',
-      arrival: json['arrival'] ?? '',
-      durationMin: json['duration_min'] ?? 0,
+      type: isTransit ? 'transit' : 'walk',
+      from: json['originName'] ?? json['from'] ?? '',
+      to: json['destinationName'] ?? json['to'] ?? '',
+      line: json['line'] ?? json['route'],
+      direction: json['direction'] ?? json['headsign'],
+      platform: json['platform'],
+      routeColor: json['route_color'] ?? json['color'],
+      departure: json['originPlannedDeparture'] ?? json['departure'] ?? '',
+      arrival: json['destinationPlannedArrival'] ?? json['arrival'] ?? '',
+      durationMin: json['durationMinutes'] ??
+          json['duration_min'] ??
+          json['durationMin'] ??
+          0,
     );
   }
+
+  String get lineLabel => (line ?? '').isNotEmpty ? line! : '';
+  String get directionLabel => (direction ?? '').isNotEmpty ? direction! : to;
 }
 
 class Journey {
@@ -138,14 +143,19 @@ class Journey {
   });
 
   factory Journey.fromJson(Map<String, dynamic> json) {
+    // db-rest Format: durationMinutes, changes, plannedDeparture, plannedArrival
+    // Legacy Format: totalDurationMin, totalTransfers, departure, arrival
     return Journey(
       legs: (json['legs'] as List? ?? [])
           .map((l) => JourneyLeg.fromJson(l))
           .toList(),
-      totalDurationMin: json['total_duration_min'] ?? 0,
-      totalTransfers: json['total_transfers'] ?? 0,
-      departure: json['departure'] ?? '',
-      arrival: json['arrival'] ?? '',
+      totalDurationMin: json['durationMinutes'] ??
+          json['totalDurationMin'] ??
+          json['total_duration_min'] ??
+          0,
+      totalTransfers: json['changes'] ?? json['totalTransfers'] ?? 0,
+      departure: json['plannedDeparture'] ?? json['departure'] ?? '',
+      arrival: json['plannedArrival'] ?? json['arrival'] ?? '',
     );
   }
 }
@@ -253,15 +263,17 @@ class MobilityProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final url =
-          '${AppConfig.backendUrl}/api/mobility/departures?stop=${Uri.encodeComponent(stopName)}&limit=$limit';
+          '${AppConfig.backendUrl}/api/mobility/departures?stop=${Uri.encodeComponent(stopName)}';
       final response = await http.get(Uri.parse(url), headers: {
         'Content-Type': 'application/json'
       }).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        _departures = (data['departures'] as List? ?? [])
-            .map((d) => Departure.fromJson(d))
-            .toList();
+        final departures = data['departures'] as List? ?? [];
+        _departures = departures.map((d) => Departure.fromJson(d)).toList();
+        if (_departures.length > limit) {
+          _departures = _departures.take(limit).toList();
+        }
       }
     } catch (e) {
       _error = 'Abfahrten konnten nicht geladen werden: $e';
@@ -279,7 +291,7 @@ class MobilityProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final url =
-          '${AppConfig.backendUrl}/api/mobility/journey?from_lat=$fromLat&from_lng=$fromLng&to_lat=$toLat&to_lng=$toLng';
+          '${AppConfig.backendUrl}/api/mobility/journey?from=$fromLat,$fromLng&to=$toLat,$toLng';
       final response = await http.get(Uri.parse(url), headers: {
         'Content-Type': 'application/json'
       }).timeout(const Duration(seconds: 30));

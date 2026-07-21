@@ -1,0 +1,5 @@
+FROM docker.io/derhuerst/db-rest:6
+
+EXPOSE 3001
+
+ENV PORT=3001

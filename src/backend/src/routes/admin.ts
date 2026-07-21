@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { pool } from '../config/database';
-import { EFA_ENDPOINTS } from '../services/efaService';
+import { dbRestService } from '../services/dbRestService';
 import { logger } from '../utils/logger';
 
 const adminRouter = Router();
@@ -33,86 +33,63 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/admin/efa-status – Liste der verfügbaren EFA-Endpunkte
-adminRouter.get('/efa-status', async (req: Request, res: Response) => {
+// GET /api/admin/db-rest-status – Prüft db-rest Service-Erreichbarkeit
+adminRouter.get('/db-rest-status', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   try {
-    const endpoints = Object.values(EFA_ENDPOINTS).map(e => ({ key: e.key, name: e.name }));
-    res.json({ success: true, endpoints, count: endpoints.length });
+    const health = await dbRestService.healthCheck();
+    const testStops = await dbRestService.searchStops('Hauptbahnhof', 3);
+    res.json({
+      success: true,
+      dbRest: health,
+      testQuery: 'Hauptbahnhof',
+      testResults: testStops.length,
+      sampleStop: testStops[0] || null,
+    });
   } catch (error: any) {
-    logger.error(`Admin EFA status failed: ${error.message}`);
+    logger.error(`Admin db-rest status failed: ${error.message}`);
     res.status(500).json({ success: false, message: error.message || 'Status check failed' });
   }
 });
 
-// GET /api/admin/efa-selftest – testet jeden Endpunkt mit findStop + ersten Departures
-adminRouter.get('/efa-selftest', async (req: Request, res: Response) => {
+// GET /api/admin/db-rest-selftest – Testet db-rest mit Abfahrten + Journey
+adminRouter.get('/db-rest-selftest', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
-  try {
-    const { efaService } = await import('../services/efaService');
-    const axios = (await import('axios')).default;
-    const query = (req.query.q as string) || 'Hauptbahnhof';
-    const results: any[] = [];
-    for (const ep of Object.values(EFA_ENDPOINTS)) {
-      const t0 = Date.now();
-      let rawStatus = 'n/a';
-      try {
-        const raw = await axios.get(`https://dbf.finalrewind.org/XML_STOPFINDER_REQUEST?efa=${ep.short}`, { timeout: 5000, validateStatus: () => true, headers: { 'User-Agent': 'HEIMAT/1.0' } });
-        rawStatus = `HTTP ${raw.status}`;
-      } catch (e: any) {
-        rawStatus = `ERR: ${e?.code || e?.message || e}`;
-      }
-      try {
-        const stops = await efaService.findStop(query, 3, ep.center[0], ep.center[1]);
-        let deps = 0;
-        if (stops.length > 0) {
-          const d = await efaService.getDepartures(stops[0].id, 3, ep.key);
-          deps = d.length;
-        }
-        results.push({ key: ep.key, name: ep.name, ms: Date.now() - t0, rawBase: rawStatus, stops: stops.length, departures: deps, sampleStop: stops[0]?.name || null });
-      } catch (e: any) {
-        results.push({ key: ep.key, name: ep.name, ms: Date.now() - t0, rawBase: rawStatus, error: e?.message || String(e) });
-      }
-    }
-    res.json({ success: true, query, results });
-  } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'selftest failed' });
-  }
-});
 
-// GET /api/admin/net-test – prüft Erreichbarkeit generischer ÖPNV-Kandidaten von Render aus
-adminRouter.get('/net-test', async (req: Request, res: Response) => {
-  if (!requireAdmin(req, res)) return;
   try {
-    const axios = (await import('axios')).default;
-    const candidates = [
-      'https://v6.vbb.bahn.de/efa/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
-      'https://v6.bvg.transport.rest/stops/nearby?latitude=52.52&longitude=13.40',
-      'https://v6.vbb.transport.rest/stops/nearby?latitude=52.52&longitude=13.40',
-      'https://api.deutschebahn.com/freeplan/v1/location?query=Hauptbahnhof',
-      'https://vrrf.finalrewind.org/XML_DM_REQUEST?type_dm=stop&name_dm=Hauptbahnhof&limit=1',
-      'https://www.vrr.de/efa/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
-      'https://efa.vrr.de/standard/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
-      'https://www.vrs.de/viso/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
-      'https://netex.ivb.no/geocoder/2.0/Autocomplete?text=Hauptbahnhof',
-      'https://www2.vvs.de/viso/XML_STOPFINDER_REQUEST?type_sf=stop&name_sf=Hauptbahnhof&limit=1',
-      'https://www.openstreetmap.org/api/0.6/map?bbox=13.39,52.51,13.41,52.53',
-      'https://overpass-api.de/api/interpreter?data=%5Bout%5D%3B',
-    ];
-    const out: any[] = [];
-    for (const url of candidates) {
-      const t0 = Date.now();
-      try {
-        const r = await axios.get(url, { timeout: 8000, validateStatus: () => true, headers: { 'User-Agent': 'HEIMAT/1.0' } });
-        out.push({ url, status: r.status, ms: Date.now() - t0, len: (r.data?.length || 0) });
-      } catch (e: any) {
-        out.push({ url, error: e?.code || e?.message || String(e), ms: Date.now() - t0 });
-      }
+    const query = (req.query.q as string) || 'Berlin Hauptbahnhof';
+    const t0 = Date.now();
+
+    // 1. Haltestelle suchen
+    const stops = await dbRestService.searchStops(query, 3);
+
+    // 2. Abfahrten holen
+    let departures: any[] = [];
+    if (stops.length > 0) {
+      departures = await dbRestService.getDepartures(stops[0].id, 5);
     }
-    res.json({ success: true, results: out });
+
+    // 3. Journey testen (erste Haltestelle → zweite)
+    let journeys: any[] = [];
+    if (stops.length >= 2) {
+      journeys = await dbRestService.getJourneys(stops[0].id, stops[1].id);
+    }
+
+    res.json({
+      success: true,
+      query,
+      ms: Date.now() - t0,
+      stops: stops.length,
+      departures: departures.length,
+      journeys: journeys.length,
+      sampleStop: stops[0] || null,
+      sampleDeparture: departures[0] || null,
+      sampleJourney: journeys[0] || null,
+    });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message || 'net test failed' });
+    logger.error(`Admin db-rest selftest failed: ${error.message}`);
+    res.status(500).json({ success: false, message: error.message || 'selftest failed' });
   }
 });
 

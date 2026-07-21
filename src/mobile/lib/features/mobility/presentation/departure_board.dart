@@ -40,9 +40,13 @@ class DepartureBoard extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: provider.departures.map((dep) {
-            final color = _parseColor(dep.routeColor);
             final timeParts = dep.departureTime.split(':');
-            final timeStr = '${timeParts[0]}:${timeParts[1]}';
+            final timeStr = timeParts.length >= 2
+                ? '${timeParts[0]}:${timeParts[1]}'
+                : dep.departureTime;
+            final delayStr = dep.delay > 0 ? ' +${dep.delay}\'' : '';
+            final platformStr =
+                dep.platform.isNotEmpty ? ' · Gl. ${dep.platform}' : '';
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -56,15 +60,13 @@ class DepartureBoard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: color,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      dep.routeShortName.isNotEmpty
-                          ? dep.routeShortName
-                          : dep.transportIcon,
-                      style: TextStyle(
-                        color: _textColorForBg(color),
+                      dep.lineLabel,
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -73,20 +75,19 @@ class DepartureBoard extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      dep.headsign.isNotEmpty
-                          ? dep.headsign
-                          : dep.routeLongName,
+                      dep.directionLabel,
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w500),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
-                    timeStr,
-                    style: const TextStyle(
+                    '$timeStr$delayStr$platformStr',
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      color:
+                          dep.delay > 0 ? AppColors.error : AppColors.primary,
                     ),
                   ),
                 ],
@@ -96,19 +97,5 @@ class DepartureBoard extends StatelessWidget {
         );
       },
     );
-  }
-
-  Color _parseColor(String hex) {
-    try {
-      final cleaned = hex.replaceAll('#', '');
-      return Color(int.parse('FF$cleaned', radix: 16));
-    } catch (_) {
-      return AppColors.textSecondary;
-    }
-  }
-
-  Color _textColorForBg(Color bg) {
-    final luminance = bg.computeLuminance();
-    return luminance > 0.5 ? Colors.black : Colors.white;
   }
 }

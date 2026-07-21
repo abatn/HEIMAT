@@ -286,6 +286,29 @@ CREATE INDEX IF NOT EXISTS idx_taler_transactions_from ON taler_transactions(fro
 CREATE INDEX IF NOT EXISTS idx_taler_transactions_to ON taler_transactions(to_wallet_id);
 
 -- ============================================
+-- ML: DELAY LOGGING (Verspätungsvorhersage)
+-- ============================================
+
+-- Delay-Logs: Täglich Abfahrten + reale Ankunftszeiten für ML-Training
+CREATE TABLE IF NOT EXISTS delay_logs (
+    id SERIAL PRIMARY KEY,
+    trip_id VARCHAR(255) NOT NULL,
+    line VARCHAR(100) NOT NULL,
+    stop_id VARCHAR(255),
+    stop_name VARCHAR(255),
+    scheduled_departure TIMESTAMP NOT NULL,
+    actual_departure TIMESTAMP,
+    delay_minutes INTEGER DEFAULT 0,
+    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indizes für ML-Training
+CREATE INDEX IF NOT EXISTS idx_delay_logs_trip ON delay_logs(trip_id);
+CREATE INDEX IF NOT EXISTS idx_delay_logs_line ON delay_logs(line);
+CREATE INDEX IF NOT EXISTS idx_delay_logs_scheduled ON delay_logs(scheduled_departure);
+CREATE INDEX IF NOT EXISTS idx_delay_logs_logged_at ON delay_logs(logged_at);
+
+-- ============================================
 -- SEED DATA
 -- ============================================
 

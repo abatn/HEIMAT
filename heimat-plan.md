@@ -17,11 +17,11 @@ HEIMAT 2.0 ist eine Open-Source Super App für den deutschen Alltag, die ausschl
 | **OpenStreetMap (OSM)** | Weltweit größte freie Karte | ✅ Sehr aktiv, riesige DE-Community | Keine |
 | **OpenRouteService** | Routing-Engine auf OSM-Basis | ✅ German OSM Server verfügbar | Keine |
 | **OSRM** | Schnelles Routing | ✅ Nutzt OSM-Daten | Keine |
-| **GTFS-Daten** | ÖPNV-Fahrpläne (Germany-wide) | ✅ Viele Verbünde veröffentlichen GTFS | Teilweise: Nicht alle Verbünde |
+| **db-rest (Vendo API)** | ÖPNV-Daten via DB Navigator Backend | ✅ Echtzeit-Daten, 461 Verbünde, REST JSON | Keine |
 | **OSCA** | Mobilitätsmodul für Verbünde | ✅ In einigen Städten aktiv | Skalierung nötig |
 | **Vereinbarkeit** | Kein Ticketkauf nötig | ✅ Rechtlich unbedenklich | Nur Anzeige |
 
-**Fazit Mobilität:** Die Open-Source-Basis ist exzellent. OSM + GTFS + OpenRouteService decken Navigation und ÖPNV-Anzeige vollständig ab. Kein rechtliches Risiko, da nur öffentliche Daten genutzt werden.
+**Fazit Mobilität:** Die Open-Source-Basis ist exzellent. OSM + db-rest (Vendo API) + OpenRouteService decken Navigation und ÖPNV-Anzeige vollständig ab. Kein rechtliches Risiko, da nur öffentliche APIs genutzt werden.
 
 #### B) Finanzen
 
@@ -95,11 +95,11 @@ HEIMAT 2.0 ist eine Open-Source Super App für den deutschen Alltag, die ausschl
 
 | Aspekt | Details |
 |--------|---------|
-| **Datenquelle** | OpenStreetMap + GTFS-ÖPNV-Daten (öffentlich zugänglich) |
+| **Datenquelle** | OpenStreetMap + db-rest (DB Navigator Vendo API, REST JSON) |
 | **Routing** | OpenRouteService (Open Source) oder OSRM |
 | **Ticketkauf** | Keine Integration – nur Anzeige von Fahrplänen |
 | **Partnerschaften** | Keine – nur öffentliche APIs |
-| **Rechtliche Lage** | Unbedenklich – nur Scraping-freier Zugriff auf öffentliche Daten |
+| **Rechtliche Lage** | Unbedenklich – öffentliche REST APIs, kein Scraping |
 
 **UX-Flow:**
 1. Nutzer gibt Start/Ziel ein
@@ -110,7 +110,7 @@ HEIMAT 2.0 ist eine Open-Source Super App für den deutschen Alltag, die ausschl
 **Technische Umsetzung:**
 - Karten-Rendering: MapLibre GL (OSM-basiert)
 - Routing-API: OpenRouteService oder eigener OSRM-Server
-- GTFS-Integration: gtfs-realtime-Parser (Open Source)
+- ÖPNV-Daten: db-rest (self-hosted Docker, Vendo API – echte DB Navigator Backend-API)
 - Kein eigenes Backend nötig für erste Version
 
 ---
@@ -193,7 +193,7 @@ HEIMAT 2.0 ist eine Open-Source Super App für den deutschen Alltag, die ausschl
 
 Das erste Release enthält:
 - ✅ Interaktive Karte (OSM/MapLibre)
-- ✅ ÖPNV-Verbindungssuche (GTFS)
+- ✅ ÖPNV-Verbindungssuche (db-rest / Vendo API)
 - ✅ Routing (OpenRouteService)
 - ✅ Städtische Infos (Wikipedia/Wikidata)
 - ✅ Keine Accounts nötig für Nutzung
@@ -214,9 +214,10 @@ Das erste Release enthält:
 | **Frontend** | Flutter | Open Source, Cross-Platform (iOS/Android/Web), große Community |
 | **Backend** | Node.js + Express | Open Source, einfache Community-Beiträge, JavaScript-Ökosystem |
 | **Datenbank** | PostgreSQL | Open Source, mächtig, bewährt |
-| **Cloud** | Hetzner Cloud | Deutscher Anbieter, DSGVO-konform, ab €5/Monat |
+| **Cloud** | Render.com + Hetzner Cloud | Open Source Deployment, DSGVO-konform |
 | **Zahlungen** | GNU Taler | Open Source, keine Banklizenz nötig |
 | **Routing** | OpenRouteService | Open Source, OSM-basiert |
+| **ÖPNV** | db-rest (self-hosted, Vendo API) | Open Source, REST JSON, Echtzeit-Daten, 461 Verbünde |
 | **Karten** | OpenStreetMap + MapLibre GL | Open Data, kein Proprietär |
 | **Kommunikation** | Matrix (Element) | Open Source, dezentral, E2E-verschlüsselt |
 | **Auth** | Keycloak | Open Source, SSO-fähig |
@@ -233,7 +234,7 @@ Das erste Release enthält:
 ├─────────────────────────────────────────────────────────────┤
 │  Frontend (Flutter)                                         │
 │  ├── Karte (MapLibre GL)                                   │
-│  ├── ÖPNV-Suche (GTFS)                                     │
+│  ├── ÖPNV-Suche (db-rest / Vendo API)                       │
 │  ├── Taler-Wallet (P2P)                                    │
 │  └── Terminbuchung (Cal.com)                               │
 ├─────────────────────────────────────────────────────────────┤
@@ -247,7 +248,7 @@ Das erste Release enthält:
 │  Daten & APIs                                              │
 │  ├── PostgreSQL (Nutzer, Präferenzen)                      │
 │  ├── OpenStreetMap (Karten)                                │
-│  ├── GTFS (ÖPNV-Daten)                                    │
+│  ├── db-rest (ÖPNV-Daten via DB Navigator Vendo API)        │
 │  ├── OpenRouteService (Routing)                            │
 │  └── GNU Taler (Zahlungen)                                 │
 ├─────────────────────────────────────────────────────────────┤
@@ -257,6 +258,55 @@ Das erste Release enthält:
 │  └── GitHub Actions (CI/CD)                                │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+### 9b. ÖPNV-Architektur: db-rest (Vendo API)
+
+**Status:** Aktiv — ersetzt GTFS-Datei-Import durch professionellen REST-API-Wrapper.
+
+**Was ist db-rest?**
+- Self-hosted Docker-Service (`derhuerst/db-rest:6`) auf Render.
+- Wrapper um die **aktuelle DB Navigator Backend-API** (Vendo/Movas).
+- Gleiche Infrastruktur wie die offizielle DB Navigator-App.
+- Kein Token, kein GTFS-Download, kein Scraping.
+- JSON-Responses mit Echtzeit-Verspätungen, Störungen, Verbindungen.
+- Open Source: `github.com/derhuerst/db-rest` (120 Stars).
+
+**Abdeckung:**
+- Alle ICE/IC/RE/RB/S-Bahn/U-Bahn/Bus/Tram in Deutschland.
+- 461 Verkehrsverbünde (über DB-Netz abgedeckt).
+- Echtzeit-Daten (Verspätungen, Ausfälle).
+- Fallback für reine Stadtbusse: Overpass API (wie bisher).
+
+**Architektur:**
+```
+┌──────────────────────────────────────────────────────┐
+│                    Frontend (Flutter)                  │
+│  Departure-Board │ Journey-Planner │ Stop-Suche       │
+├──────────────────────────────────────────────────────┤
+│              HEIMAT Backend (Render, Port 3000)        │
+│  /api/mobility/departures │ /journey │ /stops/search  │
+├──────────────────────────────────────────────────────┤
+│           db-rest Service (Render, Port 3001)          │
+│  Docker: derhuerst/db-rest:6                          │
+│  Redis-Caching (Render Redis Addon)                   │
+├──────────────────────────────────────────────────────┤
+│           Vendo/Movas API (DB Navigator Backend)       │
+│  https://app.vendo.noncd.db.de/mob/                   │
+│  Kein Token, kein Auth, 100 req/min                   │
+├──────────────────────────────────────────────────────┤
+│           Fallback: Overpass API (lokale Stops)        │
+│  Haltestellen-Suche für reine Stadtbusse              │
+└──────────────────────────────────────────────────────┘
+```
+
+**ML-Verspätungsvorhersage (Innovation):**
+- db-rest liefert bereits Echtzeit-Daten.
+- Unsere Innovation: Vorhersage basierend auf historischen Daten.
+- Ansatz: Täglich Abfahrten + reale Ankunftszeiten loggen (in Supabase).
+- Modell: LightGBM (schnell, gut für Tabellen-Daten).
+- Output: Vorhergesagte Verspätung für jede Abfahrtszeit.
 
 ---
 
@@ -304,7 +354,7 @@ Das erste Release enthält:
 |---------|---------------------------|---------------|
 | **Finanzen** | BaFin-Lizenz für Zahlungsdienstleister | **KEINE LIZENZ** – reine P2P-Transaktionen (kein Geldverwahrer) |
 | **Gesundheit** | TI-Anbindung (KIM, ePA) | **KEINE TI** – nur Terminverwaltung, keine Patientendaten |
-| **Mobilität** | Verträge mit Verkehrsverbünden | **KEINE VERTRÄGE** – nur öffentliche APIs (GTFS) |
+| **Mobilität** | Verträge mit Verkehrsverbünden | **KEINE VERTRÄGE** – nur öffentliche APIs (db-rest / Vendo) |
 | **Messenger** | TKÜ-Verbot (Vorratsdatenspeicherung) | **E2E-Verschlüsselung** – Matrix, kein Zugriff möglich |
 | **DSGVO** | Datenschutz-Grundverordnung | **PRIVACY-BY-DESIGN** – Open Source, transparent |
 

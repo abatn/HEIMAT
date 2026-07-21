@@ -17,3 +17,29 @@ services:
         value: postgres
       - key: DB_PASSWORD
         sync: false
+      - key: REDIS_URL
+        fromService:
+          name: heimat-redis
+          type: redis
+          property: connectionString
+      - key: DB_REST_URL
+        fromService:
+          name: heimat-db-rest
+          type: web
+          property: url
+
+  - type: web
+    name: heimat-db-rest
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./Dockerfile.db-rest
+    envVars:
+      - key: PORT
+        value: 3001
+
+databases:
+  - name: heimat-redis
+    plan: free
+    region: frankfurt
+    ipAllowList: []

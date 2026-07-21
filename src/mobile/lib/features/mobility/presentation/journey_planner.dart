@@ -111,7 +111,7 @@ class JourneyPlanner extends StatelessWidget {
                             color: color,
                           ),
                           const SizedBox(width: 8),
-                          if (isTransit && (leg.route ?? '').isNotEmpty)
+                          if (isTransit && (leg.lineLabel).isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
@@ -120,7 +120,7 @@ class JourneyPlanner extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                leg.route!,
+                                leg.lineLabel,
                                 style: TextStyle(
                                   color: _textColorForBg(color),
                                   fontSize: 11,
@@ -132,7 +132,7 @@ class JourneyPlanner extends StatelessWidget {
                           Expanded(
                             child: Text(
                               isTransit
-                                  ? (leg.headsign ?? leg.to)
+                                  ? leg.directionLabel
                                   : '${leg.durationMin} Min zu Fuß',
                               style: const TextStyle(
                                   fontSize: 12, color: AppColors.textSecondary),

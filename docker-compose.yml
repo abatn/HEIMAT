@@ -46,12 +46,23 @@ services:
       DB_PASSWORD: postgres
       REDIS_URL: redis://redis:6379
       ML_SERVICE_URL: http://ml-service:8000
+      DB_REST_URL: http://db-rest:3001
       PORT: 3000
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      db-rest:
+        condition: service_started
+
+  db-rest:
+    image: docker.io/derhuerst/db-rest:6
+    container_name: heimat-db-rest
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
 
   ml-service:
     build:
