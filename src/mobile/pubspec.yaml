@@ -18,9 +18,6 @@ dependencies:
   # HTTP
   http: ^1.1.0
   
-  # GPS / Standort
-  geolocator: ^11.0.0
-  
   # State Management
   provider: ^6.1.0
   
