@@ -48,10 +48,8 @@ class _MobilityScreenState extends State<MobilityScreen> {
       if (permission == LocationPermission.deniedForever) return;
 
       final position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        timeLimit: Duration(seconds: 10),
-      ));
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 10));
       final userLoc = LatLng(position.latitude, position.longitude);
       if (!mounted) return;
       setState(() => _startLocation = userLoc);
