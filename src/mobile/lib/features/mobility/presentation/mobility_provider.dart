@@ -291,7 +291,7 @@ class MobilityProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final url =
-          '${AppConfig.backendUrl}/api/mobility/journey?from=$fromLat,$fromLng&to=$toLat,$toLng';
+          '${AppConfig.backendUrl}/api/mobility/journey?from_lat=$fromLat&from_lng=$fromLng&to_lat=$toLat&to_lng=$toLng';
       final response = await http.get(Uri.parse(url), headers: {
         'Content-Type': 'application/json'
       }).timeout(const Duration(seconds: 30));

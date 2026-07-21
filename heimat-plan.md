@@ -1053,3 +1053,45 @@ NoSuchMethodError: 'toDouble' Dynamic call of null. Receiver: "52.52190000"
 2. finance_provider.dart fixen
 3. health_provider.dart fixen
 4. App testen
+
+---
+
+## Mobilitäts-Feature: Fehleranalyse & Bugfix-Plan (Juli 2026)
+
+### Identifizierte Bugs
+
+| # | Schwere | Datei | Beschreibung |
+|---|---------|-------|-------------|
+| 1 | **KRITISCH** | `mobility_provider.dart:294` | Journey-Parameter-Mismatch: Frontend sendet `?from=lat,lng&to=lat,lng`, Backend erwartet `?from_lat=&from_lng=&to_lat=&to_lng=` → Verbindungssuche IMMER leer |
+| 2 | **KRITISCH** | `departure_board.dart:43`, `journey_planner.dart:57` | ISO-Datum falsch geparsed: `split(':')` auf `"2025-07-22T14:30:00+02:00"` → angezeigt wird `"2025-07-22T14:30"` statt `"14:30"` |
+| 3 | **MITTEL** | `mobility_screen.dart:33` | Kein GPS: App startet immer in Berlin (hartkodiert), kein Standort-Request |
+| 4 | **MITTEL** | `dbRestService.ts:246` | Keine Linienfarben: `NormalizedLeg` liefert kein `route_color` → immer grau |
+| 5 | **NIEDRIG** | `mobility.ts:107-141` | Stop-Name → db-rest ID Mapping fragil: Overpass-Name passt nicht zu db-rest-Suche |
+
+### Bug-Details
+
+**BUG 1 — Journey Planner komplett kaputt:**
+```
+Frontend sendet:  /api/mobility/journey?from=52.52,13.40&to=52.51,13.39
+Backend erwartet: /api/mobility/journey?from_lat=52.52&from_lng=13.40&to_lat=52.51&to_lng=13.39
+```
+→ `req.query.from_lat` ist `undefined` → Exception → catch gibt `{ journeys: [] }` zurück → "Keine Verbindungen gefunden" IMMER.
+
+**BUG 2 — Zeit-Anzeige hässlich:**
+Dart `String.split(':')` auf `"2025-07-22T14:30:00+02:00"` ergibt `["2025-07-22T14", "30", "00+02", "00"]`. `.take(2).join(':')` → `"2025-07-22T14:30"`.
+
+**BUG 3 — Kein GPS:**
+`_startLocation = const LatLng(52.5200, 13.4050)` — jeder User startet in Berlin.
+
+**BUG 4 — Graue Linienbadges:**
+Backend `NormalizedLeg` hat kein `route_color`. Frontend fällt immer auf `#6B7280` (grau) zurück.
+
+### Fix-Plan
+
+| # | Datei | Fix |
+|---|-------|-----|
+| 1 | `mobility_provider.dart:294` | `from=$lat,$lng` → `from_lat=$lat&from_lng=$lng&to_lat=$lat&to_lng=$lng` |
+| 2 | `departure_board.dart` + `journey_planner.dart` | `DateTime.parse(iso).hour:minute` statt `split(':')` |
+| 3 | `mobility_screen.dart` | `geolocator` Package für echte GPS-Position |
+| 4 | `dbRestService.ts` + `NormalizedLeg` | `route_color` aus `line.product` mappen (bus=#1B5E20, tram=#E65100, etc.) |
+| 5 | `mobility.ts` | Fallback: Koordinaten direkt an db-rest `/locations` senden statt Overpass-ID |

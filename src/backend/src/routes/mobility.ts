@@ -109,32 +109,18 @@ mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) 
     let fromId = from_id as string | undefined;
     let toId = to_id as string | undefined;
 
-    // Koordinaten: nächste Haltestelle via Overpass suchen
+    // Koordinaten → db-rest Haltestellen-Suche (direkt, ohne Overpass)
     if (!fromId && from_lat && from_lng) {
       const fl = parseFloat(from_lat as string);
       const fg = parseFloat(from_lng as string);
       if (isNaN(fl) || isNaN(fg)) throw new AppError('Invalid from coordinates', 400);
-      const stops = await mobilityService.getNearbyStops(fl, fg, 1000);
-      if (stops.length > 0) fromId = stops[0].id;
+      const found = await dbRestService.searchStops(`${fl},${fg}`, 1);
+      if (found.length > 0) fromId = found[0].id;
     }
     if (!toId && to_lat && to_lng) {
       const tl = parseFloat(to_lat as string);
       const tg = parseFloat(to_lng as string);
       if (isNaN(tl) || isNaN(tg)) throw new AppError('Invalid to coordinates', 400);
-      const stops = await mobilityService.getNearbyStops(tl, tg, 1000);
-      if (stops.length > 0) toId = stops[0].id;
-    }
-
-    // Fallback: Haltestellen-Suche über db-rest
-    if (!fromId && from_lat) {
-      const fl = parseFloat(from_lat as string);
-      const fg = parseFloat(from_lng as string);
-      const found = await dbRestService.searchStops(`${fl},${fg}`, 1);
-      if (found.length > 0) fromId = found[0].id;
-    }
-    if (!toId && to_lat) {
-      const tl = parseFloat(to_lat as string);
-      const tg = parseFloat(to_lng as string);
       const found = await dbRestService.searchStops(`${tl},${tg}`, 1);
       if (found.length > 0) toId = found[0].id;
     }

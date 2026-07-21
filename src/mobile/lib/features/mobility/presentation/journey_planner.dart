@@ -54,7 +54,7 @@ class JourneyPlanner extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '${journey.departure.split(':').take(2).join(':')}',
+                        _formatTime(journey.departure),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -67,7 +67,7 @@ class JourneyPlanner extends StatelessWidget {
                             size: 16, color: AppColors.textSecondary),
                       ),
                       Text(
-                        '${journey.arrival.split(':').take(2).join(':')}',
+                        _formatTime(journey.arrival),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -164,5 +164,17 @@ class JourneyPlanner extends StatelessWidget {
   Color _textColorForBg(Color bg) {
     final luminance = bg.computeLuminance();
     return luminance > 0.5 ? Colors.black : Colors.white;
+  }
+}
+
+String _formatTime(String isoString) {
+  try {
+    final dt = DateTime.parse(isoString);
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  } catch (_) {
+    final parts = isoString.split('T');
+    final timePart = parts.length > 1 ? parts.last : isoString;
+    final tParts = timePart.split(':');
+    return tParts.length >= 2 ? '${tParts[0]}:${tParts[1]}' : isoString;
   }
 }

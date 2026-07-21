@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
@@ -31,12 +32,43 @@ class _MobilityScreenState extends State<MobilityScreen> {
   void initState() {
     super.initState();
     _startLocation = const LatLng(52.5200, 13.4050);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _initGPS();
+  }
+
+  Future<void> _initGPS() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+
+      final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 10),
+      ));
+      final userLoc = LatLng(position.latitude, position.longitude);
+      if (!mounted) return;
+      setState(() => _startLocation = userLoc);
+      _mapController.move(userLoc, 14.0);
       context.read<MobilityProvider>().loadNearbyStops(
-            _startLocation!.latitude,
-            _startLocation!.longitude,
+            position.latitude,
+            position.longitude,
           );
-    });
+    } catch (_) {
+      // GPS nicht verfügbar → Berlin-Fallback laden
+      if (mounted) {
+        context.read<MobilityProvider>().loadNearbyStops(
+              _startLocation!.latitude,
+              _startLocation!.longitude,
+            );
+      }
+    }
   }
 
   @override

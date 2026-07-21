@@ -113,6 +113,7 @@ export interface NormalizedLeg {
   destinationPlannedArrival?: string;
   durationMinutes: number;
   changeCount: number;
+  routeColor?: string;
 }
 
 export interface NormalizedJourney {
@@ -144,6 +145,19 @@ function cacheSet(key: string, data: any, ttlSeconds: number): void {
 // ---------------------------------------------------------------------------
 // db-rest Service
 // ---------------------------------------------------------------------------
+
+const PRODUCT_COLORS: Record<string, string> = {
+  bus: '#1B5E20',
+  tram: '#E65100',
+  subway: '#1565C0',
+  suburban: '#2E7D32',
+  regional: '#6A1B9A',
+  express: '#B71C1C',
+  ferry: '#00838F',
+  taxi: '#F9A825',
+  cable: '#4E342E',
+  airplane: '#37474F',
+};
 
 export class DbRestService {
   private client: AxiosInstance;
@@ -252,6 +266,7 @@ export class DbRestService {
             destinationPlannedArrival: l.plannedArrival,
             durationMinutes: l.duration ? Math.round(l.duration / 60) : 0,
             changeCount: 0,
+            routeColor: PRODUCT_COLORS[l.line?.product || ''] || '#6B7280',
           }));
 
         const firstDep = j.legs?.[0]?.plannedDeparture || j.legs?.[0]?.departure || '';

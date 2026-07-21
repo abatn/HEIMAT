@@ -40,10 +40,6 @@ class DepartureBoard extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: provider.departures.map((dep) {
-            final timeParts = dep.departureTime.split(':');
-            final timeStr = timeParts.length >= 2
-                ? '${timeParts[0]}:${timeParts[1]}'
-                : dep.departureTime;
             final delayStr = dep.delay > 0 ? ' +${dep.delay}\'' : '';
             final platformStr =
                 dep.platform.isNotEmpty ? ' · Gl. ${dep.platform}' : '';
@@ -82,7 +78,7 @@ class DepartureBoard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '$timeStr$delayStr$platformStr',
+                    '${_formatTime(dep.departureTime)}$delayStr$platformStr',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -97,5 +93,17 @@ class DepartureBoard extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+String _formatTime(String isoString) {
+  try {
+    final dt = DateTime.parse(isoString);
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  } catch (_) {
+    final parts = isoString.split('T');
+    final timePart = parts.length > 1 ? parts.last : isoString;
+    final tParts = timePart.split(':');
+    return tParts.length >= 2 ? '${tParts[0]}:${tParts[1]}' : isoString;
   }
 }
