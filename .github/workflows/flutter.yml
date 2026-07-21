@@ -116,8 +116,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Build APK
-        env:
-          JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.19-10/x64
         run: flutter build apk --release
       - name: Upload APK
         uses: actions/upload-artifact@v4
