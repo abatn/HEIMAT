@@ -86,7 +86,7 @@ jobs:
       - name: Build for Web
         run: flutter build web --release
       - name: Upload Web Build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-build
           path: src/mobile/build/web/
@@ -118,7 +118,7 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -151,7 +151,7 @@ jobs:
           cd build/ios/iphoneos
           if [ -d "Runner.app" ]; then zip -r ../ipa/HEIMAT.ipa Runner.app; elif [ -d "Payload.app" ]; then zip -r ../ipa/HEIMAT.ipa Payload.app; fi
       - name: Upload IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-ipa
           path: build/ios/ipa/HEIMAT.ipa
