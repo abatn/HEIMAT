@@ -66,11 +66,14 @@ mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Respons
 
     // Haltestelle über db-rest suchen, falls keine ID angegeben
     if (!id && stop) {
+      logger.info(`Departures: suche Haltestelle "${stop}"`);
       const found = await dbRestService.searchStops(stop as string, 1);
+      logger.info(`Departures: Suche ergab ${found.length} Treffer: ${found.map(s => `${s.name} (${s.id})`).join(', ')}`);
       if (found.length > 0) { id = found[0].id; stopName = found[0].name; }
     }
 
     if (!id) {
+      logger.warn(`Departures: keine Haltestelle gefunden für "${stopName}"`);
       res.json({ status: 'ok', stop: stopName, departures: [], count: 0 });
       return;
     }
@@ -105,25 +108,34 @@ mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) 
     let fromId = from_id as string | undefined;
     let toId = to_id as string | undefined;
 
-    // Koordinaten → db-rest Haltestellen-Suche (direkt, ohne Overpass)
+    // Koordinaten → db-rest Haltestellen-Suche via /locations/nearby
     if (!fromId && from_lat && from_lng) {
       const fl = parseFloat(from_lat as string);
       const fg = parseFloat(from_lng as string);
       if (isNaN(fl) || isNaN(fg)) throw new AppError('Invalid from coordinates', 400);
-      const found = await dbRestService.searchStops(`${fl},${fg}`, 1);
+      logger.info(`Journey: suche Start-Haltestelle bei ${fl},${fg}`);
+      const found = await dbRestService.searchStopsByCoords(fl, fg, 1);
+      logger.info(`Journey: Start-Suche ergab ${found.length} Treffer: ${found.map(s => s.name).join(', ')}`);
       if (found.length > 0) fromId = found[0].id;
     }
     if (!toId && to_lat && to_lng) {
       const tl = parseFloat(to_lat as string);
       const tg = parseFloat(to_lng as string);
       if (isNaN(tl) || isNaN(tg)) throw new AppError('Invalid to coordinates', 400);
-      const found = await dbRestService.searchStops(`${tl},${tg}`, 1);
+      logger.info(`Journey: suche Ziel-Haltestelle bei ${tl},${tg}`);
+      const found = await dbRestService.searchStopsByCoords(tl, tg, 1);
+      logger.info(`Journey: Ziel-Suche ergab ${found.length} Treffer: ${found.map(s => s.name).join(', ')}`);
       if (found.length > 0) toId = found[0].id;
     }
 
-    if (!fromId || !toId) throw new AppError('Start and destination are required (from_id/to_id or coordinates)', 400);
+    if (!fromId || !toId) {
+      logger.warn(`Journey: keine Haltestellen gefunden. fromId=${fromId}, toId=${toId}`);
+      throw new AppError('Start and destination are required (from_id/to_id or coordinates)', 400);
+    }
 
+    logger.info(`Journey: suche Verbindung von ${fromId} nach ${toId}`);
     const journeys = await dbRestService.getJourneys(fromId, toId);
+    logger.info(`Journey: ${journeys.length} Verbindungen gefunden`);
     res.json({ status: 'ok', journeys });
   } catch (e: any) {
     logger.warn(`db-rest journey fehlgeschlagen: ${e.message}`);

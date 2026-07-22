@@ -206,6 +206,35 @@ export class DbRestService {
     }
   }
 
+  // ---- Search stops by coordinates (nearby) ----
+  async searchStopsByCoords(lat: number, lng: number, limit = 5): Promise<NormalizedStop[]> {
+    const cacheKey = `nearby:${lat}:${lng}:${limit}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const { data } = await this.client.get('/locations/nearby', {
+        params: { latitude: lat, longitude: lng, results: limit },
+      });
+
+      const items = Array.isArray(data) ? data : [data];
+      const stops: NormalizedStop[] = items
+        .filter((item: any) => item.type === 'stop' || item.type === 'station')
+        .map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          latitude: item.location?.latitude || lat,
+          longitude: item.location?.longitude || lng,
+        }));
+
+      cacheSet(cacheKey, stops, CACHE_TTL_LOCATIONS);
+      return stops;
+    } catch (err: any) {
+      logger.warn(`db-rest searchStopsByCoords fehlgeschlagen: ${err.message}`);
+      return [];
+    }
+  }
+
   // ---- Get departures at a stop ----
   async getDepartures(stopId: string, duration = 10): Promise<NormalizedDeparture[]> {
     const cacheKey = `dep:${stopId}:${duration}`;

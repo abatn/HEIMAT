@@ -1187,3 +1187,24 @@ mobilityRouter.get('/stops/search', ...);
 - `curl /api/mobility/stops/search?q=Alexanderplatz` → 200 mit Stop-IDs
 - `curl /api/mobility/departures?stop=Alexanderplatz` → 200 mit Abfahrten
 - `curl /api/mobility/journey?from_lat=52.52&from_lng=13.40&to_lat=52.51&to_lng=13.39` → 200 mit Verbindungen
+
+---
+
+## Koordinaten-Suche: /locations statt /locations/nearby (Juli 2026)
+
+### Fehler
+Journey-Endpoint sendet Koordinaten als Text-Suche an `/locations?query=52.52,13.40` — aber das ist eine Text-Suche, keine Koordinaten-Suche. Ergebnis: immer `[]`.
+
+### Root Cause
+`searchStops("52.52,13.40")` ruft `GET /locations?query=52.52,13.40` auf. Die db-rest `/locations`-Route ist eine **Text-Suche** (wie "Alexanderplatz"). Koordinaten als String werden nicht verstanden.
+
+### Fix
+Neue Methode `searchStopsByCoords(lat, lng)` die `GET /locations/nearby?latitude=...&longitude=...` nutzt — db-rest hat diesen Endpoint (bestätigt im Source Code: `api.js` hat `nearby: profileSwitchingEndpoint('nearby')`).
+
+### Status
+- `dbRestService.ts`: `searchStopsByCoords()` implementiert ✅
+- `mobility.ts`: Journey-Endpoint nutzt `searchStopsByCoords` + besseres Logging ✅
+- **Noch nicht getestet** weil db-rest auf Render nicht läuft (Port-Problem) und öffentlicher db-rest down ist (503)
+
+### Nächster Schritt
+Wenn db-rest wieder läuft: `curl "https://heimat-db-rest.onrender.com/locations/nearby?latitude=52.52&longitude=13.40&results=1"` testen.
