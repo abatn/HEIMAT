@@ -1129,82 +1129,126 @@ app.use(helmet({
 
 ---
 
-## Kritische Bugs: db-rest nicht erreichbar + Route-Conflict (Juli 2026)
+## transitous.org Migration: db-rest / db-vendo-client ersetzt (Juli 2026)
 
-### Fehlerbeschreibung
-Obwohl db-rest HealthCheck `true` liefert, sind Abfahrten/Suche/Journey komplett kaputt:
-- `GET /api/mobility/departures?stop=Alexanderplatz` → `{"departures":[]}` (0.35s, leer)
-- `GET /api/mobility/journey?from_lat=...&to_lat=...` → `{"journeys":[]}` (leer)
-- `GET /api/mobility/stops/search?q=Alexanderplatz` → **500 Error** "invalid input syntax for type uuid"
+### Problem
+db-rest (Docker auf Render) antwortet nie korrekt (Port-Mismatch, App startet nicht).
+db-vendo-client (Vendo API) geblockt von DB (OPS_BLOCKED, 403 von allen IPs).
+Kein einziger ÖPNV-Endpoint liefert echte Daten.
 
-### Root Causes (3 Bugs)
+### Lösung: transitous.org (MOTIS 2 API)
+- Frei nutzbar, community-getrieben, GTFS-Daten aus VBB/Deutschland
+- Endpoints: `/map/stops` (naheliegende Haltestellen), `/stoptimes` (Abfahrten), `/plan` (Verbindungen)
+- Kein Token, kein Auth, CORS-freundlich
 
-| # | Schwere | Datei | Beschreibung |
-|---|---------|-------|-------------|
-| 6 | **KRITISCH** | `Dockerfile.db-rest` + `render.yaml` | **Port-Mismatch:** db-rest Docker-Image (`derhuerst/db-rest:6`) hat `ENV PORT 3000` als Default. Render routet auf Port 3001 → Container antwortet mit 404 auf alles → `searchStops()` liefert immer `[]` → keine Abfahrten, keine Verbindungen |
-| 7 | **KRITISCH** | `dbRestService.ts:167` | **Fehlender URL-Fallback:** `DB_REST_URL` wird nicht aus `render.yaml` `fromService` injected → Fallback `http://localhost:3001` → Backend kann db-rest nicht erreichen |
-| 8 | **KRITISCH** | `mobility.ts:28,55` | **Route-Konflikt:** `GET /stops/:id` (Zeile 28) ist VOR `GET /stops/search` (Zeile 55) definiert. Express matched `/stops/search` als `/stops/:id` mit `id="search"` → PostgreSQL Error: `invalid input syntax for type uuid` |
-
-### Bug-Details
-
-**BUG 6 — Port-Mismatch (db-rest antwortet nie korrekt):**
+### Architektur (aktuell)
 ```
-Docker-Image Default:  ENV PORT 3000
-Unser Dockerfile:      ENV PORT=3001
-render.yaml:           PORT=3001
-Render routet auf:     Port 3001
-db-rest lauscht auf:   Port 3000 (vom Image Default)
-```
-→ Render kann den Container nicht erreichen → 404 auf alle Routen → Backend bekommt leere Antworten.
+Frontend (Flutter)
+  → DepartureBoard: sendet lat/lng → Backend /departures?lat=&lng=
+  → JourneyPlanner: sendet Koordinaten → Backend /journey?from_lat=&from_lng=&to_lat=&to_lng=
+  → Map: Overpass-API (lokale Stops, OSM-IDs)
 
-**BUG 7 — DB_REST_URL nicht injected:**
+Backend (Render, Port 3000)
+  → dbVendoService.ts: transitous.org via fetch()
+  → /departures: searchStopsByCoords → /map/stops → getDepartures → /stoptimes
+  → /journey: /plan mit Koordinaten → NormalizedJourney
+
+transitous.org (MOTIS 2)
+  → /api/v1/map/stops?min=lat,lng&max=lat,lng
+  → /api/v1/stoptimes?stopId=...&n=30
+  → /api/v1/plan?fromPlace=lat,lng&toPlace=lat,lng&numItineraries=3
+```
+
+### Status
+- `dbVendoService.ts`: transitous.org Integration ✅
+- `db-vendo-client` Dependency entfernt ✅
+- `Dockerfile.db-rest` + db-rest Render-Service gelöscht ✅
+- Departures funktionieren mit Koordinaten ✅
+- Journeys mit echten Daten + Farben ✅
+- **Offen:** UTC→MESZ Zeitkonvertierung (s.u.)
+
+---
+
+## Abfahrtsboard: "Keine Abfahrten gefunden" (Juli 2026)
+
+### Fehler
+User klickt auf Haltestelle → "Abfahrten anzeigen" → "Keine Abfahrten gefunden".
+
+### Root Cause: 3-stufiger Parameter-Mismatch
+
+```
+Frontend:  DepartureBoard.show(context, stop.name)           ← nur Name!
+           → loadDepartures("S Hackescher Markt")
+             → GET /departures?stop=S+Hackescher+Markt       ← param "stop"
+               → Backend: const { stopId, lat, lng } = query  ← liest "stopId"
+                 → stopId=undefined → LEER
+```
+
+### Fix (committet: 87cf284)
+- `mobility_screen.dart:644`: `DepartureBoard.show(context, stop.name, stop.latitude, stop.longitude)`
+- `departure_board.dart:12-13`: `show()` nimmt lat/lng, ruft `loadDepartures(lat:, lng:)`
+- `mobility_provider.dart:259,266`: `loadDepartures({required double lat, required double lng})` → `?lat=...&lng=...`
+
+### Status
+- Fix committet + deployed ✅
+- Live getestet: 30 Abfahrten mit Koordinaten ✅
+
+---
+
+## RouteColor immer grau (Juli 2026)
+
+### Fehler
+Linienbadges immer grau (#6B7280) statt Farbig.
+
+### Root Cause
+Backend sendet `routeColor` (camelCase), Frontend liest `json['route_color']` (snake_case).
+
+### Fix (committet: 87cf284)
+`mobility_provider.dart:116`: `json['routeColor'] ?? json['route_color'] ?? json['color']`
+
+### Status
+- Fix committet + deployed ✅
+- Live: U5=#7e5330, S5=#eb7405 ✅
+
+---
+
+## Zeit-Anzeige: UTC statt MESZ (Juli 2026 — AKTUELL)
+
+### Fehler
+Zeiten im Mobilitäts-Feature zeigen UTC statt deutsche Zeit (MESZ = UTC+2).
+
+### Root Causes
+
+**1. Backend `formatTime()` nutzt UTC:**
 ```typescript
-// dbRestService.ts:167
-const url = baseUrl || process.env.DB_REST_URL || 'http://localhost:3001';
+// dbVendoService.ts:116-120
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+}
 ```
-→ `fromService` in render.yaml greift nicht → `DB_REST_URL` ist `undefined` → Fallback `localhost:3001` → Backend-Sandbox hat keinen localhost-Service → `searchStops()` schlägt fehl.
+→ Transitous liefert `"2026-07-22T15:09:00Z"` (UTC) → `getUTCHours()` = 15 → angezeigt: "15:09"
+→ Richtig (MESZ): "17:09"
 
-**BUG 8 — Route-Konflikt:**
+**2. Journey-Legs haben Roh-ISO statt formatierte Zeit:**
 ```typescript
-// mobility.ts:28 — definiert ZUERST
-mobilityRouter.get('/stops/:id', ...);
-
-// mobility.ts:55 — definiert DANACH
-mobilityRouter.get('/stops/search', ...);
+originPlannedDeparture: l.scheduledStartTime || undefined,   // "2026-07-22T15:09:00Z"
 ```
-→ `GET /stops/search` matched `/stops/:id` mit `id="search"` → `mobilityService.getStopById("search")` → PostgreSQL Error.
+→ Frontend speichert ISO-String → `_formatTime()` parsed als UTC → falsche Zeit
+
+**3. Journey `departure`/`arrival` sind leer:**
+→ `formatTime(firstDep)` wird aufgerufen, aber Response zeigt `departure=''`
+→ Vermutlich: Render-Deploy nicht synchron (Backend CI fehlgeschlagen für vorherigen Commit)
 
 ### Fix-Plan
 
 | # | Datei | Fix |
 |---|-------|-----|
-| 6 | `Dockerfile.db-rest` | `ENV PORT=3001` → `ENV PORT=3000` (Image-Default) |
-| 6 | `render.yaml` | db-rest Service: `PORT=3001` → `PORT=3000` |
-| 7 | `dbRestService.ts:167` | Wenn `DB_REST_URL` `localhost` enthält → `https://heimat-db.rest.onrender.com` als Fallback |
-| 8 | `mobility.ts` | `/stops/search` (Zeile 55-60) VOR `/stops/:id` (Zeile 28-31) verschieben |
+| 1 | `dbVendoService.ts:116-120` | `formatTime()` → `toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin' })` |
+| 2 | `dbVendoService.ts:277-278` | Journey-Legs: `formatTime(l.scheduledStartTime)` statt roher ISO |
+| 3 | `departure_board.dart` + `journey_planner.dart` | `_formatTime()` Fallback für bereits formatierte "HH:MM" Strings |
 
 ### Verifizierung
-- `curl /api/mobility/stops/search?q=Alexanderplatz` → 200 mit Stop-IDs
-- `curl /api/mobility/departures?stop=Alexanderplatz` → 200 mit Abfahrten
-- `curl /api/mobility/journey?from_lat=52.52&from_lng=13.40&to_lat=52.51&to_lng=13.39` → 200 mit Verbindungen
-
----
-
-## Koordinaten-Suche: /locations statt /locations/nearby (Juli 2026)
-
-### Fehler
-Journey-Endpoint sendet Koordinaten als Text-Suche an `/locations?query=52.52,13.40` — aber das ist eine Text-Suche, keine Koordinaten-Suche. Ergebnis: immer `[]`.
-
-### Root Cause
-`searchStops("52.52,13.40")` ruft `GET /locations?query=52.52,13.40` auf. Die db-rest `/locations`-Route ist eine **Text-Suche** (wie "Alexanderplatz"). Koordinaten als String werden nicht verstanden.
-
-### Fix
-Neue Methode `searchStopsByCoords(lat, lng)` die `GET /locations/nearby?latitude=...&longitude=...` nutzt — db-rest hat diesen Endpoint (bestätigt im Source Code: `api.js` hat `nearby: profileSwitchingEndpoint('nearby')`).
-
-### Status
-- `dbRestService.ts`: `searchStopsByCoords()` implementiert ✅
-- `mobility.ts`: Journey-Endpoint nutzt `searchStopsByCoords` + besseres Logging ✅
-- **Noch nicht getestet** weil db-rest auf Render nicht läuft (Port-Problem) und öffentlicher db-rest down ist (503)
-
-### Nächster Schritt
-Wenn db-rest wieder läuft: `curl "https://heimat-db-rest.onrender.com/locations/nearby?latitude=52.52&longitude=13.40&results=1"` testen.
+- `curl /departures?lat=52.52&lng=13.40` → `"plannedDeparture":"17:09"` (MESZ)
+- `curl /journey?from_lat=...&to_lat=...` → `"departure":"17:09"` (nicht leer)
+- Frontend zeigt korrekte deutsche Zeit an

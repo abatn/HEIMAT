@@ -116,7 +116,7 @@ const PRODUCT_COLORS: Record<string, string> = {
 function formatTime(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  return d.toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 async function transitousGet<T>(path: string, params: Record<string, string>): Promise<T> {
@@ -274,8 +274,8 @@ export class DbVendoService {
             direction: l.headsign || undefined,
             originName: l.from?.name || '',
             destinationName: l.to?.name || '',
-            originPlannedDeparture: l.scheduledStartTime || undefined,
-            destinationPlannedArrival: l.scheduledEndTime || undefined,
+            originPlannedDeparture: formatTime(l.scheduledStartTime || ''),
+            destinationPlannedArrival: formatTime(l.scheduledEndTime || ''),
             durationMinutes: l.duration ? Math.round(l.duration / 60) : 0,
             changeCount: 0,
             routeColor: l.routeColor ? `#${l.routeColor}` : PRODUCT_COLORS[mapMode(l.mode || '')] || '#6B7280',
