@@ -145,7 +145,11 @@ export class DbVendoService {
 
     try {
       const client = await getClient();
-      const results = await client.nearby(lat, lng, { results: limit });
+      const results = await client.nearby({
+        type: 'location',
+        latitude: lat,
+        longitude: lng,
+      }, { results: limit, stops: true, poi: false });
 
       const stops: NormalizedStop[] = (results || [])
         .filter((item: any) => item.type === 'stop' || item.type === 'station')
@@ -258,8 +262,8 @@ export class DbVendoService {
   async healthCheck(): Promise<{ status: string; details: string }> {
     try {
       const client = await getClient();
-      await client.locations('Berlin Hbf', { results: 1, stops: true });
-      return { status: 'ok', details: 'db-vendo-client verbunden' };
+      const r = await client.locations('Berlin Hbf', { results: 1, stops: true });
+      return { status: 'ok', details: `db-vendo-client OK, Test: ${r[0]?.name || 'kein Ergebnis'}` };
     } catch (err: any) {
       return { status: 'error', details: err.message };
     }
