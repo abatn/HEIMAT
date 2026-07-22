@@ -25,6 +25,14 @@ mobilityRouter.get('/stops', asyncHandler(async (req: Request, res: Response) =>
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 
+// Haltestellen-Suche via db-rest (MUST be before /stops/:id!)
+mobilityRouter.get('/stops/search', asyncHandler(async (req: Request, res: Response) => {
+  const { q } = req.query;
+  if (!q) throw new AppError('Search query is required', 400);
+  const stops = await dbRestService.searchStops(q as string, 5);
+  res.json({ status: 'ok', stops, count: stops.length });
+}));
+
 mobilityRouter.get('/stops/:id', asyncHandler(async (req: Request, res: Response) => {
   const stop = await mobilityService.getStopById(req.params.id);
   res.json({ status: 'ok', stop });
@@ -45,18 +53,6 @@ mobilityRouter.get('/geocode', asyncHandler(async (req: Request, res: Response) 
   if (!address) throw new AppError('Address is required', 400);
   const results = await mobilityService.geocodeAddress(address as string);
   res.json({ status: 'ok', results });
-}));
-
-// ---------------------------------------------------------------------------
-// db-rest endpoints (Abfahrten, Verbindungssuche, Haltestellen-Suche)
-// ---------------------------------------------------------------------------
-
-// Haltestellen-Suche via db-rest
-mobilityRouter.get('/stops/search', asyncHandler(async (req: Request, res: Response) => {
-  const { q } = req.query;
-  if (!q) throw new AppError('Search query is required', 400);
-  const stops = await dbRestService.searchStops(q as string, 5);
-  res.json({ status: 'ok', stops, count: stops.length });
 }));
 
 // Nächste Abfahrten via db-rest

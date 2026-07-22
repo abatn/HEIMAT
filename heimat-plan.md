@@ -1126,3 +1126,64 @@ app.use(helmet({
 - Backend API funktioniert (curl zeigt 30 Haltestellen)
 - CI/CD: alle grün ✅
 - **Nächster Schritt:** Fix umsetzen, deployen, testen
+
+---
+
+## Kritische Bugs: db-rest nicht erreichbar + Route-Conflict (Juli 2026)
+
+### Fehlerbeschreibung
+Obwohl db-rest HealthCheck `true` liefert, sind Abfahrten/Suche/Journey komplett kaputt:
+- `GET /api/mobility/departures?stop=Alexanderplatz` → `{"departures":[]}` (0.35s, leer)
+- `GET /api/mobility/journey?from_lat=...&to_lat=...` → `{"journeys":[]}` (leer)
+- `GET /api/mobility/stops/search?q=Alexanderplatz` → **500 Error** "invalid input syntax for type uuid"
+
+### Root Causes (3 Bugs)
+
+| # | Schwere | Datei | Beschreibung |
+|---|---------|-------|-------------|
+| 6 | **KRITISCH** | `Dockerfile.db-rest` + `render.yaml` | **Port-Mismatch:** db-rest Docker-Image (`derhuerst/db-rest:6`) hat `ENV PORT 3000` als Default. Render routet auf Port 3001 → Container antwortet mit 404 auf alles → `searchStops()` liefert immer `[]` → keine Abfahrten, keine Verbindungen |
+| 7 | **KRITISCH** | `dbRestService.ts:167` | **Fehlender URL-Fallback:** `DB_REST_URL` wird nicht aus `render.yaml` `fromService` injected → Fallback `http://localhost:3001` → Backend kann db-rest nicht erreichen |
+| 8 | **KRITISCH** | `mobility.ts:28,55` | **Route-Konflikt:** `GET /stops/:id` (Zeile 28) ist VOR `GET /stops/search` (Zeile 55) definiert. Express matched `/stops/search` als `/stops/:id` mit `id="search"` → PostgreSQL Error: `invalid input syntax for type uuid` |
+
+### Bug-Details
+
+**BUG 6 — Port-Mismatch (db-rest antwortet nie korrekt):**
+```
+Docker-Image Default:  ENV PORT 3000
+Unser Dockerfile:      ENV PORT=3001
+render.yaml:           PORT=3001
+Render routet auf:     Port 3001
+db-rest lauscht auf:   Port 3000 (vom Image Default)
+```
+→ Render kann den Container nicht erreichen → 404 auf alle Routen → Backend bekommt leere Antworten.
+
+**BUG 7 — DB_REST_URL nicht injected:**
+```typescript
+// dbRestService.ts:167
+const url = baseUrl || process.env.DB_REST_URL || 'http://localhost:3001';
+```
+→ `fromService` in render.yaml greift nicht → `DB_REST_URL` ist `undefined` → Fallback `localhost:3001` → Backend-Sandbox hat keinen localhost-Service → `searchStops()` schlägt fehl.
+
+**BUG 8 — Route-Konflikt:**
+```typescript
+// mobility.ts:28 — definiert ZUERST
+mobilityRouter.get('/stops/:id', ...);
+
+// mobility.ts:55 — definiert DANACH
+mobilityRouter.get('/stops/search', ...);
+```
+→ `GET /stops/search` matched `/stops/:id` mit `id="search"` → `mobilityService.getStopById("search")` → PostgreSQL Error.
+
+### Fix-Plan
+
+| # | Datei | Fix |
+|---|-------|-----|
+| 6 | `Dockerfile.db-rest` | `ENV PORT=3001` → `ENV PORT=3000` (Image-Default) |
+| 6 | `render.yaml` | db-rest Service: `PORT=3001` → `PORT=3000` |
+| 7 | `dbRestService.ts:167` | Wenn `DB_REST_URL` `localhost` enthält → `https://heimat-db.rest.onrender.com` als Fallback |
+| 8 | `mobility.ts` | `/stops/search` (Zeile 55-60) VOR `/stops/:id` (Zeile 28-31) verschieben |
+
+### Verifizierung
+- `curl /api/mobility/stops/search?q=Alexanderplatz` → 200 mit Stop-IDs
+- `curl /api/mobility/departures?stop=Alexanderplatz` → 200 mit Abfahrten
+- `curl /api/mobility/journey?from_lat=52.52&from_lng=13.40&to_lat=52.51&to_lng=13.39` → 200 mit Verbindungen

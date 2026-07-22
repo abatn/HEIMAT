@@ -164,7 +164,11 @@ export class DbRestService {
   private redisUrl?: string;
 
   constructor(baseUrl?: string, redisUrl?: string) {
-    const url = baseUrl || process.env.DB_REST_URL || 'http://localhost:3001';
+    const rawUrl = baseUrl || process.env.DB_REST_URL || 'http://localhost:3000';
+    // Fallback: wenn DB_REST_URL auf localhost zeigt (nicht auf Render), nutze externe URL
+    const url = rawUrl.includes('localhost')
+      ? 'https://heimat-db-rest.onrender.com'
+      : rawUrl;
     this.redisUrl = redisUrl || process.env.REDIS_URL;
     this.client = axios.create({
       baseURL: url,
