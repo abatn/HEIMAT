@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
 import 'mobility_provider.dart';
@@ -31,12 +32,22 @@ class _MobilityScreenState extends State<MobilityScreen> {
   void initState() {
     super.initState();
     _startLocation = const LatLng(52.5200, 13.4050);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MobilityProvider>().loadNearbyStops(
-            _startLocation!.latitude,
-            _startLocation!.longitude,
-          );
-    });
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    LatLng? location = await LocationService.getCurrentLocation();
+    if (mounted) {
+      setState(() {
+        _startLocation = location ?? const LatLng(52.5200, 13.4050);
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<MobilityProvider>().loadNearbyStops(
+              _startLocation!.latitude,
+              _startLocation!.longitude,
+            );
+      });
+    }
   }
 
   @override
@@ -310,6 +321,30 @@ class _MobilityScreenState extends State<MobilityScreen> {
               left: 12,
               right: 12,
               child: _buildSearchPanel(),
+            ),
+
+          // GPS "Locate Me" Button
+          if (!_showSearch)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 140,
+              right: 16,
+              child: FloatingActionButton(
+                heroTag: 'gps',
+                onPressed: () async {
+                  LatLng? loc = await LocationService.getCurrentLocation();
+                  if (loc != null && mounted) {
+                    setState(() => _startLocation = loc);
+                    _mapController.move(loc, 13.0);
+                    context.read<MobilityProvider>().loadNearbyStops(
+                          loc.latitude,
+                          loc.longitude,
+                        );
+                  }
+                },
+                backgroundColor: AppColors.card,
+                foregroundColor: AppColors.primary,
+                child: const Icon(Icons.my_location),
+              ),
             ),
 
           // Ladezustand

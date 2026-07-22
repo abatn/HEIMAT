@@ -17,6 +17,7 @@ import { financeRouter } from './routes/finance';
 import { healthRouter as healthServiceRouter } from './routes/healthService';
 import adminRouter from './routes/admin';
 import { testConnection, pool } from './config/database';
+import raptorService from './services/raptorService';
 
 dotenv.config();
 
@@ -63,6 +64,19 @@ if (require.main === module) {
   app.listen(PORT, '0.0.0.0', async () => {
     logger.info(`HEIMAT Backend running on port ${PORT}`);
     await testConnection();
+    
+    // RAPTOR initialisieren (GTFS-Datei laden)
+    const gtfsPath = path.join(__dirname, '..', 'data', 'gtfs-germany.zip');
+    if (fs.existsSync(gtfsPath)) {
+      try {
+        await raptorService.initialize(gtfsPath);
+        logger.info('RAPTOR routing engine ready');
+      } catch (e: any) {
+        logger.warn('RAPTOR initialization failed, using transitous.org fallback', e.message);
+      }
+    } else {
+      logger.info('No GTFS file found, using transitous.org for routing');
+    }
   });
 }
 

@@ -187,15 +187,26 @@ CREATE INDEX IF NOT EXISTS idx_gtfs_stop_times_stop ON gtfs_stop_times(stop_id);
 CREATE INDEX IF NOT EXISTS idx_gtfs_stop_times_departure ON gtfs_stop_times(departure_time);
 CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_osm ON gtfs_stop_match(overpass_osm_id);
 CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_gtfs ON gtfs_stop_match(gtfs_stop_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_transfers_from ON gtfs_transfers(from_stop_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_transfers_to ON gtfs_transfers(to_stop_id);
 
 -- GTFS Import-Status (polling von /api/admin/gtfs-status)
 CREATE TABLE IF NOT EXISTS gtfs_import_status (
     id SERIAL PRIMARY KEY,
     status VARCHAR(20) NOT NULL, -- 'running'|'done'|'failed'
     message TEXT,
-    stage VARCHAR(40),           -- 'download'|'extract'|'stops'|'routes'|'trips'|'stop_times'|'calendar'
+    stage VARCHAR(40),           -- 'download'|'extract'|'stops'|'routes'|'trips'|'stop_times'|'calendar'|'transfers'
     progress INTEGER DEFAULT 0,   -- 0-100
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GTFS Transfer-Edges (Walking graph für RAPTOR)
+CREATE TABLE IF NOT EXISTS gtfs_transfers (
+    from_stop_id VARCHAR(255) NOT NULL,
+    to_stop_id VARCHAR(255) NOT NULL,
+    transfer_type INTEGER DEFAULT 0,
+    min_transfer_time INTEGER DEFAULT 0,
+    PRIMARY KEY (from_stop_id, to_stop_id)
 );
 
 -- ============================================

@@ -2,6 +2,10 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/errorHandler';
 import { mobilityService } from '../services/mobilityService';
 import { dbVendoService } from '../services/dbVendoService';
+import raptorService from '../services/raptorService';
+import { classifyIntent } from '../services/aiService';
+import { analyzeDisruptions, getDisruptionsFromTransitous } from '../services/disruptionAgent';
+import { personalRoutePlanning } from '../services/personalRoutingAgent';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 
@@ -157,4 +161,78 @@ mobilityRouter.post('/log-delay', asyncHandler(async (req: Request, res: Respons
     logger.warn(`Delay-Logging fehlgeschlagen: ${e.message}`);
     res.json({ status: 'ok', logged: false });
   }
+}));
+
+// ---------------------------------------------------------------------------
+// RAPTOR-basierte Verbindungssuche (lokale GTFS-Daten)
+// ---------------------------------------------------------------------------
+
+mobilityRouter.get('/journey/raptor', asyncHandler(async (req: Request, res: Response) => {
+  const { from, to, departureTime } = req.query;
+  
+  if (!raptorService.isReady()) {
+    logger.info('RAPTOR not ready, falling back to transitous.org');
+    res.json({ status: 'ok', journeys: [], fallback: 'transitous.org' });
+    return;
+  }
+  
+  try {
+    const departTime = departureTime ? new Date(departureTime as string) : new Date();
+    const journeys = await raptorService.findJourneys(
+      from as string,
+      to as string,
+      departTime
+    );
+    
+    logger.info(`RAPTOR: ${journeys.length} journeys found for ${from} → ${to}`);
+    res.json({ status: 'ok', journeys, source: 'raptor' });
+  } catch (e: any) {
+    logger.warn(`RAPTOR journey fehlgeschlagen: ${e.message}`);
+    res.json({ status: 'ok', journeys: [], source: 'raptor', error: e.message });
+  }
+}));
+
+// RAPTOR Status
+mobilityRouter.get('/raptor/status', asyncHandler(async (req: Request, res: Response) => {
+  res.json({ 
+    status: 'ok', 
+    ready: raptorService.isReady(),
+    source: 'raptor-journey-planner'
+  });
+}));
+
+// ---------------------------------------------------------------------------
+// AI Intent-Klassifikation
+// ---------------------------------------------------------------------------
+
+mobilityRouter.post('/ai/intent', asyncHandler(async (req: Request, res: Response) => {
+  const { message } = req.body;
+  if (!message) throw new AppError('message is required', 400);
+
+  const intent = await classifyIntent(message);
+  res.json({ status: 'ok', intent: intent ?? null });
+}));
+
+// ---------------------------------------------------------------------------
+// AI Disruption-Analyse
+// ---------------------------------------------------------------------------
+
+mobilityRouter.get('/ai/disruptions', asyncHandler(async (req: Request, res: Response) => {
+  const alerts = await getDisruptionsFromTransitous();
+  const disruptions = await analyzeDisruptions(alerts);
+  res.json({ status: 'ok', disruptions, raw_alerts: alerts.length });
+}));
+
+// ---------------------------------------------------------------------------
+// AI Personal Routing
+// ---------------------------------------------------------------------------
+
+mobilityRouter.post('/ai/personal-route', asyncHandler(async (req: Request, res: Response) => {
+  const { message, origin, destination } = req.body;
+  if (!message || !origin || !destination) {
+    throw new AppError('message, origin, and destination are required', 400);
+  }
+
+  const journeys = await personalRoutePlanning(message, origin, destination);
+  res.json({ status: 'ok', journeys });
 }));
