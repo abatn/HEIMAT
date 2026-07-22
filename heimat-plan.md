@@ -1252,3 +1252,543 @@ originPlannedDeparture: l.scheduledStartTime || undefined,   // "2026-07-22T15:0
 - `curl /departures?lat=52.52&lng=13.40` → `"plannedDeparture":"17:09"` (MESZ)
 - `curl /journey?from_lat=...&to_lat=...` → `"departure":"17:09"` (nicht leer)
 - Frontend zeigt korrekte deutsche Zeit an
+
+---
+
+## Phase 30: GPS + GTFS + RAPTOR + AI Integration (Juli 2026)
+
+### 61. Gesamtarchitektur
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     HEIMAT Backend                             │
+├──────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │                    API Layer                           │    │
+│  │  mobility.ts, admin.ts, auth.ts                       │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                           │                                    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │                  Service Layer                        │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │    │
+│  │  │ raptor-     │  │ gtfs-       │  │ dbVendo-    │  │    │
+│  │  │ Service     │  │ Service     │  │ Service     │  │    │
+│  │  │ (Node.js)   │  │ (PostgreSQL)│  │ (Fallback)  │  │    │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                           │                                    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │                   AI Layer                            │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │    │
+│  │  │ Intent      │  │ Disruption  │  │ Personal    │  │    │
+│  │  │ Classifier  │  │ Agent       │  │ Agent       │  │    │
+│  │  │ (GPT-4.1)   │  │ (LLM)       │  │ (RAG)       │  │    │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                           │                                    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │                  Data Layer                           │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │    │
+│  │  │ GTFS-Datei  │  │ PostgreSQL  │  │ Redis       │  │    │
+│  │  │ (in-memory) │  │ (Stops)     │  │ (Cache)     │  │    │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                                │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 62. Forschung: Open-Source-Projekte als Referenz
+
+#### AI + Transit Integration
+
+| Projekt | Tech | Ansatz |
+|---------|------|--------|
+| `ChatPlanner` (Paper) | LLM + MC-RAPTOR | Persönliches Routing über natürliche Sprache |
+| `transit-foundation-model` | Qwen2.5 fine-tuned | 1.5B Modell für GTFS-Fragen |
+| `LISBOA_MultiAgentSystem` | LangGraph + 6 Agents | Multi-Agent für Tourismus + Mobilität |
+| `gtfs-mcp` | MCP Server | 6000+ GTFS Feeds weltweit |
+| `MCP-Public-Transport` | MCP + Weather | Wetter-bewusstes Routing |
+| `ratisbonalyzer` | DuckDB + Ollama | Lokale Analyse + Chat |
+| `TransitGPT` | LLM + GTFS | Code-Generierung für GTFS-Analyse |
+
+#### RAPTOR-Implementierungen
+
+| Projekt | Sprache | Highlights |
+|---------|---------|------------|
+| `raptor-journey-planner` | Node.js | GTFS-Streams, MIT-Lizenz |
+| `vulture` | Rust | 22µs (Delhi), 576µs (Berlin), Wheelchair |
+| `blaise` | Rust | Fuzzy-Suche, Docker-Server |
+| `minotor` | WASM/JS | Client-side, protobuf, 20MB Schweiz |
+
+#### Flutter Transit-Apps
+
+| Projekt | Architektur | Features |
+|---------|-------------|----------|
+| `trufi-core` | BLoC + Repository | OTP-Integration, Navigation |
+| `kago` | Clean BLoC | Cloudflare Worker Proxy |
+| `oasth-flutter` | A* Routing | geolocator, flutter_map |
+| `ankarota` | Riverpod | Google Directions API |
+
+### 63. Phase 1: GPS-Integration mit geolocator
+
+**Status:** ✅ Abgeschlossen (Juli 2026)
+**Abhängigkeiten:** Keine
+**Dateien:** 4
+
+#### Architektur
+```
+User öffnet App
+  → LocationService.getCurrentLocation()
+    → geolocator: Permission prüfen → GPS-Position
+    → Bei Erfolg: echte Koordinaten
+    → Bei Fehler/Permission-Deny: Berlin-Fallback
+  → _startLocation = echte Koordinaten oder Berlin
+  → Alles andere funktioniert automatisch
+```
+
+#### Dateien
+
+| Datei | Aktion | Beschreibung |
+|-------|--------|--------------|
+| `src/mobile/pubspec.yaml` | Ändern | `geolocator: ^11.0.0`, `permission_handler: ^11.0.0` |
+| `src/mobile/lib/core/services/location_service.dart` | Neu | LocationService Wrapper |
+| `src/mobile/lib/features/mobility/presentation/mobility_screen.dart` | Ändern | Async Init + "Locate Me" FAB |
+| `.github/workflows/flutter.yml` | Ändern | Gradle-Patch für compileSdkVersion 34 |
+
+#### location_service.dart
+```dart
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
+
+class LocationService {
+  static Future<LatLng?> getCurrentLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return null;
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) return null;
+    }
+    if (permission == LocationPermission.deniedForever) return null;
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+      return LatLng(position.latitude, position.longitude);
+    } catch (e) {
+      return null;
+    }
+  }
+}
+```
+
+#### mobility_screen.dart Änderungen
+```dart
+// In initState():
+Future<void> _initLocation() async {
+  LatLng? location = await LocationService.getCurrentLocation();
+  setState(() {
+    _startLocation = location ?? const LatLng(52.5200, 13.4050);
+  });
+}
+
+// "Locate Me" FAB:
+FloatingActionButton(
+  onPressed: () async {
+    LatLng? loc = await LocationService.getCurrentLocation();
+    if (loc != null) {
+      setState(() => _startLocation = loc);
+    }
+  },
+  child: Icon(Icons.my_location),
+)
+```
+
+#### CI Gradle-Patch
+```yaml
+- name: Enable Android platform
+  run: |
+    flutter create . --platforms android
+    find . -name "build.gradle" -exec sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' {} \;
+    find . -name "build.gradle" -exec sed -i 's/minSdkVersion [0-9]*/minSdkVersion 21/g' {} \;
+```
+
+### 64. Phase 2: GTFS-Import erweitern
+
+**Status:** ✅ Abgeschlossen (Juli 2026)
+**Abhängigkeiten:** Phase 1 (optional)
+**Dateien:** 2
+
+#### Schema-Erweiterung
+```sql
+-- In schema.sql hinzufügen:
+CREATE TABLE IF NOT EXISTS gtfs_transfers (
+    from_stop_id VARCHAR(255) NOT NULL,
+    to_stop_id VARCHAR(255) NOT NULL,
+    transfer_type INTEGER DEFAULT 0,
+    min_transfer_time INTEGER DEFAULT 0,
+    PRIMARY KEY (from_stop_id, to_stop_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_gtfs_transfers_from ON gtfs_transfers(from_stop_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_transfers_to ON gtfs_transfers(to_stop_id);
+```
+
+#### Import-Script erweitern
+```typescript
+// In import-gtfs-local.ts hinzufügen:
+async function importTransfers(connection: pg.PoolConnection) {
+  const transferPath = path.join(extractDir, 'transfers.txt');
+  if (!fs.existsSync(transferPath)) return;
+  
+  const parser = fs.createReadStream(transferPath).pipe(
+    parse({ columns: true, delimiter: ',', trim: true })
+  );
+  
+  let count = 0;
+  const batch: any[] = [];
+  
+  for await (const record of parser) {
+    batch.push({
+      from_stop_id: record.from_stop_id,
+      to_stop_id: record.to_stop_id,
+      transfer_type: parseInt(record.transfer_type) || 0,
+      min_transfer_time: parseInt(record.min_transfer_time) || 0
+    });
+    
+    if (batch.length >= 2000) {
+      await insertTransfersBatch(connection, batch);
+      count += batch.length;
+      batch.length = 0;
+    }
+  }
+  
+  if (batch.length > 0) {
+    await insertTransfersBatch(connection, batch);
+    count += batch.length;
+  }
+  
+  console.log(`✅ Imported ${count} transfers`);
+}
+```
+
+### 65. Phase 3: RAPTOR-Service implementieren
+
+**Status:** ✅ Abgeschlossen (Juli 2026)
+**Abhängigkeiten:** Phase 2
+**Dateien:** 3
+
+#### Abhängigkeit
+```bash
+cd src/backend
+npm install raptor-journey-planner
+```
+
+#### raptorService.ts
+```typescript
+import fs from 'fs';
+import { loadGTFS, RaptorAlgorithmFactory, DepartAfterQuery, JourneyFactory } from 'raptor-journey-planner';
+
+class RaptorService {
+  private static instance: RaptorService;
+  private raptor: any = null;
+  private initialized = false;
+
+  private constructor() {}
+
+  static getInstance(): RaptorService {
+    if (!RaptorService.instance) {
+      RaptorService.instance = new RaptorService();
+    }
+    return RaptorService.instance;
+  }
+
+  async initialize(gtfsPath: string): Promise<void> {
+    if (this.initialized) return;
+    
+    console.log('🔄 Loading GTFS data for RAPTOR...');
+    const stream = fs.createReadStream(gtfsPath);
+    const [trips, transfers, interchange] = await loadGTFS(stream);
+    this.raptor = RaptorAlgorithmFactory.create(trips, transfers, interchange);
+    this.initialized = true;
+    console.log('✅ RAPTOR initialized');
+  }
+
+  async findJourneys(from: string, to: string, departureTime: Date): Promise<any[]> {
+    if (!this.initialized) throw new Error('RAPTOR not initialized');
+    
+    const query = new DepartAfterQuery(this.raptor, new JourneyFactory());
+    const journeys = query.plan(from, to, departureTime, 14 * 60 * 60);
+    return journeys.slice(0, 3);
+  }
+
+  isReady(): boolean {
+    return this.initialized;
+  }
+}
+
+export default RaptorService.getInstance();
+```
+
+#### Serverstart (index.ts)
+```typescript
+import raptorService from './services/raptorService';
+
+const gtfsPath = path.join(__dirname, '../data/gtfs-germany.zip');
+if (fs.existsSync(gtfsPath)) {
+  await raptorService.initialize(gtfsPath);
+}
+```
+
+#### mobility.ts Route
+```typescript
+router.get('/journey/raptor', async (req, res) => {
+  if (!raptorService.isReady()) {
+    return fallbackToTransitous(req, res);
+  }
+  
+  try {
+    const journeys = await raptorService.findJourneys(
+      req.query.from as string,
+      req.query.to as string,
+      new Date(req.query.departureTime as string)
+    );
+    res.json(journeys.map(normalizeRaptorJourney));
+  } catch (error) {
+    return fallbackToTransitous(req, res);
+  }
+});
+```
+
+### 66. Phase 4: AI-Intent-Klassifikation
+
+**Status:** 🔧 In Arbeit (Juli 2026)
+**Abhängigkeiten:** Keine
+**Dateien:** 2
+
+#### aiService.ts
+```typescript
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+interface UserIntent {
+  type: 'journey' | 'departure' | 'disruption' | 'nearby' | 'info';
+  origin?: string;
+  destination?: string;
+  time?: string;
+  lines?: string[];
+  preferences?: string[];
+}
+
+export async function classifyIntent(userMessage: string): Promise<UserIntent> {
+  const prompt = `
+    Klassifiziere die Benutzeranfrage und extrahiere die Struktur:
+    
+    Nachricht: "${userMessage}"
+    
+    Antwort im JSON-Format:
+    {
+      "type": "journey|departure|disruption|nearby|info",
+      "origin": "Abfahrtshaltestelle",
+      "destination": "Zielhaltestelle",
+      "time": "Zeitangabe",
+      "lines": ["Linien"],
+      "preferences": ["Präferenzen"]
+    }
+  `;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4.1-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0,
+  });
+
+  return JSON.parse(response.choices[0].message.content);
+}
+```
+
+### 67. Phase 5: AI-Disruption-Agent
+
+**Status:** 🔧 In Arbeit (Juli 2026)
+**Abhängigkeiten:** Keine
+**Dateien:** 2
+
+#### disruptionAgent.ts
+```typescript
+import OpenAI from 'openai';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+interface Disruption {
+  affected_stops: string[];
+  affected_lines: string[];
+  timeframe: string;
+  severity: 'high' | 'medium' | 'low';
+  description: string;
+  alternatives: string[];
+}
+
+export async function analyzeDisruptions(alerts: string[]): Promise<Disruption[]> {
+  const prompt = `
+    Analysiere die folgenden ÖPNV-Störungen und strukturiere sie:
+    
+    ${alerts.join('\n---\n')}
+    
+    Für jede Störung:
+    1. Betroffene Haltestellen
+    2. Betroffene Linien
+    3. Zeitraum
+    4. Schweregrad (high/medium/low)
+    5. Beschreibung
+    6. Alternative Verbindungen
+    
+    Antwort als JSON-Array:
+    [{
+      "affected_stops": ["..."],
+      "affected_lines": ["U1", "S2"],
+      "timeframe": "2026-07-22 08:00-12:00",
+      "severity": "high",
+      "description": "...",
+      "alternatives": ["..."]
+    }]
+  `;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4.1-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0,
+  });
+
+  return JSON.parse(response.choices[0].message.content);
+}
+
+export async function getDisruptionsFromTransitous(): Promise<string[]> {
+  const response = await fetch('https://api.transitous.org/api/v1/alerts');
+  const data = await response.json();
+  return data.alerts?.map((a: any) => a.description) || [];
+}
+```
+
+### 68. Phase 6: AI-Personal-Routing
+
+**Status:** 🔧 In Arbeit (Juli 2026)
+**Abhängigkeiten:** Phase 3 (RAPTOR)
+**Dateien:** 2
+
+#### personalRoutingAgent.ts
+```typescript
+import OpenAI from 'openai';
+import raptorService from './raptorService';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+interface PersonalPreferences {
+  preferFewerTransfers: boolean;
+  preferShorterWalk: boolean;
+  wheelchairAccessible: boolean;
+  preferQuiet: boolean;
+  preferScenic: boolean;
+}
+
+export async function personalRoutePlanning(
+  userRequest: string,
+  origin: string,
+  destination: string
+): Promise<any[]> {
+  const preferences = await extractPreferences(userRequest);
+  
+  const routes = await raptorService.findJourneys(
+    origin,
+    destination,
+    new Date()
+  );
+  
+  return await rankRoutesWithAI(routes, preferences);
+}
+
+async function extractPreferences(userRequest: string): Promise<PersonalPreferences> {
+  const prompt = `
+    Extrahiere die Reisepräferenzen aus der Nachricht:
+    "${userRequest}"
+    
+    Antworte im JSON-Format:
+    {
+      "preferFewerTransfers": true/false,
+      "preferShorterWalk": true/false,
+      "wheelchairAccessible": true/false,
+      "preferQuiet": true/false,
+      "preferScenic": true/false
+    }
+  `;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4.1-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0,
+  });
+
+  return JSON.parse(response.choices[0].message.content);
+}
+
+async function rankRoutesWithAI(routes: any[], preferences: PersonalPreferences): Promise<any[]> {
+  const prompt = `
+    Bewerte und sortiere die Verbindungen basierend auf den Präferenzen:
+    Präferenzen: ${JSON.stringify(preferences)}
+    Verbindungen: ${JSON.stringify(routes)}
+    Sortiere nach Relevanz und gib die top 3 zurück.
+  `;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4.1-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0,
+  });
+
+  return JSON.parse(response.choices[0].message.content);
+}
+```
+
+### 69. Integrationsmatrix
+
+| Phase | Neue Dateien | Geänderte Dateien | Abhängigkeiten |
+|-------|--------------|-------------------|----------------|
+| **1. GPS** | `location_service.dart` | `pubspec.yaml`, `mobility_screen.dart`, `flutter.yml` | `geolocator`, `permission_handler` |
+| **2. GTFS** | - | `schema.sql`, `import-gtfs-local.ts` | - |
+| **3. RAPTOR** | `raptorService.ts` | `index.ts`, `mobility.ts` | `raptor-journey-planner` |
+| **4. AI-Intent** | `aiService.ts` | `mobility.ts` | `openai` |
+| **5. AI-Disruption** | `disruptionAgent.ts` | `mobility.ts` | `openai` |
+| **6. AI-Personal** | `personalRoutingAgent.ts` | `mobility.ts` | `openai`, RAPTOR |
+
+### 70. Implementierungsreihenfolge
+
+1. **Phase 1 (GPS)** — Unabhängig, sofort testbar, keine Backend-Änderungen
+2. **Phase 2 (GTFS-Import)** — Voraussetzung für Phase 3
+3. **Phase 3 (RAPTOR)** — Kernfunktionalität für lokales Routing
+4. **Phase 4-6 (AI)** — Erweiterungen, können parallel laufen
+
+### 71. Fallback-Strategie
+
+```
+Anfrage → Versuche RAPTOR (lokal)
+           ↓ Fehler/kein GTFS?
+         Versuche transitous.org (Fallback)
+           ↓ Fehler?
+         Leere Antwort + Fehlermeldung
+```
+
+### 72. Nächste Schritte
+
+1. ✅ Phase 1 – GPS-Integration (geolocator)
+2. ✅ Phase 2 – GTFS-Import erweitern (transfers.txt)
+3. ✅ Phase 3 – RAPTOR-Service (raptor-journey-planner)
+4. 🔧 Phase 4 – AI-Intent-Klassifikation (aiService.ts)
+5. 🔧 Phase 5 – AI-Disruption-Agent (disruptionAgent.ts)
+6. 🔧 Phase 6 – AI-Personal-Routing (personalRoutingAgent.ts)
+7. ⬜ Phase 7 – Testen & Deployen

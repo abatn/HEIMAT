@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEIMAT 2.0 — Project Health Dashboard</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.875rem; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 12px; }
+  .metric { font-size: 2rem; font-weight: 700; }
+  .metric.green { color: var(--green); }
+  .metric.yellow { color: var(--yellow); }
+  .metric.red { color: var(--red); }
+  .metric.blue { color: var(--blue); }
+  .detail { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
+  .bar-container { background: #0f172a; border-radius: 6px; height: 8px; margin-top: 8px; overflow: hidden; }
+  .bar { height: 100%; border-radius: 6px; transition: width 0.5s; }
+  .bar.green { background: var(--green); }
+  .bar.yellow { background: var(--yellow); }
+  .bar.red { background: var(--red); }
+  .bar.blue { background: var(--blue); }
+  .status-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .status-row:last-child { border-bottom: none; }
+  .badge { padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+  .badge.ok { background: #166534; color: #bbf7d0; }
+  .badge.warn { background: #854d0e; color: #fef08a; }
+  .badge.error { background: #991b1b; color: #fecaca; }
+  .bug-list { list-style: none; }
+  .bug-list li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .bug-list li:last-child { border-bottom: none; }
+  .severity { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .severity.critical { background: var(--red); }
+  .severity.high { background: var(--yellow); }
+  .severity.medium { background: var(--blue); }
+  .section-title { font-size: 1.1rem; font-weight: 600; margin: 24px 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px; border-bottom: 1px solid var(--border); }
+  .timestamp { color: var(--muted); font-size: 0.75rem; text-align: right; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<h1>HEIMAT 2.0 — Project Health Dashboard</h1>
+<p class="subtitle">Stand: Juli 2026 · Automatisch generiert aus Projekt-Daten</p>
+
+<!-- KPI Cards -->
+<div class="grid">
+  <div class="card">
+    <h2>Backend API</h2>
+    <div class="metric green">9/9</div>
+    <div class="detail">Endpoints erreichbar</div>
+    <div class="bar-container"><div class="bar green" style="width: 100%"></div></div>
+  </div>
+  <div class="card">
+    <h2>CI/CD Status</h2>
+    <div class="metric green">10/10</div>
+    <div class="detail">GitHub Actions grün</div>
+    <div class="bar-container"><div class="bar green" style="width: 100%"></div></div>
+  </div>
+  <div class="card">
+    <h2>Datenbank</h2>
+    <div class="metric yellow">16</div>
+    <div class="detail">Tabellen · 3 kritische Issues</div>
+    <div class="bar-container"><div class="bar yellow" style="width: 60%"></div></div>
+  </div>
+  <div class="card">
+    <h2>Bugs (offen)</h2>
+    <div class="metric yellow">1</div>
+    <div class="detail">7/8 behoben · 1 mittel (GPS)</div>
+    <div class="bar-container"><div class="bar yellow" style="width: 12%"></div></div>
+  </div>
+</div>
+
+<!-- Feature Status -->
+<div class="section-title">Feature-Status</div>
+<div class="grid">
+  <div class="card">
+    <h2>Mobilität (ÖPNV)</h2>
+    <div class="status-row">
+      <span>Overpass-Haltestellen</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>OSRM-Routing</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>GTFS-Import</span>
+      <span class="badge warn">LOKAL</span>
+    </div>
+    <div class="status-row">
+      <span>transitous.org (ÖPNV-Daten)</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>Journey-Suche</span>
+      <span class="badge error">KAPUTT</span>
+    </div>
+    <div class="status-row">
+      <span>Departures</span>
+      <span class="badge error">LEER</span>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Finanzen (Taler)</h2>
+    <div class="status-row">
+      <span>Wallet-Init</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>P2P-Senden</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>Taler-Simulator</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>Echtgeld-Integration</span>
+      <span class="badge warn">GEPLANT</span>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Gesundheit (Ärzte)</h2>
+    <div class="status-row">
+      <span>Ärzte-Suche (OSM)</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>Arzt-Registrierung</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>Terminbuchung</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>Kalender-Sync</span>
+      <span class="badge warn">GEPLANT</span>
+    </div>
+  </div>
+</div>
+
+<!-- Bugs -->
+<div class="section-title">Bug-Status (7/8 behoben)</div>
+<div class="card">
+  <ul class="bug-list">
+    <li><span class="severity medium"></span><strong>#3 Kein GPS</strong> — App startet immer in Berlin (hardcoded) — EINZIGER OFFENER BUG</li>
+    <li style="color:var(--green)"><strong>✅ #1 Journey-Parameter</strong> — Gefixt in mobility_provider.dart:294</li>
+    <li style="color:var(--green)"><strong>✅ #2 ISO-Datum</strong> — Gefixt in departure_board.dart:102</li>
+    <li style="color:var(--green)"><strong>✅ #4 Linienfarben</strong> — Gefixt in dbVendoService.ts:101</li>
+    <li style="color:var(--green)"><strong>✅ #5 Stop-Mapping</strong> — Gefixt via transitous.org</li>
+    <li style="color:var(--green)"><strong>✅ #6 db-rest Port</strong> — Kein db-rest mehr (transitous.org)</li>
+    <li style="color:var(--green)"><strong>✅ #7 DB_REST_URL</strong> — Kein db-rest Dependency</li>
+    <li style="color:var(--green)"><strong>✅ #8 Route-Konflikt</strong> — Gefixt in mobility.ts:29</li>
+  </ul>
+</div>
+
+<!-- DB Schema -->
+<div class="section-title">Datenbank-Schema</div>
+<div class="card">
+  <table>
+    <tr><th>Domäne</th><th>Tabellen</th><th>Indizes</th><th>FKs</th><th>Status</th></tr>
+    <tr><td>Mobilität</td><td>2</td><td>3</td><td>1</td><td><span class="badge ok">OK</span></td></tr>
+    <tr><td>Finanzen</td><td>2</td><td>4</td><td>1</td><td><span class="badge ok">OK</span></td></tr>
+    <tr><td>Gesundheit</td><td>3</td><td>6</td><td>2</td><td><span class="badge ok">OK</span></td></tr>
+    <tr><td>GTFS</td><td>6</td><td>10</td><td>4</td><td><span class="badge warn">PKTs</span></td></tr>
+    <tr><td>Taler</td><td>3</td><td>6</td><td>2</td><td><span class="badge warn">VARCHAR</span></td></tr>
+    <tr><td>ML</td><td>1</td><td>4</td><td>0</td><td><span class="badge ok">OK</span></td></tr>
+  </table>
+</div>
+
+<!-- Deployment -->
+<div class="section-title">Deployment</div>
+<div class="grid">
+  <div class="card">
+    <h2>Backend (Render)</h2>
+    <div class="status-row">
+      <span>Status</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>URL</span>
+      <span style="font-size:0.8rem">heimat-backend.onrender.com</span>
+    </div>
+    <div class="status-row">
+      <span>Plan</span>
+      <span>Free Tier</span>
+    </div>
+    <div class="status-row">
+      <span>Region</span>
+      <span>Frankfurt</span>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Frontend (GitHub Pages)</h2>
+    <div class="status-row">
+      <span>Status</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>URL</span>
+      <span style="font-size:0.8rem">abatn.github.io/HEIMAT</span>
+    </div>
+    <div class="status-row">
+      <span>Build</span>
+      <span>Flutter Web</span>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Datenbank (Supabase)</h2>
+    <div class="status-row">
+      <span>Status</span>
+      <span class="badge ok">LIVE</span>
+    </div>
+    <div class="status-row">
+      <span>Provider</span>
+      <span>Supabase (PostgreSQL)</span>
+    </div>
+    <div class="status-row">
+      <span>Tabellen</span>
+      <span>16</span>
+    </div>
+  </div>
+</div>
+
+<!-- Nächste Schritte -->
+<div class="section-title">Nächste Schritte (Priorität)</div>
+<div class="card">
+  <table>
+    <tr><th>#</th><th>Aktion</th><th>Aufwand</th><th>Impact</th></tr>
+    <tr><td>1</td><td>GPS-Integration (geolocator Package)</td><td>2h</td><td style="color:var(--yellow)">HOCH</td></tr>
+    <tr><td>2</td><td>GTFS-Feed lokal importieren</td><td>1h</td><td style="color:var(--yellow)">HOCH</td></tr>
+    <tr><td>3</td><td>CHECK-Constraints hinzufügen</td><td>1h</td><td style="color:var(--blue)">MITTEL</td></tr>
+    <tr><td>4</td><td>ON DELETE Strategien</td><td>2h</td><td style="color:var(--blue)">MITTEL</td></tr>
+    <tr><td>5</td><td>Prototype Fund Antrag</td><td>4h</td><td style="color:var(--purple)">FÖRDERUNG</td></tr>
+    <tr><td>6</td><td>Beta-Tester rekrutieren</td><td>Laufend</td><td style="color:var(--purple)">COMMUNITY</td></tr>
+  </table>
+</div>
+
+<p class="timestamp">Generiert: Juli 2026 · Datenquellen: schema.sql, .loop.md, heimat-plan.md, mobility.ts</p>
+
+</body>
+</html>
