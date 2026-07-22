@@ -641,7 +641,8 @@ class _MobilityScreenState extends State<MobilityScreen> {
             child: ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(context);
-                DepartureBoard.show(context, stop.name);
+                DepartureBoard.show(
+                    context, stop.name, stop.latitude, stop.longitude);
               },
               icon: const Icon(Icons.schedule, size: 18),
               label: const Text('Abfahrten anzeigen'),

@@ -113,7 +113,7 @@ class JourneyLeg {
       line: json['line'] ?? json['route'],
       direction: json['direction'] ?? json['headsign'],
       platform: json['platform'],
-      routeColor: json['route_color'] ?? json['color'],
+      routeColor: json['routeColor'] ?? json['route_color'] ?? json['color'],
       departure: json['originPlannedDeparture'] ?? json['departure'] ?? '',
       arrival: json['destinationPlannedArrival'] ?? json['arrival'] ?? '',
       durationMin: json['durationMinutes'] ??
@@ -256,14 +256,15 @@ class MobilityProvider extends ChangeNotifier {
     return [];
   }
 
-  Future<void> loadDepartures(String stopName, {int limit = 10}) async {
+  Future<void> loadDepartures(
+      {required double lat, required double lng, int limit = 10}) async {
     _isLoading = true;
     _error = null;
     _departures = [];
     notifyListeners();
     try {
       final url =
-          '${AppConfig.backendUrl}/api/mobility/departures?stop=${Uri.encodeComponent(stopName)}';
+          '${AppConfig.backendUrl}/api/mobility/departures?lat=$lat&lng=$lng';
       final response = await http.get(Uri.parse(url), headers: {
         'Content-Type': 'application/json'
       }).timeout(const Duration(seconds: 15));

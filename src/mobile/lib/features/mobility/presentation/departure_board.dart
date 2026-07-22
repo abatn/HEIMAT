@@ -9,8 +9,9 @@ class DepartureBoard extends StatelessWidget {
 
   const DepartureBoard({super.key, required this.stopName});
 
-  static void show(BuildContext context, String stopName) {
-    context.read<MobilityProvider>().loadDepartures(stopName);
+  static void show(
+      BuildContext context, String stopName, double lat, double lng) {
+    context.read<MobilityProvider>().loadDepartures(lat: lat, lng: lng);
     showHeimatBottomSheet(
       context,
       title: 'Abfahrten — $stopName',
