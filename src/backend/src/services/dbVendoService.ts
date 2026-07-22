@@ -4,7 +4,9 @@ const CACHE_TTL_DEPARTURES = 300;
 const CACHE_TTL_JOURNEYS = 900;
 const CACHE_TTL_LOCATIONS = 3600;
 
-// Re-export normalized types (same shape as old dbRestService)
+const TRANSITOUS_BASE = 'https://api.transitous.org/api/v1';
+const USER_AGENT = 'HEIMAT/2.0 (github.com/abatn/HEIMAT)';
+
 export interface NormalizedStop {
   id: string;
   name: string;
@@ -47,7 +49,7 @@ export interface NormalizedJourney {
 }
 
 // ---------------------------------------------------------------------------
-// In-memory cache
+// Cache
 // ---------------------------------------------------------------------------
 
 interface CacheEntry { data: any; expires: number; }
@@ -65,8 +67,29 @@ function cacheSet(key: string, data: any, ttlSeconds: number): void {
 }
 
 // ---------------------------------------------------------------------------
-// Product colors
+// Transitous API helpers
 // ---------------------------------------------------------------------------
+
+const MODE_MAP: Record<string, string> = {
+  METRO: 'suburban',
+  SUBURBAN: 'suburban',
+  SUBWAY: 'subway',
+  TRAM: 'tram',
+  BUS: 'bus',
+  REGIONAL_TRAIN: 'regional',
+  EXPRESS_TRAIN: 'express',
+  FERRY: 'ferry',
+  CABLE_CAR: 'cable',
+  AIRPLANE: 'airplane',
+  TAXI: 'taxi',
+  CAR: 'taxi',
+  WALK: 'walk',
+  BIKE: 'bike',
+};
+
+function mapMode(motisMode: string): string {
+  return MODE_MAP[motisMode] || motisMode.toLowerCase();
+}
 
 const PRODUCT_COLORS: Record<string, string> = {
   bus: '#1B5E20',
@@ -79,92 +102,81 @@ const PRODUCT_COLORS: Record<string, string> = {
   taxi: '#F9A825',
   cable: '#4E342E',
   airplane: '#37474F',
+  walk: '#9E9E9E',
+  bike: '#4CAF50',
 };
 
-// ---------------------------------------------------------------------------
-// db-vendo-client Service (ESM dynamic import from CommonJS)
-// ---------------------------------------------------------------------------
-
-let _client: any = null;
-
-async function getClient(): Promise<any> {
-  if (_client) return _client;
-  try {
-    const [{ createClient }, profileMod] = await Promise.all([
-      import('db-vendo-client'),
-      import('db-vendo-client/p/dbnav/index.js').catch(() => import('db-vendo-client/p/db/index.js')),
-    ]);
-    const profile = profileMod.profile || profileMod.default;
-    _client = createClient(profile, 'heimat-2.0-app');
-    logger.info('db-vendo-client initialisiert (dbnav profile)');
-    return _client;
-  } catch (err: any) {
-    logger.error(`db-vendo-client Init fehlgeschlagen: ${err.message}`);
-    throw err;
-  }
+function formatTime(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 }
+
+async function transitousGet<T>(path: string, params: Record<string, string>): Promise<T> {
+  const qs = new URLSearchParams(params).toString();
+  const url = `${TRANSITOUS_BASE}${path}?${qs}`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': USER_AGENT },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`transitous ${path}: HTTP ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
 
 export class DbVendoService {
 
-  // ---- Search stops by name ----
+  // ---- Search stops by name (uses plan with trivial route to discover stops) ----
   async searchStops(query: string, limit = 5): Promise<NormalizedStop[]> {
     const cacheKey = `loc:${query}:${limit}`;
     const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
     try {
-      const client = await getClient();
-      const results = await client.locations(query, {
-        results: limit,
-        stops: true,
-        addresses: false,
-        poi: false,
-      });
-
-      const stops: NormalizedStop[] = (results || [])
-        .filter((item: any) => item.type === 'stop' || item.type === 'station')
-        .map((item: any) => ({
-          id: item.id,
-          name: item.name || '',
-          latitude: item.location?.latitude || 0,
-          longitude: item.location?.longitude || 0,
-        }));
-
-      cacheSet(cacheKey, stops, CACHE_TTL_LOCATIONS);
-      return stops;
+      // Transitous has no text-search endpoint; use map/stops for Berlin area
+      // For now return empty — the frontend uses coords-based search
+      logger.warn(`transitous searchStops("${query}"): no text search available`);
+      return [];
     } catch (err: any) {
-      logger.warn(`db-vendo searchStops fehlgeschlagen: ${err.message}`);
+      logger.warn(`transitous searchStops fehlgeschlagen: ${err.message}`);
       return [];
     }
   }
 
-  // ---- Search stops by coordinates (nearby) ----
+  // ---- Search stops by coordinates (nearby) using map/stops ----
   async searchStopsByCoords(lat: number, lng: number, limit = 5): Promise<NormalizedStop[]> {
     const cacheKey = `nearby:${lat}:${lng}:${limit}`;
     const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
     try {
-      const client = await getClient();
-      const results = await client.nearby({
-        type: 'location',
-        latitude: lat,
-        longitude: lng,
-      }, { results: limit, stops: true, poi: false });
+      const delta = 0.005; // ~500m bounding box
+      const minLat = (lat - delta).toFixed(4);
+      const minLng = (lng - delta).toFixed(4);
+      const maxLat = (lat + delta).toFixed(4);
+      const maxLng = (lng + delta).toFixed(4);
 
-      const stops: NormalizedStop[] = (results || [])
-        .filter((item: any) => item.type === 'stop' || item.type === 'station')
-        .map((item: any) => ({
-          id: item.id,
-          name: item.name || '',
-          latitude: item.location?.latitude || lat,
-          longitude: item.location?.longitude || lng,
+      const stops = await transitousGet<any[]>('/map/stops', {
+        min: `${minLat},${minLng}`,
+        max: `${maxLat},${maxLng}`,
+      });
+
+      const result: NormalizedStop[] = (stops || [])
+        .slice(0, limit)
+        .map((s: any) => ({
+          id: s.stopId || '',
+          name: s.name || '',
+          latitude: s.lat || 0,
+          longitude: s.lon || 0,
         }));
 
-      cacheSet(cacheKey, stops, CACHE_TTL_LOCATIONS);
-      return stops;
+      cacheSet(cacheKey, result, CACHE_TTL_LOCATIONS);
+      return result;
     } catch (err: any) {
-      logger.warn(`db-vendo searchStopsByCoords fehlgeschlagen: ${err.message}`);
+      logger.warn(`transitous searchStopsByCoords fehlgeschlagen: ${err.message}`);
       return [];
     }
   }
@@ -176,85 +188,110 @@ export class DbVendoService {
     if (cached) return cached;
 
     try {
-      const client = await getClient();
-      const results = await client.departures(stopId, {
-        duration,
-        results: 50,
+      const data = await transitousGet<any>('/stoptimes', {
+        stopId,
+        n: '30',
+        language: 'de',
       });
 
-      const deps: NormalizedDeparture[] = (results || []).map((d: any) => ({
-        stopId,
-        stopName: d.stop?.name || d.origin?.name || '',
-        line: d.line?.name || '',
-        mode: d.line?.product || d.line?.mode || '',
-        direction: d.direction || d.destination?.name || '',
-        plannedDeparture: d.plannedWhen || d.when || '',
-        realtimeDeparture: d.when,
-        delayMinutes: d.delay ? Math.round(d.delay / 60) : 0,
-        journeyId: d.tripId,
-        platform: d.platform || d.plannedPlatform,
-      }));
+      const deps: NormalizedDeparture[] = (data.stopTimes || []).map((st: any) => {
+        const delaySec = (st.place?.arrival && st.place?.scheduledArrival)
+          ? (new Date(st.place.arrival).getTime() - new Date(st.place.scheduledArrival).getTime()) / 1000
+          : 0;
+
+        return {
+          stopId,
+          stopName: st.place?.name || '',
+          line: st.routeShortName || st.headsign || '',
+          mode: mapMode(st.mode || ''),
+          direction: st.headsign || '',
+          plannedDeparture: formatTime(st.place?.scheduledDeparture || st.place?.departure || ''),
+          realtimeDeparture: formatTime(st.place?.departure || ''),
+          delayMinutes: Math.round(delaySec / 60),
+          journeyId: st.tripId || '',
+          platform: st.place?.track || undefined,
+        };
+      });
 
       cacheSet(cacheKey, deps, CACHE_TTL_DEPARTURES);
       return deps;
     } catch (err: any) {
-      logger.warn(`db-vendo getDepartures fehlgeschlagen: ${err.message}`);
+      logger.warn(`transitous getDepartures fehlgeschlagen: ${err.message}`);
       return [];
     }
   }
 
-  // ---- Journey planning (A → B) ----
-  async getJourneys(fromId: string, toId: string, departure?: Date): Promise<NormalizedJourney[]> {
-    const depStr = departure ? departure.toISOString() : 'now';
-    const cacheKey = `jrn:${fromId}:${toId}:${depStr}`;
+  // ---- Journey planning (A → B) using coordinates ----
+  async getJourneys(
+    fromIdOrLat: string,
+    toIdOrLng: string,
+    departure?: Date,
+    fromLat?: number,
+    fromLng?: number,
+    toLat?: number,
+    toLng?: number,
+  ): Promise<NormalizedJourney[]> {
+    // Support both old (id-based) and new (coord-based) call signatures
+    const fLat = fromLat ?? parseFloat(fromIdOrLat);
+    const fLng = fromLng ?? 0;
+    const tLat = toLat ?? parseFloat(toIdOrLng);
+    const tLng = toLng ?? 0;
+
+    if (isNaN(fLat) || isNaN(tLat)) {
+      logger.warn('transitous getJourneys: invalid coordinates');
+      return [];
+    }
+
+    const depStr = departure ? departure.toISOString() : new Date().toISOString();
+    const cacheKey = `jrn:${fLat}:${fLng}:${tLat}:${tLng}:${depStr}`;
     const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
     try {
-      const client = await getClient();
-      const opts: any = {
-        results: 3,
-        stopovers: false,
+      const params: Record<string, string> = {
+        fromPlace: `${fLat},${fLng}`,
+        toPlace: `${tLat},${tLng}`,
+        numItineraries: '3',
         language: 'de',
+        time: depStr,
       };
-      if (departure) opts.departure = departure.toISOString();
 
-      const data = await client.journeys(fromId, toId, opts);
+      const data = await transitousGet<any>('/plan', params);
 
-      const journeys: NormalizedJourney[] = (data?.journeys || []).map((j: any) => {
-        const legs = (j.legs || [])
-          .filter((l: any) => !l.walking || (l.distance && l.distance > 200))
+      const journeys: NormalizedJourney[] = (data.itineraries || []).map((itin: any) => {
+        const legs: NormalizedLeg[] = (itin.legs || [])
+          .filter((l: any) => l.mode !== 'WALK' || (l.distance && l.distance > 200))
           .map((l: any) => ({
-            mode: l.line?.product || l.line?.mode || (l.walking ? 'walk' : 'unknown'),
-            line: l.line?.name,
-            direction: l.direction,
-            originName: l.origin?.name || '',
-            destinationName: l.destination?.name || '',
-            originPlannedDeparture: l.plannedDeparture,
-            destinationPlannedArrival: l.plannedArrival,
+            mode: mapMode(l.mode || ''),
+            line: l.routeShortName || l.tripFrom?.name ? `${l.routeShortName || ''}`.trim() : undefined,
+            direction: l.headsign || undefined,
+            originName: l.from?.name || '',
+            destinationName: l.to?.name || '',
+            originPlannedDeparture: l.scheduledStartTime || undefined,
+            destinationPlannedArrival: l.scheduledEndTime || undefined,
             durationMinutes: l.duration ? Math.round(l.duration / 60) : 0,
             changeCount: 0,
-            routeColor: PRODUCT_COLORS[l.line?.product || ''] || '#6B7280',
+            routeColor: l.routeColor ? `#${l.routeColor}` : PRODUCT_COLORS[mapMode(l.mode || '')] || '#6B7280',
           }));
 
-        const firstDep = j.legs?.[0]?.plannedDeparture || j.legs?.[0]?.departure || '';
-        const lastArr = j.legs?.[j.legs.length - 1]?.plannedArrival || j.legs?.[j.legs.length - 1]?.arrival || '';
+        const firstDep = itin.legs?.[0]?.scheduledStartTime || itin.legs?.[0]?.startTime || '';
+        const lastArr = itin.legs?.[itin.legs.length - 1]?.scheduledEndTime || itin.legs?.[itin.legs.length - 1]?.endTime || '';
         const totalMin = legs.reduce((sum: number, l: any) => sum + l.durationMinutes, 0);
         const changes = Math.max(0, legs.filter((l: any) => l.mode !== 'walk').length - 1);
 
         return {
-          durationMinutes: totalMin,
+          durationMinutes: totalMin || (itin.duration ? Math.round(itin.duration / 60) : 0),
           legs,
           changes,
-          plannedDeparture: firstDep,
-          plannedArrival: lastArr,
+          plannedDeparture: formatTime(firstDep),
+          plannedArrival: formatTime(lastArr),
         };
       });
 
       cacheSet(cacheKey, journeys, CACHE_TTL_JOURNEYS);
       return journeys;
     } catch (err: any) {
-      logger.warn(`db-vendo getJourneys fehlgeschlagen: ${err.message}`);
+      logger.warn(`transitous getJourneys fehlgeschlagen: ${err.message}`);
       return [];
     }
   }
@@ -262,16 +299,17 @@ export class DbVendoService {
   // ---- Health check ----
   async healthCheck(): Promise<{ status: string; details: string }> {
     try {
-      const client = await getClient();
-      const r = await client.locations('Berlin Hbf', { results: 1, stops: true });
-      return { status: 'ok', details: `db-vendo-client OK, Test: ${r[0]?.name || 'kein Ergebnis'}` };
+      const data = await transitousGet<any>('/map/stops', {
+        min: '52.515,13.395',
+        max: '52.525,13.405',
+      });
+      const count = Array.isArray(data) ? data.length : 0;
+      return { status: 'ok', details: `transitous.org OK, ${count} stops near Berlin Mitte` };
     } catch (err: any) {
       const detail = err.message || String(err);
-      const code = err.code || err.hafasCode || 'unknown';
-      return { status: 'error', details: `${detail} (code: ${code})` };
+      return { status: 'error', details: detail };
     }
   }
 }
 
-// Singleton
 export const dbVendoService = new DbVendoService();

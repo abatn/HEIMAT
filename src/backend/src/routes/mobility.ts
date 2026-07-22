@@ -55,26 +55,24 @@ mobilityRouter.get('/geocode', asyncHandler(async (req: Request, res: Response) 
   res.json({ status: 'ok', results });
 }));
 
-// Nächste Abfahrten via db-vendo
+// Nächste Abfahrten via transitous.org
 mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Response) => {
-  const { stop, stopId, duration } = req.query;
-  if (!stop && !stopId) throw new AppError('Stop name or stopId is required', 400);
+  const { stopId, lat, lng, duration } = req.query;
 
   try {
-    let id: string | undefined = stopId as string | undefined;
-    let stopName = (stop as string) || (stopId as string) || '';
+    let id = stopId as string | undefined;
 
-    // Haltestelle über db-vendo suchen, falls keine ID angegeben
-    if (!id && stop) {
-      logger.info(`Departures: suche Haltestelle "${stop}"`);
-      const found = await dbVendoService.searchStops(stop as string, 1);
-      logger.info(`Departures: Suche ergab ${found.length} Treffer: ${found.map(s => `${s.name} (${s.id})`).join(', ')}`);
-      if (found.length > 0) { id = found[0].id; stopName = found[0].name; }
+    // Ohne stopId: Haltestellen in der Nähe suchen und erste nehmen
+    if (!id && lat && lng) {
+      const nearby = await dbVendoService.searchStopsByCoords(
+        parseFloat(lat as string), parseFloat(lng as string), 1,
+      );
+      if (nearby.length > 0) id = nearby[0].id;
     }
 
     if (!id) {
-      logger.warn(`Departures: keine Haltestelle gefunden für "${stopName}"`);
-      res.json({ status: 'ok', stop: stopName, departures: [], count: 0 });
+      logger.warn(`Departures: keine Haltestelle gefunden (lat=${lat}, lng=${lng})`);
+      res.json({ status: 'ok', departures: [], count: 0 });
       return;
     }
 
@@ -83,7 +81,6 @@ mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Respons
 
     res.json({
       status: 'ok',
-      stop: stopName,
       departures: departures.map(d => ({
         line: d.line,
         direction: d.direction,
@@ -92,53 +89,35 @@ mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Respons
         realtimeDeparture: d.realtimeDeparture,
         delay: d.delayMinutes,
         platform: d.platform,
+        stopName: d.stopName,
       })),
       count: departures.length,
     });
   } catch (e: any) {
-    logger.warn(`db-rest departures fehlgeschlagen: ${e.message}`);
+    logger.warn(`departures fehlgeschlagen: ${e.message}`);
     res.json({ status: 'ok', departures: [], count: 0 });
   }
 }));
 
-// Verbindungssuche via db-vendo
+// Verbindungssuche via transitous.org
 mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) => {
-  const { from_lat, from_lng, to_lat, to_lng, from_id, to_id } = req.query;
+  const { from_lat, from_lng, to_lat, to_lng } = req.query;
   try {
-    let fromId = from_id as string | undefined;
-    let toId = to_id as string | undefined;
+    const fl = parseFloat(from_lat as string);
+    const fg = parseFloat(from_lng as string);
+    const tl = parseFloat(to_lat as string);
+    const tg = parseFloat(to_lng as string);
 
-    // Koordinaten → db-vendo Haltestellen-Suche via nearby
-    if (!fromId && from_lat && from_lng) {
-      const fl = parseFloat(from_lat as string);
-      const fg = parseFloat(from_lng as string);
-      if (isNaN(fl) || isNaN(fg)) throw new AppError('Invalid from coordinates', 400);
-      logger.info(`Journey: suche Start-Haltestelle bei ${fl},${fg}`);
-      const found = await dbVendoService.searchStopsByCoords(fl, fg, 1);
-      logger.info(`Journey: Start-Suche ergab ${found.length} Treffer: ${found.map(s => s.name).join(', ')}`);
-      if (found.length > 0) fromId = found[0].id;
-    }
-    if (!toId && to_lat && to_lng) {
-      const tl = parseFloat(to_lat as string);
-      const tg = parseFloat(to_lng as string);
-      if (isNaN(tl) || isNaN(tg)) throw new AppError('Invalid to coordinates', 400);
-      logger.info(`Journey: suche Ziel-Haltestelle bei ${tl},${tg}`);
-      const found = await dbVendoService.searchStopsByCoords(tl, tg, 1);
-      logger.info(`Journey: Ziel-Suche ergab ${found.length} Treffer: ${found.map(s => s.name).join(', ')}`);
-      if (found.length > 0) toId = found[0].id;
+    if (isNaN(fl) || isNaN(fg) || isNaN(tl) || isNaN(tg)) {
+      throw new AppError('All coordinates (from_lat, from_lng, to_lat, to_lng) are required', 400);
     }
 
-    if (!fromId || !toId) {
-      logger.warn(`Journey: keine Haltestellen gefunden. fromId=${fromId}, toId=${toId}`);
-      throw new AppError('Start and destination are required (from_id/to_id or coordinates)', 400);
-    }
-
-    logger.info(`Journey: suche Verbindung von ${fromId} nach ${toId}`);
-    const journeys = await dbVendoService.getJourneys(fromId, toId);
+    logger.info(`Journey: transitous.org ${fl},${fg} → ${tl},${tg}`);
+    const journeys = await dbVendoService.getJourneys('', '', undefined, fl, fg, tl, tg);
     logger.info(`Journey: ${journeys.length} Verbindungen gefunden`);
     res.json({ status: 'ok', journeys });
   } catch (e: any) {
-    logger.warn(`db-rest journey fehlgeschlagen: ${e.message}`);
+    logger.warn(`journey fehlgeschlagen: ${e.message}`);
     res.json({ status: 'ok', journeys: [] });
   }
 }));

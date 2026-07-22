@@ -33,36 +33,36 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/admin/db-vendo-status – Prüft db-vendo-client Erreichbarkeit
+// GET /api/admin/db-vendo-status – Prüft transitous.org Erreichbarkeit
 adminRouter.get('/db-vendo-status', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   try {
     const health = await dbVendoService.healthCheck();
-    const testStops = await dbVendoService.searchStops('Hauptbahnhof', 3);
+    const testStops = await dbVendoService.searchStopsByCoords(52.52, 13.40, 3);
     res.json({
       success: true,
-      dbRest: health,
-      testQuery: 'Hauptbahnhof',
+      provider: 'transitous.org',
+      apiHealth: health,
+      testQuery: '52.52,13.40 (Berlin Mitte)',
       testResults: testStops.length,
       sampleStop: testStops[0] || null,
     });
   } catch (error: any) {
-    logger.error(`Admin db-vendo status failed: ${error.message}`);
+    logger.error(`Admin transitous status failed: ${error.message}`);
     res.status(500).json({ success: false, message: error.message || 'Status check failed' });
   }
 });
 
-// GET /api/admin/db-vendo-selftest – Testet db-vendo-client mit Abfahrten + Journey
+// GET /api/admin/db-vendo-selftest – Testet transitous.org mit Abfahrten + Journey
 adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   try {
-    const query = (req.query.q as string) || 'Berlin Hauptbahnhof';
     const t0 = Date.now();
 
-    // 1. Haltestelle suchen
-    const stops = await dbVendoService.searchStops(query, 3);
+    // 1. Haltestellen in der Nähe suchen
+    const stops = await dbVendoService.searchStopsByCoords(52.52, 13.40, 5);
 
     // 2. Abfahrten holen
     let departures: any[] = [];
@@ -70,15 +70,16 @@ adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
       departures = await dbVendoService.getDepartures(stops[0].id, 5);
     }
 
-    // 3. Journey testen (erste Haltestelle → zweite)
-    let journeys: any[] = [];
-    if (stops.length >= 2) {
-      journeys = await dbVendoService.getJourneys(stops[0].id, stops[1].id);
-    }
+    // 3. Journey testen (Alexanderplatz → Hauptbahnhof)
+    const journeys = await dbVendoService.getJourneys(
+      '', '', undefined,
+      52.5219, 13.4132, // Alexanderplatz
+      52.5255, 13.3695, // Hauptbahnhof
+    );
 
     res.json({
       success: true,
-      query,
+      provider: 'transitous.org',
       ms: Date.now() - t0,
       stops: stops.length,
       departures: departures.length,
@@ -88,7 +89,7 @@ adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
       sampleJourney: journeys[0] || null,
     });
   } catch (error: any) {
-    logger.error(`Admin db-vendo selftest failed: ${error.message}`);
+    logger.error(`Admin transitous selftest failed: ${error.message}`);
     res.status(500).json({ success: false, message: error.message || 'selftest failed' });
   }
 });
