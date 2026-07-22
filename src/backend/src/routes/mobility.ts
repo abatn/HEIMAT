@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/errorHandler';
 import { mobilityService } from '../services/mobilityService';
-import { dbRestService } from '../services/dbRestService';
+import { dbVendoService } from '../services/dbVendoService';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 
@@ -25,11 +25,11 @@ mobilityRouter.get('/stops', asyncHandler(async (req: Request, res: Response) =>
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 
-// Haltestellen-Suche via db-rest (MUST be before /stops/:id!)
+// Haltestellen-Suche via db-vendo (MUST be before /stops/:id!)
 mobilityRouter.get('/stops/search', asyncHandler(async (req: Request, res: Response) => {
   const { q } = req.query;
   if (!q) throw new AppError('Search query is required', 400);
-  const stops = await dbRestService.searchStops(q as string, 5);
+  const stops = await dbVendoService.searchStops(q as string, 5);
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 
@@ -55,7 +55,7 @@ mobilityRouter.get('/geocode', asyncHandler(async (req: Request, res: Response) 
   res.json({ status: 'ok', results });
 }));
 
-// Nächste Abfahrten via db-rest
+// Nächste Abfahrten via db-vendo
 mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Response) => {
   const { stop, stopId, duration } = req.query;
   if (!stop && !stopId) throw new AppError('Stop name or stopId is required', 400);
@@ -64,10 +64,10 @@ mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Respons
     let id: string | undefined = stopId as string | undefined;
     let stopName = (stop as string) || (stopId as string) || '';
 
-    // Haltestelle über db-rest suchen, falls keine ID angegeben
+    // Haltestelle über db-vendo suchen, falls keine ID angegeben
     if (!id && stop) {
       logger.info(`Departures: suche Haltestelle "${stop}"`);
-      const found = await dbRestService.searchStops(stop as string, 1);
+      const found = await dbVendoService.searchStops(stop as string, 1);
       logger.info(`Departures: Suche ergab ${found.length} Treffer: ${found.map(s => `${s.name} (${s.id})`).join(', ')}`);
       if (found.length > 0) { id = found[0].id; stopName = found[0].name; }
     }
@@ -79,7 +79,7 @@ mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Respons
     }
 
     const durationNum = duration ? parseInt(duration as string) : 10;
-    const departures = await dbRestService.getDepartures(id, durationNum);
+    const departures = await dbVendoService.getDepartures(id, durationNum);
 
     res.json({
       status: 'ok',
@@ -101,20 +101,20 @@ mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Respons
   }
 }));
 
-// Verbindungssuche via db-rest
+// Verbindungssuche via db-vendo
 mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) => {
   const { from_lat, from_lng, to_lat, to_lng, from_id, to_id } = req.query;
   try {
     let fromId = from_id as string | undefined;
     let toId = to_id as string | undefined;
 
-    // Koordinaten → db-rest Haltestellen-Suche via /locations/nearby
+    // Koordinaten → db-vendo Haltestellen-Suche via nearby
     if (!fromId && from_lat && from_lng) {
       const fl = parseFloat(from_lat as string);
       const fg = parseFloat(from_lng as string);
       if (isNaN(fl) || isNaN(fg)) throw new AppError('Invalid from coordinates', 400);
       logger.info(`Journey: suche Start-Haltestelle bei ${fl},${fg}`);
-      const found = await dbRestService.searchStopsByCoords(fl, fg, 1);
+      const found = await dbVendoService.searchStopsByCoords(fl, fg, 1);
       logger.info(`Journey: Start-Suche ergab ${found.length} Treffer: ${found.map(s => s.name).join(', ')}`);
       if (found.length > 0) fromId = found[0].id;
     }
@@ -123,7 +123,7 @@ mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) 
       const tg = parseFloat(to_lng as string);
       if (isNaN(tl) || isNaN(tg)) throw new AppError('Invalid to coordinates', 400);
       logger.info(`Journey: suche Ziel-Haltestelle bei ${tl},${tg}`);
-      const found = await dbRestService.searchStopsByCoords(tl, tg, 1);
+      const found = await dbVendoService.searchStopsByCoords(tl, tg, 1);
       logger.info(`Journey: Ziel-Suche ergab ${found.length} Treffer: ${found.map(s => s.name).join(', ')}`);
       if (found.length > 0) toId = found[0].id;
     }
@@ -134,7 +134,7 @@ mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) 
     }
 
     logger.info(`Journey: suche Verbindung von ${fromId} nach ${toId}`);
-    const journeys = await dbRestService.getJourneys(fromId, toId);
+    const journeys = await dbVendoService.getJourneys(fromId, toId);
     logger.info(`Journey: ${journeys.length} Verbindungen gefunden`);
     res.json({ status: 'ok', journeys });
   } catch (e: any) {

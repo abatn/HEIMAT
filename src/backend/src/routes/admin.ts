@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { pool } from '../config/database';
-import { dbRestService } from '../services/dbRestService';
+import { dbVendoService } from '../services/dbVendoService';
 import { logger } from '../utils/logger';
 
 const adminRouter = Router();
@@ -33,13 +33,13 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/admin/db-rest-status – Prüft db-rest Service-Erreichbarkeit
-adminRouter.get('/db-rest-status', async (req: Request, res: Response) => {
+// GET /api/admin/db-vendo-status – Prüft db-vendo-client Erreichbarkeit
+adminRouter.get('/db-vendo-status', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   try {
-    const health = await dbRestService.healthCheck();
-    const testStops = await dbRestService.searchStops('Hauptbahnhof', 3);
+    const health = await dbVendoService.healthCheck();
+    const testStops = await dbVendoService.searchStops('Hauptbahnhof', 3);
     res.json({
       success: true,
       dbRest: health,
@@ -48,13 +48,13 @@ adminRouter.get('/db-rest-status', async (req: Request, res: Response) => {
       sampleStop: testStops[0] || null,
     });
   } catch (error: any) {
-    logger.error(`Admin db-rest status failed: ${error.message}`);
+    logger.error(`Admin db-vendo status failed: ${error.message}`);
     res.status(500).json({ success: false, message: error.message || 'Status check failed' });
   }
 });
 
-// GET /api/admin/db-rest-selftest – Testet db-rest mit Abfahrten + Journey
-adminRouter.get('/db-rest-selftest', async (req: Request, res: Response) => {
+// GET /api/admin/db-vendo-selftest – Testet db-vendo-client mit Abfahrten + Journey
+adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   try {
@@ -62,18 +62,18 @@ adminRouter.get('/db-rest-selftest', async (req: Request, res: Response) => {
     const t0 = Date.now();
 
     // 1. Haltestelle suchen
-    const stops = await dbRestService.searchStops(query, 3);
+    const stops = await dbVendoService.searchStops(query, 3);
 
     // 2. Abfahrten holen
     let departures: any[] = [];
     if (stops.length > 0) {
-      departures = await dbRestService.getDepartures(stops[0].id, 5);
+      departures = await dbVendoService.getDepartures(stops[0].id, 5);
     }
 
     // 3. Journey testen (erste Haltestelle → zweite)
     let journeys: any[] = [];
     if (stops.length >= 2) {
-      journeys = await dbRestService.getJourneys(stops[0].id, stops[1].id);
+      journeys = await dbVendoService.getJourneys(stops[0].id, stops[1].id);
     }
 
     res.json({
@@ -88,7 +88,7 @@ adminRouter.get('/db-rest-selftest', async (req: Request, res: Response) => {
       sampleJourney: journeys[0] || null,
     });
   } catch (error: any) {
-    logger.error(`Admin db-rest selftest failed: ${error.message}`);
+    logger.error(`Admin db-vendo selftest failed: ${error.message}`);
     res.status(500).json({ success: false, message: error.message || 'selftest failed' });
   }
 });

@@ -1,88 +1,10 @@
-import axios, { AxiosInstance } from 'axios';
 import { logger } from '../utils/logger';
 
-const DB_REST_TIMEOUT_MS = 10000;
-const CACHE_TTL_DEPARTURES = 300; // 5 minutes
-const CACHE_TTL_JOURNEYS = 900;   // 15 minutes
-const CACHE_TTL_LOCATIONS = 3600; // 1 hour
+const CACHE_TTL_DEPARTURES = 300;
+const CACHE_TTL_JOURNEYS = 900;
+const CACHE_TTL_LOCATIONS = 3600;
 
-// ---------------------------------------------------------------------------
-// Types (mapped from db-rest / hafas-client format)
-// ---------------------------------------------------------------------------
-
-export interface DbRestStop {
-  type: string;
-  id: string;
-  name: string;
-  location?: {
-    type: string;
-    id: string;
-    latitude: number;
-    longitude: number;
-  };
-  products?: Record<string, boolean>;
-  station?: {
-    type: string;
-    id: string;
-    name: string;
-  };
-}
-
-export interface DbRestDeparture {
-  tripId?: string;
-  direction?: string;
-  line?: {
-    type: string;
-    id: string;
-    name: string;
-    product?: string;
-    mode?: string;
-    operator?: { type: string; id: string; name: string };
-  };
-  departure?: string;
-  plannedDeparture?: string;
-  delay?: number | null;
-  departurePlatform?: string;
-  plannedDeparturePlatform?: string;
-  remarks?: any[];
-  origin?: DbRestStop;
-  destination?: DbRestStop;
-}
-
-export interface DbRestLeg {
-  tripId?: string;
-  direction?: string;
-  line?: {
-    type: string;
-    id: string;
-    name: string;
-    product?: string;
-    mode?: string;
-  };
-  origin: DbRestStop;
-  destination: DbRestStop;
-  departure?: string;
-  plannedDeparture?: string;
-  departureDelay?: number | null;
-  arrival?: string;
-  plannedArrival?: string;
-  arrivalDelay?: number | null;
-  departurePlatform?: string;
-  arrivalPlatform?: string;
-  walking?: boolean;
-  distance?: number;
-  duration?: number;
-}
-
-export interface DbRestJourney {
-  type: string;
-  legs: DbRestLeg[];
-  price?: { amount?: number; currency?: string; hint?: string };
-  refreshToken?: string;
-}
-
-// Normalized types for HEIMAT (same as EFA types for compatibility)
-
+// Re-export normalized types (same shape as old dbRestService)
 export interface NormalizedStop {
   id: string;
   name: string;
@@ -125,7 +47,7 @@ export interface NormalizedJourney {
 }
 
 // ---------------------------------------------------------------------------
-// Simple in-memory cache (fallback when Redis is not available)
+// In-memory cache
 // ---------------------------------------------------------------------------
 
 interface CacheEntry { data: any; expires: number; }
@@ -143,7 +65,7 @@ function cacheSet(key: string, data: any, ttlSeconds: number): void {
 }
 
 // ---------------------------------------------------------------------------
-// db-rest Service
+// Product colors
 // ---------------------------------------------------------------------------
 
 const PRODUCT_COLORS: Record<string, string> = {
@@ -159,24 +81,29 @@ const PRODUCT_COLORS: Record<string, string> = {
   airplane: '#37474F',
 };
 
-export class DbRestService {
-  private client: AxiosInstance;
-  private redisUrl?: string;
+// ---------------------------------------------------------------------------
+// db-vendo-client Service (ESM dynamic import from CommonJS)
+// ---------------------------------------------------------------------------
 
-  constructor(baseUrl?: string, redisUrl?: string) {
-    const rawUrl = baseUrl || process.env.DB_REST_URL || 'http://localhost:3000';
-    // Fallback: wenn DB_REST_URL auf localhost zeigt (nicht auf Render), nutze externe URL
-    const url = rawUrl.includes('localhost')
-      ? 'https://heimat-db-rest.onrender.com'
-      : rawUrl;
-    this.redisUrl = redisUrl || process.env.REDIS_URL;
-    this.client = axios.create({
-      baseURL: url,
-      timeout: DB_REST_TIMEOUT_MS,
-      headers: { 'Accept': 'application/json', 'Accept-Charset': 'utf-8' },
-    });
-    logger.info(`db-rest Service initialisiert: ${url}`);
+let _client: any = null;
+
+async function getClient(): Promise<any> {
+  if (_client) return _client;
+  try {
+    const [{ createClient }, { profile }] = await Promise.all([
+      import('db-vendo-client'),
+      import('db-vendo-client/p/db/index.js'),
+    ]);
+    _client = createClient(profile, 'heimat-2.0-app');
+    logger.info('db-vendo-client initialisiert (db profile)');
+    return _client;
+  } catch (err: any) {
+    logger.error(`db-vendo-client Init fehlgeschlagen: ${err.message}`);
+    throw err;
   }
+}
+
+export class DbVendoService {
 
   // ---- Search stops by name ----
   async searchStops(query: string, limit = 5): Promise<NormalizedStop[]> {
@@ -185,15 +112,19 @@ export class DbRestService {
     if (cached) return cached;
 
     try {
-      const { data } = await this.client.get('/locations', {
-        params: { query, poi: false, addresses: false, results: limit },
+      const client = await getClient();
+      const results = await client.locations(query, {
+        results: limit,
+        stops: true,
+        addresses: false,
+        poi: false,
       });
 
-      const stops: NormalizedStop[] = (data || [])
+      const stops: NormalizedStop[] = (results || [])
         .filter((item: any) => item.type === 'stop' || item.type === 'station')
         .map((item: any) => ({
           id: item.id,
-          name: item.name,
+          name: item.name || '',
           latitude: item.location?.latitude || 0,
           longitude: item.location?.longitude || 0,
         }));
@@ -201,7 +132,7 @@ export class DbRestService {
       cacheSet(cacheKey, stops, CACHE_TTL_LOCATIONS);
       return stops;
     } catch (err: any) {
-      logger.warn(`db-rest searchStops fehlgeschlagen: ${err.message}`);
+      logger.warn(`db-vendo searchStops fehlgeschlagen: ${err.message}`);
       return [];
     }
   }
@@ -213,16 +144,14 @@ export class DbRestService {
     if (cached) return cached;
 
     try {
-      const { data } = await this.client.get('/locations/nearby', {
-        params: { latitude: lat, longitude: lng, results: limit },
-      });
+      const client = await getClient();
+      const results = await client.nearby(lat, lng, { results: limit });
 
-      const items = Array.isArray(data) ? data : [data];
-      const stops: NormalizedStop[] = items
+      const stops: NormalizedStop[] = (results || [])
         .filter((item: any) => item.type === 'stop' || item.type === 'station')
         .map((item: any) => ({
           id: item.id,
-          name: item.name,
+          name: item.name || '',
           latitude: item.location?.latitude || lat,
           longitude: item.location?.longitude || lng,
         }));
@@ -230,7 +159,7 @@ export class DbRestService {
       cacheSet(cacheKey, stops, CACHE_TTL_LOCATIONS);
       return stops;
     } catch (err: any) {
-      logger.warn(`db-rest searchStopsByCoords fehlgeschlagen: ${err.message}`);
+      logger.warn(`db-vendo searchStopsByCoords fehlgeschlagen: ${err.message}`);
       return [];
     }
   }
@@ -242,27 +171,29 @@ export class DbRestService {
     if (cached) return cached;
 
     try {
-      const { data } = await this.client.get(`/stops/${encodeURIComponent(stopId)}/departures`, {
-        params: { duration, results: 50 },
+      const client = await getClient();
+      const results = await client.departures(stopId, {
+        duration,
+        results: 50,
       });
 
-      const deps: NormalizedDeparture[] = (data?.departures || []).map((d: DbRestDeparture) => ({
+      const deps: NormalizedDeparture[] = (results || []).map((d: any) => ({
         stopId,
-        stopName: d.origin?.name || '',
+        stopName: d.stop?.name || d.origin?.name || '',
         line: d.line?.name || '',
         mode: d.line?.product || d.line?.mode || '',
         direction: d.direction || d.destination?.name || '',
-        plannedDeparture: d.plannedDeparture || d.departure || '',
-        realtimeDeparture: d.departure,
-        delayMinutes: d.delay ?? 0,
+        plannedDeparture: d.plannedWhen || d.when || '',
+        realtimeDeparture: d.when,
+        delayMinutes: d.delay ? Math.round(d.delay / 60) : 0,
         journeyId: d.tripId,
-        platform: d.departurePlatform,
+        platform: d.platform || d.plannedPlatform,
       }));
 
       cacheSet(cacheKey, deps, CACHE_TTL_DEPARTURES);
       return deps;
     } catch (err: any) {
-      logger.warn(`db-rest getDepartures fehlgeschlagen: ${err.message}`);
+      logger.warn(`db-vendo getDepartures fehlgeschlagen: ${err.message}`);
       return [];
     }
   }
@@ -275,21 +206,20 @@ export class DbRestService {
     if (cached) return cached;
 
     try {
-      const params: Record<string, any> = {
-        from: fromId,
-        to: toId,
+      const client = await getClient();
+      const opts: any = {
         results: 3,
         stopovers: false,
         language: 'de',
       };
-      if (departure) params.departure = departure.toISOString();
+      if (departure) opts.departure = departure.toISOString();
 
-      const { data } = await this.client.get('/journeys', { params });
+      const data = await client.journeys(fromId, toId, opts);
 
-      const journeys: NormalizedJourney[] = (data?.journeys || []).map((j: DbRestJourney) => {
+      const journeys: NormalizedJourney[] = (data?.journeys || []).map((j: any) => {
         const legs = (j.legs || [])
-          .filter((l) => !l.walking || (l.distance && l.distance > 200))
-          .map((l) => ({
+          .filter((l: any) => !l.walking || (l.distance && l.distance > 200))
+          .map((l: any) => ({
             mode: l.line?.product || l.line?.mode || (l.walking ? 'walk' : 'unknown'),
             line: l.line?.name,
             direction: l.direction,
@@ -304,9 +234,8 @@ export class DbRestService {
 
         const firstDep = j.legs?.[0]?.plannedDeparture || j.legs?.[0]?.departure || '';
         const lastArr = j.legs?.[j.legs.length - 1]?.plannedArrival || j.legs?.[j.legs.length - 1]?.arrival || '';
-
-        const totalMin = legs.reduce((sum, l) => sum + l.durationMinutes, 0);
-        const changes = Math.max(0, legs.filter((l) => l.mode !== 'walk').length - 1);
+        const totalMin = legs.reduce((sum: number, l: any) => sum + l.durationMinutes, 0);
+        const changes = Math.max(0, legs.filter((l: any) => l.mode !== 'walk').length - 1);
 
         return {
           durationMinutes: totalMin,
@@ -320,21 +249,22 @@ export class DbRestService {
       cacheSet(cacheKey, journeys, CACHE_TTL_JOURNEYS);
       return journeys;
     } catch (err: any) {
-      logger.warn(`db-rest getJourneys fehlgeschlagen: ${err.message}`);
+      logger.warn(`db-vendo getJourneys fehlgeschlagen: ${err.message}`);
       return [];
     }
   }
 
   // ---- Health check ----
-  async healthCheck(): Promise<{ status: string; url: string }> {
+  async healthCheck(): Promise<{ status: string; details: string }> {
     try {
-      const { status } = await this.client.get('/');
-      return { status: status === 200 ? 'ok' : 'error', url: this.client.defaults.baseURL || '' };
+      const client = await getClient();
+      await client.locations('Berlin Hbf', { results: 1, stops: true });
+      return { status: 'ok', details: 'db-vendo-client verbunden' };
     } catch (err: any) {
-      return { status: `error: ${err.message}`, url: this.client.defaults.baseURL || '' };
+      return { status: 'error', details: err.message };
     }
   }
 }
 
 // Singleton
-export const dbRestService = new DbRestService();
+export const dbVendoService = new DbVendoService();
