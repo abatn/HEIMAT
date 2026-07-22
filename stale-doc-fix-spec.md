@@ -70,8 +70,21 @@ darf das Wort stehen **bleiben mit Klärungs-Kommentar**, z.B.:
 <!-- historical context: code below was the local simulator that was REMOVED in Phase 18 -->
 ```
 
-Maximal **drei (3) Allowlist-Einträge** im gesamten Repo. Mehr = Strictness-Regel verletzt
+Maximal **zehn (10) Allowlist-Einträge** im gesamten Repo. Mehr = Strictness-Regel verletzt
 (Mission "kein Wort übrig" nicht erfüllt).
+
+### Allowlist-Einträge Round 4+ (false-positive Tech-Verwendungen)
+
+Round 4+ erlaubt zusätzlich false-positive Tech-Verwendungen (z. B. Mini-App-Sandbox, hardcoded
+CONFIG-Defaults, Architektur-Diagnose) — diese werden explizit in der Allowlist-Tabelle dokumentiert.
+Der Operator genehmigt pro Eintrag. Bei Erreichen der 10-Einträge-Grenze: Spec-Update mit erweitertem
+Limit oder §3.1-Scope-Reduktion (Round 5+).
+
+| Datei | Zeile(n) | Begründung |
+|-------|---------|-----------|
+| `docs/data-analytics/AGENT-PROMPT.md` | L105 | "Sandbox-Umgebung" → Tech-Architektur-Beschreibung (kein Taler-Bezug) |
+| `docs/data-analytics/metric-diagnostics.md` | L5, L235 | "Sandbox hat keinen localhost-Service" + "hardcoded" → Netzwerk-Diagnose-Beschreibung |
+| `project-prompt.md` | L103 | "Mini-App Sandbox" → Security-Feature (kein taler/spielgeld-Kontext) |
 
 ## 4. Replace-Wortschatz pro Doc-Familie
 
