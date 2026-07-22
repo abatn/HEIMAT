@@ -83,11 +83,16 @@ done
 export PRESCAN_ENFORCE="$ENFORCE_FLAG"
 export PRESCAN_QUIET="$QUIET_FLAG"
 
-# Tool-Verfügbarkeit prüfen (informativ)
-for t in rg ripgrep jq python3 grep; do
-  printf '  %-10s ' "$t" >/dev/stderr
-  command -v "$t" >/dev/null 2>&1 && echo "OK" >/dev/stderr || echo "MISSING" >/dev/stderr
-done
+# Tool-Verfügbarkeit prüfen (informativ). Bei --quiet-Mode unterdrückt,
+# weil Tool-Liste nur für menschliche Diagnose nützlich ist, nicht für CI-Logs.
+# Hinweis: >&2 statt >/dev/stderr — letzteres ist nur auf macOS verfügbar,
+# nicht auf Linux/Render. Bash-Standard >&2 ist portabel.
+if [[ "${PRESCAN_QUIET:-0}" != "1" ]]; then
+  for t in rg ripgrep jq python3 grep; do
+    printf '  %-10s ' "$t" >&2
+    command -v "$t" >/dev/null 2>&1 && echo "OK" >&2 || echo "MISSING" >&2
+  done
+fi
 
 # ============================================================================
 # One-Liner: walk repo, find stale "simulator/demo/fake" mentions in docs,
