@@ -128,6 +128,8 @@ EXCLUDE_PREFIXES = (
 EXCLUDE_FILES = (
     './.mimocode/.cron-lock',
     './src/mobile/.git',
+    './stale-doc-fix-spec.md',  # Spec selbst enthält Wortliste als Verbots-Definition
+    './.gitignore',             # Konfig-File mit Bot-Patterns (z. B. '.loop.md', 'bauplan.md')
 )
 
 # Wir scannen nur diese Datei-Typen (kein Binary, keine Sourcen).
