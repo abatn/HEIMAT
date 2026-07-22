@@ -1095,3 +1095,34 @@ Backend `NormalizedLeg` hat kein `route_color`. Frontend fällt immer auf `#6B72
 | 3 | `mobility_screen.dart` | `geolocator` Package für echte GPS-Position |
 | 4 | `dbRestService.ts` + `NormalizedLeg` | `route_color` aus `line.product` mappen (bus=#1B5E20, tram=#E65100, etc.) |
 | 5 | `mobility.ts` | Fallback: Koordinaten direkt an db-rest `/locations` senden statt Overpass-ID |
+
+---
+
+## CORS/helmet-Bug: "Haltestellen konnten nicht geladen werden" (Juli 2026)
+
+### Fehler
+User sieht: "Haltestellen konnten nicht geladen werden" im Web-Browser.
+
+### Ursache
+`helmet()` mit Default-Einstellungen setzt:
+```
+cross-origin-resource-policy: same-origin
+cross-origin-opener-policy: same-origin
+```
+→ Browser blockiert das Lesen der API-Response vom fremden Origin (`abatn.github.io` → `heimat-backend.onrender.com`).
+→ CORS erlaubt den Request (`access-control-allow-origin: *`), aber **CORP blockiert die Antwort**.
+
+### Fix
+`src/backend/src/index.ts:25` — helmet()-Konfiguration anpassen:
+```typescript
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false,
+}));
+```
+
+### Status
+- Backend API funktioniert (curl zeigt 30 Haltestellen)
+- CI/CD: alle grün ✅
+- **Nächster Schritt:** Fix umsetzen, deployen, testen
