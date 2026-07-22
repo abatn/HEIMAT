@@ -33,6 +33,56 @@
 
 set -euo pipefail
 
+# -----------------------------------------------------------------------------
+# Argumente parsen
+# -----------------------------------------------------------------------------
+# Discovery-Modus (default):    print JSON auf stdout, exit 0.
+# --enforce-Modus:               exit 1 wenn user-scope-tracked-stale-hits > 0
+#                                (siehe spec §12.1 für Scope).
+# --quiet-Modus:                 unterdrückt JSON-Output auf stdout
+#                                (für saubere Render-preDeploy-Logs).
+ENFORCE_FLAG=0
+QUIET_FLAG=0
+for arg in "$@"; do
+  case "$arg" in
+    --enforce) ENFORCE_FLAG=1 ;;
+    --quiet)   QUIET_FLAG=1 ;;
+    --help|-h)
+      cat <<HELP
+Usage: $0 [--enforce] [--quiet]
+
+Default (discovery):
+  Printet JSON-Array auf stdout — kein exit-code-Effect.
+
+--enforce:
+  Wie default, aber exit 1 wenn ein verbleibender stale-Pattern-Treffer in
+  einer getrackten User-Scope-Datei gefunden wird. .loop.md und bauplan.md sind
+  per .gitignore Z36-37 Working-Tree-Only ausgenommen.
+
+  User-Scope umfasst die in dieser Session aktiv editierten tracked Files:
+  HANDOFF.md, .claude/CLAUDE.md, heimat-plan.md, marketing/heise-article.md,
+  docs/data-analytics/{FINAL-STATUS,investor-report,market-sizing}.md.
+  Source-Code (src/) ist nicht erfasst — dortige Wortliste-Treffer sind
+  legitime Tech-Verwendungen (z.B. "iOS simulator build target").
+
+--quiet:
+  Unterdrückt JSON-Output auf stdout. Empfohlen für Render-preDeploy-Logs.
+
+HELP
+      exit 0
+      ;;
+    *)
+      echo "Unknown arg: $arg" >&2
+      exit 64
+      ;;
+  esac
+done
+
+# Env-Vars für Python-Heredoc (Bash-Variablen sind in heredoc-stdin nicht
+# direkt als sys.argv sichtbar). Wir propagieren per export.
+export PRESCAN_ENFORCE="$ENFORCE_FLAG"
+export PRESCAN_QUIET="$QUIET_FLAG"
+
 # Tool-Verfügbarkeit prüfen (informativ)
 for t in rg ripgrep jq python3 grep; do
   printf '  %-10s ' "$t" >/dev/stderr
@@ -145,5 +195,59 @@ for r, dirs, files in os.walk(ROOT):
 
 # Sortiert nach Datei + Zeile für einfache zeilen-fuer-zeilen Abarbeitung.
 results.sort(key=lambda x: (x['file'], x['line']))
-print(json.dumps(results, indent=2, ensure_ascii=False))
+
+# JSON-Output-Modus: bei --quiet unterdrückt (für übersichtliche CI-Logs).
+QUIET = os.getenv('PRESCAN_QUIET', '0') == '1'
+if not QUIET:
+    print(json.dumps(results, indent=2, ensure_ascii=False))
+
+# -----------------------------------------------------------------------------
+# --enforce-Auswertung (User-Scope tracked files)
+# -----------------------------------------------------------------------------
+# Architektur-Entscheidung (stale-doc-fix-spec.md §12.1):
+#   - Working-Tree-Planning-Docs (.loop.md, bauplan.md) sind per .gitignore
+#     Z36-37 ausgeschlossen.
+#   - Source-Code (src/, build-yaml, package-locks) ist nicht erfasst — Wortliste-
+#     Treffer dort sind legitime Tech-Verwendungen.
+#   - Erfasst sind nur die in dieser Session aktiv editierten tracked Files:
+#     die Round 1+2+3-Familien (tech-repo + analytics + marketing).
+#
+# Diese engere Scope verhindert fälschliches Blockieren von Render-Deploys
+# durch legitime Tech-Begriffe ("simulator" in Build-Targets etc.).
+ENFORCE = os.getenv('PRESCAN_ENFORCE', '0') == '1'
+
+if ENFORCE:
+    GITIGNORED_PLANNING_DOCS = (
+        './.loop.md',
+        './bauplan.md',
+    )
+    # User-Scope = tracked files, die in dieser Session aktiv editiert wurden
+    # (Round 1+2+3 Stale-Doc-Sweep). Andere tracked-Stale sind discovery-only.
+    ENFORCED_USER_SCOPE_FILES = (
+        './.claude/CLAUDE.md',
+        './HANDOFF.md',
+        './heimat-plan.md',
+        './marketing/heise-article.md',
+        './docs/data-analytics/FINAL-STATUS.md',
+        './docs/data-analytics/investor-report.md',
+        './docs/data-analytics/market-sizing.md',
+    )
+
+    user_scope_hits = [
+        r for r in results
+        if r['file'] not in GITIGNORED_PLANNING_DOCS
+        and r['file'] in ENFORCED_USER_SCOPE_FILES
+    ]
+    if len(user_scope_hits) > 0:
+        missing_files = sorted({r['file'] for r in user_scope_hits})
+        print(('[ENFORCE] ' + str(len(user_scope_hits)) +
+               ' stale-pattern hits in user-scope tracked files. ' +
+               'Failing preDeploy per stale-doc-fix-spec.md §12.1. Betroffen: '
+               + ', '.join(missing_files)),
+              file=sys.stderr)
+        sys.exit(1)
+    else:
+        print(('[ENFORCE] OK: 0 stale-pattern hits in user-scope tracked '
+               'files. preDeploy allowed.'),
+              file=sys.stderr)
 PYEOF

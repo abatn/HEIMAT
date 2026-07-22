@@ -5,6 +5,7 @@ services:
     region: frankfurt
     plan: free
     buildCommand: cd src/backend && npm install --include=dev && npm run build && mkdir -p dist/database && cp src/database/schema.sql dist/database/
+    preDeployCommand: bash scripts/stale-doc-prescan.sh --enforce --quiet
     startCommand: cd src/backend && node dist/index.js
     envVars:
       - key: DB_HOST
