@@ -90,12 +90,13 @@ let _client: any = null;
 async function getClient(): Promise<any> {
   if (_client) return _client;
   try {
-    const [{ createClient }, { profile }] = await Promise.all([
+    const [{ createClient }, profileMod] = await Promise.all([
       import('db-vendo-client'),
-      import('db-vendo-client/p/db/index.js'),
+      import('db-vendo-client/p/dbnav/index.js').catch(() => import('db-vendo-client/p/db/index.js')),
     ]);
+    const profile = profileMod.profile || profileMod.default;
     _client = createClient(profile, 'heimat-2.0-app');
-    logger.info('db-vendo-client initialisiert (db profile)');
+    logger.info('db-vendo-client initialisiert (dbnav profile)');
     return _client;
   } catch (err: any) {
     logger.error(`db-vendo-client Init fehlgeschlagen: ${err.message}`);
@@ -265,7 +266,9 @@ export class DbVendoService {
       const r = await client.locations('Berlin Hbf', { results: 1, stops: true });
       return { status: 'ok', details: `db-vendo-client OK, Test: ${r[0]?.name || 'kein Ergebnis'}` };
     } catch (err: any) {
-      return { status: 'error', details: err.message };
+      const detail = err.message || String(err);
+      const code = err.code || err.hafasCode || 'unknown';
+      return { status: 'error', details: `${detail} (code: ${code})` };
     }
   }
 }
