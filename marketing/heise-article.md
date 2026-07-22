@@ -92,7 +92,7 @@ Die technische Architektur von HEIMAT 2.0: Wie On-Device AI, Open-Source-Tools u
 
 #### 5. Sicherheit (200 Wörter)
 - E2E-Verschlüsselung (Matrix)
-- Sandboxing (Mini-Apps)
+- Isolation (Mini-Apps)
 - DSGVO-Compliance
 
 ### Gesamtumfang: ca. 1.400 Wörter
