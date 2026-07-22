@@ -77,14 +77,21 @@ const MODE_MAP: Record<string, string> = {
   TRAM: 'tram',
   BUS: 'bus',
   REGIONAL_TRAIN: 'regional',
+  REGIONAL_RAIL: 'regional',
   EXPRESS_TRAIN: 'express',
+  HIGHSPEED_RAIL: 'express',
+  LONG_DISTANCE: 'express',
+  NIGHT_RAIL: 'regional',
+  COACH: 'bus',
   FERRY: 'ferry',
   CABLE_CAR: 'cable',
+  AERIAL_LIFT: 'cable',
   AIRPLANE: 'airplane',
   TAXI: 'taxi',
   CAR: 'taxi',
   WALK: 'walk',
   BIKE: 'bike',
+  OTHER: 'suburban',
 };
 
 function mapMode(motisMode: string): string {
@@ -259,11 +266,11 @@ export class DbVendoService {
       const data = await transitousGet<any>('/plan', params);
 
       const journeys: NormalizedJourney[] = (data.itineraries || []).map((itin: any) => {
-        const legs: NormalizedLeg[] = (itin.legs || [])
+          const legs: NormalizedLeg[] = (itin.legs || [])
           .filter((l: any) => l.mode !== 'WALK' || (l.distance && l.distance > 200))
           .map((l: any) => ({
             mode: mapMode(l.mode || ''),
-            line: l.routeShortName || l.tripFrom?.name ? `${l.routeShortName || ''}`.trim() : undefined,
+            line: (l.routeShortName && l.routeShortName !== '?') ? l.routeShortName : l.headsign || undefined,
             direction: l.headsign || undefined,
             originName: l.from?.name || '',
             destinationName: l.to?.name || '',
