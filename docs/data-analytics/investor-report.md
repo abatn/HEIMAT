@@ -78,8 +78,7 @@ HEIMAT 2.0 ist eine Open-Source "Super App" für den deutschen Alltag, die auf a
 │  └── Terminbuchung (Ärzte)                                  │
 ├─────────────────────────────────────────────────────────────┤
 │  Backend (Node.js, Port 3000)                               │
-│  ├── /api/mobility/* (Overpass + db-rest)                   │
-│  ├── /api/finance/* (Taler-Simulator)                      │
+│  ├── /api/mobility/* (Overpass + db-rest)                   ││   ├── /api/finance/* (Echter GNU Taler Exchange-Client)     │
 │  ├── /api/health/* (Overpass + DB)                          │
 │  └── /api/admin/* (Migration, GTFS-Status)                 │
 ├─────────────────────────────────────────────────────────────┤
@@ -87,8 +86,7 @@ HEIMAT 2.0 ist eine Open-Source "Super App" für den deutschen Alltag, die auf a
 │  ├── PostgreSQL (Supabase, 16 Tabellen)                    │
 │  ├── Redis (Caching)                                       │
 │  ├── OpenStreetMap (Karten)                                │
-│  ├── db-rest (ÖPNV via Vendo API)                          │
-│  └── GNU Taler (Simulator)                                 │
+│  ├── db-rest (ÖPNV via Vendo API)                          ││   └── GNU Taler (Echter Exchange, exchange.demo.taler.net)  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -148,7 +146,7 @@ HEIMAT 2.0 ist eine Open-Source "Super App" für den deutschen Alltag, die auf a
 | ÖPNV-Verbindungssuche | API-Parameter-Mismatch | 15min |
 | Live-Abfahrten | db-rest Port-Konflikt | 30min |
 | GTFS-Feed-Import | Nur lokal (nicht auf Render) | 1h |
-| Taler-Echtgeld | Nur Simulator | Phasenweise |
+| Taler-Währung | Echte GNU-Taler Wire-Spec (KUDOS live) | Phasenweise |
 
 ### 4.3 Metriken
 

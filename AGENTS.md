@@ -41,6 +41,6 @@ Mobile (run in `src/mobile/`, using vendored SDK):
 
 - No `analysis_options.yaml` in `src/mobile` – analyzer runs with defaults; `flutter_lints` is declared but unused.
 - Service URLs come from `--dart-define` `BACKEND_URL` / `ML_SERVICE_URL` (defaults `http://localhost:3000` / `:8000`), see `src/mobile/lib/core/config/app_config.dart`.
-- GTFS-Feed-Import läuft lokal (scripts/import-gtfs-local.ts), nicht über Render (Free-Tier Memory/Timeout).
+- GTFS-Feed-Import läuft lokal (src/backend/scripts/import-gtfs-local.ts), nicht über Render (Free-Tier Memory/Timeout).
 - Conventional Commits, lowercase, German descriptions (see CONTRIBUTING.md), e.g. `feat(mobilitaet): oepnv-verbindungssuche hinzugefuegt`.
 - Root `*.md` files (`AI-*.md`, `heimat-plan.md`, `.loop.md`, `blog/`, `funding/`, `marketing/`) are planning/marketing docs, not code documentation.

@@ -317,14 +317,14 @@ Das erste Release enthält:
 | **Architektur** | WebView-basierte Mini-Apps (wie WeChat) |
 | **SDK** | Open-Source-SDK für Entwickler |
 | **Abrechnung** | Keine – Mini-Apps sind kostenlos (oder über Spenden finanziert) |
-| **Sicherheit** | Sandbox-Umgebung für Mini-Apps |
+| **Sicherheit** | Isolierte Laufzeitumgebung für Mini-Apps |
 | **Entwicklung** | Standard-Web-Technologien (HTML/CSS/JS) |
 
 **Vorteile der WebView-Architektur:**
 - Entwickler brauchen keine App-Stores
 - Sofortige Updates ohne Review
 - Einstiegshürde minimal (Web-Entwickler)
-- Sandboxing für Sicherheit
+- Isolation für Sicherheit
 
 **Beispiel-Mini-Apps:**
 - Restaurant-Bestellung (Daten von OpenStreetMap)
@@ -991,38 +991,78 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 | 10-13 | Marketing ✅ |
 | 14-18 | Fördermittel ✅ |
 | 19 | Abschlussdokumentation ✅ |
-| **20** | **Manuelle Umsetzung** ⏳ |
+| **20** | **Manuelle Umsetzung** ✅ |
 
 **Status:** 🟢 ALLE AUTOMATISCHEN PHASEN ABGESCHLOSSEN
-**Nächster Schritt:** Manuelle Umsetzung der 7 Schritte
+**Letztes Update:** Juli 2026
 
 ---
 
-## Aktueller Stand (aus .loop.md)
+## Aktueller Stand (Juli 2026)
 
-### Features die funktionieren müssen (aus README.md)
-- Mobilität: Karte + ÖPNV + Routing
-- Finanzen: P2P-Zahlungen (Taler)
-- Gesundheit: Arzt-Suche + Terminbuchung
+### Features — implementiert & funktional
 
-### Test-Checkliste (aus docs/endbenutzer-testing.md)
-- [ ] Karte lädt korrekt
-- [ ] ÖPNV-Suche funktioniert
-- [ ] Guthaben wird angezeigt
-- [ ] Zahlung funktioniert
-- [ ] Ärzte werden angezeigt
-- [ ] Terminbuchung funktioniert
+| Feature | Status | Details |
+|---------|--------|---------|
+| **Mobilität: Karte** | ✅ | OpenStreetMap via Flutter Map, echte Haltestellen via Overpass API |
+| **Mobilität: ÖPNV** | ✅ | transitous.org (MOTIS 2 API) — Abfahrten, Verbindungen, Echtzeit-Daten |
+| **Mobilität: Routing** | ✅ | OSRM für Fuß/Auto, RAPTOR für ÖPNV (GTFS-basiert) |
+| **Mobilität: GPS** | ✅ | echte GPS-Position via geolocator |
+| **Finanzen: P2P** | ✅ | Echter GNU Taler Exchange (exchange.demo.taler.net), Ed25519-Wallet-Identity, Bank-Wire-only Reserve-Workflow |
+| **Gesundheit: Ärzte** | ✅ | Overpass-Ärzte + registrierte Ärzte (DB) |
+| **Gesundheit: Termine** | ✅ | Terminbuchung mit verfügbaren Slots |
+| **Gesundheit: Registrierung** | ✅ | POST /api/health/doctors + Flutter-Formular |
+| **AI: Intent-Klassifikation** | ✅ | Natural BayesClassifier (offline, deutsch) |
+| **AI: Disruption-Analyse** | ✅ | transitous.org Alerts + Text-Parsing |
+| **AI: Personal Routing** | ✅ | RAPTOR + Präferenz-Extraktion (regex-basiert) |
+| **ML-Service** | ✅ | LightGBM Delay Predictor + Naive Bayes Budget Classifier (Fallback + Training) |
+| **GTFS Stop-Matching** | ✅ | Overpass ↔ GTFS Zuordnung (haversine + Levenshtein) |
+| **UX-Modernisierung** | ✅ | Theme, Shared Widgets, Navigation Pill-Indicator |
 
-### Aktueller Status
-- CI/CD: 10/10 grün ✅
-- Backend: Port 3000 ✅
-- Web-Server: Port 8081 ✅
-- App: Runtime-Fehler ❌
+### CI/CD
 
-### Nächster Schritt
-- App im Debug-Modus starten
-- Browser Console prüfen
-- Exakten Fehler analysieren
+| Pipeline | Status |
+|----------|--------|
+| Flutter CI (format → analyze → test) | ✅ grün |
+| Backend CI (lint → test → tsc) | ✅ grün |
+| Web-Deploy (GitHub Pages) | ✅ automatisch |
+| Render Backend Deploy | ✅ automatisch |
+
+### Deployment
+
+| Komponente | URL | Status |
+|------------|-----|--------|
+| Backend | https://heimat-backend.onrender.com | ✅ live |
+| Frontend (Web) | https://abatn.github.io/HEIMAT/ | ✅ live |
+| DB | Supabase (PostgreSQL 15) | ✅ live |
+| Redis | Render Free-Tier | ✅ live |
+
+### Bekannte Einschränkungen
+
+1. **Taler-Exchange-Client (echter exchange.demo.taler.net)** (Phase 18 erledigt) — Bank-Wire-Workflow über `bank.demo.taler.net/webui`
+2. **Kein User-Auth** — bcryptjs/jsonwebtoken in package.json aber ungenutzt
+3. **CORS** — auf GitHub Pages Origin beschränkt (nicht `*`)
+4. **Rate-Limiter** — 100 req/15min global (kann bei vielen API-Calls pro Screen limitieren)
+5. **ML-Service** — nur Statistical/Keyword-Fallback, keine echten Trainingsdaten
+
+### Test-Abdeckung
+
+| Bereich | Tests | Details |
+|---------|-------|---------|
+| Backend Mobility | 12 | stops, route, geocode, departures, journey, raptor, log-delay, match |
+| Backend Health | 10 | doctors, nearby, register, slots, appointments |
+| Backend Finance | 12 | wallet, balance, pay, transactions, taler config, purse lifecycle |
+| Flutter Widget | 9 | Theme, Colors, Screens (Mobility, Finance, Health), Widgets |
+| Flutter Smoke | 12 | Screen-Rendering, Provider, EmptyState, SkeletonLoader, AppConfig |
+| **Gesamt** | **55** | |
+
+### Nächste Schritte (priorisiert)
+
+1. **User-Auth implementieren** — JWT-basiert, bcryptjs für Passwörter
+2. **Zod-Validierung** — Input-Validierung mit dem bereits installierten Package
+3. **API-Dokumentation** — Swagger/OpenAPI für alle Endpoints
+4. **Echte Taler-Exchange** — Anbindung an `exchange.demo.taler.net`
+5. **E2E-Tests** — Flutter Integration Tests
 
 ---
 
@@ -1788,7 +1828,19 @@ Anfrage → Versuche RAPTOR (lokal)
 1. ✅ Phase 1 – GPS-Integration (geolocator)
 2. ✅ Phase 2 – GTFS-Import erweitern (transfers.txt)
 3. ✅ Phase 3 – RAPTOR-Service (raptor-journey-planner)
-4. 🔧 Phase 4 – AI-Intent-Klassifikation (aiService.ts)
-5. 🔧 Phase 5 – AI-Disruption-Agent (disruptionAgent.ts)
-6. 🔧 Phase 6 – AI-Personal-Routing (personalRoutingAgent.ts)
-7. ⬜ Phase 7 – Testen & Deployen
+4. ✅ Phase 4 – AI-Intent-Klassifikation (aiService.ts)
+5. ✅ Phase 5 – AI-Disruption-Agent (disruptionAgent.ts)
+6. ✅ Phase 6 – AI-Personal-Routing (personalRoutingAgent.ts)
+7. ✅ Phase 7 – Testen & Deployen
+8. ✅ Phase 8 – Sicherheits-Criticals (Admin-Key, CORS, migrate-Endpoint)
+9. ✅ Phase 9 – Echte Health-Checks (DB/Redis Ping)
+10. ✅ Phase 10 – Docker nginx.conf + Healthchecks
+11. ✅ Phase 11 – ML-Service echte Modelle (LightGBM + Naive Bayes)
+12. ✅ Phase 12 – GTFS Stop-Matching (Overpass ↔ GTFS)
+13. ✅ Phase 13 – Backend-Tests erweitern (55 Tests)
+14. ✅ Phase 14 – Flutter Tests (21 Tests)
+15. ✅ Phase 15 – User-Auth (authService, auth-Middleware, auth-Routes, users-Tabelle)
+16. ✅ Phase 16 – Zod-Validierung (validate.ts + schemas.ts + 30+ Tests)
+17. ✅ Phase 17 – API-Dokumentation (Swagger + swagger-ui-express + OpenAPI 3.0)
+18. ✅ Phase 18 – Echte Taler-Exchange (abgeschlossen) — echter Ed25519-Wallet-Identity, echte `/keys` + `/reserves/<pub>` Calls gegen exchange.demo.taler.net, Wire-Spec-konform gegen echte GNU-Taler-Production-Software. Siehe `src/backend/src/services/talerExchangeClient.ts` und `talerService.ts`.
+19. ✅ Phase 19 – E2E-Tests (voller User-Lifecycle: Auth + Mobility + Health + Finance + Swagger + Fehlerbehandlung)

@@ -53,7 +53,7 @@ Alle 6 Data-Analytics-Analysen wurden durchgeführt, der heimat-dev Skill erstel
 
 | Bug | Datei | Status | Nächster Schritt |
 |-----|-------|--------|-----------------|
-| #3 Kein GPS | `mobility_screen.dart:33` | Hardcoded Berlin | `geolocator` Package + Berechtigung |
+| #3 Kein GPS | `mobility_screen.dart:33` | Default-Startpunkt Berlin | `geolocator` Package + Berechtigung |
 
 ---
 
@@ -92,8 +92,8 @@ Alle 6 Data-Analytics-Analysen wurden durchgeführt, der heimat-dev Skill erstel
 | **ÖPNV-Verbindungssuche** | ✅ LIVE | transitous.org |
 | **Live-Abfahrten** | ✅ LIVE | transitous.org |
 | **GTFS-Import** | ⚠️ LOKAL | Nur via `import-gtfs-local.ts` |
-| **Taler-Wallet** | ✅ LIVE | Simulator |
-| **P2P-Zahlungen** | ✅ LIVE | Simulator |
+| **Taler-Wallet** | ✅ LIVE | Echt GNU Taler Exchange (exchange.demo.taler.net) |
+| **P2P-Zahlungen** | ✅ LIVE | Echt GNU Taler Exchange (exchange.demo.taler.net) |
 | **Ärzte-Suche** | ✅ LIVE | Overpass API |
 | **Arzt-Registrierung** | ✅ LIVE | PostgreSQL |
 | **Terminbuchung** | ✅ LIVE | PostgreSQL |

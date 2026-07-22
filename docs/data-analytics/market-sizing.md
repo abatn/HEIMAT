@@ -170,7 +170,7 @@ Nicht der gesamte TAM ist für HEIMAT relevant. Relevante Segmente:
 | **Nutzerakquise** | Kosten pro Nutzer: €5–20 (OSS-typisch) |
 | **Funktionsumfang** | MVP deckt nur Basisfunktionalität ab |
 | **Kein Ticketkauf** | ÖPNV nur Anzeige, kein Verkauf |
-| **Keine Banklizenz** | Taler nur Simulator, kein Echtgeld |
+| **Keine Banklizenz** | Taler-KUDOS auf echter GNU-Taler-Software, Bank-Wire-Workflow |
 
 ---
 
