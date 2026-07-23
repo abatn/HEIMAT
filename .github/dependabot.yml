@@ -11,6 +11,25 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    ignore:
+      # High-risk: eslint@9+ erfordert Flat-Config (.eslintrc.json -> eslint.config.js)
+      - dependency-name: "eslint"
+        versions: [">= 9.0.0"]
+      # @typescript-eslint v8 erwartet eslint@9+ als peer-dep
+      - dependency-name: "@typescript-eslint/eslint-plugin"
+        versions: [">= 8.0.0"]
+      - dependency-name: "@typescript-eslint/parser"
+        versions: [">= 8.0.0"]
+      # express@5: req.query unknown, req.params type-changes — Breaking-Change-Pass noetig
+      - dependency-name: "express"
+        versions: [">= 5.0.0"]
+      # helmet@8: COEP-Default + CSP-Aenderungen
+      - dependency-name: "helmet"
+        versions: [">= 8.0.0"]
+      # express-rate-limit@8: Fix bereits in src/index.ts:23 (Commit 48b348c) — Block vorerst redundant.
+      # Reaktivieren bei Bedarf sobald Bump durchgefuehrt wird.
+      # Low-risk Pakete (bcryptjs, supertest, @types/node, yauzl ...) bleiben auto-update-faehig,
+      # weil Breaking Changes in HEIMAT-Codebase handhabbar sind.
 
   - package-ecosystem: "github-actions"
     directory: "/"
