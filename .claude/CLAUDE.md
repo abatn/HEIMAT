@@ -50,6 +50,8 @@ Datenquellen (alle öffentlich, kein Token):
 4. **Kein `analysis_options.yaml`** in `src/mobile` — Analyzer läuft mit Defaults.
 5. **Keine Erfindungen, keine Halluzinationen.** Nur basierend auf existierenden Dateien arbeiten. Wenn etwas fehlt → fragen.
 6. **Admin-Endpoints geschützt** — `ADMIN_KEY` muss als env var gesetzt sein. Kein statisch eingebauter Default-Fallback.
+7. **KEINE lokale Sandbox.** Es gibt keinen lokalen Postgres, kein Docker-Stack, keine Entwicklungs-DB. Sämtliche Arbeit direkt gegen Production (Supabase + Render). Code-Änderungen werden committed und via CI/CD deployed.
+8. **Supabase + Render MÜSSEN funktionieren.** Sie sind die einzige Test- und Deployment-Umgebung. Fallen sie aus, kann weder getestet noch deployed werden.
 
 ## Befehle
 
@@ -207,6 +209,8 @@ src/ml-service/       # Python FastAPI (nur Docker)
 
 1. ~~User-Auth (JWT + bcryptjs)~~ ✅ erledigt
 2. ~~Zod-Validierung~~ ✅ erledigt
-3. API-Dokumentation (Swagger/OpenAPI)
-4. Echte Taler-Exchange Anbindung
-5. E2E-Tests (Flutter Integration)
+3. ~~API-Dokumentation (Swagger/OpenAPI)~~ ✅ erledigt
+4. ~~Echte Taler-Exchange Anbindung~~ ✅ erledigt (exchange.demo.taler.net, KUDOS)
+5. ~~E2E-Tests (Backend)~~ ✅ erledigt (55 Tests, voller User-Lifecycle)
+6. 🔴 Backend CI: `health.test.ts` fixen — pre-existing failure (1/7 Suites)
+7. E2E-Tests (Flutter Integration)

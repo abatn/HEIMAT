@@ -1045,6 +1045,15 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 4. **Rate-Limiter** — 100 req/15min global (kann bei vielen API-Calls pro Screen limitieren)
 5. **ML-Service** — nur Statistical/Keyword-Fallback, keine echten Trainingsdaten
 
+### Entwicklungsansatz: Production-First (keine Sandbox)
+
+- **KEINE lokale Sandbox-Umgebung.** Sämtliche Arbeit direkt gegen Production-Infrastruktur.
+- **Supabase (PostgreSQL)** ist die einzige Datenbank — lokal läuft kein Postgres.
+- **Render** hostet das Backend — lokale Tests gegen Production-DB via `heimat-backend.onrender.com`.
+- **CI/CD validiert auf GitHub Actions** (Flutter: format→analyze→test→build; Backend: lint→test→tsc).
+- **Änderungen werden direkt committed und deployed** — kein lokaler Pre-Production-Workflow.
+- **Supabase und Render MÜSSEN immer funktionieren** — sie sind die einzige Umgebung. Wenn Supabase/React ausfallen, ist kein Test, kein Debug, kein Deploy möglich.
+
 ### Test-Abdeckung
 
 | Bereich | Tests | Details |

@@ -64,6 +64,12 @@ docker-compose up   # Full stack (5 services)
 
 Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.yml`.
 
+## Production-First (no sandbox)
+
+- **No local sandbox.** No local Postgres, no Docker stack, no dev DB. All work targets production (Supabase + Render).
+- **Supabase + Render must be operational** – they are the only testing/deployment environment.
+- **Code is committed and deployed via CI/CD** – no local pre-production workflow.
+
 ## Conventions
 
 - **Conventional Commits, lowercase, German descriptions** – e.g. `feat(mobilitaet): oepnv-verbindungssuche hinzugefuegt`
