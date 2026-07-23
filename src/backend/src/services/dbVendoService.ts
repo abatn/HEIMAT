@@ -49,20 +49,83 @@ export interface NormalizedJourney {
 }
 
 // ---------------------------------------------------------------------------
-// Cache
+// Transitous raw response types (untyped third-party API)
 // ---------------------------------------------------------------------------
 
-interface CacheEntry { data: any; expires: number; }
-const memoryCache = new Map<string, CacheEntry>();
-
-function cacheGet(key: string): any | null {
-  const entry = memoryCache.get(key);
-  if (!entry) return null;
-  if (Date.now() > entry.expires) { memoryCache.delete(key); return null; }
-  return entry.data;
+interface TransitousStopRaw {
+  stopId?: string;
+  name?: string;
+  lat?: number;
+  lon?: number;
 }
 
-function cacheSet(key: string, data: any, ttlSeconds: number): void {
+interface TransitousStopPlaceRaw {
+  name?: string;
+  scheduledDeparture?: string;
+  departure?: string;
+  scheduledArrival?: string;
+  arrival?: string;
+  track?: string;
+}
+
+interface TransitousStopTimeRaw {
+  tripId?: string;
+  mode?: string;
+  routeShortName?: string;
+  headsign?: string;
+  place?: TransitousStopPlaceRaw;
+}
+
+interface TransitousStoptimesRaw {
+  stopTimes?: TransitousStopTimeRaw[];
+}
+
+interface TransitousLegRaw {
+  mode?: string;
+  routeShortName?: string;
+  headsign?: string;
+  from?: { name?: string };
+  to?: { name?: string };
+  scheduledStartTime?: string;
+  scheduledEndTime?: string;
+  startTime?: string;
+  endTime?: string;
+  duration?: number;
+  distance?: number;
+  routeColor?: string;
+}
+
+interface TransitousItineraryRaw {
+  legs?: TransitousLegRaw[];
+  duration?: number;
+}
+
+interface TransitousPlanRaw {
+  itineraries?: TransitousItineraryRaw[];
+}
+
+// ---------------------------------------------------------------------------
+// Cache (generisch typisiert)
+// ---------------------------------------------------------------------------
+
+interface CacheEntry<T> {
+  data: T;
+  expires: number;
+}
+
+const memoryCache = new Map<string, CacheEntry<unknown>>();
+
+function cacheGet<T>(key: string): T | null {
+  const entry = memoryCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expires) {
+    memoryCache.delete(key);
+    return null;
+  }
+  return entry.data as T;
+}
+
+function cacheSet<T>(key: string, data: T, ttlSeconds: number): void {
   memoryCache.set(key, { data, expires: Date.now() + ttlSeconds * 1000 });
 }
 
@@ -116,7 +179,16 @@ const PRODUCT_COLORS: Record<string, string> = {
 function formatTime(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false });
+  return d.toLocaleTimeString('de-DE', {
+    timeZone: 'Europe/Berlin',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 async function transitousGet<T>(path: string, params: Record<string, string>): Promise<T> {
@@ -135,100 +207,100 @@ async function transitousGet<T>(path: string, params: Record<string, string>): P
 // ---------------------------------------------------------------------------
 
 export class DbVendoService {
-
-  // ---- Search stops by name (uses plan with trivial route to discover stops) ----
   async searchStops(query: string, limit = 5): Promise<NormalizedStop[]> {
     const cacheKey = `loc:${query}:${limit}`;
-    const cached = cacheGet(cacheKey);
+    const cached = cacheGet<NormalizedStop[]>(cacheKey);
     if (cached) return cached;
 
     try {
-      // Transitous has no text-search endpoint; use map/stops for Berlin area
-      // For now return empty — the frontend uses coords-based search
       logger.warn(`transitous searchStops("${query}"): no text search available`);
       return [];
-    } catch (err: any) {
-      logger.warn(`transitous searchStops fehlgeschlagen: ${err.message}`);
+    } catch (err: unknown) {
+      logger.warn(`transitous searchStops fehlgeschlagen: ${errorMessage(err)}`);
       return [];
     }
   }
 
-  // ---- Search stops by coordinates (nearby) using map/stops ----
   async searchStopsByCoords(lat: number, lng: number, limit = 5): Promise<NormalizedStop[]> {
     const cacheKey = `nearby:${lat}:${lng}:${limit}`;
-    const cached = cacheGet(cacheKey);
+    const cached = cacheGet<NormalizedStop[]>(cacheKey);
     if (cached) return cached;
 
     try {
-      const delta = 0.005; // ~500m bounding box
+      const delta = 0.005;
       const minLat = (lat - delta).toFixed(4);
       const minLng = (lng - delta).toFixed(4);
       const maxLat = (lat + delta).toFixed(4);
       const maxLng = (lng + delta).toFixed(4);
 
-      const stops = await transitousGet<any[]>('/map/stops', {
+      const stops = await transitousGet<TransitousStopRaw[]>('/map/stops', {
         min: `${minLat},${minLng}`,
         max: `${maxLat},${maxLng}`,
       });
 
       const result: NormalizedStop[] = (stops || [])
         .slice(0, limit)
-        .map((s: any) => ({
-          id: s.stopId || '',
-          name: s.name || '',
-          latitude: s.lat || 0,
-          longitude: s.lon || 0,
+        .map((s: TransitousStopRaw) => ({
+          id: s.stopId ?? '',
+          name: s.name ?? '',
+          latitude: s.lat ?? 0,
+          longitude: s.lon ?? 0,
         }));
 
       cacheSet(cacheKey, result, CACHE_TTL_LOCATIONS);
       return result;
-    } catch (err: any) {
-      logger.warn(`transitous searchStopsByCoords fehlgeschlagen: ${err.message}`);
+    } catch (err: unknown) {
+      logger.warn(`transitous searchStopsByCoords fehlgeschlagen: ${errorMessage(err)}`);
       return [];
     }
   }
 
-  // ---- Get departures at a stop ----
   async getDepartures(stopId: string, duration = 10): Promise<NormalizedDeparture[]> {
     const cacheKey = `dep:${stopId}:${duration}`;
-    const cached = cacheGet(cacheKey);
+    const cached = cacheGet<NormalizedDeparture[]>(cacheKey);
     if (cached) return cached;
 
     try {
-      const data = await transitousGet<any>('/stoptimes', {
+      const data = await transitousGet<TransitousStoptimesRaw>('/stoptimes', {
         stopId,
         n: '30',
         language: 'de',
       });
 
-      const deps: NormalizedDeparture[] = (data.stopTimes || []).map((st: any) => {
-        const delaySec = (st.place?.arrival && st.place?.scheduledArrival)
-          ? (new Date(st.place.arrival).getTime() - new Date(st.place.scheduledArrival).getTime()) / 1000
-          : 0;
+      const deps: NormalizedDeparture[] = (data.stopTimes || []).map(
+        (st: TransitousStopTimeRaw): NormalizedDeparture => {
+          const delaySec =
+            st.place?.arrival && st.place?.scheduledArrival
+              ? (new Date(st.place.arrival).getTime() -
+                  new Date(st.place.scheduledArrival).getTime()) /
+                1000
+              : 0;
 
-        return {
-          stopId,
-          stopName: st.place?.name || '',
-          line: st.routeShortName || st.headsign || '',
-          mode: mapMode(st.mode || ''),
-          direction: st.headsign || '',
-          plannedDeparture: formatTime(st.place?.scheduledDeparture || st.place?.departure || ''),
-          realtimeDeparture: formatTime(st.place?.departure || ''),
-          delayMinutes: Math.round(delaySec / 60),
-          journeyId: st.tripId || '',
-          platform: st.place?.track || undefined,
-        };
-      });
+          return {
+            stopId,
+            stopName: st.place?.name ?? '',
+            line: st.routeShortName ?? st.headsign ?? '',
+            mode: mapMode(st.mode || ''),
+            direction: st.headsign || '',
+            plannedDeparture: formatTime(
+              st.place?.scheduledDeparture || st.place?.departure || ''
+            ),
+            realtimeDeparture: formatTime(st.place?.departure || ''),
+            delayMinutes: Math.round(delaySec / 60),
+            journeyId: st.tripId || '',
+            platform: st.place?.track || undefined,
+          };
+        }
+      );
 
       cacheSet(cacheKey, deps, CACHE_TTL_DEPARTURES);
       return deps;
-    } catch (err: any) {
-      logger.warn(`transitous getDepartures fehlgeschlagen: ${err.message}`);
+    } catch (err: unknown) {
+      logger.warn(`transitous getDepartures fehlgeschlagen: ${errorMessage(err)}`);
       return [];
     }
   }
 
-  // ---- Journey planning (A → B) using coordinates ----
   async getJourneys(
     fromIdOrLat: string,
     toIdOrLng: string,
@@ -236,9 +308,8 @@ export class DbVendoService {
     fromLat?: number,
     fromLng?: number,
     toLat?: number,
-    toLng?: number,
+    toLng?: number
   ): Promise<NormalizedJourney[]> {
-    // Support both old (id-based) and new (coord-based) call signatures
     const fLat = fromLat ?? parseFloat(fromIdOrLat);
     const fLng = fromLng ?? 0;
     const tLat = toLat ?? parseFloat(toIdOrLng);
@@ -251,7 +322,7 @@ export class DbVendoService {
 
     const depStr = departure ? departure.toISOString() : new Date().toISOString();
     const cacheKey = `jrn:${fLat}:${fLng}:${tLat}:${tLng}:${depStr}`;
-    const cached = cacheGet(cacheKey);
+    const cached = cacheGet<NormalizedJourney[]>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -263,57 +334,80 @@ export class DbVendoService {
         time: depStr,
       };
 
-      const data = await transitousGet<any>('/plan', params);
+      const data = await transitousGet<TransitousPlanRaw>('/plan', params);
 
-      const journeys: NormalizedJourney[] = (data.itineraries || []).map((itin: any) => {
+      const journeys: NormalizedJourney[] = (data.itineraries || []).map(
+        (itin: TransitousItineraryRaw): NormalizedJourney => {
           const legs: NormalizedLeg[] = (itin.legs || [])
-          .filter((l: any) => l.mode !== 'WALK' || (l.distance && l.distance > 200))
-          .map((l: any) => ({
-            mode: mapMode(l.mode || ''),
-            line: (l.routeShortName && l.routeShortName !== '?') ? l.routeShortName : l.headsign || undefined,
-            direction: l.headsign || undefined,
-            originName: l.from?.name || '',
-            destinationName: l.to?.name || '',
-            originPlannedDeparture: formatTime(l.scheduledStartTime || ''),
-            destinationPlannedArrival: formatTime(l.scheduledEndTime || ''),
-            durationMinutes: l.duration ? Math.round(l.duration / 60) : 0,
-            changeCount: 0,
-            routeColor: l.routeColor ? `#${l.routeColor}` : PRODUCT_COLORS[mapMode(l.mode || '')] || '#6B7280',
-          }));
+            .filter(
+              (l: TransitousLegRaw) =>
+                l.mode !== 'WALK' || (l.distance !== undefined && l.distance > 200)
+            )
+            .map(
+              (l: TransitousLegRaw): NormalizedLeg => ({
+                mode: mapMode(l.mode || ''),
+                line:
+                  l.routeShortName && l.routeShortName !== '?'
+                    ? l.routeShortName
+                    : l.headsign || undefined,
+                direction: l.headsign || undefined,
+                originName: l.from?.name || '',
+                destinationName: l.to?.name || '',
+                originPlannedDeparture: formatTime(l.scheduledStartTime || ''),
+                destinationPlannedArrival: formatTime(l.scheduledEndTime || ''),
+                durationMinutes: l.duration ? Math.round(l.duration / 60) : 0,
+                changeCount: 0,
+                routeColor: l.routeColor
+                  ? `#${l.routeColor}`
+                  : PRODUCT_COLORS[mapMode(l.mode || '')] || '#6B7280',
+              })
+            );
 
-        const firstDep = itin.legs?.[0]?.scheduledStartTime || itin.legs?.[0]?.startTime || '';
-        const lastArr = itin.legs?.[itin.legs.length - 1]?.scheduledEndTime || itin.legs?.[itin.legs.length - 1]?.endTime || '';
-        const totalMin = legs.reduce((sum: number, l: any) => sum + l.durationMinutes, 0);
-        const changes = Math.max(0, legs.filter((l: any) => l.mode !== 'walk').length - 1);
+          const firstDep =
+            itin.legs?.[0]?.scheduledStartTime ||
+            itin.legs?.[0]?.startTime ||
+            '';
+          const lastArr =
+            itin.legs?.[itin.legs.length - 1]?.scheduledEndTime ||
+            itin.legs?.[itin.legs.length - 1]?.endTime ||
+            '';
+          const totalMin = legs.reduce(
+            (sum: number, l: NormalizedLeg) => sum + l.durationMinutes,
+            0
+          );
+          const changes = Math.max(
+            0,
+            legs.filter((l: NormalizedLeg) => l.mode !== 'walk').length - 1
+          );
 
-        return {
-          durationMinutes: totalMin || (itin.duration ? Math.round(itin.duration / 60) : 0),
-          legs,
-          changes,
-          plannedDeparture: formatTime(firstDep),
-          plannedArrival: formatTime(lastArr),
-        };
-      });
+          return {
+            durationMinutes: totalMin || (itin.duration ? Math.round(itin.duration / 60) : 0),
+            legs,
+            changes,
+            plannedDeparture: formatTime(firstDep),
+            plannedArrival: formatTime(lastArr),
+          };
+        }
+      );
 
       cacheSet(cacheKey, journeys, CACHE_TTL_JOURNEYS);
       return journeys;
-    } catch (err: any) {
-      logger.warn(`transitous getJourneys fehlgeschlagen: ${err.message}`);
+    } catch (err: unknown) {
+      logger.warn(`transitous getJourneys fehlgeschlagen: ${errorMessage(err)}`);
       return [];
     }
   }
 
-  // ---- Health check ----
   async healthCheck(): Promise<{ status: string; details: string }> {
     try {
-      const data = await transitousGet<any>('/map/stops', {
+      const data = await transitousGet<TransitousStopRaw[]>('/map/stops', {
         min: '52.515,13.395',
         max: '52.525,13.405',
       });
       const count = Array.isArray(data) ? data.length : 0;
       return { status: 'ok', details: `transitous.org OK, ${count} stops near Berlin Mitte` };
-    } catch (err: any) {
-      const detail = err.message || String(err);
+    } catch (err: unknown) {
+      const detail = errorMessage(err);
       return { status: 'error', details: detail };
     }
   }
