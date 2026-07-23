@@ -121,12 +121,7 @@ jobs:
           sed -i 's/targetSdk .*/targetSdk 34/' app/build.gradle
           # Make flutter extension available to all subprojects – fixes
           # geolocator_android-4.6.2 referencing flutter.compileSdkVersion
-          cat >> build.gradle << 'GRADLE_EOF'
-
-subprojects {
-    project.ext.flutter = [compileSdkVersion: 34]
-}
-GRADLE_EOF
+          printf '\nsubprojects {\n    project.ext.flutter = [compileSdkVersion: 34]\n}\n' >> build.gradle
           echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
           cd ..
       - name: Install dependencies
