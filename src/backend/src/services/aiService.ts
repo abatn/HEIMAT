@@ -1,11 +1,9 @@
 import { logger } from '../utils/logger';
 
-const BayesClassifier = require(
-  '../../node_modules/natural/lib/natural/classifiers/bayes_classifier'
-);
-const PorterStemmerDe = require(
-  '../../node_modules/natural/lib/natural/stemmers/porter_stemmer_de'
-);
+// @ts-ignore - natural package has incomplete TS types
+import BayesClassifier from 'natural/lib/natural/classifiers/bayes_classifier';
+// @ts-ignore - natural package has incomplete TS types
+import PorterStemmerDe from 'natural/lib/natural/stemmers/porter_stemmer_de';
 
 export interface UserIntent {
   type: 'journey' | 'departure' | 'disruption' | 'nearby' | 'info';
