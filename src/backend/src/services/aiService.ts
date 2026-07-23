@@ -1,8 +1,6 @@
 import { logger } from '../utils/logger';
 
-// @ts-ignore - natural package has incomplete TS types
 import BayesClassifier from 'natural/lib/natural/classifiers/bayes_classifier';
-// @ts-ignore - natural package has incomplete TS types
 import PorterStemmerDe from 'natural/lib/natural/stemmers/porter_stemmer_de';
 
 export interface UserIntent {
