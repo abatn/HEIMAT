@@ -396,7 +396,7 @@ export class TalerService {
   // werden, wäre das Irreführung — also: ehrlich halten.
   // -------------------------------------------------------------------------
 
-  async createPurse(senderUserId: string, receiverUserId: string, amount: number, contractHash?: string, _description?: string): Promise<TalerPurse> {
+  async createPurse(senderUserId: string, receiverUserId: string, amount: number, contractHash?: string, description?: string): Promise<TalerPurse> {
     if (amount <= 0) throw new AppError('Amount must be positive', 400);
     const effectiveContractHash = contractHash ?? sha512Hex(`${senderUserId}|${receiverUserId}|${amount}|${Date.now()}`);
 
@@ -427,7 +427,7 @@ export class TalerService {
       [purse_pub, purse_priv_pkcs8, amount.toFixed(2), CURRENCY, effectiveContractHash, senderWallet.id, receiverWallet.id, expiresAt.toISOString()],
     );
 
-    logger.info(`Purse ${purse!.id} created (heimat_p2p_helper, NOT Taler exchange): ${amount} ${CURRENCY} from ${senderUserId} to ${receiverUserId}`);
+    logger.info(`Purse ${purse!.id} created (heimat_p2p_helper, NOT Taler exchange): ${amount} ${CURRENCY} from ${senderUserId} to ${receiverUserId}${description ? ` desc: ${description}` : ''}`);
     return purse!;
   }
 

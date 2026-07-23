@@ -68,6 +68,7 @@ export async function testConnection(): Promise<boolean> {
 }
 
 // Execute query
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function query<T = any>(text: string, params?: any[]): Promise<T[]> {
   const start = Date.now();
   const result = await pool.query(text, params);
@@ -77,12 +78,14 @@ export async function query<T = any>(text: string, params?: any[]): Promise<T[]>
 }
 
 // Execute single row query
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function queryOne<T = any>(text: string, params?: any[]): Promise<T | null> {
   const rows = await query<T>(text, params);
   return rows[0] || null;
 }
 
 // Execute insert/update/delete
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function execute(text: string, params?: any[]): Promise<number> {
   const start = Date.now();
   const result = await pool.query(text, params);

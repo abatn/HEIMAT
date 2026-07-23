@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import { errorMessage } from '../utils/error';
 
 export interface Disruption {
   affected_stops: string[];
@@ -71,10 +72,11 @@ export async function getDisruptionsFromTransitous(): Promise<string[]> {
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) return [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = await response.json();
-    return data.alerts?.map((a: any) => a.description).filter(Boolean) || [];
-  } catch (error: any) {
-    logger.warn('Transitous alerts fetch failed', error);
+    return data.alerts?.map((a: { description: string }) => a.description).filter(Boolean) || [];
+  } catch (error: unknown) {
+    logger.warn(`Transitous alerts fetch failed: ${errorMessage(error)}`);
     return [];
   }
 }

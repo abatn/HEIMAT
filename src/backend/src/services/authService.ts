@@ -5,7 +5,7 @@ import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'heimat-jwt-secret-change-in-production';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
 const SALT_ROUNDS = 10;
 
 export interface User {
@@ -83,6 +83,7 @@ export class AuthService {
 
   async updateProfile(userId: string, data: { displayName?: string }): Promise<User> {
     const updates: string[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const values: any[] = [];
     let idx = 1;
 
@@ -141,7 +142,7 @@ export class AuthService {
   }
 
   private generateToken(userId: string): string {
-    return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
   }
 }
 

@@ -43,7 +43,7 @@ export interface TalerDenominationKey {
   stamp_expire: { t_s: number };
   denom_pub: string;
   master_sig: string;
-  // ... weitere Felder per Taler-Spec, werden roh durchgereicht
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [k: string]: any;
 }
 
@@ -53,8 +53,9 @@ export interface TalerKeysResponse {
   currency: string;
   master_public_key: string;
   denomination_keys: TalerDenominationKey[];
-  signkeys?: any[];
-  reserve_closing_delay?: any;
+  signkeys?: unknown[];
+  reserve_closing_delay?: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [k: string]: any;
 }
 
@@ -63,7 +64,8 @@ export interface TalerReserveStatus {
   reserve_status: 'unknown' | 'partial' | 'full' | 'closed';
   current_balance: string;        // "KUDOS:25" format
   requested_amount?: string;
-  history?: any[];
+  history?: unknown[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [k: string]: any;
 }
 

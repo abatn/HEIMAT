@@ -1,5 +1,4 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError } from '../middleware/errorHandler';
 import { validate } from '../middleware/validate';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { authService } from '../services/authService';

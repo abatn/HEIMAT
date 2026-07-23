@@ -1,10 +1,12 @@
 import { query, queryOne } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 interface Stop { id: string; osm_id?: number; name: string; latitude: number; longitude: number; stop_type: string; }
-interface Connection { id: string; departure_stop: string; arrival_stop: string; departure_time: string; arrival_time: string; line: string; transport_type: string; }
+
+interface NominatimResult { lat: string; lon: string; display_name: string; }
+interface GeoJsonGeometry { type: string; coordinates: number[] | number[][]; }
 
 interface OverpassElement {
   id: number;
@@ -52,7 +54,8 @@ export class MobilityService {
         return (response.data?.elements ?? []) as OverpassElement[];
       } catch (e) {
         lastError = e;
-        const status = (e as any)?.response?.status;
+        const axiosError = e as AxiosError;
+        const status = axiosError.response?.status;
         logger.warn(`Overpass-Mirror ${mirror} fehlgeschlagen (status ${status ?? 'timeout'})`);
       }
     }
@@ -155,7 +158,7 @@ export class MobilityService {
         : await queryOne<Stop>('SELECT * FROM stops WHERE id = $1', [id]);
       if (!stop) throw new AppError('Stop not found', 404);
       return stop;
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof AppError) throw e;
       // UUID-Parsing-Fehler → 404 statt 500
       throw new AppError('Stop not found', 404);
@@ -185,11 +188,11 @@ export class MobilityService {
         headers: { 'User-Agent': this.userAgent },
         timeout: 15000,
       });
-      return response.data.map((item: any) => ({ lat: parseFloat(item.lat), lng: parseFloat(item.lon), display_name: item.display_name }));
+      return response.data.map((item: NominatimResult) => ({ lat: parseFloat(item.lat), lng: parseFloat(item.lon), display_name: item.display_name }));
     } catch (error) { throw new AppError('Geocoding failed', 500); }
   }
 
-  async getRoute(from: { lat: number; lng: number }, to: { lat: number; lng: number }): Promise<{ distance: number; duration: number; geometry: any }> {
+  async getRoute(from: { lat: number; lng: number }, to: { lat: number; lng: number }): Promise<{ distance: number; duration: number; geometry: GeoJsonGeometry }> {
     try {
       const response = await axios.get(`${this.osrmUrl}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}`, { params: { overview: 'full', geometries: 'geojson' }, headers: { 'User-Agent': this.userAgent }, timeout: 30000 });
       if (response.data.routes && response.data.routes.length > 0) {

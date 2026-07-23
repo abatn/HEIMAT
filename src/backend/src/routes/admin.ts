@@ -4,6 +4,7 @@ import path from 'path';
 import { pool } from '../config/database';
 import { dbVendoService } from '../services/dbVendoService';
 import { logger } from '../utils/logger';
+import { errorMessage } from '../utils/error';
 
 const adminRouter = Router();
 
@@ -30,9 +31,9 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
     const schema = fs.readFileSync(schemaPath, 'utf8');
     await pool.query(schema);
     res.json({ success: true, message: 'Schema migrated' });
-  } catch (error: any) {
-    logger.error(`Admin migrate failed: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message || 'Migration failed' });
+  } catch (error: unknown) {
+    logger.error(`Admin migrate failed: ${errorMessage(error)}`);
+    res.status(500).json({ success: false, message: errorMessage(error) });
   }
 });
 
@@ -51,9 +52,9 @@ adminRouter.get('/db-vendo-status', async (req: Request, res: Response) => {
       testResults: testStops.length,
       sampleStop: testStops[0] || null,
     });
-  } catch (error: any) {
-    logger.error(`Admin transitous status failed: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message || 'Status check failed' });
+  } catch (error: unknown) {
+    logger.error(`Admin transitous status failed: ${errorMessage(error)}`);
+    res.status(500).json({ success: false, message: errorMessage(error) });
   }
 });
 
@@ -68,6 +69,7 @@ adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
     const stops = await dbVendoService.searchStopsByCoords(52.52, 13.40, 5);
 
     // 2. Abfahrten holen
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let departures: any[] = [];
     if (stops.length > 0) {
       departures = await dbVendoService.getDepartures(stops[0].id, 5);
@@ -91,9 +93,9 @@ adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
       sampleDeparture: departures[0] || null,
       sampleJourney: journeys[0] || null,
     });
-  } catch (error: any) {
-    logger.error(`Admin transitous selftest failed: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message || 'selftest failed' });
+  } catch (error: unknown) {
+    logger.error(`Admin transitous selftest failed: ${errorMessage(error)}`);
+    res.status(500).json({ success: false, message: errorMessage(error) });
   }
 });
 

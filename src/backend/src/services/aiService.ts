@@ -12,6 +12,7 @@ export interface UserIntent {
   preferences?: string[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let classifier: any = null;
 let trained = false;
 
@@ -146,8 +147,8 @@ export function classifyIntent(userMessage: string): UserIntent | null {
     if (timeMatch) intent.time = `${timeMatch[1]}:${timeMatch[2]}`;
 
     return intent;
-  } catch (error: any) {
-    logger.error('Intent classification failed', error);
+  } catch (error: unknown) {
+    logger.error(`Intent classification failed: ${(error as Error).message || error}`);
     return null;
   }
 }

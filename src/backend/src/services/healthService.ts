@@ -1,7 +1,7 @@
 import { query, queryOne } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 interface Doctor {
   id: string;
@@ -95,7 +95,7 @@ export class HealthService {
         return (response.data?.elements ?? []) as OverpassElement[];
       } catch (e) {
         lastError = e;
-        const status = (e as any)?.response?.status;
+        const status = (e as AxiosError).response?.status;
         logger.warn(`Overpass-Mirror ${mirror} fehlgeschlagen (status ${status ?? 'timeout'})`);
       }
     }
@@ -126,7 +126,7 @@ export class HealthService {
   async searchDoctors(specialty?: string, location?: string): Promise<Doctor[]> {
     // 1. DB-Ärzte laden
     let sql = 'SELECT * FROM doctors WHERE 1=1';
-    const params: any[] = [];
+    const params: string[] = [];
 
     if (specialty) {
       sql += ' AND specialty ILIKE $' + (params.length + 1);

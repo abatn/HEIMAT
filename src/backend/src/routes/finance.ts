@@ -178,7 +178,7 @@ const payBodySchema = z.object({
 financeRouter.post('/pay', validate(payBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
   const { from, to, amount, currency, description } = req.body;
   const purse = await talerService.createPurse(from, to, amount, undefined, description);
-  const { purse: funded } = await talerService.depositToPurse(purse.id, from);
+  await talerService.depositToPurse(purse.id, from);
   const { purse: merged } = await talerService.mergePurse(purse.id, to);
   res.json({
     status: 'ok',

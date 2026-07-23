@@ -21,6 +21,7 @@ import { testConnection, pool } from './config/database';
 import raptorService from './services/raptorService';
 import { swaggerSpec } from './config/swagger';
 import swaggerUi from 'swagger-ui-express';
+import { errorMessage } from './utils/error';
 
 dotenv.config();
 
@@ -62,8 +63,8 @@ app.post('/api/migrate', async (req, res) => {
     const schema = fs.readFileSync(schemaPath, 'utf8');
     await pool.query(schema);
     res.json({ status: 'ok', message: 'Schema loaded successfully' });
-  } catch (error: any) {
-    res.status(500).json({ status: 'error', message: error?.message || 'Unknown error' });
+  } catch (error: unknown) {
+    res.status(500).json({ status: 'error', message: errorMessage(error) });
   }
 });
 
@@ -82,8 +83,8 @@ if (require.main === module) {
       try {
         await raptorService.initialize(gtfsPath);
         logger.info('RAPTOR routing engine ready');
-      } catch (e: any) {
-        logger.warn('RAPTOR initialization failed, using transitous.org fallback', e.message);
+      } catch (e: unknown) {
+        logger.warn(`RAPTOR initialization failed, using transitous.org fallback: ${errorMessage(e)}`);
       }
     } else {
       logger.info('No GTFS file found, using transitous.org for routing');

@@ -39,7 +39,6 @@ export class FinanceService {
     fromUserId: string,
     toUserId: string,
     amount: number,
-    _currency: string = 'KUDOS',
     description?: string
   ): Promise<Transaction> {
     if (amount <= 0) {

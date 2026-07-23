@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError } from '../middleware/errorHandler';
 import { validate } from '../middleware/validate';
+import { errorMessage } from '../utils/error';
 import {
   stopsQuerySchema,
   searchQuerySchema,
@@ -112,8 +112,8 @@ mobilityRouter.get('/departures', validate(departuresQuerySchema, 'query'), asyn
       })),
       count: departures.length,
     });
-  } catch (e: any) {
-    logger.warn(`departures fehlgeschlagen: ${e.message}`);
+  } catch (e: unknown) {
+    logger.warn(`departures fehlgeschlagen: ${errorMessage(e)}`);
     res.json({ status: 'ok', departures: [], count: 0 });
   }
 }));
@@ -130,8 +130,8 @@ mobilityRouter.get('/journey', validate(journeyQuerySchema, 'query'), asyncHandl
     const journeys = await dbVendoService.getJourneys('', '', undefined, fl, fg, tl, tg);
     logger.info(`Journey: ${journeys.length} Verbindungen gefunden`);
     res.json({ status: 'ok', journeys });
-  } catch (e: any) {
-    logger.warn(`journey fehlgeschlagen: ${e.message}`);
+  } catch (e: unknown) {
+    logger.warn(`journey fehlgeschlagen: ${errorMessage(e)}`);
     res.json({ status: 'ok', journeys: [] });
   }
 }));
@@ -162,8 +162,8 @@ mobilityRouter.post('/log-delay', validate(logDelayBodySchema, 'body'), asyncHan
 
     logger.info(`DELAY_LOG: trip=${tripId} line=${line} delay=${delayMinutes}min`);
     res.json({ status: 'ok', logged: true });
-  } catch (e: any) {
-    logger.warn(`Delay-Logging fehlgeschlagen: ${e.message}`);
+  } catch (e: unknown) {
+    logger.warn(`Delay-Logging fehlgeschlagen: ${errorMessage(e)}`);
     res.json({ status: 'ok', logged: false });
   }
 }));
@@ -189,9 +189,9 @@ mobilityRouter.get('/journey/raptor', validate(raptorJourneyQuerySchema, 'query'
 
     logger.info(`RAPTOR: ${journeys.length} journeys found for ${req.query.from} → ${req.query.to}`);
     res.json({ status: 'ok', journeys, source: 'raptor' });
-  } catch (e: any) {
-    logger.warn(`RAPTOR journey fehlgeschlagen: ${e.message}`);
-    res.json({ status: 'ok', journeys: [], source: 'raptor', error: e.message });
+  } catch (e: unknown) {
+    logger.warn(`RAPTOR journey fehlgeschlagen: ${errorMessage(e)}`);
+    res.json({ status: 'ok', journeys: [], source: 'raptor', error: errorMessage(e) });
   }
 }));
 

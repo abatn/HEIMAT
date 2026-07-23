@@ -1,5 +1,4 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AppError } from '../middleware/errorHandler';
 import { validate } from '../middleware/validate';
 import {
   doctorsQuerySchema,
