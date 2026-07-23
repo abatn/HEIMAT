@@ -13,6 +13,9 @@ src/mobile/.dart_tool/chrome-device/
 src/backend/node_modules/
 src/backend/dist/
 src/backend/.env
+src/backend/logs/*.log
+src/backend/logs/*.txt
+src/backend/logs/*.json
 
 # Docker
 .env
