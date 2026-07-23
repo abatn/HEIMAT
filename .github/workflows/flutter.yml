@@ -111,10 +111,13 @@ jobs:
       - name: Enable Android platform
         run: |
           flutter create . --platforms android
-          find . -name "build.gradle" -exec sed -i 's/VERSION_1_8/VERSION_17/g' {} \;
-          find . -name "build.gradle" -exec sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' {} \;
-          find . -name "build.gradle" -exec sed -i 's/minSdkVersion [0-9]*/minSdkVersion 21/g' {} \;
-          echo "org.gradle.java.home=$JAVA_HOME" >> android/gradle.properties
+          cd android
+          sed -i 's/VERSION_1_8/VERSION_17/g' app/build.gradle
+          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' app/build.gradle
+          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 21/g' app/build.gradle
+          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' build.gradle
+          echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+          cd ..
       - name: Install dependencies
         run: flutter pub get
       - name: Build APK
