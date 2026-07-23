@@ -38,9 +38,9 @@ beforeAll(async () => {
   exchangeUp = await exchangeReachable();
 });
 
-const liveProbe = exchangeUp && HAS_EXCHANGE ? describe : describe.skip;
+const liveDescribe = exchangeUp && HAS_EXCHANGE ? describe : describe.skip;
 
-describe('Finance API — echte GNU-Taler-Exchange-Integration (KEIN Mock, KEINE Simulation)', () => {
+liveDescribe('Finance API — echte GNU-Taler-Exchange-Integration (KEIN Mock, KEINE Simulation)', () => {
   describe('GET /api/finance/taler/status — echter /keys Probe gegen exchange.demo.taler.net', () => {
     it('liefert live master_public_key, currency, denomination_count vom echten Exchange', async () => {
       if (!exchangeUp) return; // Test bestanden via skip

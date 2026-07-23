@@ -46,6 +46,17 @@ mobilityRouter.get('/stops/search', validate(searchQuerySchema, 'query'), asyncH
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 
+// GTFS Stop-Matching (MUST be before /stops/:id!)
+mobilityRouter.get('/stops/match', validate(stopsMatchQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
+  const matches = await mobilityService.matchStopToGtfs(
+    parseInt(req.query.osm_id as string),
+    req.query.name as string,
+    parseFloat(req.query.lat as string),
+    parseFloat(req.query.lng as string)
+  );
+  res.json({ status: 'ok', matches, count: matches.length });
+}));
+
 mobilityRouter.get('/stops/:id', asyncHandler(async (req: Request, res: Response) => {
   const stop = await mobilityService.getStopById(req.params.id);
   res.json({ status: 'ok', stop });
@@ -191,20 +202,6 @@ mobilityRouter.get('/raptor/status', asyncHandler(async (req: Request, res: Resp
     ready: raptorService.isReady(),
     source: 'raptor-journey-planner'
   });
-}));
-
-// ---------------------------------------------------------------------------
-// GTFS Stop-Matching: Overpass-Stop → GTFS-Stop Zuordnung
-// ---------------------------------------------------------------------------
-
-mobilityRouter.get('/stops/match', validate(stopsMatchQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
-  const matches = await mobilityService.matchStopToGtfs(
-    parseInt(req.query.osm_id as string),
-    req.query.name as string,
-    parseFloat(req.query.lat as string),
-    parseFloat(req.query.lng as string)
-  );
-  res.json({ status: 'ok', matches, count: matches.length });
 }));
 
 // ---------------------------------------------------------------------------
