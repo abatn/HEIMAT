@@ -1,5 +1,6 @@
 import raptorService from './raptorService';
 import { logger } from '../utils/logger';
+import { errorMessage } from '../utils/error';
 
 export interface PersonalPreferences {
   preferFewerTransfers: boolean;
@@ -9,11 +10,26 @@ export interface PersonalPreferences {
   preferScenic: boolean;
 }
 
+interface RouteLeg {
+  mode: string;
+  distance?: number;
+  duration?: number;
+}
+
+interface Route {
+  legs: RouteLeg[];
+  duration?: number;
+}
+
+interface RankedRoute extends Route {
+  score: number;
+}
+
 export async function personalRoutePlanning(
   userRequest: string,
   origin: string,
   destination: string
-): Promise<any[]> {
+): Promise<RankedRoute[]> {
   if (!raptorService.isReady()) {
     logger.warn('Personal Routing: RAPTOR nicht ready');
     return [];
@@ -21,15 +37,21 @@ export async function personalRoutePlanning(
 
   try {
     const preferences = extractPreferences(userRequest);
-    const routes = await raptorService.findJourneys(origin, destination, new Date());
+    const routes = (await raptorService.findJourneys(
+      origin,
+      destination,
+      new Date()
+    )) as Route[];
 
     if (routes.length === 0) return [];
 
     const ranked = rankRoutes(routes, preferences);
     return ranked.slice(0, 3);
-  } catch (error: any) {
-    logger.error('Personal route planning failed', error);
-    return raptorService.findJourneys(origin, destination, new Date());
+  } catch (err: unknown) {
+    logger.error(`Personal route planning failed: ${errorMessage(err)}`);
+    // Bei Fehler kein Fallback mit raw Routes — lieber leeres Array,
+    // damit der Client konsistente RankedRoute[]-Form erhaelt.
+    return [];
   }
 }
 
@@ -45,15 +67,18 @@ function extractPreferences(userRequest: string): PersonalPreferences {
   };
 }
 
-function rankRoutes(routes: any[], prefs: PersonalPreferences): any[] {
+function rankRoutes(routes: Route[], prefs: PersonalPreferences): RankedRoute[] {
   return routes
-    .map((route) => {
+    .map((route: Route): RankedRoute => {
       let score = 0;
-      const legs = route.legs || [];
+      const legs: RouteLeg[] = route.legs || [];
       const transfers = legs.length - 1;
       const walkDistance = legs
-        .filter((l: any) => l.mode === 'walk' || l.mode === 'foot')
-        .reduce((sum: number, l: any) => sum + (l.distance || l.duration || 0), 0);
+        .filter((l: RouteLeg) => l.mode === 'walk' || l.mode === 'foot')
+        .reduce(
+          (sum: number, l: RouteLeg) => sum + (l.distance ?? l.duration ?? 0),
+          0
+        );
 
       if (prefs.preferFewerTransfers) {
         score += Math.max(0, 10 - transfers * 3);
@@ -62,19 +87,19 @@ function rankRoutes(routes: any[], prefs: PersonalPreferences): any[] {
         score += Math.max(0, 10 - (walkDistance / 100) * 2);
       }
       if (prefs.wheelchairAccessible) {
-        score += legs.some((l: any) => l.mode === 'bus' || l.mode === 'tram') ? 5 : 0;
+        score += legs.some((l: RouteLeg) => l.mode === 'bus' || l.mode === 'tram') ? 5 : 0;
       }
       if (prefs.preferQuiet) {
-        score += legs.every((l: any) => l.mode !== 'bus') ? 3 : 0;
+        score += legs.every((l: RouteLeg) => l.mode !== 'bus') ? 3 : 0;
       }
       if (prefs.preferScenic) {
-        score += legs.some((l: any) => l.mode === 'tram' || l.mode === 'walk') ? 2 : 0;
+        score += legs.some((l: RouteLeg) => l.mode === 'tram' || l.mode === 'walk') ? 2 : 0;
       }
 
       score += Math.max(0, 10 - transfers * 2);
-      score += Math.max(0, 10 - (route.duration || 0) / 60 / 10);
+      score += Math.max(0, 10 - (route.duration ?? 0) / 60 / 10);
 
-      return { ...route, _score: score };
+      return { ...route, score };
     })
-    .sort((a: any, b: any) => b._score - a._score);
+    .sort((a: RankedRoute, b: RankedRoute) => b.score - a.score);
 }

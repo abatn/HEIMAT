@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import { errorMessage } from '../utils/error';
 
 const CACHE_TTL_DEPARTURES = 300;
 const CACHE_TTL_JOURNEYS = 900;
@@ -187,9 +188,7 @@ function formatTime(iso: string): string {
   });
 }
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
+// errorMessage-Helper nach utils/logger.ts extrahiert (Cluster 4)
 
 async function transitousGet<T>(path: string, params: Record<string, string>): Promise<T> {
   const qs = new URLSearchParams(params).toString();
