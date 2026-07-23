@@ -1023,8 +1023,8 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 | Pipeline | Status | Letzter Lauf |
 |----------|--------|-------------|
-| Flutter CI (format → analyze → test) | ❌ Android-Build broken | ea04acf — `geolocator_android-4.6.2` inkompatibel mit Flutter 3.24.5 |
-| Backend CI (lint → test → tsc) | ❌ `npm install` ERESOLVE | ea04acf — TypeScript 7 inkompatibel mit @typescript-eslint 8.x |
+| Flutter CI (format → analyze → test → build) | ✅ vollständig grün | `ccfd777` — Gradle `project.ext.flutter` in Subprojekten injected |
+| Backend CI (lint → test → tsc) | ❌ `health.test.ts` (pre-existing) | `e90b287` — TypeScript auf ~5.6.3, @typescript-eslint ^7.18.0 revertiert; 1/7 Suites failed |
 | Web-Deploy (GitHub Pages) | ✅ automatisch | — |
 | Render Backend Deploy | ✅ automatisch | — |
 
@@ -1058,13 +1058,22 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 ### Nächste Schritte (priorisiert)
 
-1. **🔴 CI-Reparatur: Flutter Android-Build fixen** — `flutter.yml` Gradle-Patch für `flutter.compileSdkVersion` in Subprojekten
-2. **🔴 CI-Reparatur: Backend `npm install` fixen** — TypeScript auf `~5.6.3` zurück, @typescript-eslint auf `^7.18.0`
-3. **User-Auth implementieren** — JWT-basiert, bcryptjs für Passwörter
-4. **Zod-Validierung** — Input-Validierung mit dem bereits installierten Package
-5. **API-Dokumentation** — Swagger/OpenAPI für alle Endpoints
-6. **Echte Taler-Exchange** — Anbindung an `exchange.demo.taler.net`
-7. **E2E-Tests** — Flutter Integration Tests
+1. **🔴 Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites); vermutlich DB-Cleanup-Reihenfolge
+2. **User-Auth implementieren** — JWT-basiert, bcryptjs für Passwörter
+3. **Zod-Validierung** — Input-Validierung mit dem bereits installierten Package
+4. **API-Dokumentation** — Swagger/OpenAPI für alle Endpoints
+5. **Echte Taler-Exchange** — Anbindung an `exchange.demo.taler.net`
+6. **E2E-Tests** — Flutter Integration Tests
+
+### Phase 21: CI-Reparatur (abgeschlossen)
+
+- **`flutter.yml` YAML-Fix**: Heredoc in `run: |` brach literal block → `printf`-one-liner; Analyze/Test/Smoke/Web/iOS/Android ✅
+- **`flutter.yml` Android Build**: `project.ext.flutter = [compileSdkVersion: 34]` via `printf >> build.gradle` injected
+- **`package.json` Revert**: TypeScript `^7.0.2`→`~5.6.3`, @typescript-eslint `^8.65.0`→`^7.18.0`, parser `^8.65.0`→`^7.18.0`
+- **`dependabot.yml`**: TypeScript `>=7.0.0` ignored
+- **`dependabot-auto-merge.yml`**: Patch → auto-merge, Minor → nur approve
+- **`AGENTS.md`**: Rewrite mit korrekten CI-Gates, Service-URLs, Known Bugs
+- **`heimat-plan.md`**: CI-Tabelle aktualisiert, Phase 21 dokumentiert
 
 ---
 
