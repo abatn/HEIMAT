@@ -19,6 +19,8 @@ import { authRouter } from './routes/auth';
 import adminRouter from './routes/admin';
 import { testConnection, pool } from './config/database';
 import raptorService from './services/raptorService';
+import { swaggerSpec } from './config/swagger';
+import swaggerUi from 'swagger-ui-express';
 
 dotenv.config();
 
@@ -46,6 +48,13 @@ app.use('/api/mobility', mobilityRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/health', healthServiceRouter);
 app.use('/api/admin', adminRouter);
+
+// Swagger API-Dokumentation
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 app.post('/api/migrate', async (req, res) => {
   try {
