@@ -15,6 +15,7 @@ import { healthRouter } from './routes/health';
 import { mobilityRouter } from './routes/mobility';
 import { financeRouter } from './routes/finance';
 import { healthRouter as healthServiceRouter } from './routes/healthService';
+import { authRouter } from './routes/auth';
 import adminRouter from './routes/admin';
 import { testConnection, pool } from './config/database';
 import raptorService from './services/raptorService';
@@ -40,6 +41,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/health', healthRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/mobility', mobilityRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/health', healthServiceRouter);

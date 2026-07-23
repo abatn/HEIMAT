@@ -220,11 +220,11 @@ export class HealthService {
     // 3. Mergen: DB hat Vorrang bei Name+Adresse-Duplikaten
     const merged = [...dbMarked];
     const seenKeys = new Set(
-      dbMarked.map(d => `${d.name.toLowerCase()}|${d.latitude.toFixed(4)}|${d.longitude.toFixed(4)}`)
+      dbMarked.map(d => `${d.name.toLowerCase()}|${(d.latitude ?? 0).toFixed(4)}|${(d.longitude ?? 0).toFixed(4)}`)
     );
 
     for (const osm of osmDoctors) {
-      const key = `${osm.name.toLowerCase()}|${osm.latitude.toFixed(4)}|${osm.longitude.toFixed(4)}`;
+      const key = `${osm.name.toLowerCase()}|${(osm.latitude ?? 0).toFixed(4)}|${(osm.longitude ?? 0).toFixed(4)}`;
       if (!seenKeys.has(key)) {
         merged.push(osm);
         seenKeys.add(key);

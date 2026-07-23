@@ -162,3 +162,33 @@ financeRouter.post('/taler/purse/:purseId/abort', validate(talerPurseActionBodyS
   const purse = await talerService.abortPurse(req.params.purseId, req.body.userId);
   res.json({ status: 'ok', purse, layer: 'heimat_p2p_helper' });
 }));
+
+// ---------------------------------------------------------------------------
+// Legacy /pay Endpoint — kompatibel mit altem Frontend
+// ---------------------------------------------------------------------------
+
+const payBodySchema = z.object({
+  from: z.string().min(1, 'from is required'),
+  to: z.string().min(1, 'to is required'),
+  amount: z.number().positive('Amount must be positive'),
+  currency: z.string().max(10).optional(),
+  description: z.string().max(500).optional(),
+});
+
+financeRouter.post('/pay', validate(payBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
+  const { from, to, amount, currency, description } = req.body;
+  const purse = await talerService.createPurse(from, to, amount, undefined, description);
+  const { purse: funded } = await talerService.depositToPurse(purse.id, from);
+  const { purse: merged } = await talerService.mergePurse(purse.id, to);
+  res.json({
+    status: 'ok',
+    transaction: {
+      id: purse.id,
+      amount,
+      currency: currency || 'KUDOS',
+      status: merged.status === 'merged' ? 'completed' : 'pending',
+      description: description || null,
+      created_at: purse.created_at,
+    },
+  });
+}));
