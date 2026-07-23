@@ -131,7 +131,7 @@ liveDescribe('Finance API — echte GNU-Taler-Exchange-Integration (KEIN Mock, K
     });
   });
 
-  liveProbe('Live-Reserve-Bind / -Balance gegen echtes exchange.demo.taler.net', () => {
+  liveDescribe('Live-Reserve-Bind / -Balance gegen echtes exchange.demo.taler.net', () => {
     it('leeres Wallet kann externe Reserve binden; /balance summiert reales /reserves-Ergebnis', async () => {
       const userId = 'live-bind-' + Date.now();
       await request(app).post('/api/finance/taler/wallet').send({ userId });
