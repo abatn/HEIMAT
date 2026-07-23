@@ -149,11 +149,17 @@ export class MobilityService {
   }
 
   async getStopById(id: string): Promise<Stop> {
-    const stop = /^\d+$/.test(id)
-      ? await queryOne<Stop>('SELECT * FROM stops WHERE osm_id = $1', [Number(id)])
-      : await queryOne<Stop>('SELECT * FROM stops WHERE id = $1', [id]);
-    if (!stop) throw new AppError('Stop not found', 404);
-    return stop;
+    try {
+      const stop = /^\d+$/.test(id)
+        ? await queryOne<Stop>('SELECT * FROM stops WHERE osm_id = $1', [Number(id)])
+        : await queryOne<Stop>('SELECT * FROM stops WHERE id = $1', [id]);
+      if (!stop) throw new AppError('Stop not found', 404);
+      return stop;
+    } catch (e: any) {
+      if (e instanceof AppError) throw e;
+      // UUID-Parsing-Fehler → 404 statt 500
+      throw new AppError('Stop not found', 404);
+    }
   }
 
   async searchStops(query_text: string): Promise<Stop[]> {

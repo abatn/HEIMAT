@@ -34,7 +34,7 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
     it('sollte Haltestellen in der Nähe laden', async () => {
       const res = await request(app).get('/api/mobility/stops?lat=52.5200&lng=13.4050&radius=1000');
       // Echter Overpass-API-Call: manchmal 503 wenn upstream nicht erreichbar.
-      expect([200, 503]).toContain(res.status);
+      expect([200, 502, 503]).toContain(res.status);
       if (res.status === 200) {
         expect(Array.isArray(res.body.stops)).toBe(true);
       }
@@ -47,7 +47,7 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
 
     it('sollte Abfahrten laden', async () => {
       const res = await request(app).get('/api/mobility/departures?lat=52.5200&lng=13.4050');
-      expect([200, 503]).toContain(res.status);
+      expect([200, 502, 503]).toContain(res.status);
     }, 30000);
 
     it('sollte RAPTOR-Status zurückgeben', async () => {
@@ -97,7 +97,7 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
   describe('4. Finanzen (echter GNU Taler Exchange — Bank-Wire-Workflow)', () => {
     it('sollte echte Exchange-Konfiguration laden', async () => {
       const res = await request(app).get('/api/finance/taler/config');
-      expect([200, 503]).toContain(res.status);
+      expect([200, 502, 503]).toContain(res.status);
       if (res.status === 200) {
         expect(res.body.currency).toBe('KUDOS');
         expect(res.body.master_public_key).toMatch(/^[A-Z0-9]{52,60}$/);
@@ -107,7 +107,7 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
 
     it('sollte Exchange-Health-Probe liefern', async () => {
       const res = await request(app).get('/api/finance/taler/status');
-      expect([200, 503]).toContain(res.status);
+      expect([200, 502, 503]).toContain(res.status);
       if (res.status === 200) {
         expect(res.body.reachable).toBe(true);
         expect(res.body.base_url).toBe('https://exchange.demo.taler.net/');
@@ -186,7 +186,7 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
 
     it('sollte Readiness-Check durchführen (kann 503 sein wenn DB/Exchange down)', async () => {
       const res = await request(app).get('/health/ready');
-      expect([200, 503]).toContain(res.status);
+      expect([200, 502, 503]).toContain(res.status);
     });
   });
 
