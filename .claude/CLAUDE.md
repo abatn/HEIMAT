@@ -24,7 +24,7 @@ Backend (Node.js Express, Render)
   → https://heimat-backend.onrender.com
   → /api/mobility/* — Overpass, Nominatim, OSRM, transitous.org, RAPTOR
   → /api/health/*   — Overpass-Ärzte, Registrierung, Slots, Termine
-  → /api/finance/*  — Taler-Exchange-Client (echter exchange.demo.taler.net, KUDOS – echte GNU-Taler-Testnet-Currency, Ed25519-Wallet)
+   → /api/finance/*  — Taler-Exchange-Client-Code (exchange.demo.taler.net, KUDOS, Ed25519) — Client-Code existiert, echter HTTP-Client, aber Bank-Wire-Funding-Schritt ist manuell (bank.demo.taler.net/webui), kein vollständig automatisierter End-to-End-Flow
   → /api/admin/*    — Nur mit ADMIN_KEY (env var)
   → /health/*       — Health-Checks mit DB/Redis Ping
 
@@ -114,8 +114,8 @@ docker-compose up
 |-------|--------|---------|
 | Admin-Endpoints | ✅ geschützt | `ADMIN_KEY` env var required, kein statisch eingebauter Fallback |
 | /api/migrate | ✅ geschützt | Nur mit `X-Admin-Key` Header |
-| CORS | ✅ eingeschränkt | Default: `https://abatn.github.io` (nicht `*`) |
-| User-Auth | ✅ implementiert | JWT + bcryptjs, Register/Login/Profile/Password |
+| CORS | ⚠️ offen | `process.env.CORS_ORIGIN || '*'` — default allow-all, per env var einschränkbar |
+| User-Auth | ✅ Code existiert | JWT + bcryptjs, Register/Login/Profile/Password — Code geschrieben, ungetestet auf Production |
 | Rate-Limiter | ⚠️ global | 100 req/15min, kann bei API-Calls pro Screen limitieren |
 
 ## Bekannte Bugs & Fixes
@@ -170,7 +170,7 @@ src/mobile/           # Flutter App
       mobility/       # MobilityScreen, MobilityProvider, DepartureBoard, JourneyPlanner
       finance/        # FinanceScreen, FinanceProvider
       health/         # HealthScreen, HealthProvider
-  test/               # Widget-Tests (21 Tests)
+  test/               # Widget-Tests
   flutter/bin/        # Vendored Flutter SDK (NICHT BEARBEITEN)
 
 src/backend/          # Node.js Express API
@@ -183,7 +183,7 @@ src/backend/          # Node.js Express API
     config/           # database.ts (PostgreSQL Pool)
     middleware/        # errorHandler, notFoundHandler
     utils/            # logger.ts
-    __tests__/        # mobility.test, health.test, finance.test (55 Tests)
+    __tests__/        # 113 Tests: auth(14), validation(25), e2e(22), mobility(18), health(16), finance(12), bank-wire-live(6/manual)
   scripts/            # import-gtfs-local.ts (GTFS-Import)
 
 src/ml-service/       # Python FastAPI (nur Docker)
@@ -203,14 +203,22 @@ src/ml-service/       # Python FastAPI (nur Docker)
 - Root `*.md`-Dateien sind Planungs-/Marketing-Dokumente, keine Code-Dokumentation
 - Schema-Quelle: `src/backend/src/database/schema.sql` (CI lädt via `psql`)
 - Kein `npm run migrate` oder `npm run seed` — diese Scripts existieren nicht
-- (erledigt Phase 18) Taler-Service ist seit Phase 18 ein echter GNU-Taler-Exchange-Client (exchange.demo.taler.net + bank.demo.taler.net)
+- Taler: Client-Code existiert (exchange.demo.taler.net, Ed25519, KUDOS), aber kein vollständiger End-to-End-Flow — Bank-Wire-Funding erfordert manuellen Schritt auf bank.demo.taler.net/webui
+
+## Code-Existenz (geschrieben ≠ getestet/deployed)
+
+| Feature | Code existiert? | Getestet? | Production-validiert? | Anmerkung |
+|---------|---------------|-----------|----------------------|-----------|
+| User-Auth (JWT+bcryptjs) | ✅ | ✅ (14 Tests) | ❌ ungetestet | Routes/Service geschrieben, auf Production nie ausgeführt |
+| Zod-Validierung | ✅ (25 Tests) | ✅ (25 Tests) | ❌ ungetestet | Middleware validiert alle Inputs, per CI getestet |
+| Swagger/OpenAPI | ✅ | ✅ (in e2e) | ❌ ungetestet | `/docs` und `/docs.json` im Code |
+| Taler-Exchange-Client | ⚠️ Client-Code | ✅ (12 Tests) | ❌ kein vollst. Flow | exchange.demo.taler.net erreichbar, aber Bank-Wire-Funding manuell |
+| E2E-Tests (Backend) | ✅ | ✅ (22 Tests) | 🔄 via CI | Testet User-Lifecycle, aber braucht Postgres (nur in CI) |
+| Backend CI health.test.ts | 🔴 1/7 Suites failed | ❌ | ❌ | pre-existing, vermutlich DB-Cleanup-Reihenfolge |
 
 ## Offene Tasks (priorisiert)
 
-1. ~~User-Auth (JWT + bcryptjs)~~ ✅ erledigt
-2. ~~Zod-Validierung~~ ✅ erledigt
-3. ~~API-Dokumentation (Swagger/OpenAPI)~~ ✅ erledigt
-4. ~~Echte Taler-Exchange Anbindung~~ ✅ erledigt (exchange.demo.taler.net, KUDOS)
-5. ~~E2E-Tests (Backend)~~ ✅ erledigt (55 Tests, voller User-Lifecycle)
-6. 🔴 Backend CI: `health.test.ts` fixen — pre-existing failure (1/7 Suites)
-7. E2E-Tests (Flutter Integration)
+1. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
+2. **Production-Validierung: User-Auth End-to-End testen** — auf Render deployt und curl-Test
+3. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden
+4. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
