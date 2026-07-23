@@ -1,5 +1,19 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/errorHandler';
+import { validate } from '../middleware/validate';
+import {
+  stopsQuerySchema,
+  searchQuerySchema,
+  routeQuerySchema,
+  geocodeQuerySchema,
+  departuresQuerySchema,
+  journeyQuerySchema,
+  raptorJourneyQuerySchema,
+  stopsMatchQuerySchema,
+  logDelayBodySchema,
+  aiIntentBodySchema,
+  aiPersonalRouteBodySchema,
+} from '../middleware/schemas';
 import { mobilityService } from '../services/mobilityService';
 import { dbVendoService } from '../services/dbVendoService';
 import raptorService from '../services/raptorService';
@@ -18,22 +32,17 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
 // Overpass-based endpoints (lokale Haltestellen, Routing)
 // ---------------------------------------------------------------------------
 
-mobilityRouter.get('/stops', asyncHandler(async (req: Request, res: Response) => {
-  const { lat, lng, radius } = req.query;
-  if (!lat || !lng) throw new AppError('Latitude and longitude are required', 400);
-  const latNum = parseFloat(lat as string);
-  const lngNum = parseFloat(lng as string);
-  const radiusNum = radius ? parseFloat(radius as string) : 1000;
-  if (isNaN(latNum) || isNaN(lngNum)) throw new AppError('Invalid coordinates', 400);
+mobilityRouter.get('/stops', validate(stopsQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
+  const latNum = parseFloat(req.query.lat as string);
+  const lngNum = parseFloat(req.query.lng as string);
+  const radiusNum = req.query.radius ? parseFloat(req.query.radius as string) : 1000;
   const stops = await mobilityService.getNearbyStops(latNum, lngNum, radiusNum);
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 
 // Haltestellen-Suche via db-vendo (MUST be before /stops/:id!)
-mobilityRouter.get('/stops/search', asyncHandler(async (req: Request, res: Response) => {
-  const { q } = req.query;
-  if (!q) throw new AppError('Search query is required', 400);
-  const stops = await dbVendoService.searchStops(q as string, 5);
+mobilityRouter.get('/stops/search', validate(searchQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
+  const stops = await dbVendoService.searchStops(req.query.q as string, 5);
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 
@@ -42,31 +51,26 @@ mobilityRouter.get('/stops/:id', asyncHandler(async (req: Request, res: Response
   res.json({ status: 'ok', stop });
 }));
 
-mobilityRouter.get('/route', asyncHandler(async (req: Request, res: Response) => {
-  const { from_lat, from_lng, to_lat, to_lng } = req.query;
-  if (!from_lat || !from_lng || !to_lat || !to_lng) throw new AppError('All coordinates are required', 400);
+mobilityRouter.get('/route', validate(routeQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
   const route = await mobilityService.getRoute(
-    { lat: parseFloat(from_lat as string), lng: parseFloat(from_lng as string) },
-    { lat: parseFloat(to_lat as string), lng: parseFloat(to_lng as string) },
+    { lat: parseFloat(req.query.from_lat as string), lng: parseFloat(req.query.from_lng as string) },
+    { lat: parseFloat(req.query.to_lat as string), lng: parseFloat(req.query.to_lng as string) },
   );
   res.json({ status: 'ok', route });
 }));
 
-mobilityRouter.get('/geocode', asyncHandler(async (req: Request, res: Response) => {
-  const { address } = req.query;
-  if (!address) throw new AppError('Address is required', 400);
-  const results = await mobilityService.geocodeAddress(address as string);
+mobilityRouter.get('/geocode', validate(geocodeQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
+  const results = await mobilityService.geocodeAddress(req.query.address as string);
   res.json({ status: 'ok', results });
 }));
 
 // Nächste Abfahrten via transitous.org
-mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Response) => {
+mobilityRouter.get('/departures', validate(departuresQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
   const { stopId, lat, lng, duration } = req.query;
 
   try {
     let id = stopId as string | undefined;
 
-    // Ohne stopId: Haltestellen in der Nähe suchen und erste nehmen
     if (!id && lat && lng) {
       const nearby = await dbVendoService.searchStopsByCoords(
         parseFloat(lat as string), parseFloat(lng as string), 1,
@@ -104,18 +108,13 @@ mobilityRouter.get('/departures', asyncHandler(async (req: Request, res: Respons
 }));
 
 // Verbindungssuche via transitous.org
-mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) => {
-  const { from_lat, from_lng, to_lat, to_lng } = req.query;
+mobilityRouter.get('/journey', validate(journeyQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
+  const fl = parseFloat(req.query.from_lat as string);
+  const fg = parseFloat(req.query.from_lng as string);
+  const tl = parseFloat(req.query.to_lat as string);
+  const tg = parseFloat(req.query.to_lng as string);
+
   try {
-    const fl = parseFloat(from_lat as string);
-    const fg = parseFloat(from_lng as string);
-    const tl = parseFloat(to_lat as string);
-    const tg = parseFloat(to_lng as string);
-
-    if (isNaN(fl) || isNaN(fg) || isNaN(tl) || isNaN(tg)) {
-      throw new AppError('All coordinates (from_lat, from_lng, to_lat, to_lng) are required', 400);
-    }
-
     logger.info(`Journey: transitous.org ${fl},${fg} → ${tl},${tg}`);
     const journeys = await dbVendoService.getJourneys('', '', undefined, fl, fg, tl, tg);
     logger.info(`Journey: ${journeys.length} Verbindungen gefunden`);
@@ -130,15 +129,10 @@ mobilityRouter.get('/journey', asyncHandler(async (req: Request, res: Response) 
 // ML: Delay-Logging Endpoint
 // ---------------------------------------------------------------------------
 
-mobilityRouter.post('/log-delay', asyncHandler(async (req: Request, res: Response) => {
+mobilityRouter.post('/log-delay', validate(logDelayBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
   const { tripId, line, stopId, stopName, scheduledDeparture, actualDeparture, delayMinutes } = req.body;
 
-  if (!tripId || !line || !scheduledDeparture) {
-    throw new AppError('tripId, line, and scheduledDeparture are required', 400);
-  }
-
   try {
-    // In delay_logs Tabelle speichern (ML-Training)
     const query = `
       INSERT INTO delay_logs (trip_id, line, stop_id, stop_name, scheduled_departure, actual_departure, delay_minutes)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -167,24 +161,22 @@ mobilityRouter.post('/log-delay', asyncHandler(async (req: Request, res: Respons
 // RAPTOR-basierte Verbindungssuche (lokale GTFS-Daten)
 // ---------------------------------------------------------------------------
 
-mobilityRouter.get('/journey/raptor', asyncHandler(async (req: Request, res: Response) => {
-  const { from, to, departureTime } = req.query;
-  
+mobilityRouter.get('/journey/raptor', validate(raptorJourneyQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
   if (!raptorService.isReady()) {
     logger.info('RAPTOR not ready, falling back to transitous.org');
     res.json({ status: 'ok', journeys: [], fallback: 'transitous.org' });
     return;
   }
-  
+
   try {
-    const departTime = departureTime ? new Date(departureTime as string) : new Date();
+    const departTime = req.query.departureTime ? new Date(req.query.departureTime as string) : new Date();
     const journeys = await raptorService.findJourneys(
-      from as string,
-      to as string,
+      req.query.from as string,
+      req.query.to as string,
       departTime
     );
-    
-    logger.info(`RAPTOR: ${journeys.length} journeys found for ${from} → ${to}`);
+
+    logger.info(`RAPTOR: ${journeys.length} journeys found for ${req.query.from} → ${req.query.to}`);
     res.json({ status: 'ok', journeys, source: 'raptor' });
   } catch (e: any) {
     logger.warn(`RAPTOR journey fehlgeschlagen: ${e.message}`);
@@ -194,22 +186,33 @@ mobilityRouter.get('/journey/raptor', asyncHandler(async (req: Request, res: Res
 
 // RAPTOR Status
 mobilityRouter.get('/raptor/status', asyncHandler(async (req: Request, res: Response) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     ready: raptorService.isReady(),
     source: 'raptor-journey-planner'
   });
 }));
 
 // ---------------------------------------------------------------------------
+// GTFS Stop-Matching: Overpass-Stop → GTFS-Stop Zuordnung
+// ---------------------------------------------------------------------------
+
+mobilityRouter.get('/stops/match', validate(stopsMatchQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
+  const matches = await mobilityService.matchStopToGtfs(
+    parseInt(req.query.osm_id as string),
+    req.query.name as string,
+    parseFloat(req.query.lat as string),
+    parseFloat(req.query.lng as string)
+  );
+  res.json({ status: 'ok', matches, count: matches.length });
+}));
+
+// ---------------------------------------------------------------------------
 // AI Intent-Klassifikation
 // ---------------------------------------------------------------------------
 
-mobilityRouter.post('/ai/intent', asyncHandler(async (req: Request, res: Response) => {
-  const { message } = req.body;
-  if (!message) throw new AppError('message is required', 400);
-
-  const intent = await classifyIntent(message);
+mobilityRouter.post('/ai/intent', validate(aiIntentBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
+  const intent = await classifyIntent(req.body.message);
   res.json({ status: 'ok', intent: intent ?? null });
 }));
 
@@ -227,12 +230,8 @@ mobilityRouter.get('/ai/disruptions', asyncHandler(async (req: Request, res: Res
 // AI Personal Routing
 // ---------------------------------------------------------------------------
 
-mobilityRouter.post('/ai/personal-route', asyncHandler(async (req: Request, res: Response) => {
+mobilityRouter.post('/ai/personal-route', validate(aiPersonalRouteBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
   const { message, origin, destination } = req.body;
-  if (!message || !origin || !destination) {
-    throw new AppError('message, origin, and destination are required', 400);
-  }
-
   const journeys = await personalRoutePlanning(message, origin, destination);
   res.json({ status: 'ok', journeys });
 }));

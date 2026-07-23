@@ -5,6 +5,21 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
+-- AUTH / USER
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    display_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- ============================================
 -- MOBILITÄT
 -- ============================================
 
@@ -242,20 +257,45 @@ CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_dat
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
 
 -- ============================================
--- TALER EXCHANGE (Simulator)
+-- TALER EXCHANGE (real GNU Taler protocol integration)
+-- ============================================
+--
+-- Wahrheit liegt am Exchange: GET https://exchange.demo.taler.net/reserves/<reserve_pub>
+-- Diese Tabellen sind nur Cache. KEINE erfundenen Balance-Werte.
 -- ============================================
 
--- Taler Wallets (ein Wallet pro User, echte EdDSA-Key-Paare)
+-- Taler Wallets (echte EdDSA-Key-Paare; Balance = Snapshot vom Exchange per GET /reserves/<pub>)
 CREATE TABLE IF NOT EXISTS taler_wallets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id VARCHAR(255) NOT NULL UNIQUE,
-    wallet_pub TEXT NOT NULL,
-    wallet_priv TEXT NOT NULL,
-    balance VARCHAR(50) NOT NULL DEFAULT '0',
+    wallet_pub TEXT NOT NULL,                       -- Crockford-Base32 Public-Key (Taler-Format)
+    wallet_priv_pkcs8 TEXT NOT NULL,                 -- PKCS8 ecoded ed25519 Private (in DB gecacht)
+    balance VARCHAR(50) NOT NULL DEFAULT '0',        -- LETZTE vom Exchange bestätigte Bilanz (Snapshot, "KUDOS:0" wenn unbekannt)
     currency VARCHAR(10) NOT NULL DEFAULT 'KUDOS',
+    exchange_reserve_pub TEXT,                       -- Verknüpfung zur Taler-Reserve am Exchange (nullable bis Reserve gebunden)
+    exchange_base_url TEXT,                          -- z.B. https://exchange.demo.taler.net/
+    last_probed_at TIMESTAMP,                        -- Wann wir zuletzt /reserves/<pub> abgefragt haben
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Taler Reserves (Cache, NICHT Truth-Source — Truth lebt am Exchange unter /reserves/<pub>)
+CREATE TABLE IF NOT EXISTS taler_reserves (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    reserve_pub TEXT NOT NULL UNIQUE,                -- Crockford-Base32
+    reserve_priv_pkcs8 TEXT NOT NULL,                -- PKCS8 für Ed25519-Reserve-Signaturen (für openReserve)
+    initial_balance VARCHAR(50) NOT NULL,             -- Taler-Format: "KUDOS:25"
+    current_balance VARCHAR(50) NOT NULL DEFAULT 'KUDOS:0',
+    status VARCHAR(20) NOT NULL DEFAULT 'unknown',     -- unknown|partial|full|closed (per /reserves/<pub>)
+    exchange_base_url TEXT NOT NULL,                  -- z.B. https://exchange.demo.taler.net/
+    last_probed_at TIMESTAMP,
+    raw_exchange_response JSONB,                       -- Antwort-Body der letzten /reserves/<pub> GET
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_taler_reserves_user ON taler_reserves(user_id);
+CREATE INDEX IF NOT EXISTS idx_taler_reserves_pub ON taler_reserves(reserve_pub);
 
 -- Taler Purses (ephemeral P2P-Transfer-Objekte)
 CREATE TABLE IF NOT EXISTS taler_purses (
@@ -273,16 +313,20 @@ CREATE TABLE IF NOT EXISTS taler_purses (
     merged_at TIMESTAMP
 );
 
--- Taler Transaktions-Log (alle Geldbewegungen)
+-- Taler Transaktions-Log (alle Geldbewegungen — sowohl Exchange-Reserve-Transaktionen
+-- als auch HEIMAT-interne P2P-Purse-Buchungen)
 CREATE TABLE IF NOT EXISTS taler_transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    reserve_id UUID REFERENCES taler_reserves(id),
     purse_id UUID REFERENCES taler_purses(id),
     from_wallet_id VARCHAR(255) NOT NULL,
     to_wallet_id VARCHAR(255) NOT NULL,
     amount VARCHAR(50) NOT NULL,
     currency VARCHAR(10) NOT NULL DEFAULT 'KUDOS',
     contract_hash VARCHAR(128),
+    kind VARCHAR(20) DEFAULT 'p2p',                -- 'reserve_open'|'reserve_withdraw'|'p2p'|'purse_funding'|'purse_merge'
     status VARCHAR(20) DEFAULT 'completed',
+    exchange_tx_signature TEXT,                    -- Echte Exchange-Signature (Wire-Proof), falls vorhanden
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -323,5 +367,43 @@ CREATE INDEX IF NOT EXISTS idx_delay_logs_logged_at ON delay_logs(logged_at);
 -- SEED DATA
 -- ============================================
 
--- Keine Seed-Daten: Haltestellen/Ärzte live aus Overpass, Wallets via GNU Taler (Phase 3).
+-- Keine Seed-Daten: Haltestellen/Ärzte live aus Overpass, Wallets & Reserves live vom GNU Taler Exchange.
+
+-- ============================================
+-- IDEMPOTENTE MIGRATIONEN (für bestehende DBs ohne neuen Spalten/Tabellen)
+-- ============================================
+ALTER TABLE taler_wallets ADD COLUMN IF NOT EXISTS wallet_priv_pkcs8 TEXT NOT NULL DEFAULT '';
+ALTER TABLE taler_wallets ADD COLUMN IF NOT EXISTS exchange_reserve_pub TEXT;
+ALTER TABLE taler_wallets ADD COLUMN IF NOT EXISTS exchange_base_url TEXT;
+ALTER TABLE taler_wallets ADD COLUMN IF NOT EXISTS last_probed_at TIMESTAMP;
+CREATE TABLE IF NOT EXISTS taler_reserves (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    reserve_pub TEXT NOT NULL UNIQUE,
+    reserve_priv_pkcs8 TEXT NOT NULL DEFAULT '',
+    initial_balance VARCHAR(50) NOT NULL,
+    current_balance VARCHAR(50) NOT NULL DEFAULT 'KUDOS:0',
+    status VARCHAR(20) NOT NULL DEFAULT 'unknown',
+    exchange_base_url TEXT NOT NULL,
+    last_probed_at TIMESTAMP,
+    raw_exchange_response JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_taler_reserves_user ON taler_reserves(user_id);
+CREATE INDEX IF NOT EXISTS idx_taler_reserves_pub ON taler_reserves(reserve_pub);
+ALTER TABLE taler_transactions ADD COLUMN IF NOT EXISTS reserve_id UUID REFERENCES taler_reserves(id);
+ALTER TABLE taler_transactions ADD COLUMN IF NOT EXISTS kind VARCHAR(20) DEFAULT 'p2p';
+ALTER TABLE taler_transactions ADD COLUMN IF NOT EXISTS exchange_tx_signature TEXT;
+ALTER TABLE taler_purses ADD COLUMN IF NOT EXISTS purse_priv_pkcs8 TEXT;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'taler_purses' AND column_name = 'purse_priv'
+  ) THEN
+    -- nur auf Legacy-DBs umbenennen; auf frischen Installationen existiert purse_priv nicht
+    EXECUTE 'ALTER TABLE taler_purses RENAME COLUMN purse_priv TO purse_priv_pkcs8';
+  END IF;
+END $$;
 -- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.

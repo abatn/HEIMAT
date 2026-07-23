@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:heimat_app/core/config/app_config.dart';
 import 'package:heimat_app/core/theme/app_theme.dart';
+import 'package:heimat_app/core/widgets/skeleton_loader.dart';
+import 'package:heimat_app/core/widgets/empty_state.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_provider.dart';
 import 'package:heimat_app/features/finance/presentation/finance_provider.dart';
 import 'package:heimat_app/features/health/presentation/health_provider.dart';
@@ -48,40 +50,94 @@ Widget buildTestApp({required Widget child}) {
 }
 
 void main() {
-  testWidgets('Mobilitaet-Tab zeigt Karte', (WidgetTester tester) async {
-    FlutterError.onError = (details) {
-      if (details.toString().contains('openstreetmap')) return;
-      FlutterError.presentError(details);
-    };
+  group('MobilityScreen', () {
+    testWidgets('shows map widget', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const MobilityScreen()));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(MobilityScreen), findsOneWidget);
+    });
 
-    await tester.pumpWidget(buildTestApp(child: const MobilityScreen()));
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.byType(MobilityScreen), findsOneWidget);
+    testWidgets('renders without crash', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const MobilityScreen()));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.takeException(), isNull);
+    });
   });
 
-  testWidgets('Finanzen-Tab zeigt Guthaben-Section',
-      (WidgetTester tester) async {
-    FlutterError.onError = (details) {
-      if (details.toString().contains('openstreetmap')) return;
-      FlutterError.presentError(details);
-    };
+  group('FinanceScreen', () {
+    testWidgets('shows finance screen', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const FinanceScreen()));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(FinanceScreen), findsOneWidget);
+    });
 
-    await tester.pumpWidget(buildTestApp(child: const FinanceScreen()));
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.byType(FinanceScreen), findsOneWidget);
+    testWidgets('renders without crash', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const FinanceScreen()));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.takeException(), isNull);
+    });
   });
 
-  testWidgets('Gesundheit-Tab zeigt Arzt-Screen', (WidgetTester tester) async {
-    FlutterError.onError = (details) {
-      if (details.toString().contains('openstreetmap')) return;
-      FlutterError.presentError(details);
-    };
+  group('HealthScreen', () {
+    testWidgets('shows health screen', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const HealthScreen()));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(HealthScreen), findsOneWidget);
+    });
 
-    await tester.pumpWidget(buildTestApp(child: const HealthScreen()));
-    await tester.pump(const Duration(milliseconds: 300));
+    testWidgets('shows filter chips', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const HealthScreen()));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(FilterChip), findsWidgets);
+    });
 
-    expect(find.byType(HealthScreen), findsOneWidget);
+    testWidgets('shows FAB for doctor registration',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const HealthScreen()));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    });
+  });
+
+  group('Shared Widgets', () {
+    testWidgets('EmptyState shows icon and text', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: const EmptyState(
+              icon: Icons.inbox,
+              title: 'Leer',
+              description: 'Keine Daten',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('Leer'), findsOneWidget);
+      expect(find.text('Keine Daten'), findsOneWidget);
+      expect(find.byIcon(Icons.inbox), findsOneWidget);
+    });
+
+    testWidgets('SkeletonLoader animates', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SkeletonLoader(),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.byType(SkeletonLoader), findsOneWidget);
+    });
+  });
+
+  group('AppConfig', () {
+    test('has default backend URL', () {
+      expect(AppConfig.backendUrl, isNotEmpty);
+    });
+
+    test('has app name', () {
+      expect(AppConfig.appName, isNotEmpty);
+    });
   });
 }

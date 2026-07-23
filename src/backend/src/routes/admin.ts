@@ -7,11 +7,14 @@ import { logger } from '../utils/logger';
 
 const adminRouter = Router();
 
-const ADMIN_KEY = process.env.ADMIN_KEY || 'heimat-admin-2024';
-
 function requireAdmin(req: Request, res: Response): boolean {
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey) {
+    res.status(503).json({ success: false, message: 'Admin endpoints disabled: ADMIN_KEY not configured' });
+    return false;
+  }
   const key = req.headers['x-admin-key'];
-  if (key !== ADMIN_KEY) {
+  if (key !== adminKey) {
     res.status(401).json({ success: false, message: 'Unauthorized' });
     return false;
   }
