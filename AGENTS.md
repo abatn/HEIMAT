@@ -5,42 +5,84 @@ HEIMAT 2.0 – open-source "super app" (German docs/UI). Three services under `s
 - `src/backend/` – Node 18+ / TypeScript Express API (port 3000)
 - `src/ml-service/` – Python FastAPI (port 8000, Docker only)
 
-`docker-compose up` wires all of it plus Postgres 15 and Redis 7.
+`docker-compose up` wires all of it plus Postgres 15, Redis 7, and `derhuerst/db-rest:6` (Deutsche Bahn API proxy).
 
 ## Critical: untracked junk in the working tree
 
-- `src/mobile/flutter/` is a **full vendored Flutter SDK checkout** (3.24.5). It is untracked and NOT gitignored. Never edit, search, or `git add` anything under it.
+- `src/mobile/flutter/` is a **full vendored Flutter SDK checkout** (3.24.5). Untracked, not gitignored. Never edit, search, or `git add` anything under it.
 - Also untracked and not ignored: `src/mobile/android/`, `src/mobile/ios/`, `src/mobile/mobile.iml`, `.mimocode/`. CI regenerates android/ios via `flutter create . --platforms ...`.
-- Therefore: **never `git add -A` / `git add .` from the repo root.** Stage files explicitly.
+- **Never `git add -A` / `git add .` from the repo root.** Stage files explicitly.
 
-## Toolchain quirks (local machine)
+## Toolchain
 
-- `flutter`, `dart`, `node` are NOT on PATH. Use the vendored SDK:
-  `src/mobile/flutter/bin/flutter` and `src/mobile/flutter/bin/dart`.
-- Node/npm is not installed locally; backend commands only work after installing Node 18+.
+- `flutter`, `dart`, `node` are **not on PATH**. Use: `src/mobile/flutter/bin/flutter` and `src/mobile/flutter/bin/dart`.
+- Backend needs Node 18+ (install separately).
 
 ## Commands
 
-Backend (run in `src/backend/`):
-- `npm run dev` / `npm run lint` / `npm test` (jest, coverage, `--forceExit`)
-- Single test: `npx jest src/__tests__/mobility.test.ts`
-- Typecheck (CI does this, no npm script): `npx tsc --noEmit`
-- `npm run migrate` / `npm run seed` are broken – they reference `src/database/migrate.ts`/`seed.ts` which don't exist. `src/database/schema.sql` is the only schema source; CI loads it with `psql` into a `heimat_test` DB and passes `DB_*` env vars to jest.
+### Backend (run in `src/backend/`)
 
-Mobile (run in `src/mobile/`, using vendored SDK):
-- `flutter pub get`, `flutter test`, `flutter analyze --no-fatal-infos`
-- Single test: `flutter test test/widget_test.dart`
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev server (ts-node-dev, auto-restart) |
+| `npm run lint` | ESLint |
+| `npm test` | Jest (`--coverage --forceExit`, needs Postgres) |
+| `npx jest src/__tests__/mobility.test.ts` | Single test |
+| `npx tsc --noEmit` | Typecheck (CI only, no npm script) |
+| `npm run import:gtfs` | Local GTFS import |
+
+**Schema:** `src/backend/src/database/schema.sql` (409 lines, 16 tables). CI loads it via `psql -f src/database/schema.sql`. There is no `npm run migrate` / `npm run seed` – those scripts don't exist. A `POST /api/migrate` endpoint loads schema at runtime (admin-only).
+
+**Tests need Postgres.** CI spins up `postgres:15-alpine` with DB `heimat_test`. The test suite uses `DB_*` env vars; `forceExit: true` in jest config.
+
+### Mobile (run in `src/mobile/`, using vendored SDK)
+
+```bash
+src/mobile/flutter/bin/dart format lib/ test/   # MUST run before every Dart commit
+src/mobile/flutter/bin/flutter analyze --no-fatal-infos
+src/mobile/flutter/bin/flutter test
+src/mobile/flutter/bin/flutter test test/widget_test.dart   # Single test
+src/mobile/flutter/bin/flutter test test/app_smoke_test.dart  # UI smoke test
+src/mobile/flutter/bin/flutter pub get
+```
+
+No `analysis_options.yaml` – analyzer runs with defaults. `flutter_lints` is in `pubspec.yaml` but unused.
+
+### Docker
+
+```bash
+docker-compose up   # Full stack (5 services)
+```
 
 ## CI gates (`.github/workflows/`)
 
-- Flutter CI runs `dart format --set-exit-if-changed .` – unformatted Dart is the most common CI failure. Run `dart format lib/ test/` before every commit touching Dart.
-- Backend CI order: lint → test (needs Postgres) → `tsc --noEmit`.
-- Pushing `src/mobile/**` to `main` auto-deploys the web build to GitHub Pages (`flutter build web --base-href "/HEIMAT/"`).
+| Workflow | Order | Common CI failure |
+|----------|-------|-------------------|
+| `flutter.yml` | `dart format` → analyze → test (+ smoke in parallel) → build-web + build-android | Unformatted Dart |
+| `backend.yml` | lint → test (needs Postgres) → `tsc --noEmit` | Missing types |
+| `deploy-web.yml` | Push `src/mobile/**` to `main` → full CI → `flutter build web --release --base-href "/HEIMAT/"` → GitHub Pages | – |
+
+Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.yml`.
 
 ## Conventions
 
-- No `analysis_options.yaml` in `src/mobile` – analyzer runs with defaults; `flutter_lints` is declared but unused.
-- Service URLs come from `--dart-define` `BACKEND_URL` / `ML_SERVICE_URL` (defaults `http://localhost:3000` / `:8000`), see `src/mobile/lib/core/config/app_config.dart`.
-- GTFS-Feed-Import läuft lokal (src/backend/scripts/import-gtfs-local.ts), nicht über Render (Free-Tier Memory/Timeout).
-- Conventional Commits, lowercase, German descriptions (see CONTRIBUTING.md), e.g. `feat(mobilitaet): oepnv-verbindungssuche hinzugefuegt`.
-- Root `*.md` files (`AI-*.md`, `heimat-plan.md`, `.loop.md`, `blog/`, `funding/`, `marketing/`) are planning/marketing docs, not code documentation.
+- **Conventional Commits, lowercase, German descriptions** – e.g. `feat(mobilitaet): oepnv-verbindungssuche hinzugefuegt`
+- **Service URLs** from `--dart-define BACKEND_URL` / `--dart-define ML_SERVICE_URL`. Defaults: `BACKEND_URL=https://heimat-backend.onrender.com`, `ML_SERVICE_URL=http://localhost:8000`. See `src/mobile/lib/core/config/app_config.dart`.
+- **GTFS import** runs locally (`src/backend/scripts/import-gtfs-local.ts`), not on Render (free-tier memory/timeout).
+- **Root `*.md` files** (`AI-*.md`, `heimat-plan.md`, `.loop.md`, `blog/`, `funding/`, `marketing/`) are planning/marketing docs, not code documentation.
+- **Admin endpoints** require `ADMIN_KEY` env var (no static fallback).
+- **Taler** is a real GNU Taler exchange client (`exchange.demo.taler.net`, KUDOS currency, Ed25519 wallets).
+
+## Known bugs
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `'toDouble' Dynamic call of null` on latitude/longitude | Postgres DECIMAL → Node pg passes string → Flutter `.toDouble()` on null | `double.parse(json['latitude'].toString())` in providers |
+| "Haltestellen konnten nicht geladen werden" | Helmet CORS blocks API | Index.ts has permissive helmet config |
+| `GET /stops/search` returns 500 "invalid input syntax for type uuid" | Express matches `/stops/search` as `/stops/:id` with `id="search"` | Define `/stops/search` before `/stops/:id` in `mobility.ts` |
+| Journey search empty | Frontend sends `?from=lat,lng`, backend expects `?from_lat=&from_lng=` | Fix query params in `mobility_provider.dart` |
+
+## Additional instruction files
+
+- `.claude/CLAUDE.md` – detailed Claude-specific instructions (same rules, more verbose)
+- `.opencode/skills/heimat-dev/SKILL.md` – OpenCode skill (loaded automatically for HEIMAT tasks)

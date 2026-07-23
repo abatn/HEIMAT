@@ -20,6 +20,9 @@ updates:
         versions: [">= 8.0.0"]
       - dependency-name: "@typescript-eslint/parser"
         versions: [">= 8.0.0"]
+      # TypeScript 7.0: @typescript-eslint unterstützt es noch nicht
+      - dependency-name: "typescript"
+        versions: [">= 7.0.0"]
       # express@5: req.query unknown, req.params type-changes — Breaking-Change-Pass noetig
       - dependency-name: "express"
         versions: [">= 5.0.0"]

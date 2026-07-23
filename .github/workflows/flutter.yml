@@ -110,12 +110,23 @@ jobs:
           channel: stable
       - name: Enable Android platform
         run: |
+          rm -rf android
           flutter create . --platforms android
           cd android
-          sed -i 's/VERSION_1_8/VERSION_17/g' app/build.gradle
-          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' app/build.gradle
-          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 21/g' app/build.gradle
-          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 34/g' build.gradle
+          # Java 17 target (AGP 8+)
+          sed -i 's/VERSION_11/VERSION_17/g' app/build.gradle
+          # Hardcode SDK versions instead of flutter.compileSdkVersion
+          sed -i 's/compileSdk .*/compileSdk 34/' app/build.gradle
+          sed -i 's/minSdk .*/minSdk 21/' app/build.gradle
+          sed -i 's/targetSdk .*/targetSdk 34/' app/build.gradle
+          # Make flutter extension available to all subprojects – fixes
+          # geolocator_android-4.6.2 referencing flutter.compileSdkVersion
+          cat >> build.gradle << 'GRADLE_EOF'
+
+subprojects {
+    project.ext.flutter = [compileSdkVersion: 34]
+}
+GRADLE_EOF
           echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
           cd ..
       - name: Install dependencies

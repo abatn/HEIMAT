@@ -1021,12 +1021,12 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 ### CI/CD
 
-| Pipeline | Status |
-|----------|--------|
-| Flutter CI (format → analyze → test) | ✅ grün |
-| Backend CI (lint → test → tsc) | ✅ grün |
-| Web-Deploy (GitHub Pages) | ✅ automatisch |
-| Render Backend Deploy | ✅ automatisch |
+| Pipeline | Status | Letzter Lauf |
+|----------|--------|-------------|
+| Flutter CI (format → analyze → test) | ❌ Android-Build broken | ea04acf — `geolocator_android-4.6.2` inkompatibel mit Flutter 3.24.5 |
+| Backend CI (lint → test → tsc) | ❌ `npm install` ERESOLVE | ea04acf — TypeScript 7 inkompatibel mit @typescript-eslint 8.x |
+| Web-Deploy (GitHub Pages) | ✅ automatisch | — |
+| Render Backend Deploy | ✅ automatisch | — |
 
 ### Deployment
 
@@ -1058,11 +1058,13 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 ### Nächste Schritte (priorisiert)
 
-1. **User-Auth implementieren** — JWT-basiert, bcryptjs für Passwörter
-2. **Zod-Validierung** — Input-Validierung mit dem bereits installierten Package
-3. **API-Dokumentation** — Swagger/OpenAPI für alle Endpoints
-4. **Echte Taler-Exchange** — Anbindung an `exchange.demo.taler.net`
-5. **E2E-Tests** — Flutter Integration Tests
+1. **🔴 CI-Reparatur: Flutter Android-Build fixen** — `flutter.yml` Gradle-Patch für `flutter.compileSdkVersion` in Subprojekten
+2. **🔴 CI-Reparatur: Backend `npm install` fixen** — TypeScript auf `~5.6.3` zurück, @typescript-eslint auf `^7.18.0`
+3. **User-Auth implementieren** — JWT-basiert, bcryptjs für Passwörter
+4. **Zod-Validierung** — Input-Validierung mit dem bereits installierten Package
+5. **API-Dokumentation** — Swagger/OpenAPI für alle Endpoints
+6. **Echte Taler-Exchange** — Anbindung an `exchange.demo.taler.net`
+7. **E2E-Tests** — Flutter Integration Tests
 
 ---
 
@@ -1844,3 +1846,45 @@ Anfrage → Versuche RAPTOR (lokal)
 17. ✅ Phase 17 – API-Dokumentation (Swagger + swagger-ui-express + OpenAPI 3.0)
 18. ✅ Phase 18 – Echte Taler-Exchange (abgeschlossen) — echter Ed25519-Wallet-Identity, echte `/keys` + `/reserves/<pub>` Calls gegen exchange.demo.taler.net, Wire-Spec-konform gegen echte GNU-Taler-Production-Software. Siehe `src/backend/src/services/talerExchangeClient.ts` und `talerService.ts`.
 19. ✅ Phase 19 – E2E-Tests (voller User-Lifecycle: Auth + Mobility + Health + Finance + Swagger + Fehlerbehandlung)
+
+---
+
+## Phase 21: CI-Reparatur (Juli 2026)
+
+### Problem 1: Flutter CI Android-Build
+
+`geolocator_android-4.6.2` nutzt `(flutter.compileSdkVersion as int)` in build.gradle. Flutter 3.24.5 stellt die `flutter` extension NICHT für Library-Subprojekte bereit. Alle Downgrade-Versuche (14→13→11.1.0→10.1.0) scheiterten, weil das Problem im Gradle-Subproject-Scope liegt.
+
+**Fix in `flutter.yml` — `Enable Android platform`:**
+```yaml
+# Java 17 target
+sed -i 's/VERSION_11/VERSION_17/g' app/build.gradle
+# Hardcode SDK versions
+sed -i 's/compileSdk .*/compileSdk 34/' app/build.gradle
+sed -i 's/minSdk .*/minSdk 21/' app/build.gradle
+sed -i 's/targetSdk .*/targetSdk 34/' app/build.gradle
+# Globale flutter extension für Subprojekte (geolocator_android Fix)
+cat >> build.gradle << 'GRADLE_EOF'
+
+subprojects {
+    project.ext.flutter = [compileSdkVersion: 34]
+}
+GRADLE_EOF
+```
+
+### Problem 2: Backend CI `npm install` ERESOLVE
+
+Dependabot bumped `typescript` `~5.6.3` → `^7.0.2` und `@typescript-eslint/*` `^7.18.0` → `^8.65.0`. `@typescript-eslint/eslint-plugin@8.65.0` benötigt `typescript@>=4.8.4 <6.1.0` — inkompatibel mit TS 7.
+
+**Fix in `package.json`:**
+```json
+"@typescript-eslint/eslint-plugin": "^7.18.0",
+"@typescript-eslint/parser": "^7.18.0",
+"typescript": "~5.6.3"
+```
+
+### Problem 3: Dependabot-Auto-Merge verursacht Kaskaden-Fehler
+
+`dependabot-auto-merge.yml` merged minor-updates automatisch. Mehrere parallel gemergte Updates (TS 5→7, eslint 6→8, zod 3→4, etc.) erzeugen inkompatible Abhängigkeitsketten.
+
+**Fix:** Kein Code-Fix — erfordert Process-Änderung. `dependabot-auto-merge.yml` sollte keine semver-minor für Dev-Dependencies automatisch mergen, oder einen `needs: [ci]` Gate hinzufügen.
