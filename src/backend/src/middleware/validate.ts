@@ -10,7 +10,7 @@ export function validate(schema: ZodSchema, source: 'query' | 'body' | 'params' 
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const messages = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
+        const messages = error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join('; ');
         next(new AppError(`Validation error: ${messages}`, 400));
       } else {
         next(error);
