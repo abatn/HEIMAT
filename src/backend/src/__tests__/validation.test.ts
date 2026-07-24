@@ -8,7 +8,7 @@ beforeAll(async () => {
   const email = `validation-${Date.now()}@heimat.de`;
   const res = await request(app)
     .post('/api/auth/register')
-    .send({ email, password: 'Test1234!' });
+    .send({ email, password: 'Test1234!', displayName: 'Validator' });
   if (res.status === 201) {
     authToken = res.body.accessToken;
   }
