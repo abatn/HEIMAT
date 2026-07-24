@@ -1,5 +1,7 @@
 # HANDOFF-PROMPT: Dependabot Major-Version-Bumps
 
+> **⚠️ SUPERSEDED by Phase 22 (2026-07-23):** Alle 5 🟢-🟡 Backend-Bumps + eslint+typescript-eslint+express erledigt via `bauplan.md:Phase 22`. Flutter-Bumps (flutter_map ^7, flutter_lints ^5) versionstechnisch maxed out. Nur noch TypeScript 7 (blocked) und mobility.test.ts (Infra) offen.
+
 ## Aktueller Stand
 
 **5 von 17 PRs manuell erledigt** (GitHub Actions). Commit: `180ebf1`.

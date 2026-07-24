@@ -24,7 +24,7 @@ Backend (Node.js Express, Render)
   → https://heimat-backend.onrender.com
   → /api/mobility/* — Overpass, Nominatim, OSRM, transitous.org, RAPTOR
   → /api/health/*   — Overpass-Ärzte, Registrierung, Slots, Termine
-   → /api/finance/*  — Taler-Exchange-Client-Code (exchange.demo.taler.net, KUDOS, Ed25519) — Client-Code existiert, echter HTTP-Client, aber Bank-Wire-Funding-Schritt ist manuell (bank.demo.taler.net/webui), kein vollständig automatisierter End-to-End-Flow
+  → /api/finance/*  — Taler-Exchange-Client-Code (exchange.demo.taler.net, KUDOS, Ed25519)
   → /api/admin/*    — Nur mit ADMIN_KEY (env var)
   → /health/*       — Health-Checks mit DB/Redis Ping
 
@@ -39,7 +39,7 @@ Datenquellen (alle öffentlich, kein Token):
   → Nominatim — Geocoding
   → OSRM — Routing (Fuß/Auto)
   → transitous.org — ÖPNV-Abfahrten, Verbindungen (MOTIS 2)
-  → gtfs.de — GTFS-Feed (lokal importiert)
+  → gtfs.de — GTFS-Feed
 ```
 
 ## Kritische Regeln (NIEMALS verletzen)
@@ -50,8 +50,7 @@ Datenquellen (alle öffentlich, kein Token):
 4. **Kein `analysis_options.yaml`** in `src/mobile` — Analyzer läuft mit Defaults.
 5. **Keine Erfindungen, keine Halluzinationen.** Nur basierend auf existierenden Dateien arbeiten. Wenn etwas fehlt → fragen.
 6. **Admin-Endpoints geschützt** — `ADMIN_KEY` muss als env var gesetzt sein. Kein statisch eingebauter Default-Fallback.
-7. **KEINE lokale Sandbox.** Es gibt keinen lokalen Postgres, kein Docker-Stack, keine Entwicklungs-DB. Sämtliche Arbeit direkt gegen Production (Supabase + Render). Code-Änderungen werden committed und via CI/CD deployed.
-8. **Supabase + Render MÜSSEN funktionieren.** Sie sind die einzige Test- und Deployment-Umgebung. Fallen sie aus, kann weder getestet noch deployed werden.
+7. **Supabase + Render MÜSSEN funktionieren.** Sie sind die einzige Test- und Deployment-Umgebung. Fallen sie aus, kann weder getestet noch deployed werden.
 
 ## Befehle
 
@@ -77,9 +76,6 @@ src/mobile/flutter/bin/flutter pub get
 ### Backend (in `src/backend/` ausführen)
 
 ```bash
-# Dev-Server
-npm run dev
-
 # Lint
 npm run lint
 
@@ -89,15 +85,8 @@ npm test
 # Einzeltest
 npx jest src/__tests__/mobility.test.ts
 
-# Typecheck (kein npm-Script — CI macht das)
+# Typecheck
 npx tsc --noEmit
-```
-
-### Docker
-
-```bash
-# Full Stack (Postgres 15, Redis 7, Backend, ML-Service, Frontend)
-docker-compose up
 ```
 
 ## CI Gates
@@ -197,9 +186,9 @@ src/ml-service/       # Python FastAPI (nur Docker)
 
 ## Konventionen
 
-- Service-URLs via `--dart-define`: `BACKEND_URL` / `ML_SERVICE_URL` (Defaults `http://localhost:3000` / `:8000`)
+- Service-URLs via `--dart-define`: `BACKEND_URL=https://heimat-backend.onrender.com`
 - Siehe `src/mobile/lib/core/config/app_config.dart`
-- GTFS-Import läuft lokal (`src/backend/scripts/import-gtfs-local.ts`), nicht auf Render
+- GTFS-Import läuft via `src/backend/scripts/import-gtfs-local.ts` (nicht auf Render — Free-Tier Memory/Timeout)
 - Root `*.md`-Dateien sind Planungs-/Marketing-Dokumente, keine Code-Dokumentation
 - Schema-Quelle: `src/backend/src/database/schema.sql` (CI lädt via `psql`)
 - Kein `npm run migrate` oder `npm run seed` — diese Scripts existieren nicht
@@ -218,7 +207,19 @@ src/ml-service/       # Python FastAPI (nur Docker)
 
 ## Offene Tasks (priorisiert)
 
-1. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
-2. **Production-Validierung: User-Auth End-to-End testen** — auf Render deployt und curl-Test
-3. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden
-4. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
+1. 🔴 **Finanzen: JWT-Auth statt Demo-User** — `finance_provider.dart:45` hat `user-demo-001` hartkodiert; Backend JWT ist fertig (14 Tests), Mobile nutzt es NICHT
+2. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
+3. **Production-Validierung: User-Auth End-to-End testen** — auf Render deployt und curl-Test
+4. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden
+5. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
+
+## Klärungen (Juli 2026)
+
+### GTFS ZIP-Import: KEIN Regelverstoß
+Der GTFS-Zip-Import (`gtfs.de/nv_free`) verstößt gegen KEINE Projektdaten. CC-BY lizenziert, explizit erlaubt in `project-prompt.md:59` und `heimat-plan.md:392`.
+
+### Ärzte: ECHTE Overpass-Ergebnisse
+Die 5 Ärzte die auf der Gesundheitsseite erscheinen sind echte Overpass-API-Ergebnisse für Berlin, keine hardcodierten Daten. `schema.sql:370`: "Keine Seed-Daten".
+
+### Finanzen: Demo-User ist ein echtes Problem
+`finance_provider.dart:45` hat `user-demo-001` hartkodiert. Backend JWT-Auth ist fertig (14 Tests), aber das Mobile-Code nutzt es nicht. Dies ist der höchste Prioritäts-Task.

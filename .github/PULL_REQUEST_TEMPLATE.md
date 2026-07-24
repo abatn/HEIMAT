@@ -20,7 +20,6 @@ Fixes # (Issue-Nummer einfügen)
 ## Checkliste
 
 - [ ] Mein Code folgt dem Code-Style dieses Projekts
-- [ ] Ich habe meine Änderungen lokal getestet
 - [ ] Neue und bestehende Tests sind grün
 - [ ] Ich habe die Dokumentation aktualisiert (falls nötig)
 - [ ] Ich habe einen passenden Branch-Namen gewählt (`feature/`, `fix/`, `docs/`, etc.)

@@ -1,6 +1,6 @@
 ---
 name: heimat-deploy
-description: "Deployment & CI/CD für HEIMAT. Trigger bei Änderungen an render.yaml, docker-compose.yml, .github/workflows/ oder Dockerfile."
+description: "Deployment & CI/CD für HEIMAT. Trigger bei Änderungen an render.yaml, .github/workflows/ oder Dockerfile."
 ---
 
 # HEIMAT Deployment Skill
@@ -29,13 +29,6 @@ description: "Deployment & CI/CD für HEIMAT. Trigger bei Änderungen an render.
 - Build: `flutter build web --base-href "/HEIMAT/"`
 - Deploy: GitHub Actions → `actions/deploy-pages`
 
-## Docker Compose (lokal)
-
-```bash
-docker-compose up
-# Services: db (Postgres 15), redis, backend, db-rest, ml-service, frontend
-```
-
 ## CI Workflows
 
 | Workflow | Trigger | Reihenfolge |
@@ -52,4 +45,4 @@ Backend braucht 30-60s beim ersten Request. Overpass-Calls verlängern das.
 
 ### GTFS-Import nicht auf Render
 Free-Tier hat zu wenig Memory/Timeout für 244MB GTFS-Download.
-→ Import läuft lokal via `src/backend/scripts/import-gtfs-local.ts`.
+→ Import via `src/backend/scripts/import-gtfs-local.ts` (manuell ausgeführt).

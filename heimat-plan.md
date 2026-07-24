@@ -980,6 +980,57 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 ---
 
+## Aktuelle Korrekturen (Juli 2026)
+
+### Klärung: GTFS ZIP-Import ist KEIN Regelverstoß
+
+**Behauptung:** "es würde ein .zip gtfs geladen und das verletzt die rules"
+
+**Korrektur:** Der GTFS-Zip-Import verstößt gegen KEINE Projektdaten.
+
+| Regel | GTFS-Status | Erklärung |
+|-------|-------------|-----------|
+| 100% Open Source | ✅ Konform | `gtfs.de/nv_free` ist CC-BY lizenziert |
+| 100% Kostenfrei | ✅ Konform | Kostenloser Download, keine Gebühren |
+| 100% Legal | ✅ Konform | `heimat-plan.md:392` erlaubt explizit GTFS |
+| Keine Verträge | ✅ Konform | Kein Vertrag mit Verbünden nötig |
+| Nur öffentliche APIs | ✅ Konform | `gtfs.de` ist öffentlicher Endpunkt |
+
+**Quellen:** `project-prompt.md:59`, `heimat-plan.md:392`, `oepnv-konzept.md:17`
+
+### Klärung: Ärzte sind ECHTE Overpass-Ergebnisse
+
+**Behauptung:** "5 hardcoded Ärzte auf der Gesundheitsseite"
+
+**Korrektur:** Die 5 Ärzte (Dr. Anna Schmidt etc.) sind **echte Overpass-API-Ergebnisse für Berlin**, keine hardcodierten Daten im Code.
+
+- `healthService.ts` hat ZERO Seed-Daten
+- `schema.sql:370`: "Keine Seed-Daten: Haltestellen/Aerzte live aus Overpass"
+- Ärzte kommen von `overpass-api.de` (live) oder sind via `POST /api/health/doctors` registriert
+
+### Klärung: Finanzen hat Demo-User (IST ein Problem)
+
+**Behauptung:** "Simulator in Finanzen noch offen"
+
+**Korrektur:** Der alte Simulator wurde entfernt (`talerService.ts:33`), ABER:
+
+**Problem:** `finance_provider.dart:45` hat `static const String _currentUserId = 'user-demo-001'` hartkodiert.
+
+**Status:** Das JWT-Auth-System im Backend ist fertig (14 Tests), aber das Mobile-Code nutzt es NICHT. Die Finanzfunktion zeigt `user-demo-001` mit 0.00 KUDOS.
+
+**Lösung:** JWT-Auth im Mobile-Code integrieren (siehe bauplan.md Task 1).
+
+### Zusammenfassung der Ist-Analyse
+
+| Bereich | Status | Nötige Aktion |
+|---------|--------|---------------|
+| GTFS ZIP-Import | ✅ Kein Problem | Keine |
+| Gesundheit (Ärzte) | ✅ Echte Overpass-Daten | Keine |
+| Finanzen (User) | ❌ Demo-User hartkodiert | JWT-Auth integrieren |
+| Finanzen (Simulator) | ✅ Entfernt, echter Exchange | Keine |
+
+---
+
 ## Zusammenfassung aller Phasen
 
 | Phase | Status |
@@ -1008,7 +1059,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 | **Mobilität: ÖPNV** | ✅ | transitous.org (MOTIS 2 API) — Abfahrten, Verbindungen, Echtzeit-Daten |
 | **Mobilität: Routing** | ✅ | OSRM für Fuß/Auto, RAPTOR für ÖPNV (GTFS-basiert) |
 | **Mobilität: GPS** | ✅ | echte GPS-Position via geolocator |
-| **Finanzen: P2P** | ✅ | Echter GNU Taler Exchange (exchange.demo.taler.net), Ed25519-Wallet-Identity, Bank-Wire-only Reserve-Workflow |
+| **Finanzen: Taler-Client** | ⚠️ Client-Code | exchange.demo.taler.net, Ed25519, KUDOS — echter HTTP-Client, aber Bank-Wire-Funding manuell (bank.demo.taler.net/webui), kein vollst. End-to-End-Flow |
 | **Gesundheit: Ärzte** | ✅ | Overpass-Ärzte + registrierte Ärzte (DB) |
 | **Gesundheit: Termine** | ✅ | Terminbuchung mit verfügbaren Slots |
 | **Gesundheit: Registrierung** | ✅ | POST /api/health/doctors + Flutter-Formular |
@@ -1039,40 +1090,53 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 ### Bekannte Einschränkungen
 
-1. **Taler-Exchange-Client (echter exchange.demo.taler.net)** (Phase 18 erledigt) — Bank-Wire-Workflow über `bank.demo.taler.net/webui`
-2. **Kein User-Auth** — bcryptjs/jsonwebtoken in package.json aber ungenutzt
-3. **CORS** — auf GitHub Pages Origin beschränkt (nicht `*`)
+1. **Taler-Exchange-Client** — Client-Code für exchange.demo.taler.net (Ed25519, KUDOS) existiert + 12 Tests, aber Bank-Wire-Funding erfordert manuellen Schritt auf bank.demo.taler.net/webui — kein vollständiger End-to-End-Flow
+2. **User-Auth (ungenutzt auf Production)** — JWT+bcryptjs implementiert + 14 Tests, aber nie auf Render ausgeführt
+3. **CORS** — `process.env.CORS_ORIGIN || '*'` (Default allow-all, per env var einschränkbar)
 4. **Rate-Limiter** — 100 req/15min global (kann bei vielen API-Calls pro Screen limitieren)
 5. **ML-Service** — nur Statistical/Keyword-Fallback, keine echten Trainingsdaten
 
 ### Entwicklungsansatz: Production-First (keine Sandbox)
 
-- **KEINE lokale Sandbox-Umgebung.** Sämtliche Arbeit direkt gegen Production-Infrastruktur.
-- **Supabase (PostgreSQL)** ist die einzige Datenbank — lokal läuft kein Postgres.
-- **Render** hostet das Backend — lokale Tests gegen Production-DB via `heimat-backend.onrender.com`.
+- **KEINE Sandbox-Umgebung.** Sämtliche Arbeit direkt gegen Production-Infrastruktur.
+- **Supabase (PostgreSQL)** ist die einzige Datenbank.
+- **Render** hostet das Backend — Tests gegen Production-DB via `heimat-backend.onrender.com`.
 - **CI/CD validiert auf GitHub Actions** (Flutter: format→analyze→test→build; Backend: lint→test→tsc).
-- **Änderungen werden direkt committed und deployed** — kein lokaler Pre-Production-Workflow.
+- **Änderungen werden direkt committed und deployed** — kein Pre-Production-Workflow.
 - **Supabase und Render MÜSSEN immer funktionieren** — sie sind die einzige Umgebung. Wenn Supabase/React ausfallen, ist kein Test, kein Debug, kein Deploy möglich.
 
 ### Test-Abdeckung
 
 | Bereich | Tests | Details |
 |---------|-------|---------|
-| Backend Mobility | 12 | stops, route, geocode, departures, journey, raptor, log-delay, match |
-| Backend Health | 10 | doctors, nearby, register, slots, appointments |
+| Backend Mobility | 18 | routes, geocode, departures, journey, raptor, stops, log-delay, match |
+| Backend Health | 16 | doctors, nearby, register, slots, appointments |
 | Backend Finance | 12 | wallet, balance, pay, transactions, taler config, purse lifecycle |
-| Flutter Widget | 9 | Theme, Colors, Screens (Mobility, Finance, Health), Widgets |
+| Backend Auth | 14 | register, login, me, profile, password |
+| Backend Validation | 25 | request/response schema validation |
+| Backend E2E | 22 | user lifecycle, API integration |
+| Backend Bank-Wire-Live | 6 | manuell, gegen exchange.demo.taler.net |
+| Flutter Widget | 9 | Theme, Colors, Screens, Widgets |
 | Flutter Smoke | 12 | Screen-Rendering, Provider, EmptyState, SkeletonLoader, AppConfig |
-| **Gesamt** | **55** | |
+| **Gesamt** | **113** | |
+
+### Code-Existenz (geschrieben ≠ getestet/deployed)
+
+| Feature | Code existiert? | Getestet? | Production-validiert? | Anmerkung |
+|---------|---------------|-----------|----------------------|-----------|
+| User-Auth (JWT+bcryptjs) | ✅ | ✅ (14 Tests) | ❌ ungetestet | Routes/Service geschrieben, auf Production nie ausgeführt |
+| Zod-Validierung | ✅ | ✅ (25 Tests) | ❌ ungetestet | Middleware validiert alle Inputs, per CI getestet |
+| Swagger/OpenAPI | ✅ | ✅ (in e2e) | ❌ ungetestet | `/docs` und `/docs.json` im Code |
+| Taler-Exchange-Client | ⚠️ Client-Code | ✅ (12 Tests) | ❌ kein vollst. Flow | exchange.demo.taler.net erreichbar, Bank-Wire-Funding manuell |
+| E2E-Tests (Backend) | ✅ | ✅ (22 Tests) | 🔄 via CI | Testet User-Lifecycle, braucht Postgres (nur in CI) |
+| Backend CI health.test.ts | 🔴 1/7 Suites failed | ❌ | ❌ | pre-existing, vermutlich DB-Cleanup-Reihenfolge |
 
 ### Nächste Schritte (priorisiert)
 
 1. **🔴 Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites); vermutlich DB-Cleanup-Reihenfolge
-2. **User-Auth implementieren** — JWT-basiert, bcryptjs für Passwörter
-3. **Zod-Validierung** — Input-Validierung mit dem bereits installierten Package
-4. **API-Dokumentation** — Swagger/OpenAPI für alle Endpoints
-5. **Echte Taler-Exchange** — Anbindung an `exchange.demo.taler.net`
-6. **E2E-Tests** — Flutter Integration Tests
+2. **Production-Validierung: User-Auth End-to-End testen** — auf Render deployed und curl-Test (Code + 14 Tests existieren, nie auf Production ausgeführt)
+3. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden (Client-Code existiert, manueller Funding-Schritt)
+4. **E2E-Tests (Flutter Integration)** — noch kein Code vorhanden
 
 ### Phase 21: CI-Reparatur (abgeschlossen)
 

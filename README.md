@@ -98,34 +98,13 @@ HEIMAT/
 
 ---
 
-## Quick Start
+## Mitwirken
 
-### Voraussetzungen
+Siehe [CONTRIBUTING.md](CONTRIBUTING.md).
 
-- Flutter SDK 3.x
-- Node.js 18+
-- PostgreSQL (optional)
-- Docker (optional)
+### Tests (via CI)
 
-### Entwicklung
-
-```bash
-# Repository klonen
-git clone https://github.com/abatn/HEIMAT.git
-cd HEIMAT
-
-# Frontend
-cd src/mobile
-flutter pub get
-flutter run
-
-# Backend
-cd src/backend
-npm install
-npm run dev
-```
-
-### Tests ausführen
+Tests laufen automatisch in GitHub Actions bei jedem Push/PR. Manuelle Ausführung:
 
 ```bash
 # Backend Tests
@@ -134,7 +113,7 @@ npm test
 
 # Flutter Tests
 cd src/mobile
-flutter test
+src/mobile/flutter/bin/flutter test
 ```
 
 ---

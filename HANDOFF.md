@@ -63,7 +63,6 @@ Der `talerService.ts` (Phase 18 abgeschlossen) spricht echte GNU-Taler-Wire-Spec
 
 ```bash
 # Backend
-cd src/backend && npm run dev       # Dev-Server
 cd src/backend && npm test          # Tests
 cd src/backend && npx tsc --noEmit  # Typecheck
 
@@ -71,9 +70,6 @@ cd src/backend && npx tsc --noEmit  # Typecheck
 cd src/mobile && ./flutter/bin/flutter test
 cd src/mobile && ./flutter/bin/dart format lib/ test/
 cd src/mobile && ./flutter/bin/flutter analyze --no-fatal-infos
-
-# Docker
-docker-compose up
 ```
 
 ## REGELN

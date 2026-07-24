@@ -38,9 +38,6 @@ src/mobile/flutter/bin/flutter pub get
 ### Backend (run in `src/backend/`)
 
 ```bash
-# Dev server
-npm run dev
-
 # Lint
 npm run lint
 
@@ -50,15 +47,8 @@ npm test
 # Single test
 npx jest src/__tests__/mobility.test.ts
 
-# Typecheck (no npm script — CI runs this)
+# Typecheck
 npx tsc --noEmit
-```
-
-### Docker
-
-```bash
-# Full stack (Postgres 15, Redis 7, backend, ml-service)
-docker-compose up
 ```
 
 ## CI Gates
@@ -121,11 +111,22 @@ app.use(helmet({
 
 **Fix:** Set `ENV PORT=3000` in Dockerfile or adjust render.yaml.
 
+## Klärungen (Juli 2026)
+
+### GTFS ZIP-Import: KEIN Regelverstoß
+Der GTFS-Zip-Import (`gtfs.de/nv_free`) verstößt gegen KEINE Projektdaten. CC-BY lizenziert, explizit erlaubt in `project-prompt.md:59`.
+
+### Ärzte: ECHTE Overpass-Ergebnisse
+Die 5 Ärzte auf der Gesundheitsseite sind echte Overpass-API-Ergebnisse für Berlin, keine hardcodierten Daten.
+
+### Finanzen: Demo-User ist ein echtes Problem
+`finance_provider.dart:45` hat `user-demo-001` hartkodiert. Backend JWT-Auth ist fertig (14 Tests), aber Mobile nutzt es nicht. **Höchste Priorität.**
+
 ## Conventions
 
-- Service URLs from `--dart-define`: `BACKEND_URL` / `ML_SERVICE_URL` (defaults `http://localhost:3000` / `:8000`)
+- Service URLs from `--dart-define`: `BACKEND_URL=https://heimat-backend.onrender.com`
 - See `src/mobile/lib/core/config/app_config.dart`
-- GTFS import runs locally (`scripts/import-gtfs-local.ts`), not on Render
+- GTFS import via `src/backend/scripts/import-gtfs-local.ts` (not on Render)
 - Root `*.md` files are planning/marketing docs, not code documentation
 - Schema source: `src/database/schema.sql` (CI loads via `psql`)
 

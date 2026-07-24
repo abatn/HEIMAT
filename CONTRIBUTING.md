@@ -48,13 +48,13 @@ git checkout -b feature/dein-feature-name
 
 ---
 
-## Entwicklungsumgebung einrichten
+## Entwicklungsumgebung
+
+HEIMAT 2.0 wird production-first entwickelt: Code wird committed, CI/CD deployt auf Render + GitHub Pages.
 
 ### Voraussetzungen
 
-- **Flutter SDK** (3.x oder neuer)
 - **Node.js** (18.x oder neuer)
-- **PostgreSQL** (14.x oder neuer)
 - **Git**
 - **IDE:** VS Code mit Flutter-Extensions empfohlen
 
@@ -62,8 +62,7 @@ git checkout -b feature/dein-feature-name
 
 ```bash
 cd src/mobile
-flutter pub get
-flutter run
+src/mobile/flutter/bin/flutter pub get
 ```
 
 ### Backend (Node.js)
@@ -71,18 +70,15 @@ flutter run
 ```bash
 cd src/backend
 npm install
-cp .env.example .env  # Anpassen
-npm run dev
 ```
 
-### Datenbank
+### Tests
+
+Tests laufen in GitHub Actions CI mit eigenem Postgres-Service-Container:
 
 ```bash
-# PostgreSQL starten
-createdb heimat_dev
-
-# Schema laden (psql)
-psql -d heimat_dev -f src/database/schema.sql
+cd src/backend
+npm test
 ```
 
 ---

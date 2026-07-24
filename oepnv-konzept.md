@@ -51,7 +51,7 @@ GTFS-Daten** — wir besitzen die Logik, nicht der Verbund.
 | Baustein | Datei | Zustand | Aktion |
 |---|---|---|---|
 | GTFS-Schema (6 Tabellen + status) | `src/backend/src/database/schema.sql:111-192` | ✅ vorhanden | unverändert |
-| Lokaler GTFS-Import (Streaming, IPv4) | `src/backend/scripts/import-gtfs-local.ts` | ✅ vorhanden | **wird genutzt** (Bauplan: lokal, nicht Render) |
+| GTFS-Import (Streaming, IPv4) | `src/backend/scripts/import-gtfs-local.ts` | ✅ vorhanden | **wird genutzt** (nicht auf Render) |
 | RAPTOR-Engine | `src/backend/src/services/raptorService.ts` | ❌ gelöscht | **neu bauen** (sql-basiert, RAM-schonend) |
 | GTFS-Service | `src/backend/src/services/gtfsService.ts` | ❌ gelöscht | **neu bauen** (nur Status/Cache-Queries) |
 | Mobility-Routen | `src/backend/src/routes/mobility.ts` | ⚠️ nutzt EFA | auf RAPTOR umstellen |
@@ -63,14 +63,14 @@ GTFS-Daten** — wir besitzen die Logik, nicht der Verbund.
 
 ## 3. GTFS-Import (Bauplan §12.1 + §3)
 
-- **Wo:** lokal auf dieser Maschine (nicht Render), via `import-gtfs-local.ts`.
+- **Wo:** via `import-gtfs-local.ts` (nicht auf Render, wegen 244MB RAM-Limit).
   - Download `https://download.gtfs.de/germany/nv_free/latest.zip` (~244MB).
   - Streaming-Parser (schon implementiert, vermeidet OOM bei >500MB `stop_times`).
   - Schreibt direkt in Supabase-Postgres (IPv4 erzwungen via `dns.lookup`).
-- **Wann:** einmalig + täglich (cron lokal oder manuell). Bauplan: *"Feed-Import NICHT über Render"*.
+- **Wann:** einmalig + täglich (cron oder manuell). Bauplan: *"Feed-Import NICHT über Render"*.
 - **Verifikation:** `SELECT count(*) FROM gtfs_*` nach Import → Ziel: ~500k stops, ~10M stop_times.
 - **Bestehender Block (vergangen):** IPv6-ENETUNREACH zu Supabase. Gelöst durch
-  `resolveToIpv4()` im Script. **Nächster Schritt vor Code:** Import lokal ausführen + verifizieren.
+  `resolveToIpv4()` im Script. **Nächster Schritt vor Code:** Import ausführen + verifizieren.
 
 ---
 
@@ -114,14 +114,14 @@ Das ist die eigentliche "Innovation", nicht das Anzapfen einer API:
 
 - **Cold-Start:** erste Abfahrts-Abfrage nach Deploy etwas langsamer (DB-Warmup).
   RAPTOR sql-basiert → kein riesiger RAM-Graph nötig.
-- **GTFS täglich neu:** lokaler cron-Import, nicht Render.
+- **GTFS täglich neu:** cron-Import, nicht auf Render.
 - **Kein Token, keine Lizenz** → erfüllt Projektprinzip.
 
 ---
 
 ## 8. Reihenfolge der Umsetzung (nach OK)
 
-1. **GTFS-Import lokal ausführen + verifizieren** (`import-gtfs-local.ts` gegen Supabase).
+1. **GTFS-Import ausführen + verifizieren** (`import-gtfs-local.ts` gegen Supabase).
 2. `raptorService.ts` neu bauen (sql-basiert, Departures + Journey).
 3. `gtfsService.ts` neu bauen (Status/Match-Cache-Queries).
 4. `mobility.ts` auf RAPTOR umstellen (`/departures`, `/journey`, `/stops/match`).

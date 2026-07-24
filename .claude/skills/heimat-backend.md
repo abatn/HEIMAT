@@ -8,11 +8,10 @@ description: "Backend-Entwicklung für HEIMAT. Trigger bei Änderungen an src/ba
 ## Befehle (in `src/backend/` ausführen)
 
 ```bash
-npm run dev          # Dev-Server (ts-node-dev)
 npm run lint         # ESLint
 npm test             # Jest (braucht Postgres)
 npx jest src/__tests__/mobility.test.ts   # Einzeltest
-npx tsc --noEmit     # Typecheck (CI macht das)
+npx tsc --noEmit     # Typecheck
 ```
 
 ## CI-Reihenfolge
@@ -65,5 +64,5 @@ src/backend/src/
 ## Wichtig
 
 - Schema-Quelle: `src/database/schema.sql` — CI lädt via `psql`
-- GTFS-Import: `src/backend/scripts/import-gtfs-local.ts` (lokal, nicht auf Render)
-- Kein `npm run migrate` oder `npm run seed` — diese Scripts existieren nicht
+- GTFS-Import: `src/backend/scripts/import-gtfs-local.ts` (nicht auf Render — Free-Tier Limit)
+- Kein `npm run migrate` oder `npm run seed`
