@@ -17,6 +17,7 @@ import app from '../index';
 describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
   const testEmail = `e2e-${Date.now()}@heimat.de`;
   const testPassword = 'E2ETest123!';
+  let authToken: string | undefined;
 
   describe('1. Registrierung', () => {
     it('legt einen neuen User im Auth-Service an', async () => {
@@ -27,6 +28,7 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
       expect(res.status).toBe(201);
       expect(res.body.accessToken).toBeDefined();
       expect(res.body.user.email).toBe(testEmail);
+      authToken = res.body.accessToken;
     });
   });
 
@@ -117,7 +119,8 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
     it('sollte Wallet mit echter Ed25519-Identität erstellen', async () => {
       const res = await request(app)
         .post('/api/finance/taler/wallet')
-        .send({ userId: `e2e-wallet-${Date.now()}` });
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({});
       if (res.status === 200) {
         expect(res.body.wallet.wallet_pub).toMatch(/^[0-9a-z]{52}$/);
         expect(res.body.wallet).not.toHaveProperty('wallet_priv_pkcs8');
@@ -127,9 +130,13 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
     });
 
     it('sollte Guthaben abrufen — leerer Wallet hat 0', async () => {
-      const userId = 'e2e-balance-' + Date.now();
-      await request(app).post('/api/finance/taler/wallet').send({ userId }).catch(() => {});
-      const res = await request(app).get(`/api/finance/balance/${userId}`);
+      await request(app)
+        .post('/api/finance/taler/wallet')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({}).catch(() => {});
+      const res = await request(app)
+        .get('/api/finance/balance')
+        .set('Authorization', `Bearer ${authToken}`);
       if (res.status === 200) {
         expect(res.body.balance).toBe(0);
         expect(res.body.source).toBe('live_exchange');
@@ -140,7 +147,8 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
     it('sollte ungültige reserve_pub ablehnen für Schutz vor Exchange-Bombardment', async () => {
       const res = await request(app)
         .post('/api/finance/taler/reserve')
-        .send({ userId: 'x', reserve_pub: 'INVALID' });
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ reserve_pub: 'INVALID' });
       expect(res.status).toBe(400);
     });
 
@@ -148,10 +156,10 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
       // Bank-Wire-Only Workflow: GNU Taler erlaubt KEIN auto-reserve-Opening.
       // Wir behaupten NICHT dass die Reserve real am Exchange ist; der User
       // muss den Wire ueber https://bank.demo.taler.net/ ausloesen.
-      const userId = 'e2e-reserve-open-' + Date.now();
       const res = await request(app)
         .post('/api/finance/taler/reserve/open')
-        .send({ userId, initial_balance: 'KUDOS:25' });
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ initial_balance: 'KUDOS:25' });
       expect([200, 500]).toContain(res.status);
       if (res.status === 200) {
         expect(res.body.status).toBe('pending_bank_wire');
@@ -170,8 +178,10 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
       }
     });
 
-    it('GET /taler/transactions/:userId liefert (ggf. leeres) transaction-Array', async () => {
-      const res = await request(app).get('/api/finance/transactions/e2e-tx-' + Date.now());
+    it('GET /transactions liefert (ggf. leeres) transaction-Array', async () => {
+      const res = await request(app)
+        .get('/api/finance/transactions')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.transactions)).toBe(true);
     });

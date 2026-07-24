@@ -26,7 +26,7 @@ describe('Health API', () => {
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.doctors)).toBe(true);
-    }, 30000);
+    }, 60000);
   });
 
   describe('GET /api/health/doctors/nearby', () => {

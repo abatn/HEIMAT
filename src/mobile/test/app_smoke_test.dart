@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heimat_app/core/config/app_config.dart';
 import 'package:heimat_app/core/services/auth_service.dart';
 import 'package:heimat_app/core/theme/app_theme.dart';

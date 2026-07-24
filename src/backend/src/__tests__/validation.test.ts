@@ -1,6 +1,19 @@
 import request from 'supertest';
 import app from '../index';
 
+let authToken: string | undefined;
+
+beforeAll(async () => {
+  // Register a user so finance auth-protected routes can be tested
+  const email = `validation-${Date.now()}@heimat.de`;
+  const res = await request(app)
+    .post('/api/auth/register')
+    .send({ email, password: 'Test1234!' });
+  if (res.status === 201) {
+    authToken = res.body.accessToken;
+  }
+});
+
 describe('Zod Validation', () => {
   describe('Mobility - /stops', () => {
     it('should reject request without lat', async () => {
@@ -105,40 +118,25 @@ describe('Zod Validation', () => {
   });
 
   describe('Finance - /pay', () => {
+    const auth = () => request(app).post('/api/finance/pay').set('Authorization', `Bearer ${authToken}`);
+
     it('should reject request without required fields', async () => {
-      const res = await request(app)
-        .post('/api/finance/pay')
-        .send({ from: 'user1' });
+      const res = await auth().send({ from: 'user1' });
       expect(res.status).toBe(400);
     });
 
     it('should reject request with negative amount', async () => {
-      const res = await request(app)
-        .post('/api/finance/pay')
-        .send({ from: 'user1', to: 'user2', amount: -10 });
+      const res = await auth().send({ from: 'user1', to: 'user2', amount: -10 });
       expect(res.status).toBe(400);
     });
 
     it('should reject request with zero amount', async () => {
-      const res = await request(app)
-        .post('/api/finance/pay')
-        .send({ from: 'user1', to: 'user2', amount: 0 });
+      const res = await auth().send({ from: 'user1', to: 'user2', amount: 0 });
       expect(res.status).toBe(400);
     });
 
     it('should reject request with non-number amount', async () => {
-      const res = await request(app)
-        .post('/api/finance/pay')
-        .send({ from: 'user1', to: 'user2', amount: 'abc' });
-      expect(res.status).toBe(400);
-    });
-  });
-
-  describe('Finance - /taler/wallet', () => {
-    it('should reject request without userId', async () => {
-      const res = await request(app)
-        .post('/api/finance/taler/wallet')
-        .send({});
+      const res = await auth().send({ from: 'user1', to: 'user2', amount: 'abc' });
       expect(res.status).toBe(400);
     });
   });

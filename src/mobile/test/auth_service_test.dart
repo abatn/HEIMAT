@@ -1,15 +1,7 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heimat_app/core/services/auth_service.dart';
-import 'package:heimat_app/core/config/app_config.dart';
 
-import 'auth_service_test.mocks.dart';
-
-@GenerateMocks([http.Client])
 void main() {
   late AuthService authService;
 
