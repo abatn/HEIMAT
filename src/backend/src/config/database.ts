@@ -23,7 +23,7 @@ function buildPoolConfig(): PoolConfig & { family?: number } {
   }
 
   return {
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST,
     port: parseInt(process.env.DB_PORT || '5432'),
     database: process.env.DB_NAME || 'heimat',
     user: process.env.DB_USER || 'postgres',

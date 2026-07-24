@@ -132,7 +132,7 @@ export class MobilityService {
       // Duplikate nach Name+Koordinaten entfernen
       const seen = new Set<string>();
       const unique = stops.filter(s => {
-        const key = `${s.name}|${s.latitude.toFixed(5)}|${s.longitude.toFixed(5)}`;
+        const key = `${s.name}|${Number(s.latitude ?? 0).toFixed(5)}|${Number(s.longitude ?? 0).toFixed(5)}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -189,7 +189,7 @@ export class MobilityService {
         timeout: 15000,
       });
       return response.data.map((item: NominatimResult) => ({ lat: parseFloat(item.lat), lng: parseFloat(item.lon), display_name: item.display_name }));
-    } catch (error) { throw new AppError('Geocoding failed', 500); }
+    } catch { throw new AppError('Geocoding failed', 500); }
   }
 
   async getRoute(from: { lat: number; lng: number }, to: { lat: number; lng: number }): Promise<{ distance: number; duration: number; geometry: GeoJsonGeometry }> {

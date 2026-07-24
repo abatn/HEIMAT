@@ -119,20 +119,12 @@ export const bookAppointmentBodySchema = z.object({
 // Finance
 // ---------------------------------------------------------------------------
 
-export const walletParamsSchema = z.object({
-  userId: z.string().min(1, 'userId is required').max(255),
-});
-
 export const payBodySchema = z.object({
   from: z.string().min(1, 'from is required'),
   to: z.string().min(1, 'to is required'),
   amount: z.number().positive('Amount must be positive').max(1000000, 'Amount too large'),
   currency: z.string().max(10).optional(),
   description: z.string().max(500).optional(),
-});
-
-export const talerWalletBodySchema = z.object({
-  userId: z.string().min(1, 'userId is required').max(255),
 });
 
 export const talerPurseBodySchema = z.object({

@@ -34,7 +34,7 @@ healthRouter.get('/doctors/nearby', validate(doctorsNearbyQuerySchema, 'query'),
 
 // GET /api/health/doctors/:id — Einzelarzt
 healthRouter.get('/doctors/:id', asyncHandler(async (req: Request, res: Response) => {
-  const doctor = await healthService.getDoctorById(req.params.id);
+  const doctor = await healthService.getDoctorById(req.params.id as string);
   res.json({ status: 'ok', doctor });
 }));
 
@@ -56,8 +56,8 @@ healthRouter.post('/doctors', validate(registerDoctorBodySchema, 'body'), asyncH
 
 // GET /api/health/doctors/:id/slots
 healthRouter.get('/doctors/:id/slots', validate(doctorSlotsQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
-  const slots = await healthService.getAvailableSlots(req.params.id, req.query.date as string);
-  res.json({ status: 'ok', doctorId: req.params.id, date: req.query.date, slots, count: slots.length });
+  const slots = await healthService.getAvailableSlots(req.params.id as string, req.query.date as string);
+  res.json({ status: 'ok', doctorId: req.params.id as string, date: req.query.date, slots, count: slots.length });
 }));
 
 // POST /api/health/appointments
@@ -69,18 +69,18 @@ healthRouter.post('/appointments', validate(bookAppointmentBodySchema, 'body'), 
 
 // GET /api/health/appointments/:patientName
 healthRouter.get('/appointments/:patientName', asyncHandler(async (req: Request, res: Response) => {
-  const appointments = await healthService.getAppointments(req.params.patientName);
+  const appointments = await healthService.getAppointments(req.params.patientName as string);
   res.json({ status: 'ok', appointments, count: appointments.length });
 }));
 
 // PUT /api/health/appointments/:id/cancel
 healthRouter.put('/appointments/:id/cancel', asyncHandler(async (req: Request, res: Response) => {
-  const appointment = await healthService.cancelAppointment(req.params.id);
+  const appointment = await healthService.cancelAppointment(req.params.id as string);
   res.json({ status: 'ok', appointment, message: 'Appointment cancelled' });
 }));
 
 // PUT /api/health/appointments/:id/confirm
 healthRouter.put('/appointments/:id/confirm', asyncHandler(async (req: Request, res: Response) => {
-  const appointment = await healthService.confirmAppointment(req.params.id);
+  const appointment = await healthService.confirmAppointment(req.params.id as string);
   res.json({ status: 'ok', appointment, message: 'Appointment confirmed' });
 }));

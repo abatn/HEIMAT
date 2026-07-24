@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { pool } from '../config/database';
 import { dbVendoService } from '../services/dbVendoService';
+import { gtfsService } from '../services/gtfsService';
 import { logger } from '../utils/logger';
 import { errorMessage } from '../utils/error';
 
@@ -95,6 +96,19 @@ adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
     });
   } catch (error: unknown) {
     logger.error(`Admin transitous selftest failed: ${errorMessage(error)}`);
+    res.status(500).json({ success: false, message: errorMessage(error) });
+  }
+});
+
+// GET /api/admin/gtfs-status – GTFS-Import-Status abrufen
+adminRouter.get('/gtfs-status', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    const status = await gtfsService.getStatus();
+    res.json({ success: true, ...status });
+  } catch (error: unknown) {
+    logger.error(`Admin gtfs-status failed: ${errorMessage(error)}`);
     res.status(500).json({ success: false, message: errorMessage(error) });
   }
 });

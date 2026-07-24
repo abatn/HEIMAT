@@ -19,6 +19,7 @@ import { authRouter } from './routes/auth';
 import adminRouter from './routes/admin';
 import { testConnection, pool } from './config/database';
 import raptorService from './services/raptorService';
+import { gtfsService } from './services/gtfsService';
 import { swaggerSpec } from './config/swagger';
 import swaggerUi from 'swagger-ui-express';
 import { errorMessage } from './utils/error';
@@ -76,18 +77,21 @@ if (require.main === module) {
   app.listen(PORT, '0.0.0.0', async () => {
     logger.info(`HEIMAT Backend running on port ${PORT}`);
     await testConnection();
-    
-    // RAPTOR initialisieren (GTFS-Datei laden)
-    const gtfsPath = path.join(__dirname, '..', 'data', 'gtfs-germany.zip');
-    if (fs.existsSync(gtfsPath)) {
-      try {
-        await raptorService.initialize(gtfsPath);
-        logger.info('RAPTOR routing engine ready');
-      } catch (e: unknown) {
-        logger.warn(`RAPTOR initialization failed, using transitous.org fallback: ${errorMessage(e)}`);
+
+    try {
+      const status = await gtfsService.getStatus();
+      if (status.has_data) {
+        await raptorService.initializeFromDb();
+        if (raptorService.isReady()) {
+          logger.info('RAPTOR routing engine ready from PostgreSQL');
+        } else {
+          logger.info('GTFS schema exists but no data, using transitous.org fallback');
+        }
+      } else {
+        logger.info('No GTFS data found, using transitous.org for routing');
       }
-    } else {
-      logger.info('No GTFS file found, using transitous.org for routing');
+    } catch (e: unknown) {
+      logger.warn(`RAPTOR initialization skipped: ${errorMessage(e)}`);
     }
   });
 }

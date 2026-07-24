@@ -41,9 +41,9 @@ describe('Health API', () => {
           expect(res.body).toHaveProperty('doctors');
           expect(Array.isArray(res.body.doctors)).toBe(true);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         // Timeout oder Netzwerkfehler in CI — akzeptabel
-        expect(e.message).toMatch(/timeout|ECONNREFUSED|ENOTFOUND/i);
+        expect((e as Error).message).toMatch(/timeout|ECONNREFUSED|ENOTFOUND/i);
       }
     }, 60000);
 
@@ -61,8 +61,8 @@ describe('Health API', () => {
           .timeout(10000);
 
         expect([200, 500, 503]).toContain(res.status);
-      } catch (e: any) {
-        expect(e.message).toMatch(/timeout|ECONNREFUSED|ENOTFOUND/i);
+      } catch (e: unknown) {
+        expect((e as Error).message).toMatch(/timeout|ECONNREFUSED|ENOTFOUND/i);
       }
     }, 60000);
   });

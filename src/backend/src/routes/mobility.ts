@@ -58,7 +58,7 @@ mobilityRouter.get('/stops/match', validate(stopsMatchQuerySchema, 'query'), asy
 }));
 
 mobilityRouter.get('/stops/:id', asyncHandler(async (req: Request, res: Response) => {
-  const stop = await mobilityService.getStopById(req.params.id);
+  const stop = await mobilityService.getStopById(req.params.id as string);
   res.json({ status: 'ok', stop });
 }));
 

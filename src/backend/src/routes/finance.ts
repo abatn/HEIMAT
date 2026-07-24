@@ -13,15 +13,15 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { validate } from '../middleware/validate';
+import { requireAuth, AuthRequest } from '../middleware/auth';
 import {
-  walletParamsSchema,
-  talerWalletBodySchema,
   talerPurseBodySchema,
   talerPurseActionBodySchema,
 } from '../middleware/schemas';
 import { z } from 'zod';
 import { talerService } from '../services/talerService';
 import { talerExchangeClient } from '../services/talerExchangeClient';
+import { AppError } from '../middleware/errorHandler';
 
 export const financeRouter = Router();
 
@@ -30,12 +30,10 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
 
 // Schema für /taler/reserve-bind (User bindet eine extern erstellte Reserve ans Wallet)
 const reserveBindBodySchema = z.object({
-  userId: z.string().min(1, 'userId required').max(255),
   reserve_pub: z.string().regex(/^[0-9a-z]{20,}$/, 'reserve_pub muss Crockford-Base32 lowercase sein (>= 20 Zeichen)'),
 });
 
 const reserveOpenBodySchema = z.object({
-  userId: z.string().min(1, 'userId required').max(255),
   initial_balance: z.enum(['KUDOS:10', 'KUDOS:25']).default('KUDOS:25'),
 });
 
@@ -43,8 +41,8 @@ const reserveOpenBodySchema = z.object({
 // Wallet-Identität — reale Ed25519 Schlüsselpaar (kein Synthetic)
 // ---------------------------------------------------------------------------
 
-financeRouter.post('/taler/wallet', validate(talerWalletBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const wallet = await talerService.createWallet(req.body.userId);
+financeRouter.post('/taler/wallet', requireAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const wallet = await talerService.createWallet(req.userId!);
   res.json({ status: 'ok', wallet });
 }));
 
@@ -52,8 +50,8 @@ financeRouter.post('/taler/wallet', validate(talerWalletBodySchema, 'body'), asy
 // Bilanz — ECHT vom Exchange, niemals erfunden
 // ---------------------------------------------------------------------------
 
-financeRouter.get('/balance/:userId', validate(walletParamsSchema, 'params'), asyncHandler(async (req: Request, res: Response) => {
-  const result = await talerService.getBalance(req.params.userId);
+financeRouter.get('/balance', requireAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const result = await talerService.getBalance(req.userId!);
   res.json({
     status: 'ok',
     source: 'live_exchange',
@@ -100,26 +98,21 @@ financeRouter.get('/taler/status', asyncHandler(async (req: Request, res: Respon
 // (User hat Reserve z.B. via https://exchange.demo.taler.net/test.html erstellt)
 // ---------------------------------------------------------------------------
 
-financeRouter.post('/taler/reserve', validate(reserveBindBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const { userId, reserve_pub } = req.body;
+financeRouter.post('/taler/reserve', requireAuth, validate(reserveBindBodySchema, 'body'), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { reserve_pub } = req.body;
   // Sicherstellen: Wallet existiert
-  await talerService.getWallet(userId);
-  const result = await talerService.bindReserve(userId, reserve_pub);
+  await talerService.getWallet(req.userId!);
+  const result = await talerService.bindReserve(req.userId!, reserve_pub);
   res.json({ status: 'ok', ...result, source: 'live_exchange' });
 }));
 
 // ---------------------------------------------------------------------------
 // Reserve-Anlegen — Bank-Wire-Only Workflow (GNU Taler Wire-Spec)
 // ---------------------------------------------------------------------------
-// GNU Taler erlaubt KEIN auto-reserve-Opening via REST-API. Wir generieren
-// hier nur das lokale Ed25519-Schlüsselpaar und speichern es mit Status
-// 'pending_bank_wire'. Der User muss den Wire-Transfer manuell ueber
-// https://bank.demo.taler.net/ ausloesen. Das Response enthaelt die
-// reserve_pub + bank_wire_url + note mit der genauen Anleitung.
 
-financeRouter.post('/taler/reserve/open', validate(reserveOpenBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const { userId, initial_balance } = req.body;
-  const result = await talerService.createReserveForUser(userId, initial_balance);
+financeRouter.post('/taler/reserve/open', requireAuth, validate(reserveOpenBodySchema, 'body'), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { initial_balance } = req.body;
+  const result = await talerService.createReserveForUser(req.userId!, initial_balance);
   res.json({ status: 'ok', ...result, source: 'live_exchange' });
 }));
 
@@ -127,39 +120,42 @@ financeRouter.post('/taler/reserve/open', validate(reserveOpenBodySchema, 'body'
 // Wallet-spezifische Transaktionen (lokal gecachte Spiegel)
 // ---------------------------------------------------------------------------
 
-financeRouter.get('/transactions/:userId', validate(walletParamsSchema, 'params'), asyncHandler(async (req: Request, res: Response) => {
-  const transactions = await talerService.getTransactions(req.params.userId);
+financeRouter.get('/transactions', requireAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const transactions = await talerService.getTransactions(req.userId!);
   res.json({ status: 'ok', transactions, count: transactions.length });
 }));
 
 // ---------------------------------------------------------------------------
 // HEIMAT-interne P2P-Purse-Endpoints — explizit KEIN Taler-Exchange
-// (Dokumentiert in /api/finance/taler/info oder README)
 // ---------------------------------------------------------------------------
 
-financeRouter.post('/taler/purse/create', validate(talerPurseBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
+financeRouter.post('/taler/purse/create', requireAuth, validate(talerPurseBodySchema, 'body'), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { senderUserId, receiverUserId, amount, contractHash } = req.body;
+  // Sicherstellen: Sender ist der authentifizierte User
+  if (senderUserId !== req.userId) {
+    throw new AppError('Sender muss der authentifizierte User sein', 403);
+  }
   const purse = await talerService.createPurse(senderUserId, receiverUserId, amount, contractHash);
   res.json({ status: 'ok', purse, layer: 'heimat_p2p_helper' });
 }));
 
-financeRouter.get('/taler/purse/:purseId', asyncHandler(async (req: Request, res: Response) => {
-  const purse = await talerService.getPurse(req.params.purseId);
+financeRouter.get('/taler/purse/:purseId', requireAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const purse = await talerService.getPurse(req.params.purseId as string);
   res.json({ status: 'ok', purse, layer: 'heimat_p2p_helper' });
 }));
 
-financeRouter.post('/taler/purse/:purseId/deposit', validate(talerPurseActionBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const result = await talerService.depositToPurse(req.params.purseId, req.body.senderUserId);
+financeRouter.post('/taler/purse/:purseId/deposit', requireAuth, validate(talerPurseActionBodySchema, 'body'), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const result = await talerService.depositToPurse(req.params.purseId as string, req.userId!);
   res.json({ status: 'ok', ...result, layer: 'heimat_p2p_helper' });
 }));
 
-financeRouter.post('/taler/purse/:purseId/merge', validate(talerPurseActionBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const result = await talerService.mergePurse(req.params.purseId, req.body.receiverUserId);
+financeRouter.post('/taler/purse/:purseId/merge', requireAuth, validate(talerPurseActionBodySchema, 'body'), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const result = await talerService.mergePurse(req.params.purseId as string, req.userId!);
   res.json({ status: 'ok', ...result, layer: 'heimat_p2p_helper' });
 }));
 
-financeRouter.post('/taler/purse/:purseId/abort', validate(talerPurseActionBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const purse = await talerService.abortPurse(req.params.purseId, req.body.userId);
+financeRouter.post('/taler/purse/:purseId/abort', requireAuth, validate(talerPurseActionBodySchema, 'body'), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const purse = await talerService.abortPurse(req.params.purseId as string, req.userId!);
   res.json({ status: 'ok', purse, layer: 'heimat_p2p_helper' });
 }));
 
@@ -168,15 +164,15 @@ financeRouter.post('/taler/purse/:purseId/abort', validate(talerPurseActionBodyS
 // ---------------------------------------------------------------------------
 
 const payBodySchema = z.object({
-  from: z.string().min(1, 'from is required'),
   to: z.string().min(1, 'to is required'),
   amount: z.number().positive('Amount must be positive'),
   currency: z.string().max(10).optional(),
   description: z.string().max(500).optional(),
 });
 
-financeRouter.post('/pay', validate(payBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const { from, to, amount, currency, description } = req.body;
+financeRouter.post('/pay', requireAuth, validate(payBodySchema, 'body'), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { to, amount, currency, description } = req.body;
+  const from = req.userId!;
   const purse = await talerService.createPurse(from, to, amount, undefined, description);
   await talerService.depositToPurse(purse.id, from);
   const { purse: merged } = await talerService.mergePurse(purse.id, to);

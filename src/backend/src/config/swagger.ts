@@ -18,7 +18,6 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       { url: 'https://heimat-backend.onrender.com', description: 'Production' },
-      { url: 'http://localhost:3000', description: 'Local' },
     ],
     components: {
       securitySchemes: {
