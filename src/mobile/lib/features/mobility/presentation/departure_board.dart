@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/time_formatter.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
 import 'mobility_provider.dart';
 
@@ -79,7 +80,7 @@ class DepartureBoard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${_formatTime(dep.departureTime)}$delayStr$platformStr',
+                    '${formatTransitTime(dep.departureTime)}$delayStr$platformStr',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -94,17 +95,5 @@ class DepartureBoard extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-String _formatTime(String isoString) {
-  try {
-    final dt = DateTime.parse(isoString);
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-  } catch (_) {
-    final parts = isoString.split('T');
-    final timePart = parts.length > 1 ? parts.last : isoString;
-    final tParts = timePart.split(':');
-    return tParts.length >= 2 ? '${tParts[0]}:${tParts[1]}' : isoString;
   }
 }

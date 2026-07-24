@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/time_formatter.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
 import 'mobility_provider.dart';
 
@@ -54,7 +55,7 @@ class JourneyPlanner extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        _formatTime(journey.departure),
+                        formatTransitTime(journey.departure),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -67,7 +68,7 @@ class JourneyPlanner extends StatelessWidget {
                             size: 16, color: AppColors.textSecondary),
                       ),
                       Text(
-                        _formatTime(journey.arrival),
+                        formatTransitTime(journey.arrival),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -164,17 +165,5 @@ class JourneyPlanner extends StatelessWidget {
   Color _textColorForBg(Color bg) {
     final luminance = bg.computeLuminance();
     return luminance > 0.5 ? Colors.black : Colors.white;
-  }
-}
-
-String _formatTime(String isoString) {
-  try {
-    final dt = DateTime.parse(isoString);
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-  } catch (_) {
-    final parts = isoString.split('T');
-    final timePart = parts.length > 1 ? parts.last : isoString;
-    final tParts = timePart.split(':');
-    return tParts.length >= 2 ? '${tParts[0]}:${tParts[1]}' : isoString;
   }
 }

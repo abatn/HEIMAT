@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heimat_app/core/config/app_config.dart';
+import 'package:heimat_app/core/services/auth_service.dart';
 import 'package:heimat_app/core/theme/app_theme.dart';
 import 'package:heimat_app/core/widgets/skeleton_loader.dart';
 import 'package:heimat_app/core/widgets/empty_state.dart';
@@ -19,6 +21,7 @@ class _StubMobility extends MobilityProvider {
 }
 
 class _StubFinance extends FinanceProvider {
+  _StubFinance(super.authService);
   @override
   Future<void> loadWallet() async {}
   @override
@@ -35,7 +38,9 @@ Widget buildTestApp({required Widget child}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<MobilityProvider>(create: (_) => _StubMobility()),
-      ChangeNotifierProvider<FinanceProvider>(create: (_) => _StubFinance()),
+      ChangeNotifierProvider<FinanceProvider>(
+        create: (_) => _StubFinance(AuthService()),
+      ),
       ChangeNotifierProvider<HealthProvider>(create: (_) => _StubHealth()),
     ],
     child: MaterialApp(

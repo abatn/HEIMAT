@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/services/auth_service.dart';
 
 double _toDouble(dynamic v) =>
     v == null ? 0.0 : (v is num ? v.toDouble() : double.parse(v.toString()));
@@ -42,7 +43,7 @@ class Transaction {
 }
 
 class FinanceProvider extends ChangeNotifier {
-  static const String _currentUserId = 'user-demo-001';
+  final AuthService _authService;
   static const String _currency = 'KUDOS';
   double _balance = 0.0;
   bool _isLoading = false;
@@ -52,25 +53,29 @@ class FinanceProvider extends ChangeNotifier {
   bool _walletInitialized = false;
   String _walletId = '';
 
+  FinanceProvider(this._authService);
+
   double get balance => _balance;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasLoaded => _hasLoaded;
   List<Transaction> get transactions => _transactions;
-  String get currentUserId => _currentUserId;
+  String? get currentUserId => _authService.userId;
   String get currency => _currency;
   bool get walletInitialized => _walletInitialized;
   String get walletId => _walletId;
 
   Future<void> initWallet() async {
     if (_walletInitialized) return;
+    final userId = _authService.userId;
+    if (userId == null) return;
     try {
       final url = '${AppConfig.backendUrl}/api/finance/taler/wallet';
       await http
           .post(
             Uri.parse(url),
             headers: {'Content-Type': 'application/json'},
-            body: json.encode({'userId': _currentUserId}),
+            body: json.encode({'userId': userId}),
           )
           .timeout(const Duration(seconds: 30));
       _walletInitialized = true;
@@ -78,13 +83,18 @@ class FinanceProvider extends ChangeNotifier {
   }
 
   Future<void> loadWallet() async {
+    final userId = _authService.userId;
+    if (userId == null) {
+      _error = 'Nicht angemeldet';
+      notifyListeners();
+      return;
+    }
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
       await initWallet();
-      final walletUrl =
-          '${AppConfig.backendUrl}/api/finance/wallet/$_currentUserId';
+      final walletUrl = '${AppConfig.backendUrl}/api/finance/wallet/$userId';
       final walletResponse = await http.get(Uri.parse(walletUrl), headers: {
         'Content-Type': 'application/json'
       }).timeout(const Duration(seconds: 30));
@@ -92,7 +102,7 @@ class FinanceProvider extends ChangeNotifier {
         final walletData = json.decode(walletResponse.body);
         _walletId = walletData['wallet']['id'] ?? '';
       }
-      final url = '${AppConfig.backendUrl}/api/finance/balance/$_currentUserId';
+      final url = '${AppConfig.backendUrl}/api/finance/balance/$userId';
       final response = await http.get(Uri.parse(url), headers: {
         'Content-Type': 'application/json'
       }).timeout(const Duration(seconds: 30));
@@ -112,9 +122,10 @@ class FinanceProvider extends ChangeNotifier {
   }
 
   Future<void> loadTransactions() async {
+    final userId = _authService.userId;
+    if (userId == null) return;
     try {
-      final url =
-          '${AppConfig.backendUrl}/api/finance/transactions/$_currentUserId';
+      final url = '${AppConfig.backendUrl}/api/finance/transactions/$userId';
       final response = await http.get(Uri.parse(url), headers: {
         'Content-Type': 'application/json'
       }).timeout(const Duration(seconds: 30));
@@ -129,6 +140,12 @@ class FinanceProvider extends ChangeNotifier {
   }
 
   Future<bool> sendMoney(String toUserId, double amount) async {
+    final userId = _authService.userId;
+    if (userId == null) {
+      _error = 'Nicht angemeldet';
+      notifyListeners();
+      return false;
+    }
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -139,7 +156,6 @@ class FinanceProvider extends ChangeNotifier {
             Uri.parse(url),
             headers: {'Content-Type': 'application/json'},
             body: json.encode({
-              'from': _currentUserId,
               'to': toUserId,
               'amount': amount,
               'currency': _currency,

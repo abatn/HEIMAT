@@ -32,7 +32,7 @@ class AppTheme {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors.card,
+          fillColor: AppColors.surface,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
@@ -53,6 +53,9 @@ class AppTheme {
         navigationBarTheme: NavigationBarThemeData(
           height: 64,
           indicatorColor: AppColors.primary.withOpacity(0.12),
+          indicatorShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return const TextStyle(
@@ -151,6 +154,9 @@ class AppTheme {
         navigationBarTheme: NavigationBarThemeData(
           height: 64,
           indicatorColor: AppColors.primaryLight.withOpacity(0.15),
+          indicatorShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(

@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
+import 'features/auth/presentation/auth_provider.dart';
+import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/register_screen.dart';
 import 'features/mobility/presentation/mobility_provider.dart';
 import 'features/finance/presentation/finance_provider.dart';
 import 'features/health/presentation/health_provider.dart';
@@ -20,21 +23,49 @@ class HeimatApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => MobilityProvider()),
-        ChangeNotifierProvider(create: (_) => FinanceProvider()),
-        ChangeNotifierProvider(create: (_) => HealthProvider()),
-      ],
-      child: MaterialApp(
-        title: AppConfig.appName,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const MainScreen(),
-        debugShowCheckedModeBanner: false,
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider()..init(),
+      child: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          return MultiProvider(
+            providers: [
+              ChangeNotifierProvider.value(value: auth),
+              ChangeNotifierProvider(
+                create: (_) => FinanceProvider(auth.authService),
+              ),
+              ChangeNotifierProvider(create: (_) => MobilityProvider()),
+              ChangeNotifierProvider(create: (_) => HealthProvider()),
+            ],
+            child: MaterialApp(
+              title: AppConfig.appName,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: ThemeMode.system,
+              routes: {
+                '/': (_) => const AuthGate(),
+                '/login': (_) => const LoginScreen(),
+                '/register': (_) => const RegisterScreen(),
+              },
+              initialRoute: '/',
+              debugShowCheckedModeBanner: false,
+            ),
+          );
+        },
       ),
     );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (auth.isAuthenticated) {
+      return const MainScreen();
+    }
+    return const LoginScreen();
   }
 }
 
@@ -70,9 +101,6 @@ class _MainScreenState extends State<MainScreen> {
             setState(() => _currentIndex = index);
           },
           backgroundColor: AppColors.card,
-          indicatorShape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.map_outlined),

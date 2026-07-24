@@ -13,7 +13,7 @@ class AppConfig {
   static String get mlServiceUrl {
     const url = String.fromEnvironment(
       'ML_SERVICE_URL',
-      defaultValue: 'http://localhost:8000',
+      defaultValue: '',
     );
     return url;
   }
