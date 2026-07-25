@@ -304,7 +304,7 @@ CREATE INDEX IF NOT EXISTS idx_taler_reserves_pub ON taler_reserves(reserve_pub)
 CREATE TABLE IF NOT EXISTS taler_purses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     purse_pub TEXT NOT NULL,
-    purse_priv TEXT NOT NULL,
+    purse_priv_pkcs8 TEXT NOT NULL,
     amount VARCHAR(50) NOT NULL,
     currency VARCHAR(10) NOT NULL DEFAULT 'KUDOS',
     contract_hash VARCHAR(128),
@@ -398,14 +398,15 @@ CREATE INDEX IF NOT EXISTS idx_taler_reserves_pub ON taler_reserves(reserve_pub)
 ALTER TABLE taler_transactions ADD COLUMN IF NOT EXISTS reserve_id UUID REFERENCES taler_reserves(id);
 ALTER TABLE taler_transactions ADD COLUMN IF NOT EXISTS kind VARCHAR(20) DEFAULT 'p2p';
 ALTER TABLE taler_transactions ADD COLUMN IF NOT EXISTS exchange_tx_signature TEXT;
-ALTER TABLE taler_purses ADD COLUMN IF NOT EXISTS purse_priv_pkcs8 TEXT;
+-- Renamer fuer Legacy-DBs: alter Spaltenname `purse_priv` -> `purse_priv_pkcs8`.
+-- Auf frischen Installationen existiert `purse_priv` nicht mehr (CREATE TABLE nutzt
+-- bereits den neuen Namen), dieser Block ist no-op. Auf Legacy-DBs renamed er.
 DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_name = 'taler_purses' AND column_name = 'purse_priv'
   ) THEN
-    -- nur auf Legacy-DBs umbenennen; auf frischen Installationen existiert purse_priv nicht
     EXECUTE 'ALTER TABLE taler_purses RENAME COLUMN purse_priv TO purse_priv_pkcs8';
   END IF;
 END $$;
