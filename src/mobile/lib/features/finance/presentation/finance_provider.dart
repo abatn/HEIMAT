@@ -74,7 +74,7 @@ class FinanceProvider extends ChangeNotifier {
       await http
           .post(
             Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
+            headers: _authService.authHeaders,
             body: json.encode({'userId': userId}),
           )
           .timeout(const Duration(seconds: 30));
@@ -96,7 +96,7 @@ class FinanceProvider extends ChangeNotifier {
       await initWallet();
       final walletUrl = '${AppConfig.backendUrl}/api/finance/wallet/$userId';
       final walletResponse = await http.get(Uri.parse(walletUrl), headers: {
-        'Content-Type': 'application/json'
+        ..._authService.authHeaders,
       }).timeout(const Duration(seconds: 30));
       if (walletResponse.statusCode == 200) {
         final walletData = json.decode(walletResponse.body);
@@ -104,7 +104,7 @@ class FinanceProvider extends ChangeNotifier {
       }
       final url = '${AppConfig.backendUrl}/api/finance/balance/$userId';
       final response = await http.get(Uri.parse(url), headers: {
-        'Content-Type': 'application/json'
+        ..._authService.authHeaders,
       }).timeout(const Duration(seconds: 30));
       if (response.statusCode != 200) {
         throw Exception('Server error: ${response.statusCode}');
@@ -127,7 +127,7 @@ class FinanceProvider extends ChangeNotifier {
     try {
       final url = '${AppConfig.backendUrl}/api/finance/transactions/$userId';
       final response = await http.get(Uri.parse(url), headers: {
-        'Content-Type': 'application/json'
+        ..._authService.authHeaders,
       }).timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -154,7 +154,7 @@ class FinanceProvider extends ChangeNotifier {
       final response = await http
           .post(
             Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
+            headers: _authService.authHeaders,
             body: json.encode({
               'to': toUserId,
               'amount': amount,
