@@ -88,6 +88,37 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('HEIMAT'),
+        backgroundColor: AppColors.card,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'Menü',
+            onSelected: (value) async {
+              if (value == 'logout') {
+                // Auth-Gate in main.dart leitet nach logout() automatisch
+                // auf die Login-Seite, sobald isAuthenticated == false.
+                await context.read<AuthProvider>().logout();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 12),
+                    Text('Abmelden'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
