@@ -9,11 +9,23 @@ export const authRouter = Router();
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) =>
   (req: Request, res: Response, next: NextFunction) => { Promise.resolve(fn(req, res, next)).catch(next); };
 
+// Akzeptiert sowohl `displayName` (camelCase, Backend-konvention)
+// als auch `display_name` (snake_case, was das Flutter-Mobile sendet).
+// Mindestens eines der Felder wird per refine verlangt; transform
+// kanonisiert die Ausgabe, sodass `req.body.displayName: string` ist.
 const registerSchema = z.object({
   email: z.string().email('Ungültige E-Mail-Adresse'),
   password: z.string().min(8, 'Passwort muss mindestens 8 Zeichen lang sein'),
-  displayName: z.string().min(1, 'Name ist erforderlich').max(100),
-});
+  displayName: z.string().min(1).max(100).optional(),
+  display_name: z.string().min(1).max(100).optional(),
+}).refine(d => !!d.displayName || !!d.display_name, {
+  message: 'Name ist erforderlich',
+  path: ['displayName'],
+}).transform(d => ({
+  email: d.email,
+  password: d.password,
+  displayName: d.displayName ?? d.display_name!,
+}));
 
 const loginSchema = z.object({
   email: z.string().email('Ungültige E-Mail-Adresse'),
@@ -53,6 +65,26 @@ const changePasswordSchema = z.object({
  *                 example: SecurePass123!
  *               displayName:
  *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 description: |
+ *                   Anzeige-Name (camelCase, OpenAPI-`required`). Alternativ kann
+ *                   das snake_case-Feld `display_name` gesendet werden — der
+ *                   Server-Refine akzeptiert beides, camelCase wird aber empfohlen
+ *                   (OpenAPI 3 erlaubt nur statisches `required`, kein oneOf).
+ *                   Bei Konflikt (beide Felder gesendet) wird `displayName`
+ *                   priorisiert.
+ *                 example: Max Mustermann
+ *               display_name:
+ *                 type: string
+ *                 minLength: 1
+ *                 maxLength: 100
+ *                 description: |
+ *                   snake_case-Alternative zu `displayName` (Server-Refine
+ *                   akzeptiert beides; camelCase wird empfohlen). Wird vom
+ *                   Flutter-Mobile verwendet und serverseitig zu `displayName`
+ *                   kanonisiert. Bei Konflikt mit `displayName` (beide Felder
+ *                   gesendet) hat `displayName` Vorrang.
  *                 example: Max Mustermann
  *     responses:
  *       201:
@@ -65,6 +97,7 @@ const changePasswordSchema = z.object({
  *         description: E-Mail bereits registriert
  */
 authRouter.post('/register', validate(registerSchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
+  // req.body.displayName ist durch Schema-transform() garantiert ein string.
   const { email, password, displayName } = req.body;
   const result = await authService.register(email, password, displayName);
   res.status(201).json({ status: 'ok', ...result });

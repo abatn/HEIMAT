@@ -79,16 +79,24 @@ if (require.main === module) {
     await testConnection();
 
     try {
-      const status = await gtfsService.getStatus();
-      if (status.has_data) {
-        await raptorService.initializeFromDb();
-        if (raptorService.isReady()) {
-          logger.info('RAPTOR routing engine ready from PostgreSQL');
+      // OPT-IN-Default: RAPTOR-In-Memory-Routing-Engine braucht beim Initialisieren
+      // >500 MB Heap, was Render Free Tier (512 MB Container) mit V8 OOM killt. Ohne
+      // explizites ENABLE_RAPTOR=true bleibt der Schritt aus und wir nutzen dauerhaft
+      // den transitous.org-Fallback. Lokales Dev / Render Standard: ENABLE_RAPTOR=true.
+      if (process.env.ENABLE_RAPTOR === 'true') {
+        const status = await gtfsService.getStatus();
+        if (status.has_data) {
+          await raptorService.initializeFromDb();
+          if (raptorService.isReady()) {
+            logger.info('RAPTOR routing engine ready from PostgreSQL');
+          } else {
+            logger.info('GTFS schema exists but no data, using transitous.org fallback');
+          }
         } else {
-          logger.info('GTFS schema exists but no data, using transitous.org fallback');
+          logger.info('No GTFS data found, using transitous.org for routing');
         }
       } else {
-        logger.info('No GTFS data found, using transitous.org for routing');
+        logger.info('RAPTOR disabled (ENABLE_RAPTOR not set), using transitous.org for routing');
       }
     } catch (e: unknown) {
       logger.warn(`RAPTOR initialization skipped: ${errorMessage(e)}`);

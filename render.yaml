@@ -7,16 +7,31 @@ services:
     buildCommand: cd src/backend && npm install --include=dev && npm run build && mkdir -p dist/database && cp src/database/schema.sql dist/database/
     preDeployCommand: bash scripts/stale-doc-prescan.sh --enforce --quiet
     startCommand: cd src/backend && node dist/index.js
+    # Supavisor Shared Pooler / Session Mode (Port 5432) statt Direct-Verbindung:
+    # Render Free Tier (Frankfurt) ist IPv4-only outbound. Der Supabase-Direkt-Hostname
+    # `db.<ref>.supabase.co` loest in diesem Projekt nur AAAA-Records (IPv6) auf → TCP
+    # SYN geht ins Leere, 10-12s Timeout, 500er. Der Pooler ist dual-stack (A+AAAA),
+    # mit `family: 4` in database.ts nehmen wir den IPv4-Pfad. SSL ist erforderlich,
+    # der DB_USER hat das Session-Pooler-Format `user.<project_ref>`.
     envVars:
+      # RAPTOR ist opt-in (Default AUS): In-Memory-Routing braucht beim Init >500 MB
+      # Heap, was Render Free (512 MB) mit V8 OOM killt. Ohne ENABLE_RAPTOR=true
+      # laeuft der Service auf transitous.org-Fallback. Auf Render Standard (>2 GB)
+      # kann ENABLE_RAPTOR=true lokal getestet werden - wegnehmen wenn ihr upgradet.
+      # (Kein DISABLE_RAPTOR-Flag noetig - die Abwesenheit IST der Aus-Zustand.)
       - key: DB_HOST
-        value: db.sqbiqzwkcryhcyvftumb.supabase.co
+        value: aws-0-eu-west-1.pooler.supabase.com
       - key: DB_PORT
         value: 5432
       - key: DB_NAME
         value: postgres
       - key: DB_USER
-        value: postgres
+        value: postgres.sqbiqzwkcryhcyvftumb
       - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: ENABLE_RAPTOR
         sync: false
       - key: REDIS_URL
         fromService:

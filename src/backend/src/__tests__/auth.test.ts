@@ -67,6 +67,22 @@ describe('Auth API', () => {
 
       expect(res.status).toBe(400);
     });
+
+    it('should accept snake_case display_name (Flutter-Mobile compatibility)', async () => {
+      const snakeEmail = `snake-${Date.now()}@heimat.de`;
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: snakeEmail,
+          password: testPassword,
+          display_name: testName,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty('accessToken');
+      expect(res.body.user.email).toBe(snakeEmail);
+      expect(res.body.user.display_name).toBe(testName);
+    });
   });
 
   describe('POST /api/auth/login', () => {
