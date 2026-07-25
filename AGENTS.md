@@ -115,6 +115,33 @@ Wichtige Commits (in Reihenfolge):
 - **Auth-Routing-Bug fixed** (Commit `9c8deb7`): deep links to `/#/login` or `/#/register` now take the user to MainScreen after successful auth. Hash-Routing on a non-root route bypasses AuthGate, so `isAuthenticated` listener was missing — explicit `Navigator.pushNamedAndRemoveUntil('/', (route) => false)` was added in `login_screen.dart` and `register_screen.dart`.
 - **Render + Supabase connection** (`render.yaml`): now using **Supavisor pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`), `DB_SSL=true`, Node 20, devDeps-pruned. Supavisor pools Render Free Tier (IPv4) traffic to the Supabase IPv6-only DB column endpoint.
 
+## Phase 23 Recap — Stand Juli 2026
+
+Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert; kleinere offene Tasks in klarer Reihenfolge.
+
+### ✅ Was funktioniert
+- **User-Auth** (JWT + bcryptjs): Register/Login/Logout end-to-end live auf `heimat-backend.onrender.com`
+- **Finance-JWT-Roundtrip**: Mobile Bearer-Header in allen 5 Finance-Calls, URL-Pfade ohne `/$userId`-Suffix, Schema-Migration `wallet_priv` durchgelaufen
+- **Security-Härtung**: ungeschützter `POST /api/migrate` entfernt; `security.test.ts` Regression-Lock aktiv (Commit 3414aea)
+- **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook (Commit 7e5f063) statt render.yaml preDeployCommand (das bei runtime:node ignoriert wird)
+- **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` positive-control HTTP 200 in ~213ms
+- **DB-Connection**: Supavisor-Pooler via `family:4` IPv4-Force, SSL
+- **Taler**: `exchange.demo.taler.net` erreichbar, GET /keys + /reserves funktioniert
+- **Backend CI**: Lint + Jest + tsc grün
+- **Swagger UI**: /docs + /docs.json live
+- **Mobilität + Gesundheit**: seit MVP grün
+
+### ⚠️ Was ist offen
+- Live-Verifikation der AUTO_MIGRATE-Migration via Render-Build-Logs (einmal manuell prüfen)
+- Taler-Bank-Wire-Funding (Phase 24): manueller Schritt auf `bank.demo.taler.net/webui` nötig
+- Unit-Test für `migrate.ts` fehlt — gemockter pg pool
+
+### ❌ Was fehlt
+- Flutter Integration-Tests (Login → Finance → Logout Flow nicht durch UI getestet)
+- `health.test.ts` Backend CI-Failure (1/7 Suites, pre-existing)
+- Auth-Routing-Bug Regression-Test in mobile tests
+- Auto-Migration health-check (`npm run migrate:status`)
+
 ## Additional instruction files
 
 - `.claude/CLAUDE.md` – detailed Claude-specific instructions (same rules, more verbose)

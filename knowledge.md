@@ -146,6 +146,35 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 
 13. **Phase 23 Roundtrip ✅ Live (2026-07-25):** Finance-JWT-Integration abgeschlossen. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün am 2026-07-25. security.test.ts Regression-Lock aktiv (Commit 3414aea). Konkret: (a) Mobile `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 HTTP-Calls. (b) Backend `GET /api/finance/wallet` Route neu (Commit e00105d). (c) Schema `wallet_priv` Legacy-Spalte per `ALTER TABLE DROP COLUMN IF EXISTS` verloren. (d) Ungeschützter `POST /api/migrate` entfernt (Commit 25ac7ab); nur `/api/admin/migrate` mit `X-Admin-Key` Header bleibt. (e) `src/backend/src/scripts/migrate.ts` (Node.js) läuft im `preDeployCommand` nach `buildCommand` (Commit e7fcd85) — wendet `dist/database/schema.sql` automatisch auf Production-DB an. (f) `src/backend/src/__tests__/security.test.ts` (Commit 3414aea) regresssion-locked dass POST /api/migrate 404 retourniert (sonst 200 mit Schema-loaded-Body). (g) Backend-CI Run #30173698956 für e7fcd85 grün (Lint/Test/Build).
 
+## Phase 23 Recap — Stand Juli 2026
+
+Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert; kleinere offene Tasks in klarer Reihenfolge.
+
+### ✅ Was funktioniert
+- User-Auth (JWT + bcryptjs): Register/Login/Logout end-to-end live auf `heimat-backend.onrender.com` (Commit 9c8deb7 + 1090203 + Phase 18-Backend)
+- Finance-JWT-Roundtrip: Mobile Bearer-Header in allen 5 Finance-Calls (cfb0561), URL-Pfade ohne `/$userId` Suffix (e00105d), Schema-DROP `wallet_priv` durchgelaufen
+- Security-Härtung: ungeschützter `POST /api/migrate` entfernt (25ac7ab); `security.test.ts` Regression-Lock aktiv (3414aea)
+- Auto-Migration: `AUTO_MIGRATE=true` startup-hook in `src/backend/src/index.ts` (Commit 7e5f063) — Bug-Fix dass `render.yaml preDeployCommand` bei `runtime:node` ignoriert wird
+- Admin-Pfad: `ADMIN_KEY` auf Render gesetzt; `POST /api/admin/migrate` mit `X-Admin-Key` positive-control HTTP 200 in ~213ms
+- DB-Connection: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`), Node 20, devDeps-Prune
+- Taler-Exchange-Client: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` (Ed25519, KUDOS)
+- Backend CI: Lint + Jest (113+ Tests) + tsc --noEmit — alle grün auf `main`
+- Mobile CI: dart format + flutter analyze + flutter test — alle grün
+- Swagger/OpenAPI: /docs + /docs.json live
+- Mobilität (Überpass/Nominatim/OSRM/transitous) und Gesundheit (Ärzte+Termine) seit MVP grün
+
+### ⚠️ Was ist offen
+- Erste Live-Verifikation der AUTO_MIGRATE-Migration auf Render-Build-Logs noch ausstehend (Dashboard-Inspektion)
+- Bank-Wire-Funding-Flow für Taler (Phase 24): manueller Schritt auf `bank.demo.taler.net/webui` nötig — keine API-Alternative
+- Unit-Test für `migrate.ts` (gemockter pg pool) fehlt — Coverage-Lücke
+- `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im preDeploy-Workflow eingebunden (war Nice-to-have, jetzt deaktiviert)
+
+### ❌ Was fehlt
+- Flutter Integration-Tests (kein Code vorhanden — Login → Finance → Logout Flow nicht durch UI getestet)
+- `health.test.ts` Backend CI-Failure (1/7 Suites, pre-existing — DB-Cleanup-Ordering vermutet)
+- Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern mit `Navigator.pushNamedAndRemoveUntil('/', …)`) — kein Pre-Commit-Test
+- Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
+
 ## Pre-existing test failures
 
 - `src/backend/src/__tests__/health.test.ts`: 1/7 backend suites fails on CI. Likely DB-cleanup ordering issue. Not introduced by recent code — investigate before touching health tests.

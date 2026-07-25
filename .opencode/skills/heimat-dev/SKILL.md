@@ -119,8 +119,14 @@ Der GTFS-Zip-Import (`gtfs.de/nv_free`) verstößt gegen KEINE Projektdaten. CC-
 ### Ärzte: ECHTE Overpass-Ergebnisse
 Die 5 Ärzte auf der Gesundheitsseite sind echte Overpass-API-Ergebnisse für Berlin, keine hardcodierten Daten.
 
-### Finanzen: Demo-User ist ein echtes Problem
-`finance_provider.dart:45` hat `user-demo-001` hartkodiert. Backend JWT-Auth ist fertig (14 Tests), aber Mobile nutzt es nicht. **Höchste Priorität.**
+### Finanzen: Demo-User ist Geschichte (Phase 23 abgeschlossen 2026-07-25)
+`finance_provider.dart:45` hatte früher `user-demo-001` hartkodiert. **JETZT GEFIXT** (Commits cfb0561 + e00105d): Mobile `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 Finance-HTTP-Calls (`initWallet`, `loadWallet` 2x, `loadTransactions`, `sendMoney`). URL-Pfade ohne `/$userId`-Suffix (Backend identifiziert User aus Bearer-Token). Schema hat alte `wallet_priv`-Legacy-Spalte per Migration verloren. Roundtrip ist end-to-end live gegen Render + Supabase.
+
+### Security-Härtung (Phase 23)
+- `POST /api/migrate` wurde entfernt (war ungeschützt — jeder konnte DB-Schema mutieren)
+- `security.test.ts` Regression-Lock: prüft dass POST /api/migrate jetzt 404 retourniert UND Body nicht „Schema loaded successfully" lautet
+- `AUTO_MIGRATE=true` startup-hook wendet `schema.sql` bei jedem Render-Deploy automatisch auf Production-DB an
+- `ADMIN_KEY` muss auf Render-Dashboard gesetzt sein damit `/api/admin/migrate` funktioniert
 
 ## Conventions
 

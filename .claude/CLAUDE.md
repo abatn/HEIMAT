@@ -216,6 +216,33 @@ src/ml-service/       # Python FastAPI (nur Docker)
 7. ✅ **Mobile-Finance-Regression-Test** — erledigt 2026-07-25 mit Commit `3414aea` Regression-Lock für Security; mobile Finance-Headers durch code-review verifiziert
 8. **migrate.ts Unit-Test** — `src/backend/src/__tests__/migrate.test.ts` schreiben mit gemocktem pg pool (Test (a) success path, (b) pool.query throws → exit 1, (c) redactConnectionSecrets edge cases).
 
+## Phase 23 Recap — Stand Juli 2026
+
+Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert.
+
+### ✅ Was funktioniert
+- **User-Auth**: JWT+bcryptjs Register/Login/Logout end-to-end live auf Render
+- **Finance-JWT-Roundtrip**: Mobile Bearer-Header in allen 5 Finance-Calls, URL-Pfade ohne `/$userId`-Suffix, Schema-DROP `wallet_priv` durchgelaufen
+- **Security-Härtung**: `POST /api/migrate` entfernt (25ac7ab); `security.test.ts` Regression-Lock (3414aea)
+- **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook in `src/index.ts` (7e5f063) statt render.yaml preDeployCommand
+- **Admin-Pfad**: `ADMIN_KEY` auf Render; `/api/admin/migrate` HTTP 200 verifiziert
+- **DB-Connection**: Supavisor-Pooler, IPv4-Force, SSL — seit Phase 20 stabil
+- **Taler**: exchange.demo.taler.net erreichbar (GET /keys + /reserves/<pub>)
+- **Backend CI grün**: Lint+Jest+tsc --noEmit auf Commit-Recent
+- **Swagger**: /docs + /docs.json live
+
+### ⚠️ Was ist offen
+- AUTO_MIGRATE Live-Verifikation auf Render-Build-Logs
+- Taler-Bank-Wire-Funding (Phase 24) — manueller bank.demo.taler.net/webui Schritt
+- Unit-Test für migrate.ts (gemockter pg pool)
+- stale-doc-prescan.sh nicht im Workflow eingebunden (war Nice-to-have)
+
+### ❌ Was fehlt
+- Flutter Integration-Tests für JWT-Flow
+- health.test.ts Backend CI-Failure (1/7 Suites)
+- Auth-Routing-Bug Regression-Test
+- `npm run migrate:status` Auto-Migration health-check
+
 ## Klärungen (Juli 2026)
 
 ### GTFS ZIP-Import: KEIN Regelverstoß

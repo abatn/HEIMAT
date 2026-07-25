@@ -5,6 +5,31 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 
 ## aktueller Stand
 
+**Phase 23 Recap — Stand Juli 2026:** Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert.
+
+### ✅ Was funktioniert
+- User-Auth (JWT+bcryptjs): Register/Login/Logout end-to-end live auf Render
+- Finance-Roundtrip: Mobile Bearer-Header in allen 5 Finance-Calls (cfb0561); URL-Pfade ohne `/$userId`-Suffix; `GET /wallet` Route neu; Schema-DROP `wallet_priv` durchgelaufen
+- Security-Härtung: `POST /api/migrate` entfernt (25ac7ab); `security.test.ts` Regression-Lock (3414aea)
+- Auto-Migration: `AUTO_MIGRATE=true` startup-hook in src/index.ts (7e5f063) wendet `schema.sql` automatisch bei jedem Render-Deploy an
+- Admin-Pfad: `ADMIN_KEY` auf Render; `/api/admin/migrate` mit X-Admin-Key positive-control HTTP 200 in ~213ms
+- DB-Connection: Supavisor-Pooler mit IPv4-Force (`family:4`), SSL — stabil
+- Taler-Exchange-Client: GET /keys + GET /reserves/<pub> gegen `exchange.demo.taler.net` (Ed25519, KUDOS)
+- Backend CI + Mobile CI grün auf `main`
+- Swagger/OpenAPI /docs + /docs.json
+- Mobilität und Gesundheit seit MVP grün
+
+### Was ist offen
+- Live-Verifikation der AUTO_MIGRATE-Migration via Render-Build-Logs (einmal manuell prüfen)
+- Taler-Bank-Wire-Funding (Phase 24) — manueller bank.demo.taler.net/webui Schritt
+- Unit-Test für `migrate.ts` fehlt
+
+### Was fehlt
+- Flutter Integration-Tests
+- `health.test.ts` Backend CI-Failure (1/7 Suites, pre-existing)
+- Auth-Routing-Bug Regression-Test in mobile tests
+- Auto-Migration health-check Tool
+
 **Auth-Track seit 2026-07-25 end-to-end live auf Production** (`/api/auth/{register, login, me}` gegen `heimat-backend.onrender.com`, Smoke-Test-User in Supabase-Production-DB).
 
 ### Was bereits implementiert ist

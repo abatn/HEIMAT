@@ -6,6 +6,35 @@ HEIMAT 2.0 ist eine Open-Source Super App für den deutschen Alltag, die ausschl
 
 ---
 
+## Phase 0: Status-Rekap Juli 2026
+
+Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert. Historische Phasen 1-7 (Marktanalyse, Service-Blaupausen, Tech-Stack, Rechtliches, Go-to-Market, Business-Case, Repo-Setup) bleiben als Decision-Record bestehen; die operativen Phasen (18 Auth, 23 Finance-Roundtrip) sind am Ende dieses Dokuments.
+
+### ✅ Was funktioniert (Production-Live 2026-07-25)
+- **User-Auth** (JWT+bcryptjs): Register/Login/Logout end-to-end live auf `heimat-backend.onrender.com` — Phase 18
+- **Finance-Roundtrip**: Mobile Bearer-Token in allen 5 Finance-Calls, URL-Pfade ohne `/$userId`-Suffix, Schema-DROP `wallet_priv` — Phase 23
+- **Security-Härtung**: ungeschützter `POST /api/migrate` entfernt; `security.test.ts` Regression-Lock aktiv — Phase 23
+- **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook wendet `schema.sql` bei jedem Render-Deploy automatisch auf Production-DB an — Phase 23
+- **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` mit X-Admin-Key positive-control HTTP 200 in ~213ms — Phase 23
+- **DB-Connection**: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`) — löst Supabase-IPv6-Only Problem auf Render Free Tier IPv4
+- **Taler-Exchange-Client**: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` live
+- **Backend CI grün**: Lint + Jest (113+ Tests) + tsc --noEmit auf jedem `src/backend/**` push
+- **Mobile CI grün**: dart format + flutter analyze + flutter test auf jedem `src/mobile/**` push
+- **Swagger/OpenAPI**: /docs UI + /docs.json live
+- **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
+
+### ⚠️ Was ist offen (nicht-blockierend)
+- Live-Verifikation der AUTO_MIGRATE-Migration via Render-Build-Logs (Dashboard manuell prüfen)
+- Taler-Bank-Wire-Funding-Flow (Phase 24): manueller Schritt auf `bank.demo.taler.net/webui` — keine API-Alternative
+- Unit-Test für `migrate.ts` fehlt — gemockter pg pool, Migrations-Pfad tests-protected machen
+- `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im Workflow eingebunden (war Nice-to-have)
+
+### ❌ Was fehlt (echte Lücken)
+- Flutter Integration-Tests (kein Code vorhanden — Login → Finance → Logout Flow nicht durch UI getestet)
+- `health.test.ts` Backend CI-Failure (1/7 Suites, pre-existing — DB-Cleanup-Ordering vermutet)
+- Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern `Navigator.pushNamedAndRemoveUntil('/', …)`)
+- Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
+
 ## Phase 1: Marktanalyse & Positionierung
 
 ### 1. Wettbewerbsanalyse

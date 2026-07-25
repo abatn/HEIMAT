@@ -18,9 +18,14 @@ description: "Deployment & CI/CD für HEIMAT. Trigger bei Änderungen an render.
 
 - **Plan:** Free (512MB RAM, Cold-Start)
 - **Region:** Frankfurt
-- **Build:** `cd src/backend && npm install --include=dev && npm run build`
+- **Build:** `cd src/backend && npm install --include=dev && npm run build && mkdir -p dist/database && cp src/database/schema.sql dist/database/`
 - **Start:** `cd src/backend && node dist/index.js`
-- **DB_HOST:** `db.sqbiqzwkcryhcyvftumb.supabase.co`
+- **DB_HOST:** `aws-0-eu-west-1.pooler.supabase.com` (Supavisor-Pooler — IPv4-von Render Free Tier erreichbar; der direkte `db.<ref>.supabase.co` Hostname ist IPv6-only und von Render Free nicht erreichbar)
+- **DB_SSL:** `true`
+- **DB_USER:** `postgres.sqbiqzwkcryhcyvftumb` (Session-Pooler-Format: `user.<project_ref>`)
+- **DB_PASSWORD:** sync:false (manuell im Render-Dashboard setzen — nicht im Repo committen!)
+- **AUTO_MIGRATE:** `true` (auto-migration als startup-hook in src/index.ts; preDeployCommand ist in runtime:node still ignoriert und wurde aus render.yaml entfernt)
+- **ADMIN_KEY:** sync:false (manuell im Render-Dashboard setzen — schützt `/api/admin/migrate` vor unauth Aufrufen)
 - **Redis:** via Render internal service
 
 ## GitHub Pages (Frontend)
