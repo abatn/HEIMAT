@@ -104,7 +104,7 @@ npx tsc --noEmit
 | Admin-Endpoints | ✅ geschützt | `ADMIN_KEY` env var required, kein statisch eingebauter Fallback |
 | /api/migrate | ✅ geschützt | Nur mit `X-Admin-Key` Header |
 | CORS | ⚠️ offen | `process.env.CORS_ORIGIN || '*'` — default allow-all, per env var einschränkbar |
-| User-Auth | ✅ Code existiert | JWT + bcryptjs, Register/Login/Profile/Password — Code geschrieben, ungetestet auf Production |
+| User-Auth | ✅ live & validiert | JWT + bcryptjs, Register/Login/Profile/Password — End-to-End auf Render getestet (Register 201, Login 200, /me 200) |
 | Rate-Limiter | ⚠️ global | 100 req/15min, kann bei API-Calls pro Screen limitieren |
 
 ## Bekannte Bugs & Fixes
@@ -207,11 +207,12 @@ src/ml-service/       # Python FastAPI (nur Docker)
 
 ## Offene Tasks (priorisiert)
 
-1. 🔴 **Finanzen: JWT-Auth statt Demo-User** — `finance_provider.dart:45` hat `user-demo-001` hartkodiert; Backend JWT ist fertig (14 Tests), Mobile nutzt es NICHT
+1. 🟡 **Finanzen: JWT-Auth ins Mobile integrieren** — Backend JWT ist seit 2026-07-25 auf Render live (Register/Login/Me validiert). Aber `finance_provider.dart:45` hat noch `user-demo-001` hartkodiert; Flutter-Finance-Screens müssen gegen den Auth-Token arbeiten
 2. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
-3. **Production-Validierung: User-Auth End-to-End testen** — auf Render deployt und curl-Test
+3. ✅ **Production-Validierung: User-Auth End-to-End testen** — erledigt 2026-07-25: Register/Login/Me gegen `heimat-backend.onrender.com` mit echtem User (`heimat-demo-user@heimat.de`) in Production-DB
 4. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden
 5. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
+6. **Auth-Routing-Bug regression-tests** — pre-commit-test der Hash-Routing-Pattern in `auth_screens_test.dart` (LoginScreen/RegisterScreen navigieren explizit nach `'/'`)
 
 ## Klärungen (Juli 2026)
 
@@ -221,5 +222,12 @@ Der GTFS-Zip-Import (`gtfs.de/nv_free`) verstößt gegen KEINE Projektdaten. CC-
 ### Ärzte: ECHTE Overpass-Ergebnisse
 Die 5 Ärzte die auf der Gesundheitsseite erscheinen sind echte Overpass-API-Ergebnisse für Berlin, keine hardcodierten Daten. `schema.sql:370`: "Keine Seed-Daten".
 
-### Finanzen: Demo-User ist ein echtes Problem
-`finance_provider.dart:45` hat `user-demo-001` hartkodiert. Backend JWT-Auth ist fertig (14 Tests), aber das Mobile-Code nutzt es nicht. Dies ist der höchste Prioritäts-Task.
+### Finanzen: Demo-User ist ein echtes Problem (Status 2026-07-25)
+`finance_provider.dart:45` hat `user-demo-001` hartkodiert. **Backend-JWT-Auth ist seit 2026-07-25 live auf Production** (siehe Offene Tasks #1). Mobile-Finance-Integration steht noch aus.
+
+### Auth-Track live auf Production (Juli 2026)
+- **Backend**: `/api/auth/{register, login, me, profile, password}` End-to-End funktional auf `heimat-backend.onrender.com` mit Render Free Tier + Supabase Production-DB.
+- **Mobile**: AuthProvider + LoginScreen + RegisterScreen + AuthGate (in `main.dart`) orchestrieren JWT-Roundtrip; SharedPreferences persistiert den Token; AppBar mit ⋮-Logout-PopupMenu (Commit `1090203`).
+- **Mobile-Auth-Routing-Bug-Fix** (Commit `9c8deb7`): LoginScreen + RegisterScreen navigieren nach erfolgreichem Login/Register explizit zu `'/'` via `Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false)` mit `!mounted`-Early-Exit. Grund: Hash-Routing-Deep-Links auf `/#/login` oder `/#/register` mounten direkt aus der `routes`-Tabelle die jeweiligen Screens — `AuthGate` an `'/'` wird umgangen, kein Widget horchte auf `isAuthenticated`, der User blieb trotz 200 + Token-saved auf der Login-Seite hängen.
+- **Render + Supabase Production-Anbindung**: `render.yaml` ist umgestellt auf **Supavisor-Pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`), `DB_SSL=true`, Node 20, devDeps-Prune. Damit überbrückt Render Free Tier (IPv4-only) die Supabase-IPv6-only-DB. Klassischer `db.<project>.supabase.co`-Endpoint war unerreichbar.
+- **Smoke-Test-User** in Production-DB: `heimat-demo-user@heimat.de / DemoHeimat2026!` (registriert 2026-07-25, Verifikation via `POST /api/auth/login` + `GET /api/auth/me`).

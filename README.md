@@ -151,7 +151,8 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 |-------|--------|---------|
 | Mobilität (OSM/Overpass/OSRM) | ✅ Abgeschlossen | Echte Haltestellen, Nominatim-Geocoding, Routing |
 | Gesundheit (OSM + Registrierung) | ✅ Abgeschlossen | Echte Ärzte aus Overpass, Arzt-Registrierung |
-| Finanzen (GNU Taler Testnet) | ⏳ Offen | Nächster Schritt |
+| **User-Auth (JWT)** | ✅ Live (2026-07-25) | Register/Login/Logout end-to-end auf Render, Token in Browser-LocalStorage persistiert, AppBar mit ⋮-Logout |
+| Finanzen (GNU Taler) | ⚠️ Backend live, Mobile offen | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519, KUDOS); Flutter wartet auf JWT-Integration |
 | UX-Modernisierung | ✅ Abgeschlossen | Gradient-Karten, Pill-Nav, Bottom Sheets |
 
 ---

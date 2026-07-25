@@ -1091,7 +1091,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 ### Bekannte Einschränkungen
 
 1. **Taler-Exchange-Client** — Client-Code für exchange.demo.taler.net (Ed25519, KUDOS) existiert + 12 Tests, aber Bank-Wire-Funding erfordert manuellen Schritt auf bank.demo.taler.net/webui — kein vollständiger End-to-End-Flow
-2. **User-Auth (ungenutzt auf Production)** — JWT+bcryptjs implementiert + 14 Tests, aber nie auf Render ausgeführt
+2. **Flutter-Finance: JWT-Auth-Integration** — Backend JWT+bcryptjs ist seit 2026-07-25 live auf Render (`/api/auth/{register,login,me}` End-to-End getestet). Verbleibend: `finance_provider.dart:45` hat noch `user-demo-001` hartkodiert — Flutter-Finance-Screens müssen gegen den echten Auth-Token arbeiten
 3. **CORS** — `process.env.CORS_ORIGIN || '*'` (Default allow-all, per env var einschränkbar)
 4. **Rate-Limiter** — 100 req/15min global (kann bei vielen API-Calls pro Screen limitieren)
 5. **ML-Service** — nur Statistical/Keyword-Fallback, keine echten Trainingsdaten
@@ -1124,7 +1124,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 | Feature | Code existiert? | Getestet? | Production-validiert? | Anmerkung |
 |---------|---------------|-----------|----------------------|-----------|
-| User-Auth (JWT+bcryptjs) | ✅ | ✅ (14 Tests) | ❌ ungetestet | Routes/Service geschrieben, auf Production nie ausgeführt |
+| User-Auth (JWT+bcryptjs) | ✅ | ✅ (14 Tests) | ✅ live (2026-07-25) | End-to-End auf `heimat-backend.onrender.com` validiert (Register 201, Login 200, /me 200). Test-User `heimat-demo-user@heimat.de` |
 | Zod-Validierung | ✅ | ✅ (25 Tests) | ❌ ungetestet | Middleware validiert alle Inputs, per CI getestet |
 | Swagger/OpenAPI | ✅ | ✅ (in e2e) | ❌ ungetestet | `/docs` und `/docs.json` im Code |
 | Taler-Exchange-Client | ⚠️ Client-Code | ✅ (12 Tests) | ❌ kein vollst. Flow | exchange.demo.taler.net erreichbar, Bank-Wire-Funding manuell |
@@ -1134,9 +1134,10 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 ### Nächste Schritte (priorisiert)
 
 1. **🔴 Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites); vermutlich DB-Cleanup-Reihenfolge
-2. **Production-Validierung: User-Auth End-to-End testen** — auf Render deployed und curl-Test (Code + 14 Tests existieren, nie auf Production ausgeführt)
+2. **🟡 Flutter-Finance: JWT-Auth-Integration** — Backend ist live, Mobile hat noch Demo-User hartkodiert (`finance_provider.dart:45`)
 3. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden (Client-Code existiert, manueller Funding-Schritt)
 4. **E2E-Tests (Flutter Integration)** — noch kein Code vorhanden
+5. **Auth-Routing-Bug regression-tests** — pre-commit-test der `pushNamedAndRemoveUntil('/', _)`-Pattern in `auth_screens_test.dart`, sonst kann der Hash-Routing-Bug regressieren
 
 ### Phase 21: CI-Reparatur (abgeschlossen)
 
@@ -1147,6 +1148,14 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 - **`dependabot-auto-merge.yml`**: Patch → auto-merge, Minor → nur approve
 - **`AGENTS.md`**: Rewrite mit korrekten CI-Gates, Service-URLs, Known Bugs
 - **`heimat-plan.md`**: CI-Tabelle aktualisiert, Phase 21 dokumentiert
+
+### Phase 22: Auth-Track live auf Production (abgeschlossen, 2026-07-25)
+
+- **Render + Supabase Production-Anbindung**: `render.yaml` ist umgestellt auf **Supavisor Pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`), `DB_SSL=true`, Node 20, devDeps-Prune. Damit überbrückt Render Free Tier (IPv4-only) die Supabase-IPv6-only-DB. Klassischer `db.<project>.supabase.co`-Endpoint war unerreichbar.
+- **JWT-Auth-Routes end-to-end live**: `/api/auth/register` (201), `/api/auth/login` (200), `/api/auth/me` (200) liefern Token + User-Object für einen realen, in der Production-DB persistierten User. Response-Schema-Snippet: `{"status":"ok","accessToken":"<jwt>","user":{"id":"...","email":"...","display_name":"..."}}`.
+- **Mobile-JWT-Roundtrip**: `AuthProvider` + `AuthService` orchestrieren den Token-Flow; `SharedPreferences` persistiert; `AuthGate` rendert automatisch `MainScreen` bei `isAuthenticated=true`. AppBar mit ⋮-Logout-PopupMenu (Commit `1090203`).
+- **Auth-Routing-Bug-Fix** (Commit `9c8deb7`): LoginScreen + RegisterScreen navigieren nach erfolgreichem Login/Register explizit nach `'/'` via `Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false)` mit `!mounted`-Early-Exit. Root Cause: Hash-Routing-Deep-Links auf `/#/login` oder `/#/register` mountet direkt aus der `routes`-Tabelle und umgeht AuthGate; kein Widget horchte im Login-Pfad auf `isAuthenticated`, der User blieb auf der Login-Seite hängen — trotz serverseitigem 201/200 + Token-Save. Pattern: `routes['/' ] -> AuthGate`, `routes['/login'] -> LoginScreen`, `routes['/register'] -> RegisterScreen`. Hash-Routing auf nicht-Root-Slots umgeht AuthGate.
+- **Smoke-Test-User** (in Supabase-Production-DB): `heimat-demo-user@heimat.de / DemoHeimat2026!`.
 
 ---
 

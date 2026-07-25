@@ -140,7 +140,7 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 
 11. **Doctors on the health page are real Overpass results for Berlin** (not hardcoded seed data). `schema.sql:370`: "Keine Seed-Daten".
 
-12. **Finance `user-demo-001` is a known hardcode** in `finance_provider.dart:45` — Backend JWT-auth is complete (14 tests passing) but mobile hasn't been wired up. HIGHEST priority open task.
+12. **Finance `user-demo-001` is still hardcoded** in `finance_provider.dart:45`. Backend JWT-Auth is live on Production since 2026-07-25 (`/api/auth/{register,login,me}` end-to-end against `heimat-backend.onrender.com`); Mobile-Finance still needs to be wired against the real token instead of the demo user.
 
 ## Pre-existing test failures
 

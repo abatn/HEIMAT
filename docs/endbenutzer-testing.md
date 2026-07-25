@@ -2,9 +2,20 @@
 
 ## Für Web-App (Browser)
 
+### Schritt 0 (optional): Account anlegen / anmelden
+1. Direkter Deep-Link auf **https://abatn.github.io/HEIMAT/#/login** (Login) oder **https://abatn.github.io/HEIMAT/#/register** (Registrieren).
+2. Für neuen Account: Name + E-Mail + Passwort (mindestens 8 Zeichen) → **Registrieren**.
+3. Für bestehenden Account: E-Mail + Passwort → **Anmelden**.
+4. Nach erfolgreichem Auth landest du direkt auf der Home-Seite (3 Tabs: Mobilität / Finanzen / Gesundheit).
+5. Logout: oben rechts im AppBar auf das ⋮-Drei-Punkte-Symbol → **Abmelden**.
+
+**Smoke-Test-Account** (gültig in Production-DB, 2026-07-25):
+- E-Mail: `heimat-demo-user@heimat.de`
+- Passwort: `DemoHeimat2026!`
+
 ### Schritt 1: App öffnen
 1. Öffne den Browser (Chrome, Firefox, Safari)
-2. Gehe zu: https://abatn.github.io/HEIMAT/
+2. Gehe zu: https://abatn.github.io/HEIMAT/ — oder direkt auf den Auth-Deep-Link aus Schritt 0.
 3. Die App lädt automatisch
 
 ### Schritt 2: Features testen

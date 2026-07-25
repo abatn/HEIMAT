@@ -5,7 +5,7 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 
 ## aktueller Stand
 
-**19 von 20 Tasks abgeschlossen.** Nur noch 1 Task offen.
+**Auth-Track seit 2026-07-25 end-to-end live auf Production** (`/api/auth/{register, login, me}` gegen `heimat-backend.onrender.com`, Smoke-Test-User in Supabase-Production-DB).
 
 ### Was bereits implementiert ist
 - Mobilität: Overpass, Nominatim, OSRM, transitous.org, RAPTOR, GTFS Stop-Matching
@@ -13,11 +13,14 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - Finanzen: Echter GNU-Taler-Exchange-Client (Ed25519-Identity, /keys + /reserves/<pub> gegen exchange.demo.taler.net)
 - AI: Intent-Klassifikation (BayesClassifier), Disruption-Analyse, Personal Routing
 - ML-Service: LightGBM Delay Predictor + Naive Bayes Budget Classifier (mit Training-Endpoints)
-- Auth: JWT + bcryptjs (Register/Login/Profile/Password)
+- **Auth: JWT + bcryptjs — end-to-end live auf Production** (Register/Login/Profile/Password; Flutter-Token-Roundtrip via `AuthProvider`+`AuthService`+`AuthGate`; AppBar mit Logout-PopupMenu; Login-Routing-Bug 2026-07-25 gefixt)
 - Validierung: Zod für alle Routes
 - API-Docs: Swagger/OpenAPI 3.0 auf `/docs`
-- Tests: 80+ Tests (Backend + Flutter)
-- Sicherheit: Admin-Key geschützt, CORS eingeschränkt, Health-Checks mit DB/Ping
+- Tests: 113+ Tests (Backend + Flutter); 14 dedizierte Auth-Tests grün
+- Sicherheit: Admin-Key geschützt, CORS eingeschränkt, Health-Checks mit DB/Ping, JWT-Auth-Roundtrip verifiziert
+
+### Render + Supabase Production-Anbindung (Juli 2026)
+`render.yaml` ist auf **Supavisor-Pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`), `DB_SSL=true`, Node 20, devDeps-Prune. Klassischer `db.<project>.supabase.co` (Supabase-IPv6-only) ist von Render Free Tier (IPv4-only) nicht erreichbar; Supavisor-Pooler bridged das.
 
 ### Dateien die du kennen musst
 - `bauplan.md` — alle Tasks mit Status ✅/🔲
@@ -27,9 +30,18 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - `src/mobile/lib/` — Flutter App
 - `src/ml-service/` — Python FastAPI ML-Service
 
-## OFFENER TASK
+## OFFENE TASKS
 
-### Phase 18: Echte Taler-Exchange
+### Finance: Mobile JWT-Integration
+`finance_provider.dart:45` hat `user-demo-001` hartkodiert. Backend JWT ist live auf Production, Mobile-Finance nutzt es aber noch nicht.
+
+**Schritte:**
+1. `AuthService.userId` als einziger Identifier in `FinanceProvider` durchschleifen statt Demo-User.
+2. `Wallet/Balance/Transactions/Pay`-Calls mit `auth.authHeaders` (Token) statt Mock-Headers.
+3. Tests gegen Live-Backend oder Mock-JWT schreiben.
+4. UX: Beim ersten Login wird Wallet automatisch erstellt (Backend hat schon Auto-Create-on-First-Wallet-Request).
+
+### Phase 18: Echte Taler-Exchange (Backend-Code fertig, E2E noch offen)
 
 **Was ist das?**
 Der `talerService.ts` (Phase 18 abgeschlossen) spricht echte GNU-Taler-Wire-Spec — Ed25519-Reserve-Identity, `GET /keys` + `GET /reserves/<pub>` Lives gegen `exchange.demo.taler.net`, Bank-Wire-Workflow über `bank.demo.taler.net/webui`.

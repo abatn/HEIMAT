@@ -82,6 +82,7 @@ Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.
 | `GET /stops/search` returns 500 "invalid input syntax for type uuid" | Express matches `/stops/search` as `/stops/:id` with `id="search"` | Define `/stops/search` before `/stops/:id` in `mobility.ts` |
 | Journey search empty | Frontend sends `?from=lat,lng`, backend expects `?from_lat=&from_lng=` | Fix query params in `mobility_provider.dart` |
 | db-rest health check passes but endpoints return empty | Docker image default `ENV PORT 3000`, Render routes to port 3001 | Set `ENV PORT=3000` in Dockerfile or adjust render.yaml |
+| Login "stuck on LoginScreen" with valid credentials | LoginScreen/RegisterScreen didn't react to `isAuthenticated` because Hash-Routing on `/#/login` or `/#/register` mounts the screens directly via `routes` table, bypassing `AuthGate` mounted at `'/'` | Explicit `Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false)` (with `!mounted` early-exit) after successful login/register. Files: `src/mobile/lib/features/auth/presentation/{login,register}_screen.dart`. Fix committed `9c8deb7` (2026-07-25) |
 
 ## Clarifications (Juli 2026)
 
@@ -91,8 +92,14 @@ The GTFS zip import (`gtfs.de/nv_free`) does NOT violate any project rules. CC-B
 ### Doctors: REAL Overpass results
 The 5 doctors shown on the health page are real Overpass API results for Berlin, NOT hardcoded data. `schema.sql:370`: "Keine Seed-Daten".
 
-### Finance: Demo user IS a real problem
-`finance_provider.dart:45` has `user-demo-001` hardcoded. Backend JWT auth is complete (14 tests), but mobile code doesn't use it. **Highest priority task.**
+### Finance: Demo user status (Juli 2026)
+`finance_provider.dart:45` still hardcodes `user-demo-001`. **Backend JWT-Auth is live on Production since 2026-07-25** (`/api/auth/{register,login,me}` end-to-end against `heimat-backend.onrender.com`). Mobile-Finance-Integration (Provider + Headers + Screen) is the remaining track.
+
+### Auth-Track live on Production (Juli 2026)
+- **Backend**: `/api/auth/{register, login, me}/...` is end-to-end live on `heimat-backend.onrender.com`. Smoke-test user `heimat-demo-user@heimat.de / DemoHeimat2026!` is in the Supabase production-DB (2026-07-25).
+- **Mobile**: `AuthProvider` + `AuthService` + `LoginScreen`/`RegisterScreen` + `AuthGate` (in `main.dart`) orchestrate the JWT roundtrip. `SharedPreferences` persists the token. The MainScreen AppBar carries a `⋮`-PopupMenu with Logout (Commit `1090203`).
+- **Auth-Routing-Bug fixed** (Commit `9c8deb7`): deep links to `/#/login` or `/#/register` now take the user to MainScreen after successful auth. Hash-Routing on a non-root route bypasses AuthGate, so `isAuthenticated` listener was missing — explicit `Navigator.pushNamedAndRemoveUntil('/', (route) => false)` was added in `login_screen.dart` and `register_screen.dart`.
+- **Render + Supabase connection** (`render.yaml`): now using **Supavisor pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`), `DB_SSL=true`, Node 20, devDeps-pruned. Supavisor pools Render Free Tier (IPv4) traffic to the Supabase IPv6-only DB column endpoint.
 
 ## Additional instruction files
 
