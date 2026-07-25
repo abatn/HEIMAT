@@ -32,6 +32,18 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 
 ## OFFENE TASKS
 
+### Phase 23: ✅ Finance-JWT-Roundtrip + Security-Härtung (2026-07-25 abgeschlossen)
+**Status:** Live. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün. security.test.ts Regression-Lock aktiv (Commit 3414aea).
+
+Commits:
+- `cfb0561` — Mobile Finance-Bearer-Header
+- `e00105d` — URL-Pfade bereinigt + neue GET /wallet + Schema-Migration wallet_priv
+- `25ac7ab` — Security-Fix: POST /api/migrate entfernt
+- `3414aea` — security.test.ts Regression-Lock (POST /api/migrate → 404 + Body != Schema-loaded)
+- `e7fcd85` — render.yaml preDeployCommand + migrate.ts (Auto-Migration, idempotent, atomar)
+
+Verifikation: POST `/api/admin/migrate` mit X-Admin-Key Header gegen Render → HTTP 200 `{"success":true,"message":"Schema migrated"}` in 213ms.
+
 ### Phase 18: Echte Taler-Exchange (Backend-Code fertig, E2E noch offen)
 **Hinweis:** Finance-Roundtrip mit JWT-Auth ist seit 2026-07-25 end-to-end live (Commit `cfb0561` + `e00105d`). Die nächste offene Finance-Strecke ist die echte Taler-Exchange-Anbindung via Bank-Wire (siehe unten).
 

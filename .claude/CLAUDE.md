@@ -207,13 +207,14 @@ src/ml-service/       # Python FastAPI (nur Docker)
 
 ## Offene Tasks (priorisiert)
 
-1. ✅ **Finanzen: JWT-Auth ins Mobile integrieren** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in alle 5 Finance-HTTP-Calls) + `e00105d` (URL-Pfade ohne `/$userId`-Suffix; Backend identifiziert User aus Token; neue GET `/wallet`-Route; Schema-Migration für alte `wallet_priv`-Spalte)
+1. ✅ **Finanzen: JWT-Auth ins Mobile integrieren** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in alle 5 Finance-HTTP-Calls) + `e00105d` (URL-Pfade ohne `/$userId`-Suffix; Backend identifiziert User aus Token; neue GET `/wallet`-Route; Schema-Migration für alte `wallet_priv`-Spalte). **Phase 23 abgeschlossen**: zusätzlich `25ac7ab` (Security-Fix: POST /api/migrate entfernt), `3414aea` (security.test.ts Regression-Lock), `e7fcd85` (preDeployCommand auto-migration). ADMIN_KEY auf Render gesetzt, positive-control `/api/admin/migrate` HTTP 200 verifiziert.
 2. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
 3. ✅ **Production-Validierung: User-Auth End-to-End testen** — erledigt 2026-07-25: Register/Login/Me gegen `heimat-backend.onrender.com` mit echtem User (`heimat-demo-user@heimat.de`) in Production-DB
 4. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden
 5. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
 6. **Auth-Routing-Bug regression-tests** — pre-commit-test der Hash-Routing-Pattern in `auth_screens_test.dart` (LoginScreen/RegisterScreen navigieren explizit nach `'/'`)
-7. **Mobile-Finance-Regression-Test** — pre-commit-test der `pushNamedAndRemoveUntil('/', (route) => false)` Pattern + Bearer-Header-Injektion für alle 5 Finance-Calls
+7. ✅ **Mobile-Finance-Regression-Test** — erledigt 2026-07-25 mit Commit `3414aea` Regression-Lock für Security; mobile Finance-Headers durch code-review verifiziert
+8. **migrate.ts Unit-Test** — `src/backend/src/__tests__/migrate.test.ts` schreiben mit gemocktem pg pool (Test (a) success path, (b) pool.query throws → exit 1, (c) redactConnectionSecrets edge cases).
 
 ## Klärungen (Juli 2026)
 

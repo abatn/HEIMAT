@@ -97,6 +97,18 @@ The 5 doctors shown on the health page are real Overpass API results for Berlin,
 
 **Update 2026-07-25 (Commits cfb0561 + e00105d):** Finance-Roundtrip ist nun end-to-end live: `_authService.authHeaders` schickt Bearer-Token in alle 5 Finance-Calls, URL-Pfade ohne `/$userId`-Suffix (Backend leitet User aus Token ab), `GET /api/finance/wallet`-Route neu im Backend, `wallet_priv` Legacy-Spalte per Schema-Migration gedroppt.
 
+### Phase 23: Roundtrip ✅ Live (2026-07-25)
+Finance-JWT-Integration abgeschlossen. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün am 2026-07-25. security.test.ts Regression-Lock aktiv (Commit 3414aea).
+
+Wichtige Commits (in Reihenfolge):
+- `cfb0561` — Mobile `finance_provider.dart`: Bearer-Header in allen 5 Finance-HTTP-Calls.
+- `e00105d` — Mobile URL-Pfade bereinigt (kein `/$userId` Suffix); Backend identifiziert User aus Bearer-Token; neue `GET /api/finance/wallet` Route; Schema-Migration `DROP COLUMN IF EXISTS wallet_priv`.
+- `25ac7ab` — Security-Fix: ungeschützten `POST /api/migrate` Endpoint entfernt (jeder konnte DB-Schema mutieren).
+- `3414aea` — Regression-Lock: `src/backend/src/__tests__/security.test.ts` verriegelt dass POST /api/migrate 404 retourniert (Body-Lock verhindert subtile Refactors).
+- `e7fcd85` — Auto-Migration: `src/backend/src/scripts/migrate.ts` (Node.js Schema-Applier mit Password-Redaction) läuft im `render.yaml` `preDeployCommand`. Atomar (fail → Render aborted Deploy).
+
+**Verifikation auf Render:** POST `/api/admin/migrate` mit `X-Admin-Key` Header retourniert HTTP 200 `{"success":true,"message":"Schema migrated"}` in ~213ms (Supavisor-Pooler + Postgres-Ack).
+
 ### Auth-Track live on Production (Juli 2026)
 - **Backend**: `/api/auth/{register, login, me}/...` is end-to-end live on `heimat-backend.onrender.com`. Smoke-test user `heimat-demo-user@heimat.de / DemoHeimat2026!` is in the Supabase production-DB (2026-07-25).
 - **Mobile**: `AuthProvider` + `AuthService` + `LoginScreen`/`RegisterScreen` + `AuthGate` (in `main.dart`) orchestrate the JWT roundtrip. `SharedPreferences` persists the token. The MainScreen AppBar carries a `⋮`-PopupMenu with Logout (Commit `1090203`).

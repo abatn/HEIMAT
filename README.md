@@ -153,6 +153,7 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | Gesundheit (OSM + Registrierung) | ✅ Abgeschlossen | Echte Ärzte aus Overpass, Arzt-Registrierung |
 | **User-Auth (JWT)** | ✅ Live (2026-07-25) | Register/Login/Logout end-to-end auf Render, Token in Browser-LocalStorage persistiert, AppBar mit ⋮-Logout |
 | **Finanzen (JWT-Roundtrip)** | ✅ Live (2026-07-25) | Bearer-Token in allen 5 Mobile-HTTP-Calls (initWallet/loadWallet/loadTransactions/sendMoney); Backend `GET /wallet` neu; Schema-Migration für legacy `wallet_priv`-Spalte |
+| **Phase 23 Security-Härtung** | ✅ Live (2026-07-25) | `POST /api/migrate` entfernt (Security-Lock); `preDeployCommand` Auto-Migration via `migrate.ts` (atomar); `security.test.ts` Regression-Lock aktiv (Commit 3414aea); ADMIN_KEY auf Render, `/api/admin/migrate` positive-control HTTP 200 verifiziert |
 | Finanzen (GNU Taler Exchange) | ⚠️ Backend-Client-Code live, E2E offen | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519, KUDOS); Bank-Wire-Flow benötigt manuellen Schritt auf `bank.demo.taler.net/webui` |
 | UX-Modernisierung | ✅ Abgeschlossen | Gradient-Karten, Pill-Nav, Bottom Sheets |
 
