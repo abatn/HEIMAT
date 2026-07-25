@@ -5,8 +5,6 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
 
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
@@ -17,7 +15,7 @@ import { financeRouter } from './routes/finance';
 import { healthRouter as healthServiceRouter } from './routes/healthService';
 import { authRouter } from './routes/auth';
 import adminRouter from './routes/admin';
-import { testConnection, pool } from './config/database';
+import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
 import { gtfsService } from './services/gtfsService';
 import { swaggerSpec } from './config/swagger';
@@ -56,17 +54,6 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.get('/docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
-});
-
-app.post('/api/migrate', async (req, res) => {
-  try {
-    const schemaPath = path.join(__dirname, 'database', 'schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    await pool.query(schema);
-    res.json({ status: 'ok', message: 'Schema loaded successfully' });
-  } catch (error: unknown) {
-    res.status(500).json({ status: 'error', message: errorMessage(error) });
-  }
 });
 
 app.use(notFoundHandler);
