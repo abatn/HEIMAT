@@ -202,8 +202,6 @@ CREATE INDEX IF NOT EXISTS idx_gtfs_stop_times_stop ON gtfs_stop_times(stop_id);
 CREATE INDEX IF NOT EXISTS idx_gtfs_stop_times_departure ON gtfs_stop_times(departure_time);
 CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_osm ON gtfs_stop_match(overpass_osm_id);
 CREATE INDEX IF NOT EXISTS idx_gtfs_stop_match_gtfs ON gtfs_stop_match(gtfs_stop_id);
-CREATE INDEX IF NOT EXISTS idx_gtfs_transfers_from ON gtfs_transfers(from_stop_id);
-CREATE INDEX IF NOT EXISTS idx_gtfs_transfers_to ON gtfs_transfers(to_stop_id);
 
 -- GTFS Import-Status (polling von /api/admin/gtfs-status)
 CREATE TABLE IF NOT EXISTS gtfs_import_status (
@@ -223,6 +221,11 @@ CREATE TABLE IF NOT EXISTS gtfs_transfers (
     min_transfer_time INTEGER DEFAULT 0,
     PRIMARY KEY (from_stop_id, to_stop_id)
 );
+-- Indizes auf gtfs_transfers muessen NACH dem CREATE TABLE stehen (PostgreSQL
+-- validiert ON <table> sofort — ein Index vor Tabelle schlaegt fehl mit
+-- "relation does not exist").
+CREATE INDEX IF NOT EXISTS idx_gtfs_transfers_from ON gtfs_transfers(from_stop_id);
+CREATE INDEX IF NOT EXISTS idx_gtfs_transfers_to ON gtfs_transfers(to_stop_id);
 
 -- ============================================
 -- INDIZES
