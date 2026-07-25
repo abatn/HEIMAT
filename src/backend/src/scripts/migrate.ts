@@ -35,7 +35,7 @@ import { errorMessage } from '../utils/error';
 
 const SCHEMA_RELATIVE_PATH = path.join('..', 'database', 'schema.sql');
 
-function resolveSchemaPath(): string {
+export function resolveSchemaPath(): string {
   return path.join(__dirname, SCHEMA_RELATIVE_PATH);
 }
 
@@ -44,11 +44,16 @@ function resolveSchemaPath(): string {
  * `://user:***@host`. Falls kein Connection-String im Error steht, wird die
  * Message unverändert durchgereicht.
  */
-function redactConnectionSecrets(message: string): string {
-  return message.replace(/:\/\/([^:/@\s]+):([^@\s]+)@/g, '://$1:***@');
+export function redactConnectionSecrets(message: string): string {
+  // Redacted `://user:pass@host` zu `://user:***@host`.
+  // Bekannte Limitation: Passwörter die `@` enthalten, werden nicht korrekt
+  // redacted (das erste `@` wird als host-Trenner interpretiert). Betrifft nur
+  // rohe Passwörter ohne Percent-Encoding (Supabase empfiehlt Prozent-Encoding
+  // für Sonderzeichen, sodass `@` als %40 codiert wird).
+  return message.replace(/:\/\/([^:/@\s]+):([^@\s]*)@/g, '://$1:***@');
 }
 
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
   const schemaPath = resolveSchemaPath();
   const start = Date.now();
 
@@ -100,4 +105,7 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+// Nur automatisch ausführen, wenn als Script direkt aufgerufen (nicht beim Import durch Tests)
+if (require.main === module) {
+  run();
+}
