@@ -39,8 +39,19 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.login(email, password);
 
-    if (success && mounted) {
-      // Navigation erfolgt automatisch durch Auth-Gate in main.dart
+    // Wichtig: Wenn das Widget während des awaits unmounted wurde
+    // (z. B. User hat parallel auf einen anderen Link geklickt),
+    // ist der `context` nicht mehr safe für Navigator.
+    if (!mounted) return;
+
+    if (success) {
+      // Auth-Gate in main.dart ist der Single-Source-of-Truth: es
+      // rendert MainScreen nur wenn isAuthenticated == true. Wir
+      // pushen '/' neu und raeumen mit (route) => false den ganzen
+      // Stack auf, damit der Zurueck-Button nicht in einen stale
+      // LoginScreen zurueckfuehrt (relevant fuer Flutter-Web mit
+      // Hash-Routing, wo /login und / beide erreichbar sind).
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     }
   }
 

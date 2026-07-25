@@ -66,8 +66,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.register(email, password, name);
 
-    if (success && mounted) {
-      // Navigation erfolgt automatisch durch Auth-Gate in main.dart
+    // Frueher Exit wenn das Widget waehrend awaits unmounted wurde.
+    if (!mounted) return;
+
+    if (success) {
+      // Auth-Gate in main.dart rendert MainScreen sobald
+      // isAuthenticated == true. Push '/' und Raeum den Stack auf -
+      // sonst kann der Zurueck-Button (oder Hash-Routing-Cycle in
+      // Flutter-Web) den User wieder in /register zurueckwerfen.
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     }
   }
 
