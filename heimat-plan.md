@@ -14,7 +14,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **User-Auth** (JWT+bcryptjs): Register/Login/Logout end-to-end live auf `heimat-backend.onrender.com` — Phase 18
 - **Finance-Roundtrip**: Mobile Bearer-Token in allen 5 Finance-Calls, URL-Pfade ohne `/$userId`-Suffix, Schema-DROP `wallet_priv` — Phase 23
 - **Security-Härtung**: ungeschützter `POST /api/migrate` entfernt; `security.test.ts` Regression-Lock aktiv — Phase 23
-- **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook wendet `schema.sql` bei jedem Render-Deploy automatisch auf Production-DB an — Phase 23
+- **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook (Commit 7e5f063) — ✅ Live bestätigt am 2026-07-25 (Build-Log + funktionaler Beweis)
 - **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` mit X-Admin-Key positive-control HTTP 200 in ~213ms — Phase 23
 - **DB-Connection**: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`) — löst Supabase-IPv6-Only Problem auf Render Free Tier IPv4
 - **Taler-Exchange-Client**: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` live
@@ -24,7 +24,6 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
 
 ### ⚠️ Was ist offen (nicht-blockierend)
-- Live-Verifikation der AUTO_MIGRATE-Migration via Render-Build-Logs (Dashboard manuell prüfen)
 - Taler-Bank-Wire-Funding-Flow (Phase 24): manueller Schritt auf `bank.demo.taler.net/webui` — keine API-Alternative
 - Unit-Test für `migrate.ts` fehlt — gemockter pg pool, Migrations-Pfad tests-protected machen
 - `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im Workflow eingebunden (war Nice-to-have)

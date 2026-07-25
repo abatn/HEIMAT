@@ -167,13 +167,12 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 - User-Auth (JWT+bcryptjs) — Register/Login/Logout end-to-end live auf `heimat-backend.onrender.com`
 - Finance-JWT-Roundtrip — Bearer-Token in allen 5 Mobile-Finance-Calls; `GET /wallet` Backend-Route neu
 - Security-Härtung — `POST /api/migrate` entfernt; `security.test.ts` Regression-Lock aktiv
-- Auto-Migration — `AUTO_MIGRATE=true` startup-hook wendet `schema.sql` automatisch bei jedem Render-Deploy an
+- Auto-Migration — `AUTO_MIGRATE=true` startup-hook (7e5f063) — ✅ Live bestätigt am 2026-07-25 (Build-Log + funktionaler Beweis)
 - Admin-Pfad — `ADMIN_KEY` auf Render; `/api/admin/migrate` positive-control HTTP 200 verifiziert
 - DB — Supavisor-Pooler + IPv4-Force + SSL lösen Supabase-IPv6 Problem auf Render Free Tier
 - Taler — `exchange.demo.taler.net` erreichbar (GET /keys + /reserves/<pub>)
 
 ### ⚠️ Was ist offen
-- Auto-Migration erste Live-Verifikation via Render-Build-Logs noch ausstehend
 - Taler-Bank-Wire-Funding (manueller Schritt auf `bank.demo.taler.net/webui`)
 - migrate.ts Unit-Test fehlt
 

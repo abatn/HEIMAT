@@ -123,7 +123,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **User-Auth** (JWT + bcryptjs): Register/Login/Logout end-to-end live auf `heimat-backend.onrender.com`
 - **Finance-JWT-Roundtrip**: Mobile Bearer-Header in allen 5 Finance-Calls, URL-Pfade ohne `/$userId`-Suffix, Schema-Migration `wallet_priv` durchgelaufen
 - **Security-Härtung**: ungeschützter `POST /api/migrate` entfernt; `security.test.ts` Regression-Lock aktiv (Commit 3414aea)
-- **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook (Commit 7e5f063) statt render.yaml preDeployCommand (das bei runtime:node ignoriert wird)
+- **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook (Commit 7e5f063) — ✅ Live bestätigt am 2026-07-25 (Build-Log + funktionaler Beweis)
 - **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` positive-control HTTP 200 in ~213ms
 - **DB-Connection**: Supavisor-Pooler via `family:4` IPv4-Force, SSL
 - **Taler**: `exchange.demo.taler.net` erreichbar, GET /keys + /reserves funktioniert
@@ -132,7 +132,6 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Mobilität + Gesundheit**: seit MVP grün
 
 ### ⚠️ Was ist offen
-- Live-Verifikation der AUTO_MIGRATE-Migration via Render-Build-Logs (einmal manuell prüfen)
 - Taler-Bank-Wire-Funding (Phase 24): manueller Schritt auf `bank.demo.taler.net/webui` nötig
 - Unit-Test für `migrate.ts` fehlt — gemockter pg pool
 
