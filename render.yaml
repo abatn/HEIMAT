@@ -5,7 +5,7 @@ services:
     region: frankfurt
     plan: free
     buildCommand: cd src/backend && npm install --include=dev && npm run build && mkdir -p dist/database && cp src/database/schema.sql dist/database/
-    preDeployCommand: bash scripts/stale-doc-prescan.sh --enforce --quiet
+    preDeployCommand: bash scripts/stale-doc-prescan.sh --enforce --quiet && cd src/backend && node dist/scripts/migrate.js
     startCommand: cd src/backend && node dist/index.js
     # Supavisor Shared Pooler / Session Mode (Port 5432) statt Direct-Verbindung:
     # Render Free Tier (Frankfurt) ist IPv4-only outbound. Der Supabase-Direkt-Hostname

@@ -15,7 +15,9 @@
     "test:gtfs": "ts-node scripts/test-gtfs-parse.ts",
     "test:db": "bash scripts/setup-test-db.sh",
     "test:db:start": "bash scripts/setup-test-db.sh --start-only",
-    "test:db:stop": "bash scripts/setup-test-db.sh --stop"
+    "test:db:stop": "bash scripts/setup-test-db.sh --stop",
+    "migrate": "node dist/scripts/migrate.js",
+    "migrate:dev": "ts-node src/scripts/migrate.ts"
   },
   "dependencies": {
     "@types/swagger-jsdoc": "^6.0.4",
