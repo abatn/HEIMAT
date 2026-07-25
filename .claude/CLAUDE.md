@@ -207,12 +207,13 @@ src/ml-service/       # Python FastAPI (nur Docker)
 
 ## Offene Tasks (priorisiert)
 
-1. 🟡 **Finanzen: JWT-Auth ins Mobile integrieren** — Backend JWT ist seit 2026-07-25 auf Render live (Register/Login/Me validiert). Aber `finance_provider.dart:45` hat noch `user-demo-001` hartkodiert; Flutter-Finance-Screens müssen gegen den Auth-Token arbeiten
+1. ✅ **Finanzen: JWT-Auth ins Mobile integrieren** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in alle 5 Finance-HTTP-Calls) + `e00105d` (URL-Pfade ohne `/$userId`-Suffix; Backend identifiziert User aus Token; neue GET `/wallet`-Route; Schema-Migration für alte `wallet_priv`-Spalte)
 2. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
 3. ✅ **Production-Validierung: User-Auth End-to-End testen** — erledigt 2026-07-25: Register/Login/Me gegen `heimat-backend.onrender.com` mit echtem User (`heimat-demo-user@heimat.de`) in Production-DB
 4. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden
 5. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
 6. **Auth-Routing-Bug regression-tests** — pre-commit-test der Hash-Routing-Pattern in `auth_screens_test.dart` (LoginScreen/RegisterScreen navigieren explizit nach `'/'`)
+7. **Mobile-Finance-Regression-Test** — pre-commit-test der `pushNamedAndRemoveUntil('/', (route) => false)` Pattern + Bearer-Header-Injektion für alle 5 Finance-Calls
 
 ## Klärungen (Juli 2026)
 
@@ -224,6 +225,8 @@ Die 5 Ärzte die auf der Gesundheitsseite erscheinen sind echte Overpass-API-Erg
 
 ### Finanzen: Demo-User ist ein echtes Problem (Status 2026-07-25)
 `finance_provider.dart:45` hat `user-demo-001` hartkodiert. **Backend-JWT-Auth ist seit 2026-07-25 live auf Production** (siehe Offene Tasks #1). Mobile-Finance-Integration steht noch aus.
+
+**Update 2026-07-25 (Commits cfb0561 + e00105d):** Mobile-Finance-Integration **erledigt**. `finance_provider.dart` schickt in allen 5 HTTP-Calls (`initWallet`, `loadWallet` 2x, `loadTransactions`, `sendMoney`) den Authorization-Header mit Bearer-Token. URL-Pfade wurden bereinigt (kein `/$userId`-Suffix mehr — Backend `requireAuth` leitet User aus JWT ab). Backend hat zusätzlich `GET /api/finance/wallet` als neue Route. Schema hat alte `wallet_priv`-Legacy-Spalte per Migration verloren. Erwartung: Wallet + Balance + Transactions laden jetzt pro-User gegen Render mit echter JWT-Identität.
 
 ### Auth-Track live auf Production (Juli 2026)
 - **Backend**: `/api/auth/{register, login, me, profile, password}` End-to-End funktional auf `heimat-backend.onrender.com` mit Render Free Tier + Supabase Production-DB.

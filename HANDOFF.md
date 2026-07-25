@@ -32,16 +32,8 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 
 ## OFFENE TASKS
 
-### Finance: Mobile JWT-Integration
-`finance_provider.dart:45` hat `user-demo-001` hartkodiert. Backend JWT ist live auf Production, Mobile-Finance nutzt es aber noch nicht.
-
-**Schritte:**
-1. `AuthService.userId` als einziger Identifier in `FinanceProvider` durchschleifen statt Demo-User.
-2. `Wallet/Balance/Transactions/Pay`-Calls mit `auth.authHeaders` (Token) statt Mock-Headers.
-3. Tests gegen Live-Backend oder Mock-JWT schreiben.
-4. UX: Beim ersten Login wird Wallet automatisch erstellt (Backend hat schon Auto-Create-on-First-Wallet-Request).
-
 ### Phase 18: Echte Taler-Exchange (Backend-Code fertig, E2E noch offen)
+**Hinweis:** Finance-Roundtrip mit JWT-Auth ist seit 2026-07-25 end-to-end live (Commit `cfb0561` + `e00105d`). Die nächste offene Finance-Strecke ist die echte Taler-Exchange-Anbindung via Bank-Wire (siehe unten).
 
 **Was ist das?**
 Der `talerService.ts` (Phase 18 abgeschlossen) spricht echte GNU-Taler-Wire-Spec — Ed25519-Reserve-Identity, `GET /keys` + `GET /reserves/<pub>` Lives gegen `exchange.demo.taler.net`, Bank-Wire-Workflow über `bank.demo.taler.net/webui`.

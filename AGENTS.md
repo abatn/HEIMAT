@@ -95,6 +95,8 @@ The 5 doctors shown on the health page are real Overpass API results for Berlin,
 ### Finance: Demo user status (Juli 2026)
 `finance_provider.dart:45` still hardcodes `user-demo-001`. **Backend JWT-Auth is live on Production since 2026-07-25** (`/api/auth/{register,login,me}` end-to-end against `heimat-backend.onrender.com`). Mobile-Finance-Integration (Provider + Headers + Screen) is the remaining track.
 
+**Update 2026-07-25 (Commits cfb0561 + e00105d):** Finance-Roundtrip ist nun end-to-end live: `_authService.authHeaders` schickt Bearer-Token in alle 5 Finance-Calls, URL-Pfade ohne `/$userId`-Suffix (Backend leitet User aus Token ab), `GET /api/finance/wallet`-Route neu im Backend, `wallet_priv` Legacy-Spalte per Schema-Migration gedroppt.
+
 ### Auth-Track live on Production (Juli 2026)
 - **Backend**: `/api/auth/{register, login, me}/...` is end-to-end live on `heimat-backend.onrender.com`. Smoke-test user `heimat-demo-user@heimat.de / DemoHeimat2026!` is in the Supabase production-DB (2026-07-25).
 - **Mobile**: `AuthProvider` + `AuthService` + `LoginScreen`/`RegisterScreen` + `AuthGate` (in `main.dart`) orchestrate the JWT roundtrip. `SharedPreferences` persists the token. The MainScreen AppBar carries a `⋮`-PopupMenu with Logout (Commit `1090203`).

@@ -1043,6 +1043,8 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 | 14-18 | Fördermittel ✅ |
 | 19 | Abschlussdokumentation ✅ |
 | **20** | **Manuelle Umsetzung** ✅ |
+| **21** | **CI-Reparatur** ✅ |
+| **22** | **Auth-Track live + Finance-Roundtrip end-to-end** ✅ |
 
 **Status:** 🟢 ALLE AUTOMATISCHEN PHASEN ABGESCHLOSSEN
 **Letztes Update:** Juli 2026
@@ -1134,7 +1136,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 ### Nächste Schritte (priorisiert)
 
 1. **🔴 Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites); vermutlich DB-Cleanup-Reihenfolge
-2. **🟡 Flutter-Finance: JWT-Auth-Integration** — Backend ist live, Mobile hat noch Demo-User hartkodiert (`finance_provider.dart:45`)
+2. **✅ Flutter-Finance: JWT-Auth-Integration** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in 5 Finance-Calls) + `e00105d` (URL-Pfade bereinigt + neue Backend-Route `GET /api/finance/wallet` + `wallet_priv` Legacy-Spalte gedroppt)
 3. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden (Client-Code existiert, manueller Funding-Schritt)
 4. **E2E-Tests (Flutter Integration)** — noch kein Code vorhanden
 5. **Auth-Routing-Bug regression-tests** — pre-commit-test der `pushNamedAndRemoveUntil('/', _)`-Pattern in `auth_screens_test.dart`, sonst kann der Hash-Routing-Bug regressieren
@@ -1156,6 +1158,14 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 - **Mobile-JWT-Roundtrip**: `AuthProvider` + `AuthService` orchestrieren den Token-Flow; `SharedPreferences` persistiert; `AuthGate` rendert automatisch `MainScreen` bei `isAuthenticated=true`. AppBar mit ⋮-Logout-PopupMenu (Commit `1090203`).
 - **Auth-Routing-Bug-Fix** (Commit `9c8deb7`): LoginScreen + RegisterScreen navigieren nach erfolgreichem Login/Register explizit nach `'/'` via `Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false)` mit `!mounted`-Early-Exit. Root Cause: Hash-Routing-Deep-Links auf `/#/login` oder `/#/register` mountet direkt aus der `routes`-Tabelle und umgeht AuthGate; kein Widget horchte im Login-Pfad auf `isAuthenticated`, der User blieb auf der Login-Seite hängen — trotz serverseitigem 201/200 + Token-Save. Pattern: `routes['/' ] -> AuthGate`, `routes['/login'] -> LoginScreen`, `routes['/register'] -> RegisterScreen`. Hash-Routing auf nicht-Root-Slots umgeht AuthGate.
 - **Smoke-Test-User** (in Supabase-Production-DB): `heimat-demo-user@heimat.de / DemoHeimat2026!`.
+
+### Phase 23: Finance-Roundtrip end-to-end mit JWT-Auth (abgeschlossen, 2026-07-25)
+
+- **Mobile-Bearer-Header** (Commit `cfb0561`): `finance_provider.dart` schickt in allen 5 HTTP-Calls (`initWallet`, `loadWallet` 2x, `loadTransactions`, `sendMoney`) den `Authorization: Bearer $token`-Header via `_authService.authHeaders`. Helper in `auth_service.dart` liefert Content-Type + optional Bearer (collection-if mit `_token != null`-Check).
+- **URL-Pfade-bereinigung** (Commit `e00105d`): Mobile nutzt jetzt `GET /api/finance/wallet`/`/balance`/`/transactions` ohne `/$userId`-Suffix. Backend leitet User aus JWT-Token via `requireAuth`-Middleware ab — keine URL-Param-Duplikation.
+- **Backend `GET /api/finance/wallet`** (Commit `e00105d`): Neue Route hinzugefügt, analog zu `/balance` und `/transactions`. User aus Token via `talerService.getWallet(req.userId!, { probeExchange: false })` — kein Probe auf jede Read-Operation (nur für explizite Balance-Refresh-Calls).
+- **Schema-Migration `DROP COLUMN IF EXISTS wallet_priv`** (Commit `e00105d`): Alte Legacy-Spalte aus früherem Schema-Layer, die nicht mehr befuellt wurde (INSERT nutzt `wallet_priv_pkcs8`) blockierte `POST /api/finance/taler/wallet` mit `500 wallet_priv violates not-null constraint`. Idempotente DROP-Migration: in frischer DB no-op, in alter DB droppt die Spalte ohne Datenverlust.
+- **End-to-End-Validierung**: Smoke-Test mit `heimat-demo-user@heimat.de` und Bearer-Token. Backend liefert jetzt pro-User-Wallet statt Demo-Werte. Initial-Balance 0.00 KUDOS für User ohne gebundene Taler-Reserve (ehrliche Antwort statt erfundener 100er-Default).
 
 ---
 

@@ -142,6 +142,8 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 
 12. **Finance `user-demo-001` is still hardcoded** in `finance_provider.dart:45`. Backend JWT-Auth is live on Production since 2026-07-25 (`/api/auth/{register,login,me}` end-to-end against `heimat-backend.onrender.com`); Mobile-Finance still needs to be wired against the real token instead of the demo user.
 
+   **Update 2026-07-25 (Commits cfb0561 + e00105d):** WIRING DONE. `_authService.authHeaders` schickt jetzt Bearer-Token in allen 5 Finance-HTTP-Calls (initWallet, loadWallet 2x, loadTransactions, sendMoney). Die `/$userId`-URL-Suffixe wurden entfernt (Backend identifiziert User aus Bearer-Token via `requireAuth`). Backend hat zusätzlich eine `GET /api/finance/wallet`-Route bekommen (Commit e00105d). Schema hat eine alte `wallet_priv` Legacy-Spalte per `ALTER TABLE … DROP COLUMN IF EXISTS` verloren. End-to-End Finance-Roundtrip sollte jetzt mit Token-Auth gegen Render produktiv sein.
+
 ## Pre-existing test failures
 
 - `src/backend/src/__tests__/health.test.ts`: 1/7 backend suites fails on CI. Likely DB-cleanup ordering issue. Not introduced by recent code — investigate before touching health tests.
