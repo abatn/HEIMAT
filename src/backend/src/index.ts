@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { execSync } from 'child_process';
 
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
@@ -61,6 +62,20 @@ app.use(errorHandler);
 
 if (require.main === module) {
   const PORT = parseInt(process.env.PORT || '3000', 10);
+
+  // Phase 23 Fix: preDeployCommand ist in runtime:node still ignoriert (siehe
+  // Render-Docs: nur fuer runtime:docker). Stattdessen blocking startup-hook BEVOR
+  // die neue Instanz Traffic annimmt. Failure -> process.exit(1), Render aborted deploy.
+  if (process.env.AUTO_MIGRATE === 'true') {
+    try {
+      logger.info('AUTO_MIGRATE=true, running pre-flight database migrations...');
+      execSync('node dist/scripts/migrate.js', { stdio: 'inherit' });
+    } catch (e: unknown) {
+      logger.error(`Auto-migration failed, aborting startup: ${errorMessage(e)}`);
+      process.exit(1);
+    }
+  }
+
   app.listen(PORT, '0.0.0.0', async () => {
     logger.info(`HEIMAT Backend running on port ${PORT}`);
     await testConnection();

@@ -5,7 +5,8 @@ services:
     region: frankfurt
     plan: free
     buildCommand: cd src/backend && npm install --include=dev && npm run build && mkdir -p dist/database && cp src/database/schema.sql dist/database/
-    preDeployCommand: bash scripts/stale-doc-prescan.sh --enforce --quiet && cd src/backend && node dist/scripts/migrate.js
+    # preDeployCommand entfaellt: ist in runtime:node still ignoriert (Render-Docs).
+    # Auto-Migration laeuft jetzt als startup-hook in src/index.ts wenn AUTO_MIGRATE=true.
     startCommand: cd src/backend && node dist/index.js
     # Supavisor Shared Pooler / Session Mode (Port 5432) statt Direct-Verbindung:
     # Render Free Tier (Frankfurt) ist IPv4-only outbound. Der Supabase-Direkt-Hostname
@@ -33,6 +34,8 @@ services:
         value: "true"
       - key: ENABLE_RAPTOR
         sync: false
+      - key: AUTO_MIGRATE
+        value: "true"
       - key: REDIS_URL
         fromService:
           name: heimat-redis
