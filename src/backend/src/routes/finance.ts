@@ -46,6 +46,13 @@ financeRouter.post('/taler/wallet', requireAuth, asyncHandler(async (req: AuthRe
   res.json({ status: 'ok', wallet });
 }));
 
+financeRouter.get('/wallet', requireAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  // GET /wallet haengt am Bearer-Token (requireAuth), keine URL-Param.
+  // Flutter-Mobile ruft dies nach initWallet() zum Holen der wallet_id.
+  const wallet = await talerService.getWallet(req.userId!, { probeExchange: false });
+  res.json({ status: 'ok', wallet });
+}));
+
 // ---------------------------------------------------------------------------
 // Bilanz — ECHT vom Exchange, niemals erfunden
 // ---------------------------------------------------------------------------

@@ -410,4 +410,7 @@ BEGIN
     EXECUTE 'ALTER TABLE taler_purses RENAME COLUMN purse_priv TO purse_priv_pkcs8';
   END IF;
 END $$;
+-- Legacy-Spalte `wallet_priv` (NOT NULL vom alten Schema) droppen - sie wird nicht
+-- mehr befuellt (INSERT nutzt wallet_priv_pkcs8). Drop ist idempotent (IF EXISTS).
+ALTER TABLE taler_wallets DROP COLUMN IF EXISTS wallet_priv;
 -- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.

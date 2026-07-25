@@ -94,7 +94,9 @@ class FinanceProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await initWallet();
-      final walletUrl = '${AppConfig.backendUrl}/api/finance/wallet/$userId';
+      // Backend identifiziert User aus dem Bearer-Token (requireAuth-Middleware),
+      // kein /$userId URL-Suffix noetig. _authService.authHeaders schickt Token mit.
+      final walletUrl = '${AppConfig.backendUrl}/api/finance/wallet';
       final walletResponse = await http.get(Uri.parse(walletUrl), headers: {
         ..._authService.authHeaders,
       }).timeout(const Duration(seconds: 30));
@@ -102,7 +104,7 @@ class FinanceProvider extends ChangeNotifier {
         final walletData = json.decode(walletResponse.body);
         _walletId = walletData['wallet']['id'] ?? '';
       }
-      final url = '${AppConfig.backendUrl}/api/finance/balance/$userId';
+      final url = '${AppConfig.backendUrl}/api/finance/balance';
       final response = await http.get(Uri.parse(url), headers: {
         ..._authService.authHeaders,
       }).timeout(const Duration(seconds: 30));
@@ -125,7 +127,8 @@ class FinanceProvider extends ChangeNotifier {
     final userId = _authService.userId;
     if (userId == null) return;
     try {
-      final url = '${AppConfig.backendUrl}/api/finance/transactions/$userId';
+      // Backend identifiziert User aus Bearer-Token, keinen URL-Param senden.
+      final url = '${AppConfig.backendUrl}/api/finance/transactions';
       final response = await http.get(Uri.parse(url), headers: {
         ..._authService.authHeaders,
       }).timeout(const Duration(seconds: 30));
