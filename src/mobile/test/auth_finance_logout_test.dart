@@ -259,7 +259,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Finanzen'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.byType(FinanceScreen), findsOneWidget);
     });
@@ -287,7 +288,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Finanzen'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.textContaining('KUDOS'), findsWidgets);
     });
@@ -301,7 +303,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Finanzen'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Guthaben aufladen'), findsOneWidget);
     });
@@ -316,10 +319,12 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Finanzen'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
 
       await tester.tap(find.text('Guthaben aufladen'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 800));
 
       expect(find.text('25 Demo-KUDOS erhalten'), findsOneWidget);
     });
