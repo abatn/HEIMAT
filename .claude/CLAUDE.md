@@ -247,6 +247,25 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auth-Routing-Bug Regression-Test
 - `npm run migrate:status` Auto-Migration health-check
 
+## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
+
+### Neue Services (10+)
+
+| # | Service | Datenquelle | AI |
+|---|---------|------------|-----|
+| 4 | 💬 Futai Chat | github.com/abatn/futai via Mini-Program | Ollama KI-Twin |
+| 5 | 🌤️ Wetter | DWD opendata.dwd.de (CC-BY) | Unwetter-Früherkennung |
+| 6 | 🌬️ Luftqualität | UBA luftdaten.umweltbundesamt.de | Gesundheitsempfehlung |
+| 7 | 🗑️ Abfallkalender | Kommunale Open-Data-iCal | Sortier-Tipps |
+| 8 | 🔌 E-Ladestationen | OSM + GoingElectric | Routenplanung |
+| 9 | 💼 Job-Suche | BA (Bundesagentur) + Adzuna | Job-Matching |
+| 10 | 📰 Veranstaltungen | Wikidata + OSM | Persönl. Empfehlung |
+| 11 | 🏨 Hotels | OSM + Wikidata (Standorte) | Reise-Budget |
+| 12 | 🅿️ Parken | OSM | — |
+| 13 | 🏛️ Bürgeramt | Kommunale APIs | AI-Terminfindung |
+
+### Phasen: A: Mini-Program (2-3d) → B: Wetter/Luft/Abfall (3-5d) → C: Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20d
+
 ## Klärungen (Juli 2026)
 
 ### GTFS ZIP-Import: KEIN Regelverstoß

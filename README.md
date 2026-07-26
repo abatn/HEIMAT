@@ -157,6 +157,25 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | Finanzen (Taler Wallet-Client) | ✅ Client-Code live, EUR-ready | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519). **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var. Demo-KUDOS für Entwicklung. |
 | UX-Modernisierung (Finance/Health/Mobility) | ✅ Abgeschlossen | Finance: animierte Balance-Card, Quick Actions, Timeline. Health: Shimmer, DoctorCards mit Presseffekt, Gradienten. Mobility: GPS/Route/Marker Widgets, Gradienten. |
 
+## 🚀 HEIMAT Expansion — Neue Services
+
+HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, aber Open Source, Privacy-first, mit staatlichen Daten.
+
+| Service | Datenquelle | Status | AI |
+|---------|------------|--------|-----|
+| 💬 Chat (Futai) | github.com/abatn/futai | ⏳ Mini-Program | Ollama KI-Twin |
+| 🌤️ Wetter | DWD (Deutscher Wetterdienst) | ⏳ Phase B | Unwetter-Früherkennung |
+| 🌬️ Luftqualität | Umweltbundesamt (UBA) | ⏳ Phase B | Gesundheitsempfehlung |
+| 🗑️ Abfallkalender | Kommunale Open Data | ⏳ Phase B | Sortier-Tipps |
+| 🔌 E-Ladestationen | OpenStreetMap | ⏳ Phase C | Routenplanung |
+| 💼 Job-Suche | BA Bundesagentur | ⏳ Phase D | Job-Matching |
+| 📰 Veranstaltungen | Wikidata + OSM | ⏳ Phase D | Empfehlung |
+| 🏨 Hotels | OpenStreetMap | ⏳ Phase E | Reise-Budget |
+| 🏛️ Bürgeramt | Kommunale APIs | ⏳ Phase E | AI-Terminfindung |
+| 🅿️ Parken | OpenStreetMap | ⏳ Phase C | — |
+
+**Details:** knowledge.md, AGENTS.md, .claude/CLAUDE.md | **Code:** github.com/abatn/futai
+
 ---
 
 ## Phase 23 Recap — Stand Juli 2026

@@ -146,6 +146,61 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 
 13. **Phase 23 Roundtrip ✅ Live (2026-07-25):** Finance-JWT-Integration abgeschlossen. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün am 2026-07-25. security.test.ts Regression-Lock aktiv (Commit 3414aea). Konkret: (a) Mobile `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 HTTP-Calls. (b) Backend `GET /api/finance/wallet` Route neu (Commit e00105d). (c) Schema `wallet_priv` Legacy-Spalte per `ALTER TABLE DROP COLUMN IF EXISTS` verloren. (d) Ungeschützter `POST /api/migrate` entfernt (Commit 25ac7ab); nur `/api/admin/migrate` mit `X-Admin-Key` Header bleibt. (e) `src/backend/src/scripts/migrate.ts` (Node.js) läuft im `preDeployCommand` nach `buildCommand` (Commit e7fcd85) — wendet `dist/database/schema.sql` automatisch auf Production-DB an. (f) `src/backend/src/__tests__/security.test.ts` (Commit 3414aea) regresssion-locked dass POST /api/migrate 404 retourniert (sonst 200 mit Schema-loaded-Body). (g) Backend-CI Run #30173698956 für e7fcd85 grün (Lint/Test/Build).
 
+## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
+
+### Vision: HEIMAT als WeChat/Grab-Alternative mit deutscher Open-Source-DNA
+
+Basierend auf WeChat (China) und Grab (Singapur) wird HEIMAT von 3 auf **10+ Services** expandiert — alles mit offenen Daten, staatlichen Quellen und AI-Unterstützung.
+
+### Neue Services
+
+| # | Service | Datenquelle | Typ | Echtzeit | AI-Feature |
+|---|---------|------------|-----|----------|------------|
+| 4 | 💬 **Chat/Social (Futai)** | Futai (github.com/abatn/futai) | Open Source | ✅ | Ollama-KI-Twin + Gedächtnis |
+| 5 | 🌤️ **Wetter** | DWD (Deutscher Wetterdienst) | 🏛️ Staatlich CC-BY | ✅ | Unwetter-Früherkennung |
+| 6 | 🌬️ **Luftqualität** | Umweltbundesamt (UBA) | 🏛️ Staatlich Open Data | ✅ | Gesundheitsempfehlung |
+| 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-Portale | 🏛️ Staatlich | ✅ | Sortier-Tipps + Erinnerung |
+| 8 | 🔌 **E-Ladestationen** | OpenStreetMap + GoingElectric | 🌍 Open Source | ⚠️ | Routenplanung inkl. Ladestopps |
+| 9 | 💼 **Job-Suche** | BA (Bundesagentur für Arbeit) + Adzuna | 🏛️ Staatlich / Kommerziell | ✅ | Job-Matching + Skill-Gap |
+| 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | 🌍 Open Source | ✅ | Personalisierte Empfehlung |
+| 11 | 🏨 **Hotels & Unterkünfte** | OpenStreetMap + Wikidata | 🌍 Open Source | ❌ | Reiseplanung mit Budget |
+| 12 | 🅿️ **Parken** | OpenStreetMap (OSM) | 🌍 Open Source | ⚠️ | — |
+| 13 | 🏛️ **Bürgeramt-Services** | Kommunale APIs | 🏛️ Staatlich | ✅ | AI-Terminfindung |
+
+### Integrations-Strategie für Futai (React Native)
+
+Futai ist eine React Native (Expo) Social-Media-App mit KI-Chat (Ollama), 12 Emotionen, Gedächtnis und Feed — 353 Tests, TypeScript strict. Da HEIMAT Flutter ist:
+
+| Option | Beschreibung | Aufwand |
+|--------|-------------|--------|
+| **A) Mini-Program (WebView)** ⭐ | Futai's Web-Build läuft als Mini-Program-Tab in HEIMAT via WebView | 2-3 Tage |
+| **B) Backend-Sharing** | Futai + HEIMAT teilen Supabase-Backend (Multi-User) | 3-5 Tage |
+| **C) Rewrite in Flutter** | Futai-Komponenten in Flutter neu geschrieben | 2-3 Wochen |
+
+**Empfehlung: Mini-Program-Container zuerst bauen (Option A), dann Futai integrieren.**
+
+### Umsetzungs-Phasen
+
+| Phase | Services | Tage |
+|-------|----------|------|
+| **A** | Mini-Program-Container (Fundament) | 2-3 |
+| **B** | Wetter (DWD) + Luftqualität (UBA) + Abfallkalender | 3-5 |
+| **C** | E-Ladestationen (OSM) + Parken (OSM) | 2-3 |
+| **D** | Futai-Chat (Mini-Program) + Job-Suche (BA) + Veranstaltungen | 3-5 |
+| **E** | Hotels (OSM/Wikidata) + Bürgeramt | 5-7 |
+| **🎯 Gesamt** | **10 neue Services** | **~15-20 Tage** |
+
+### AI-Strategie
+
+Jeder Service bekommt eine AI-Komponente basierend auf Open-Source-Modellen (keine Cloud-AI):
+- **Wetter:** Unwetter-Früherkennung aus DWD-Trends (ML Service + R)
+- **Luft:** Gesundheitsempfehlung (Asthma-Risiko) via LightGBM
+- **Abfall:** Sortier-Tipps via Natural BayesClassifier
+- **Futai:** KI-Twin Chat via Ollama (lokal)
+- **Jobs:** Job-Matching via Keyword + Embeddings
+- **Events:** Personalisierte Empfehlung via Collaborative Filtering
+- **Hotels:** Budget-gerechte Reiseplanung via ML Budget Classifier
+
 ## Phase 23 Recap — Stand Juli 2026
 
 Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert; kleinere offene Tasks in klarer Reihenfolge.

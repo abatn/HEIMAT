@@ -40,6 +40,75 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern `Navigator.pushNamedAndRemoveUntil('/', …)`)
 - Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
 
+## Phase 25-26: HEIMAT Expansion — Von 3 auf 10+ Services
+
+### Vision
+HEIMAT expandiert von 3 Kern-Services (Mobilität, Finanzen, Gesundheit) auf 10+ Services — inspiriert von WeChat (China) und Grab (Singapur), aber mit deutscher Open-Source-DNA: keine Verträge, keine kommerziellen APIs, Privacy-by-Design.
+
+### Neue Services mit Echtzeit-Datenquellen
+
+| # | Service | Datenquelle | Typ | Lizenz | Echtzeit | AI-Feature |
+|---|---------|------------|-----|--------|----------|------------|
+| 4 | 💬 **Futai Chat/Social** | github.com/abatn/futai | Open Source | AGPL | ✅ | Ollama-KI-Twin, Emotionen, Gedächtnis |
+| 5 | 🌤️ **Wetter** | DWD opendata.dwd.de | 🏛️ Staatlich | CC-BY 4.0 | ✅ | Unwetter-Früherkennung |
+| 6 | 🌬️ **Luftqualität** | UBA luftdaten.umweltbundesamt.de | 🏛️ Staatlich | Datenlizenz DE 2.0 | ✅ | Gesundheitsempfehlung |
+| 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-iCal | 🏛️ Staatlich | Unterschiedlich | ✅ | Sortier-Tipps + Erinnerung |
+| 8 | 🔌 **E-Ladestationen** | OSM Overpass + GoingElectric | 🌍 Open Source | ODbL | ⚠️ Static | Routenplanung inkl. Ladestopps |
+| 9 | 💼 **Job-Suche** | BA (Bundesagentur) + Adzuna | 🏛️ Staatlich / Kommerziell | Unterschiedlich | ✅ | Job-Matching + Skill-Gap |
+| 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | 🌍 Open Source | CC0 / ODbL | ✅ | Personalisierte Empfehlung |
+| 11 | 🏨 **Hotels** | OSM + Wikidata (nur Standorte) | 🌍 Open Source | ODbL / CC0 | ❌ | Reiseplanung mit Budget |
+| 12 | 🅿️ **Parken** | OpenStreetMap | 🌍 Open Source | ODbL | ⚠️ | — |
+| 13 | 🏛️ **Bürgeramt** | Kommunale Open-Data-APIs | 🏛️ Staatlich | Unterschiedlich | ✅ | AI-Terminfindung |
+
+### Futai-Integration
+
+Futai (github.com/abatn/futai) ist eine komplette React Native Social-Media-App:
+- KI-Chat via Ollama (lokal), 12 Emotionen, Gedächtnis mit 4 Typen
+- Social Feed mit Posts, Likes, Comments, Sortierung
+- 353 Tests, TypeScript strict, Build sauber
+
+**Integrations-Strategie (weil HEIMAT = Flutter, Futai = React Native):**
+1. Mini-Program-Container (WebView) als Fundament bauen
+2. Futai's Web-Build als Mini-Program in HEIMAT einbetten
+3. Auth-Sharing via HEIMATs JWT-Backend
+4. Später: Backend-Sharing für Multi-User-Feed
+
+### Bau-Phasen
+
+| Phase | Services | Tage | Priorität |
+|-------|----------|------|-----------|
+| **A** | Mini-Program-Container (WebView-Framework) | 2-3 | 🥇 Fundament |
+| **B** | Wetter (DWD) + Luftqualität (UBA) + Abfallkalender | 3-5 | 🥇 Tägliche Helfer |
+| **C** | E-Ladestationen (OSM) + Parken (OSM) | 2-3 | 🥈 Mobilität Plus |
+| **D** | Futai-Chat + Job-Suche (BA) + Veranstaltungen | 3-5 | 🥈 Social + Jobs |
+| **E** | Hotels (OSM/Wikidata) + Bürgeramt | 5-7 | 🥉 Ökosystem |
+| **🎯** | **10 neue Services gesamt** | **~15-20** | |
+
+### AI-Strategie
+
+Jeder Service bekommt eine AI-Komponente basierend auf Open-Source-Modellen (keine kostenpflichtige Cloud-AI):
+- **Wetter:** Unwetter-Früherkennung aus DWD-Trends (ML Service + R)
+- **Luftqualität:** Gesundheitsempfehlung (Asthma-Risiko) via LightGBM Classifier
+- **Abfallkalender:** Sortier-Tipps via Natural BayesClassifier
+- **E-Ladestationen:** Optimale Ladestopp-Routen via RAPTOR-artiger Optimierung
+- **Futai:** KI-Twin Chat via Ollama (lokal, kein Cloud-Provider)
+- **Job-Suche:** Job-Matching + Skill-Gap-Analyse via Keyword + Embeddings
+- **Veranstaltungen:** Personalisierte Event-Empfehlung via Collaborative Filtering
+- **Hotels:** Budget-gerechte Reiseplanung via ML Budget Classifier
+
+### Rechtliche Prüfung
+
+Alle neuen Services nutzen:
+- **🏛️ Staatliche APIs** (DWD, UBA, BA, Kommunen) — öffentlich, keine Verträge nötig
+- **🌍 Open-Source-Daten** (OSM, Wikidata) — ODbL/CC0, keine Lizenzkosten
+- **💬 Eigene Open-Source-Apps** (Futai) — AGPL, keine Vendor-Abhängigkeit
+
+Kein Service braucht:
+- ❌ Keine Bezahl-APIs (außer Adzuna Job — nur optional)
+- ❌ Keine Banklizenz (Hotels nur Standorte, keine Buchung)
+- ❌ Keine TI-Anbindung (Gesundheit bleibt termin-basiert)
+- ❌ Keine kommerziellen Verträge
+
 ## Phase 1: Marktanalyse & Positionierung
 
 ### 1. Wettbewerbsanalyse

@@ -56,7 +56,31 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - `src/mobile/lib/` — Flutter App
 - `src/ml-service/` — Python FastAPI ML-Service
 
+## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
+
+### Neue Services (10+)
+
+| # | Service | Datenquelle | AI | Phase |
+|---|---------|------------|-----|-------|
+| 4 | 💬 Futai Chat/Social | github.com/abatn/futai via Mini-Program | Ollama KI-Twin | D |
+| 5 | 🌤️ Wetter | DWD opendata.dwd.de (CC-BY) | Unwetter-Früherkennung | B |
+| 6 | 🌬️ Luftqualität | UBA luftdaten.umweltbundesamt.de | Gesundheitsempfehlung | B |
+| 7 | 🗑️ Abfallkalender | Kommunale Open-Data | Sortier-Tipps + Erinnerung | B |
+| 8 | 🔌 E-Ladestationen | OSM Overpass + GoingElectric | Routenplanung | C |
+| 9 | 💼 Job-Suche | BA Bundesagentur + Adzuna | Job-Matching | D |
+| 10 | 📰 Veranstaltungen | Wikidata + OSM | Persönl. Empfehlung | D |
+| 11 | 🏨 Hotels | OSM + Wikidata (Standorte) | Reise-Budget-Planung | E |
+| 12 | 🅿️ Parken | OSM | — | C |
+| 13 | 🏛️ Bürgeramt | Kommunale APIs | AI-Terminfindung | E |
+
+### Bau-Phasen
+A: Mini-Program-Container (2-3d) → B: Wetter/Luft/Abfall (3-5d) → C: Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20 Tage
+
+### Futai-Integration
+https://github.com/abatn/futai — React Native Social-Media-App mit KI-Chat (Ollama), 12 Emotionen, Gedächtnis, Social Feed (353 Tests). Integration via Mini-Program-Container (WebView), weil HEIMAT = Flutter ≠ React Native.
+
 ## OFFENE TASKS
+
 
 ### Phase 23: ✅ Finance-JWT-Roundtrip + Security-Härtung (2026-07-25 abgeschlossen)
 **Status:** Live. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün. security.test.ts Regression-Lock aktiv (Commit 3414aea).

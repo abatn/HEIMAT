@@ -149,6 +149,30 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auth-Routing-Bug Regression-Test in mobile tests
 - Auto-Migration health-check (`npm run migrate:status`)
 
+## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
+
+### Von 3 auf 10+ Services — wie WeChat/Grab, aber Open Source
+
+| # | Service | Datenquelle | AI | Status |
+|---|---------|------------|-----|--------|
+| 4 | 💬 **Chat/Social** | Futai (github.com/abatn/futai) integrieren via Mini-Program | Ollama Twin | ⏳ Phase D |
+| 5 | 🌤️ **Wetter** | DWD (Deutscher Wetterdienst) CC-BY | Unwetter-Früherkennung | ⏳ Phase B |
+| 6 | 🌬️ **Luftqualität** | Umweltbundesamt (UBA) Open Data | Gesundheitsempfehlung | ⏳ Phase B |
+| 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-Portale | Sortier-Tipps + Erinnerung | ⏳ Phase B |
+| 8 | 🔌 **E-Ladestationen** | OSM + GoingElectric | Routenplanung | ⏳ Phase C |
+| 9 | 💼 **Job-Suche** | BA Bundesagentur + Adzuna | Job-Matching | ⏳ Phase D |
+| 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | Persönl. Empfehlung | ⏳ Phase D |
+| 11 | 🏨 **Hotels** | OSM + Wikidata (nur Standorte) | Reise-Budget-Planung | ⏳ Phase E |
+| 12 | 🅿️ **Parken** | OpenStreetMap | — | ⏳ Phase C |
+| 13 | 🏛️ **Bürgeramt** | Kommunale APIs | AI-Terminfindung | ⏳ Phase E |
+
+### Futai-Integration
+Futai ist eine React Native Social-Media-App unter github.com/abatn/futai (KI-Chat, Emotionen, Gedächtnis, Feed).
+Integration via **Mini-Program-Container (WebView)** — weil HEIMAT = Flutter ≠ React Native.
+
+### Bau-Phasen
+A: Mini-Program-Container (2-3d) → B: Wetter/Luft/Abfall (3-5d) → C: E-Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20 Tage
+
 ## Additional instruction files
 
 - `.claude/CLAUDE.md` – detailed Claude-specific instructions (same rules, more verbose)
