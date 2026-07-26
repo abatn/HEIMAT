@@ -34,7 +34,6 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 ### ❌ Was fehlt (echte Lücken)
 - Flutter Integration-Tests (kein Code vorhanden — Login → Finance → Logout Flow nicht durch UI getestet)
-- `health.test.ts` Backend CI-Failure (1/7 Suites, pre-existing — DB-Cleanup-Ordering vermutet)
 - Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern `Navigator.pushNamedAndRemoveUntil('/', …)`)
 - Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
 
@@ -1138,7 +1137,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 | Pipeline | Status | Letzter Lauf |
 |----------|--------|-------------|
 | Flutter CI (format → analyze → test → build) | ✅ vollständig grün | `ccfd777` — Gradle `project.ext.flutter` in Subprojekten injected |
-| Backend CI (lint → test → tsc) | ❌ `health.test.ts` (pre-existing) | `e90b287` — TypeScript auf ~5.6.3, @typescript-eslint ^7.18.0 revertiert; 1/7 Suites failed |
+| Backend CI (lint → test → tsc) | ✅ gesamt grün | `6b7c7f5` — health.test.ts-Resilienz-Fix (HAS_DB-Guards + breitere catch-Patterns) |
 | Web-Deploy (GitHub Pages) | ✅ automatisch | — |
 | Render Backend Deploy | ✅ automatisch | — |
 
@@ -1192,11 +1191,11 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 | Swagger/OpenAPI | ✅ | ✅ (in e2e) | ❌ ungetestet | `/docs` und `/docs.json` im Code |
 | Taler Wallet-Client | ✅ Client-Code | ✅ (12 Tests) | ⚠️ Demo-only (KUDOS) | HEIMAT ist Wallet-Client, kein Exchange-Betreiber. Production-EUR wartet auf GLS-Bank-Integration. |
 | E2E-Tests (Backend) | ✅ | ✅ (22 Tests) | 🔄 via CI | Testet User-Lifecycle, braucht Postgres (nur in CI) |
-| Backend CI health.test.ts | 🔴 1/7 Suites failed | ❌ | ❌ | pre-existing, vermutlich DB-Cleanup-Reihenfolge |
+| Backend CI health.test.ts | ✅ 16 Tests grün | ✅ (Commit 6b7c7f5) | ✅ | HAS_DB-Guards + breitere catch-Patterns fuer CI-Resilienz |
 
 ### Nächste Schritte (priorisiert)
 
-1. **🔴 Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites); vermutlich DB-Cleanup-Reihenfolge
+1. ✅ **Backend CI: `health.test.ts` fixen** — pre-existing failure behoben (Commit 6b7c7f5)
 2. **✅ Flutter-Finance: JWT-Auth-Integration** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in 5 Finance-Calls) + `e00105d` (URL-Pfade bereinigt + neue Backend-Route `GET /api/finance/wallet` + `wallet_priv` Legacy-Spalte gedroppt)
 3. **Taler-Production-Readiness** — Sobald öffentlicher EUR-Exchange verfügbar (GLS Bank), Base-URL tauschen. Bis dahin Demo-KUDOS via exchange.demo.taler.net.
 4. **E2E-Tests (Flutter Integration)** — noch kein Code vorhanden

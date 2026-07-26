@@ -176,8 +176,6 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 **Demo-KUDOS fund-local ist live!** Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" — sofort 25 KUDOS direkt in die DB, kein Exchange noetig; (b) "Reserve-Adresse erstellen" — fuer echten Taler-Bank-Wire. P2P-Purse-System bereit (createPurse/depositToPurse/mergePurse). EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
 
 ### ⚠️ Was noch offen ist
-- migrate.ts Unit-Test fehlt
-- health.test.ts CI-Failure (1/7 Suites)
 - Flutter Integration-Tests
 
 **📱 Taler aus der App — So geht's:**
@@ -185,7 +183,6 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests für Login → Finance → Logout Flow
-- `health.test.ts` Backend CI-Failure (1/7 Suites)
 - Auth-Routing-Bug Regression-Test
 - `npm run migrate:status` health-check tool
 

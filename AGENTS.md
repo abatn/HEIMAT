@@ -33,7 +33,7 @@ HEIMAT 2.0 – open-source "super app" (German docs/UI). Three services under `s
 
 **Tests need Postgres.** CI spins up `postgres:15-alpine` with DB `heimat_test`. The test suite uses `DB_*` env vars; `forceExit: true` in jest config.
 
-**Known CI failure:** `health.test.ts` has a pre-existing failure (1/7 suites) – likely DB cleanup ordering.
+
 
 ### Mobile (run in `src/mobile/`, using vendored SDK)
 
@@ -141,7 +141,6 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests (Login → Finance → Logout Flow nicht durch UI getestet)
-- `health.test.ts` Backend CI-Failure (1/7 Suites, pre-existing)
 - Auth-Routing-Bug Regression-Test in mobile tests
 - Auto-Migration health-check (`npm run migrate:status`)
 

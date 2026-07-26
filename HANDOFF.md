@@ -25,7 +25,6 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 
 ### Was fehlt
 - Flutter Integration-Tests
-- `health.test.ts` Backend CI-Failure (1/7 Suites, pre-existing)
 - Auth-Routing-Bug Regression-Test in mobile tests
 - Auto-Migration health-check Tool
 

@@ -174,13 +174,10 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests (kein Code vorhanden — Login → Finance → Logout Flow nicht durch UI getestet)
-- `health.test.ts` Backend CI-Failure (1/7 Suites, pre-existing — DB-Cleanup-Ordering vermutet)
 - Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern mit `Navigator.pushNamedAndRemoveUntil('/', …)`) — kein Pre-Commit-Test
 - Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
 
-## Pre-existing test failures
 
-- `src/backend/src/__tests__/health.test.ts`: 1/7 backend suites fails on CI. Likely DB-cleanup ordering issue. Not introduced by recent code — investigate before touching health tests.
 
 ## Documentation map
 

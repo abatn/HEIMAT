@@ -203,12 +203,12 @@ src/ml-service/       # Python FastAPI (nur Docker)
 | Swagger/OpenAPI | ✅ | ✅ (in e2e) | ❌ ungetestet | `/docs` und `/docs.json` im Code |
 | Taler Wallet-Client | ✅ Client-Code | ✅ (12 Tests) | ⚠️ Demo-only (KUDOS) | exchange.demo.taler.net erreichbar. Currency dynamisch aus /keys (d91fc76). EUR-ready: TALER_EXCHANGE_URL setzen, fertig. Production-EUR wartet auf GLS-Bank-Integration. |
 | E2E-Tests (Backend) | ✅ | ✅ (22 Tests) | 🔄 via CI | Testet User-Lifecycle, aber braucht Postgres (nur in CI) |
-| Backend CI health.test.ts | 🔴 1/7 Suites failed | ❌ | ❌ | pre-existing, vermutlich DB-Cleanup-Reihenfolge |
+| Backend CI health.test.ts | ✅ 16 Tests, alle grün | ✅ | ✅ | Nach Fix HAS_DB-Guards + resiliente catch-Patterns (Commit 6b7c7f5) |
 
 ## Offene Tasks (priorisiert)
 
 1. ✅ **Finanzen: JWT-Auth ins Mobile integrieren** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in alle 5 Finance-HTTP-Calls) + `e00105d` (URL-Pfade ohne `/$userId`-Suffix; Backend identifiziert User aus Token; neue GET `/wallet`-Route; Schema-Migration für alte `wallet_priv`-Spalte). **Phase 23 abgeschlossen**: zusätzlich `25ac7ab` (Security-Fix: POST /api/migrate entfernt), `3414aea` (security.test.ts Regression-Lock), `e7fcd85` (preDeployCommand auto-migration). ADMIN_KEY auf Render gesetzt, positive-control `/api/admin/migrate` HTTP 200 verifiziert.
-2. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
+2. ✅ **Backend CI: `health.test.ts` fixen** — pre-existing failure behoben (Commit 6b7c7f5)
 3. ✅ **Production-Validierung: User-Auth End-to-End testen** — erledigt 2026-07-25: Register/Login/Me gegen `heimat-backend.onrender.com` mit echtem User (`heimat-demo-user@heimat.de`) in Production-DB
 4. **Taler-Production-Readiness**: Currency wird bereits dynamisch aus /keys gelesen (Commit d91fc76). Sobald öffentlicher EUR-Exchange verfügbar (GLS Bank?), `TALER_EXCHANGE_URL` env var setzen — kein Code-Change nötig. Bis dahin Demo-KUDOS via exchange.demo.taler.net.
 5. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
@@ -242,7 +242,6 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests für JWT-Flow
-- health.test.ts Backend CI-Failure (1/7 Suites)
 - Auth-Routing-Bug Regression-Test
 - `npm run migrate:status` Auto-Migration health-check
 
