@@ -335,8 +335,7 @@ void main() {
       expect(find.byIcon(Icons.more_vert), findsOneWidget);
     });
 
-    testWidgets('Menue enthaelt Abmelden-Eintrag',
-        (WidgetTester tester) async {
+    testWidgets('Menue enthaelt Abmelden-Eintrag', (WidgetTester tester) async {
       final auth = await createAuthProvider(authenticated: true);
       await tester.pumpWidget(buildTestApp(authProvider: auth));
       await tester.pumpAndSettle();

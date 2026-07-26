@@ -42,7 +42,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
             final amount = double.tryParse(amountController.text.trim());
             if (to.isEmpty || amount == null || amount <= 0) return;
             Navigator.pop(context);
-            final ok = await context.read<FinanceProvider>().sendMoney(to, amount);
+            final ok =
+                await context.read<FinanceProvider>().sendMoney(to, amount);
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -113,31 +114,42 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         color: AppColors.success.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.auto_fix_high, color: AppColors.success, size: 18),
+                      child: const Icon(Icons.auto_fix_high,
+                          color: AppColors.success, size: 18),
                     ),
                     const SizedBox(width: 10),
                     const Text('Demo-KUDOS erhalten',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.success)),
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.success)),
                   ],
                 ),
                 const SizedBox(height: 10),
                 const Text(
                   '25 KUDOS direkt in dein Wallet — ohne Bank-Konto, ohne Taler-Exchange.',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      height: 1.4),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () async {
-                      final ok = await context.read<FinanceProvider>().fundLocal();
+                      final ok =
+                          await context.read<FinanceProvider>().fundLocal();
                       if (!mounted) return;
                       Navigator.pop(context);
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(ok ? '25 KUDOS Demo-Guthaben erhalten!' : 'Fehler: Demoguthaben konnte nicht geladen werden'),
-                          backgroundColor: ok ? AppColors.success : AppColors.error,
+                          content: Text(ok
+                              ? '25 KUDOS Demo-Guthaben erhalten!'
+                              : 'Fehler: Demoguthaben konnte nicht geladen werden'),
+                          backgroundColor:
+                              ok ? AppColors.success : AppColors.error,
                         ),
                       );
                     },
@@ -147,7 +159,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
                       backgroundColor: AppColors.success,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
@@ -174,24 +187,32 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         color: AppColors.warning.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.account_balance, color: AppColors.warning, size: 18),
+                      child: const Icon(Icons.account_balance,
+                          color: AppColors.warning, size: 18),
                     ),
                     const SizedBox(width: 10),
                     const Text('Taler-Bank-Wire',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.warning)),
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.warning)),
                   ],
                 ),
                 const SizedBox(height: 10),
                 const Text(
                   'Du hast ein Konto bei bank.demo.taler.net? HEIMAT erstellt eine Reserve-Adresse zum Befüllen.',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                  style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      height: 1.4),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () async {
-                      final result = await context.read<FinanceProvider>().openReserve();
+                      final result =
+                          await context.read<FinanceProvider>().openReserve();
                       if (!mounted) return;
                       Navigator.pop(context);
                       if (!mounted) return;
@@ -201,9 +222,11 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     label: const Text('Reserve-Adresse erstellen'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.warning,
-                      side: BorderSide(color: AppColors.warning.withOpacity(0.5)),
+                      side:
+                          BorderSide(color: AppColors.warning.withOpacity(0.5)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
@@ -221,7 +244,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
       final provider = context.read<FinanceProvider>();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(provider.error ?? 'Reserve konnte nicht erstellt werden'),
+          content:
+              Text(provider.error ?? 'Reserve konnte nicht erstellt werden'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -244,7 +268,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
       ),
@@ -264,10 +289,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.account_balance_wallet, size: 18, color: AppColors.primary),
+                    Icon(Icons.account_balance_wallet,
+                        size: 18, color: AppColors.primary),
                     const SizedBox(width: 8),
                     Text('Deine Reserve-Adresse',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primaryDark)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryDark)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -302,24 +331,33 @@ class _FinanceScreenState extends State<FinanceScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lightbulb_outline, color: AppColors.warning, size: 20),
+                Icon(Icons.lightbulb_outline,
+                    color: AppColors.warning, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Guthaben entsteht durch eine Überweisung von der Taler-Bank auf deine Reserve-Adresse.',
-                    style: TextStyle(fontSize: 13, color: AppColors.warning.withOpacity(0.8), height: 1.4),
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.warning.withOpacity(0.8),
+                        height: 1.4),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          const Text('Schritt-für-Schritt:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          const Text('Schritt-für-Schritt:',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          _StepRow('1', 'Gehe zu bank.demo.taler.net', 'Dort hast du 100 KUDOS Guthaben'),
-          _StepRow('2', 'Klicke "Geld senden"', 'Wähle "an Taler-Wallet (App oder WebExtension)"'),
-          _StepRow('3', 'Füge reserve_pub ein & sende 25 KUDOS', 'Die Bank überweist an den Taler-Exchange'),
-          _StepRow('4', 'Zurück zu HEIMAT → "Aktualisieren"', 'Dein Guthaben wird live geladen'),
+          _StepRow('1', 'Gehe zu bank.demo.taler.net',
+              'Dort hast du 100 KUDOS Guthaben'),
+          _StepRow('2', 'Klicke "Geld senden"',
+              'Wähle "an Taler-Wallet (App oder WebExtension)"'),
+          _StepRow('3', 'Füge reserve_pub ein & sende 25 KUDOS',
+              'Die Bank überweist an den Taler-Exchange'),
+          _StepRow('4', 'Zurück zu HEIMAT → "Aktualisieren"',
+              'Dein Guthaben wird live geladen'),
         ],
       ),
     );
@@ -454,7 +492,11 @@ class _AnimatedBalanceCardState extends State<_AnimatedBalanceCard>
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppColors.primaryDark, AppColors.primary, AppColors.primaryLight],
+            colors: [
+              AppColors.primaryDark,
+              AppColors.primary,
+              AppColors.primaryLight
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -474,9 +516,11 @@ class _AnimatedBalanceCardState extends State<_AnimatedBalanceCard>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Dein Guthaben',
-                    style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.85), fontSize: 14)),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -484,10 +528,13 @@ class _AnimatedBalanceCardState extends State<_AnimatedBalanceCard>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.account_balance_wallet, size: 12, color: Colors.white.withOpacity(0.8)),
+                      Icon(Icons.account_balance_wallet,
+                          size: 12, color: Colors.white.withOpacity(0.8)),
                       const SizedBox(width: 4),
                       Text(widget.provider.currency,
-                          style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8))),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white.withOpacity(0.8))),
                     ],
                   ),
                 ),
@@ -499,20 +546,28 @@ class _AnimatedBalanceCardState extends State<_AnimatedBalanceCard>
               children: [
                 Text(
                   _displayedBalance.toStringAsFixed(2),
-                  style: const TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: Colors.white, height: 1),
+                  style: const TextStyle(
+                      fontSize: 44,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      height: 1),
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6, left: 6),
                   child: Text(
                     widget.provider.currency,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.7)),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withOpacity(0.7)),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
             Text('Letztes Update: gerade eben',
-                style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.5))),
+                style: TextStyle(
+                    fontSize: 11, color: Colors.white.withOpacity(0.5))),
           ],
         ),
       ),
@@ -598,14 +653,18 @@ class _ActionCardState extends State<_ActionCard> {
           decoration: BoxDecoration(
             color: _isPressed ? widget.color.withOpacity(0.15) : widget.bgColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: widget.color.withOpacity(_isPressed ? 0.4 : 0.2)),
+            border: Border.all(
+                color: widget.color.withOpacity(_isPressed ? 0.4 : 0.2)),
           ),
           child: Column(
             children: [
               Icon(widget.icon, color: widget.color, size: 28),
               const SizedBox(height: 8),
               Text(widget.label,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: widget.color)),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: widget.color)),
             ],
           ),
         ),
@@ -631,7 +690,10 @@ class _TransactionsSection extends StatelessWidget {
         Row(
           children: [
             const Text('Transaktionen',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary)),
             if (transactions.isNotEmpty) ...[
               const SizedBox(width: 8),
               Container(
@@ -641,7 +703,10 @@ class _TransactionsSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text('${transactions.length}',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary)),
               ),
             ],
           ],
@@ -725,30 +790,40 @@ class _TransactionTimelineTile extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: isIncoming ? AppColors.success : AppColors.textPrimary,
+                                color: isIncoming
+                                    ? AppColors.success
+                                    : AppColors.textPrimary,
                               ),
                             ),
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: _statusColor(tx.status).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(tx.status,
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _statusColor(tx.status))),
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: _statusColor(tx.status))),
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text(tx.description ?? (isIncoming ? 'Gutschrift' : 'Auszahlung'),
-                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                        Text(
+                            tx.description ??
+                                (isIncoming ? 'Gutschrift' : 'Auszahlung'),
+                            style: const TextStyle(
+                                fontSize: 13, color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
                   Text(
                     _formatDate(tx.createdAt),
-                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -780,7 +855,9 @@ class _TransactionTimelineTile extends StatelessWidget {
         return 'Heute';
       }
       final yesterday = now.subtract(const Duration(days: 1));
-      if (dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day) {
+      if (dt.year == yesterday.year &&
+          dt.month == yesterday.month &&
+          dt.day == yesterday.day) {
         return 'Gestern';
       }
       return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
@@ -916,7 +993,10 @@ class _StepRow extends StatelessWidget {
             ),
             child: Center(
               child: Text(num,
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
           const SizedBox(width: 12),
@@ -924,10 +1004,15 @@ class _StepRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
                 const SizedBox(height: 2),
                 Text(description,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.3)),
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.3)),
               ],
             ),
           ),
