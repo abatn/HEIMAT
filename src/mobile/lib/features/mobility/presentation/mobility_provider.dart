@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/app_config.dart';
+import '../../home/presentation/home_provider.dart';
 
 double _toDouble(dynamic v) =>
     v == null ? 0.0 : (v is num ? v.toDouble() : double.parse(v.toString()));
@@ -184,6 +185,7 @@ class MobilityProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+    HomeProvider.onUserAction?.call('haltestellen in der nähe gesucht');
     try {
       final url =
           '${AppConfig.backendUrl}/api/mobility/stops?lat=$lat&lng=$lng&radius=$radius';
@@ -262,6 +264,7 @@ class MobilityProvider extends ChangeNotifier {
     _error = null;
     _departures = [];
     notifyListeners();
+    HomeProvider.onUserAction?.call('abfahrten gesucht');
     try {
       final url =
           '${AppConfig.backendUrl}/api/mobility/departures?lat=$lat&lng=$lng';
@@ -290,6 +293,7 @@ class MobilityProvider extends ChangeNotifier {
     _error = null;
     _journeys = [];
     notifyListeners();
+    HomeProvider.onUserAction?.call('route gesucht');
     try {
       final url =
           '${AppConfig.backendUrl}/api/mobility/journey?from_lat=$fromLat&from_lng=$fromLng&to_lat=$toLat&to_lng=$toLng';

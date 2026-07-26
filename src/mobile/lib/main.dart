@@ -38,7 +38,15 @@ class HeimatApp extends StatelessWidget {
               ChangeNotifierProvider(create: (_) => MobilityProvider()),
               ChangeNotifierProvider(create: (_) => HealthProvider()),
               ChangeNotifierProvider(
-                create: (_) => HomeProvider(auth.authService),
+                create: (_) {
+                  final hp = HomeProvider(auth.authService);
+                  // Statischen Callback setzen: erlaubt anderen
+                  // Providern (Mobility, Health, Finance) die
+                  // Aufzeichnung von User-Aktionen für den
+                  // BayesClassifier ohne zirkuläre Abhängigkeiten.
+                  HomeProvider.onUserAction = hp.recordAction;
+                  return hp;
+                },
               ),
             ],
             child: MaterialApp(

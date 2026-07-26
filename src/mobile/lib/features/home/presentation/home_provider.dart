@@ -119,12 +119,25 @@ class HomeProvider extends ChangeNotifier {
   LatLng? _currentLocation;
   NearbySummary? _nearbySummary;
 
+  /// Statischer Callback: Wird von main.dart gesetzt, damit andere Provider
+  /// (Mobility, Health, Finance) Aktionen aufzeichnen können ohne
+  /// eine direkte Abhängigkeit zu HomeProvider zu haben.
+  static void Function(String action)? onUserAction;
+
   /// Letzte User-Aktionen für die BayesClassifier-Personalisierung
   final List<String> _recentActions = [];
 
   HomeProvider(this._authService);
 
-  bool get isLoading => _isLoading;
+  @override
+  void dispose() {
+    // Static-Callback beim Dispose räumen, damit keine
+    // hängenden Referenzen auf alte Provider-Instanzen zeigen.
+    if (onUserAction == recordAction) {
+      onUserAction = null;
+    }
+    super.dispose();
+  }  bool get isLoading => _isLoading;
   String? get error => _error;
   DashboardContext? get context => _context;
   LatLng? get currentLocation => _currentLocation;

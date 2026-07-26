@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/services/auth_service.dart';
+import '../../home/presentation/home_provider.dart';
 
 class ReserveOpenResult {
   final String reservePub;
@@ -90,6 +91,7 @@ class FinanceProvider extends ChangeNotifier {
     if (_walletInitialized) return;
     final userId = _authService.userId;
     if (userId == null) return;
+    HomeProvider.onUserAction?.call('konto erstellt');
     try {
       final url = '${AppConfig.backendUrl}/api/finance/taler/wallet';
       await http
@@ -113,6 +115,7 @@ class FinanceProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+    HomeProvider.onUserAction?.call('konto aufgerufen');
     try {
       await initWallet();
       // Backend identifiziert User aus dem Bearer-Token (requireAuth-Middleware),
@@ -183,6 +186,7 @@ class FinanceProvider extends ChangeNotifier {
     if (userId == null) return false;
     _isLoading = true;
     _error = null;
+    HomeProvider.onUserAction?.call('demo-guthaben aufgeladen');
     notifyListeners();
     try {
       final url = '${AppConfig.backendUrl}/api/finance/taler/fund-local';
@@ -235,6 +239,7 @@ class FinanceProvider extends ChangeNotifier {
     }
     _isLoading = true;
     _error = null;
+    HomeProvider.onUserAction?.call('geld gesendet');
     notifyListeners();
     try {
       final url = '${AppConfig.backendUrl}/api/finance/pay';

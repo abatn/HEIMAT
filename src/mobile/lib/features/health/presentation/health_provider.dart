@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
+import '../../home/presentation/home_provider.dart';
 
 class Doctor {
   final String id;
@@ -73,6 +74,7 @@ class HealthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
+    HomeProvider.onUserAction?.call('arzt gesucht');
     try {
       // Wenn Koordinaten vorhanden: Overpass + DB (nearby)
       if (lat != null && lng != null) {
