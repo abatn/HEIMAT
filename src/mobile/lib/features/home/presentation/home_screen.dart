@@ -128,7 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,                    children: [
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
                       '${context.greeting}, ${home.userName}!',
                       style: const TextStyle(
