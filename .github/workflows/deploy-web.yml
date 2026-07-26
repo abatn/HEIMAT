@@ -21,7 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        working-directory: ${{ github.workspace }}
         run: |
+          git config --global safe.directory '*'
           git init
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
           git fetch --depth 1 origin "${{ github.sha }}"
