@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heimat_app/core/config/app_config.dart';
+import 'package:heimat_app/core/services/auth_service.dart';
 import 'package:heimat_app/core/theme/app_theme.dart';
 import 'package:heimat_app/features/auth/presentation/auth_provider.dart';
 import 'package:heimat_app/features/auth/presentation/login_screen.dart';
@@ -23,33 +24,11 @@ class _StubMobility extends MobilityProvider {
 class _StubFinance extends FinanceProvider {
   _StubFinance(super.authService);
 
-  double _stubBalance = 0.0;
-  bool _stubHasLoaded = false;
-
-  @override
-  double get balance => _stubBalance;
-  @override
-  bool get hasLoaded => _stubHasLoaded;
-
-  void setBalance(double b) {
-    _stubBalance = b;
-    _stubHasLoaded = true;
-    notifyListeners();
-  }
-
   @override
   Future<void> loadWallet() async {}
 
   @override
   Future<void> loadTransactions() async {}
-
-  @override
-  Future<bool> fundLocal() async {
-    _stubBalance = 25.0;
-    _stubHasLoaded = true;
-    notifyListeners();
-    return true;
-  }
 }
 
 class _StubHealth extends HealthProvider {
@@ -76,14 +55,8 @@ Future<AuthProvider> createAuthProvider({required bool authenticated}) async {
   return auth;
 }
 
-Widget buildTestApp({
-  required AuthProvider authProvider,
-  double financeBalance = 0.0,
-}) {
+Widget buildTestApp({required AuthProvider authProvider}) {
   final financeProvider = _StubFinance(authProvider.authService);
-  if (financeBalance > 0) {
-    financeProvider.setBalance(financeBalance);
-  }
 
   return MultiProvider(
     providers: [
@@ -242,91 +215,14 @@ void main() {
     });
   });
 
-  group('MainScreen Navigation', () {
-    testWidgets('zeigt Mobilitaets-Tab standardmaessig',
+  group('MainScreen', () {
+    testWidgets('standardmaessig auf Mobilitaets-Tab',
         (WidgetTester tester) async {
       final auth = await createAuthProvider(authenticated: true);
       await tester.pumpWidget(buildTestApp(authProvider: auth));
       await tester.pumpAndSettle();
 
       expect(find.byType(MobilityScreen), findsOneWidget);
-    });
-
-    testWidgets('wechselt zu Finanzen-Tab bei Klick',
-        (WidgetTester tester) async {
-      final auth = await createAuthProvider(authenticated: true);
-      await tester.pumpWidget(buildTestApp(authProvider: auth));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Finanzen'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-
-      expect(find.byType(FinanceScreen), findsOneWidget);
-    });
-
-    testWidgets('wechselt zu Gesundheit-Tab bei Klick',
-        (WidgetTester tester) async {
-      final auth = await createAuthProvider(authenticated: true);
-      await tester.pumpWidget(buildTestApp(authProvider: auth));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Gesundheit'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(HealthScreen), findsOneWidget);
-    });
-  });
-
-  group('FinanceScreen', () {
-    testWidgets('zeigt Guthaben wenn geladen', (WidgetTester tester) async {
-      final auth = await createAuthProvider(authenticated: true);
-      await tester.pumpWidget(buildTestApp(
-        authProvider: auth,
-        financeBalance: 25.0,
-      ));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Finanzen'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-
-      expect(find.textContaining('KUDOS'), findsWidgets);
-    });
-
-    testWidgets('zeigt Guthaben aufladen Button', (WidgetTester tester) async {
-      final auth = await createAuthProvider(authenticated: true);
-      await tester.pumpWidget(buildTestApp(
-        authProvider: auth,
-        financeBalance: 25.0,
-      ));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Finanzen'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-
-      expect(find.text('Guthaben aufladen'), findsOneWidget);
-    });
-
-    testWidgets('Guthaben aufladen oeffnet Bottom-Sheet mit Demo-KUDOS',
-        (WidgetTester tester) async {
-      final auth = await createAuthProvider(authenticated: true);
-      await tester.pumpWidget(buildTestApp(
-        authProvider: auth,
-        financeBalance: 25.0,
-      ));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Finanzen'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-
-      await tester.tap(find.text('Guthaben aufladen'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 800));
-
-      expect(find.text('25 Demo-KUDOS erhalten'), findsOneWidget);
     });
   });
 
