@@ -1,21 +1,3 @@
-/**
- * auth_finance_logout_test.dart — Integration-Tests für den
- * Login -> Finance -> Logout Flow.
- *
- * Testet:
- *   1. AuthGate-Routing: nicht authentifiziert -> LoginScreen,
- *      authentifiziert -> MainScreen
- *   2. Navigation-Tabs: Mobilitat, Finanzen, Gesundheit
- *   3. Logout-Button im AppBar-Menu -> zurueck zu LoginScreen
- *   4. Finanzen-Screen mit Guthaben-Anzeige (Stub-Provider)
- *   5. "Guthaben aufladen" Bottom-Sheet mit Demo-KUDOS-Button
- *
- * Diese Tests verwenden gemockte Provider (kein HTTP, kein echtes Backend).
- * Der Auth-Gate-Flow wird uber SharedPreferences-Mock + AuthProvider.init()
- * gesteuert. buildTestApp akzeptiert einen bereits vorkonfigurierten
- * AuthProvider (mit init() aufgerufen) — so ist isAuthenticated korrekt.
- */
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -32,10 +14,6 @@ import 'package:heimat_app/features/mobility/presentation/mobility_provider.dart
 import 'package:heimat_app/features/health/presentation/health_provider.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_screen.dart';
 import 'package:heimat_app/features/health/presentation/health_screen.dart';
-
-// ============================================================================
-// Stub-Provider (kein HTTP, kein Backend)
-// ============================================================================
 
 class _StubMobility extends MobilityProvider {
   @override
@@ -61,9 +39,7 @@ class _StubFinance extends FinanceProvider {
   }
 
   @override
-  Future<void> loadWallet() async {
-    // no-op: kein HTTP, Balance wird via setBalance() gesetzt
-  }
+  Future<void> loadWallet() async {}
 
   @override
   Future<void> loadTransactions() async {}
@@ -83,12 +59,6 @@ class _StubHealth extends HealthProvider {
       {String? specialty, double? lat, double? lng}) async {}
 }
 
-// ============================================================================
-// Hilfsfunktionen
-// ============================================================================
-
-/// Setzt SharedPreferences-Mock auf authentifizierten Zustand.
-/// Aufruf VOR authProvider.init() erforderlich.
 Future<void> setupAuthenticatedPrefs() async {
   SharedPreferences.setMockInitialValues({
     'auth_token': 'test-token',
@@ -98,9 +68,6 @@ Future<void> setupAuthenticatedPrefs() async {
   });
 }
 
-/// Erzeugt einen vorkonfigurierten AuthProvider (init() aufgerufen).
-/// - authenticated=true: SharedPreferences werden vorher gemockt
-/// - authenticated=false: SharedPreferences bleiben leer
 Future<AuthProvider> createAuthProvider({required bool authenticated}) async {
   if (authenticated) {
     await setupAuthenticatedPrefs();
@@ -110,9 +77,6 @@ Future<AuthProvider> createAuthProvider({required bool authenticated}) async {
   return auth;
 }
 
-/// Baut den vollstandigen Provider-Baum mit AuthGate.
-/// authProvider muss bereits via createAuthProvider() + init() vorkonfiguriert
-/// sein — buildTestApp ruft init() NICHT selbst auf.
 Widget buildTestApp({
   required AuthProvider authProvider,
   double financeBalance = 0.0,
@@ -144,10 +108,6 @@ Widget buildTestApp({
     ),
   );
 }
-
-// ============================================================================
-// AuthGate + MainScreen (repliziert main.dart ohne Import-Zirkel)
-// ============================================================================
 
 class _AuthGateWithLogout extends StatelessWidget {
   const _AuthGateWithLogout();
@@ -234,18 +194,10 @@ class _TestMainScreenState extends State<_TestMainScreen> {
   }
 }
 
-// ============================================================================
-// Tests
-// ============================================================================
-
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
   });
-
-  // ==========================================================================
-  // AuthGate-Routing
-  // ==========================================================================
 
   group('AuthGate routing', () {
     testWidgets('zeigt LoginScreen wenn nicht authentifiziert',
@@ -269,10 +221,6 @@ void main() {
     });
   });
 
-  // ==========================================================================
-  // LoginScreen -> Navigation zu RegisterScreen
-  // ==========================================================================
-
   group('LoginScreen', () {
     testWidgets('hat Registrieren-Link', (WidgetTester tester) async {
       final auth = await createAuthProvider(authenticated: false);
@@ -294,10 +242,6 @@ void main() {
       expect(find.byType(RegisterScreen), findsOneWidget);
     });
   });
-
-  // ==========================================================================
-  // MainScreen: Navigation-Tabs
-  // ==========================================================================
 
   group('MainScreen Navigation', () {
     testWidgets('zeigt Mobilitaets-Tab standardmaessig',
@@ -333,10 +277,6 @@ void main() {
       expect(find.byType(HealthScreen), findsOneWidget);
     });
   });
-
-  // ==========================================================================
-  // Finanzen-Screen anzeigen
-  // ==========================================================================
 
   group('FinanceScreen', () {
     testWidgets('zeigt Guthaben wenn geladen', (WidgetTester tester) async {
@@ -386,10 +326,6 @@ void main() {
     });
   });
 
-  // ==========================================================================
-  // Logout-Flow
-  // ==========================================================================
-
   group('Logout', () {
     testWidgets('AppBar zeigt Menue-Button', (WidgetTester tester) async {
       final auth = await createAuthProvider(authenticated: true);
@@ -411,7 +347,7 @@ void main() {
       expect(find.text('Abmelden'), findsOneWidget);
     });
 
-    testWidgets('Abmelden navigiert zurueck zu LoginScreen (AuthGate)',
+    testWidgets('Abmelden navigiert zurueck zu LoginScreen',
         (WidgetTester tester) async {
       final auth = await createAuthProvider(authenticated: true);
       await tester.pumpWidget(buildTestApp(authProvider: auth));
