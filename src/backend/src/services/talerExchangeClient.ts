@@ -52,7 +52,7 @@ export interface TalerKeysResponse {
   base_url: string;
   currency: string;
   master_public_key: string;
-  denomination_keys: TalerDenominationKey[];
+  denominations: TalerDenominationKey[];
   signkeys?: unknown[];
   reserve_closing_delay?: unknown;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -160,16 +160,16 @@ export class TalerExchangeClient {
         keysCache.invalidate();
         throw new TalerExchangeRejected(res.data, res.status, `${this.baseUrl}keys`);
       }
-      // Taler /keys: master_public_key ist Crockford-Base32 (Taler-konform), denomination_keys[]
+      // Taler /keys: master_public_key ist Crockford-Base32 (Taler-konform), denominations[]
       // existiert. Schnelle Sanity-Checks.
       if (typeof res.data.master_public_key !== 'string' || res.data.master_public_key.length < 20) {
         throw new TalerExchangeRejected(res.data, 502, `${this.baseUrl}keys`);
       }
-      if (!Array.isArray(res.data.denomination_keys) || res.data.denomination_keys.length === 0) {
+      if (!Array.isArray(res.data.denominations) || res.data.denominations.length === 0) {
         throw new TalerExchangeRejected(res.data, 502, `${this.baseUrl}keys`);
       }
       keysCache.set(res.data, this.baseUrl);
-      logger.info(`Taler /keys fetched: master_pub=${res.data.master_public_key.slice(0, 12)}… denominations=${res.data.denomination_keys.length}`);
+      logger.info(`Taler /keys fetched: master_pub=${res.data.master_public_key.slice(0, 12)}… denominations=${res.data.denominations.length}`);
       return res.data;
     } catch (e) {
       if (e instanceof TalerExchangeRejected) throw e;
@@ -224,7 +224,7 @@ export class TalerExchangeClient {
         reachable: true,
         latency_ms: Date.now() - t0,
         master_public_key: keys.master_public_key,
-        denomination_count: keys.denomination_keys.length,
+        denomination_count: keys.denominations.length,
         currency: keys.currency,
         base_url: this.baseUrl,
         error: null,

@@ -64,7 +64,7 @@ liveDescribe('Finance API — echte GNU-Taler-Exchange-Integration (KEIN Mock, K
       expect(res.status).toBe(200);
       expect(res.body.currency).toBe('KUDOS');
       expect(res.body.master_public_key).toMatch(/^[A-Z0-9]{52,60}$/);
-      expect(res.body.denomination_keys.length).toBeGreaterThan(0);
+      expect(res.body.denominations.length).toBeGreaterThan(0);
       expect(res.body.source).toBe('live_exchange');
       // KEIN "Simulator"-String in der Response — das war der explizite Test der Spec.
       expect(JSON.stringify(res.body)).not.toMatch(/Simulator/i);
