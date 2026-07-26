@@ -66,9 +66,11 @@ if (require.main === module) {
   // Phase 23 Fix: preDeployCommand ist in runtime:node still ignoriert (siehe
   // Render-Docs: nur fuer runtime:docker). Stattdessen blocking startup-hook BEVOR
   // die neue Instanz Traffic annimmt. Failure -> process.exit(1), Render aborted deploy.
-  if (process.env.AUTO_MIGRATE === 'true') {
+  // Default-on: Migration laeuft bei jedem Start AUSSER bei explizitem AUTO_MIGRATE=false
+  // (Render-Dashboard kein Env-Var noetig, lokales Dev kann mit=false ueberschreiben).
+  if (process.env.AUTO_MIGRATE !== 'false') {
     try {
-      logger.info('AUTO_MIGRATE=true, running pre-flight database migrations...');
+      logger.info('Running pre-flight database migrations (AUTO_MIGRATE default-on)...');
       execSync('node dist/scripts/migrate.js', { stdio: 'inherit' });
     } catch (e: unknown) {
       logger.error(`Auto-migration failed, aborting startup: ${errorMessage(e)}`);
