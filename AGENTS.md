@@ -127,16 +127,17 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` positive-control HTTP 200 in ~213ms
 - **DB-Connection**: Supavisor-Pooler via `family:4` IPv4-Force, SSL
 - **Taler Wallet-Client**: `exchange.demo.taler.net` erreichbar (GET /keys + /reserves). HEIMAT ist reiner Wallet-Client — kein eigener Exchange-Betreiber. Currency dynamisch aus /keys (Commit d91fc76) — EUR-ready via `TALER_EXCHANGE_URL` env var.
+- **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button ruft POST /api/finance/taler/fund-local auf — 25 KUDOS direkt in DB, kein Exchange noetig. P2P-Purse-System bereit.
 - **Backend CI**: Lint + Jest + tsc grün
 - **Swagger UI**: /docs + /docs.json live
 - **Mobilität + Gesundheit**: seit MVP grün
 
 ### ⚠️ Was ist offen
-- **Phase 24: Taler-Production-Readiness + Aufladen-Button** — Finanzen-Tab hat jetzt "Guthaben aufladen" Button, der `POST /api/finance/taler/reserve/open` aufruft und reserve_pub + bank_wire_url + Schritt-für-Schritt-Anleitung zeigt. Demo erfordert externen Schritt (bank.demo.taler.net), Production wird nahtlos via Exchange-SEPA-Lastschrift. Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`. Demo-KUDOS für Entwicklung.
-- Unit-Test für `migrate.ts` fehlt — gemockter pg pool
+- **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, direkt in DB) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+- Unit-Test fuer `migrate.ts` fehlt — gemockter pg pool
 
-**📱 Taler aus der App — So funktioniert es für den User:**
-Finanzen-Tab öffnen → Wallet wird automatisch erstellt → 0.00 KUDOS sichtbar → [Guthaben aufladen] klicken → App erzeugt Reserve-Adresse → Schritt-Anleitung: (1) bank.demo.taler.net öffnen, (2) registrieren, (3) 25 KUDOS erhalten, (4) zurück zu HEIMAT → [Aktualisieren] klicken → Guthaben erscheint. Kein Fake-Geld, keine App-Erfindung — der echte Taler-Workflow.
+**📱 Taler aus der App — So funktioniert es fuer den User:**
+Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren]. Demo-KUDOS sind HEIMAT-intern (kein Exchange), Reserve-Workflow ist echter Taler.
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests (Login → Finance → Logout Flow nicht durch UI getestet)

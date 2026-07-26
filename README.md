@@ -172,12 +172,16 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 - DB — Supavisor-Pooler + IPv4-Force + SSL lösen Supabase-IPv6 Problem auf Render Free Tier
 - Taler — `exchange.demo.taler.net` erreichbar (GET /keys + /reserves/<pub>)
 
-### ⚠️ Was ist offen
-- **Phase 24: Taler-Production-Readiness + Aufladen-Button** — Finanzen-Tab: "Guthaben aufladen" Button ruft Reserve-API auf, zeigt reserve_pub + Anleitung. Demo erfordert bank.demo.taler.net-Schritt; Production nahtlos via Exchange. Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`.
+### ✅ Phase 24: Demo-KUDOS und P2P-Durchstich (2026-07-26)
+**Demo-KUDOS fund-local ist live!** Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" — sofort 25 KUDOS direkt in die DB, kein Exchange noetig; (b) "Reserve-Adresse erstellen" — fuer echten Taler-Bank-Wire. P2P-Purse-System bereit (createPurse/depositToPurse/mergePurse). EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+
+### ⚠️ Was noch offen ist
 - migrate.ts Unit-Test fehlt
+- health.test.ts CI-Failure (1/7 Suites)
+- Flutter Integration-Tests
 
 **📱 Taler aus der App — So geht's:**
-Finanzen-Tab → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → App erzeugt reserve_pub → Schritte: bank.demo.taler.net öffnen, registrieren, 25 KUDOS erhalten, zurück zu HEIMAT → [Aktualisieren]. Kein Fake-Geld — echter Taler-Workflow.
+Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren].
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests für Login → Finance → Logout Flow

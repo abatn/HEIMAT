@@ -20,8 +20,8 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - Mobilität und Gesundheit seit MVP grün
 
 ### Was ist offen
-- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`. Warte auf öffentlichen EUR-Exchange. Demo-KUDOS für Entwicklung.
-- Unit-Test für `migrate.ts` fehlt
+- EUR-Exchange (Phase 24): Demo-KUDOS und P2P-Durchstich ✅ Live. "25 Demo-KUDOS erhalten" Button funktioniert (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange). P2P-Purse-System bereit. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+- Unit-Test fuer `migrate.ts` fehlt
 
 ### Was fehlt
 - Flutter Integration-Tests
@@ -68,8 +68,8 @@ Commits:
 
 Verifikation: POST `/api/admin/migrate` mit X-Admin-Key Header gegen Render → HTTP 200 `{"success":true,"message":"Schema migrated"}` in 213ms.
 
-### Phase 24: Taler-Production-Readiness + Aufladen-Button
-**Status:** Wallet-Client fertig (d91fc76). **NEU:** Finanzen-Tab hat "Guthaben aufladen" Button (`POST /api/finance/taler/reserve/open`) mit reserve_pub-Anzeige + Schritt-für-Schritt-Anleitung. User öffnet bank.demo.taler.net, registriert sich, erhält 25 KUDOS, kehrt zurück zu HEIMAT → [Aktualisieren]. Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`. Demo erfordert externen Schritt; Production wird nahtlos via Exchange-SEPA-Lastschrift.
+### Phase 24: Demo-KUDOS und P2P-Durchstich (2026-07-26)
+**Status:** ✅ Demo-KUDOS fund-local live. Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, 25 KUDOS direkt in DB, kein Exchange noetig) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
 
 **📱 Taler aus der App — User-Guide:**
 Finanzen-Tab öffnen → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → App erzeugt reserve_pub → 4 Schritte: (1) bank.demo.taler.net öffnen, (2) registrieren, (3) 25 KUDOS erhalten, (4) zurück zu HEIMAT → [Aktualisieren]. Kein Fake-Geld, keine App-Erfindung.

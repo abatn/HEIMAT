@@ -18,16 +18,17 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` mit X-Admin-Key positive-control HTTP 200 in ~213ms — Phase 23
 - **DB-Connection**: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`) — löst Supabase-IPv6-Only Problem auf Render Free Tier IPv4
 - **Taler Wallet-Client**: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` live. **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
+- **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button via POST /api/finance/taler/fund-local — 25 KUDOS direkt in DB, kein Exchange. P2P-Purse-System bereit.
 - **Backend CI grün**: Lint + Jest (113+ Tests) + tsc --noEmit auf jedem `src/backend/**` push
 - **Mobile CI grün**: dart format + flutter analyze + flutter test auf jedem `src/mobile/**` push
 - **Swagger/OpenAPI**: /docs UI + /docs.json live
 - **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
 
 ### ⚠️ Was ist offen (nicht-blockierend)
-- **Phase 24: Taler-Production-Readiness + Aufladen-Button** — Finanzen-Tab: "Guthaben aufladen" Button ruft `POST /api/finance/taler/reserve/open` auf, zeigt reserve_pub + bank_wire_url + Schritt-für-Schritt-Anleitung. Demo erfordert externen Schritt (bank.demo.taler.net); Production wird nahtlos via Exchange-SEPA-Lastschrift. Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`, kein Code-Change nötig.
+- **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange noetig) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
 
 **📱 Taler aus der App — User-Guide:**
-Finanzen-Tab öffnen → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → App erzeugt reserve_pub → 4 Schritte: (1) bank.demo.taler.net öffnen, (2) registrieren, (3) 25 KUDOS erhalten, (4) zurück zu HEIMAT → [Aktualisieren]. Kein Fake-Geld — echter Taler-Workflow.
+Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren]. Demo-KUDOS sind HEIMAT-intern (kein Exchange), Reserve-Workflow ist echter Taler.
 - Unit-Test für `migrate.ts` fehlt — gemockter pg pool, Migrations-Pfad tests-protected machen
 - `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im Workflow eingebunden (war Nice-to-have)
 
@@ -651,8 +652,8 @@ HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Ra
 
 ### Nächste Schritte
 - Mobile Browser-Re-Test mit `heimat-demo-user@heimat.de` gegen Finanzen-Tab → echte Wallet-Daten statt 0.00 KUDOS-Demo
-- Unit-Test für `migrate.ts` (gemockter pool, redactConnectionSecrets edge cases)
-- **Phase 24: Taler-Production-Readiness + Aufladen-Button im Finanzen-Tab** — Flutter: "Guthaben aufladen" Button mit reserve_pub-Anzeige + Schritt-für-Schritt-Anleitung (bank.demo.taler.net). Backend: POST /api/finance/taler/reserve/open existiert. Demo erfordert externen Schritt, Production wird nahtlos via Exchange-SEPA-Lastschrift. Currency dynamisch aus /keys (d91fc76) — EUR-ready via TALER_EXCHANGE_URL.
+- Unit-Test für `migrate.ts` (gemockter pool, redactConnectionSecrets edge cases) — noch offen
+- **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, 25 KUDOS direkt in DB, kein Exchange nötig) und (b) "Reserve-Adresse erstellen" (alter Flow für echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf öffentliche GLS-Bank-Integration.
 - Phase 25: E2E-Tests Flutter (Integration Tests für Login → Finance → Logout Flow)
 
 ---

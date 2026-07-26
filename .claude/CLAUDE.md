@@ -228,16 +228,17 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Admin-Pfad**: `ADMIN_KEY` auf Render; `/api/admin/migrate` HTTP 200 verifiziert
 - **DB-Connection**: Supavisor-Pooler, IPv4-Force, SSL — seit Phase 20 stabil
 - **Taler**: exchange.demo.taler.net erreichbar (GET /keys + /reserves/<pub>)
+- **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button via POST /api/finance/taler/fund-local — 25 KUDOS direkt in DB, kein Exchange. P2P-Purse-System bereit.
 - **Backend CI grün**: Lint+Jest+tsc --noEmit auf Commit-Recent
 - **Swagger**: /docs + /docs.json live
 
 ### ⚠️ Was ist offen
-- **Phase 24: Taler-Production-Readiness + Aufladen-Button** — Finanzen-Tab hat jetzt "Guthaben aufladen" Button mit reserve_pub-Anzeige + Schritt-für-Schritt-Anleitung. Demo erfordert externen Schritt (bank.demo.taler.net). Production wird nahtlos via Exchange-SEPA-Lastschrift. Currency dynamisch aus /keys (d91fc76) — EUR-ready via TALER_EXCHANGE_URL.
-- Unit-Test für migrate.ts (gemockter pg pool)
+- **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange noetig) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+- Unit-Test fuer migrate.ts (gemockter pg pool)
 - stale-doc-prescan.sh nicht im Workflow eingebunden (war Nice-to-have)
 
 **📱 Taler aus der App — User-Guide:**
-Finanzen-Tab → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → reserve_pub wird erzeugt → Schritt 1-4: (1) bank.demo.taler.net, (2) registrieren, (3) 25 KUDOS erhalten, (4) HEIMAT aktualisieren. Kein Fake-Guthaben — echter Taler-Workflow.
+Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren]. Demo-KUDOS sind HEIMAT-intern (kein Exchange), Reserve-Workflow ist echter Taler.
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests für JWT-Flow

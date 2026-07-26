@@ -158,18 +158,19 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - Admin-Pfad: `ADMIN_KEY` auf Render gesetzt; `POST /api/admin/migrate` mit `X-Admin-Key` positive-control HTTP 200 in ~213ms
 - DB-Connection: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`), Node 20, devDeps-Prune
 - Taler Wallet-Client: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` (Ed25519). **Currency dynamisch aus /keys (Commit d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
+- **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button im Finanzen-Tab via POST /api/finance/taler/fund-local — 25 KUDOS direkt in DB, kein Exchange noetig. P2P-Purse-System bereit (createPurse/depositToPurse/mergePurse).
 - Backend CI: Lint + Jest (113+ Tests) + tsc --noEmit — alle grün auf `main`
 - Mobile CI: dart format + flutter analyze + flutter test — alle grün
 - Swagger/OpenAPI: /docs + /docs.json live
 - Mobilität (Überpass/Nominatim/OSRM/transitous) und Gesundheit (Ärzte+Termine) seit MVP grün
 
 ### ⚠️ Was ist offen
-- **Phase 24: Taler-Production-Readiness + Aufladen-Button** — Finanzen-Tab: "Guthaben aufladen" Button ruft `POST /api/finance/taler/reserve/open` auf, zeigt reserve_pub + bank_wire_url + Anleitung. Demo erfordert bank.demo.taler.net-Schritt. Production wird nahtlos via Exchange-SEPA-Lastschrift. Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`.
-- Unit-Test für `migrate.ts` (gemockter pg pool) fehlt — Coverage-Lücke
+- **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange nötig) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+- Unit-Test fuer `migrate.ts` (gemockter pg pool) fehlt — Coverage-Luecke
 - `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im preDeploy-Workflow eingebunden (war Nice-to-have, jetzt deaktiviert)
 
 **📱 Taler aus der App — User-Guide:**
-Finanzen-Tab öffnen → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → App erzeugt reserve_pub → Schritte: bank.demo.taler.net öffnen, registrieren, 25 KUDOS erhalten, zurück zu HEIMAT → [Aktualisieren]. Kein Fake-Geld — echter Taler-Workflow.
+Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort auf 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren]. Demo-KUDOS sind HEIMAT-intern (kein Exchange), Reserve-Workflow ist echter Taler.
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests (kein Code vorhanden — Login → Finance → Logout Flow nicht durch UI getestet)
