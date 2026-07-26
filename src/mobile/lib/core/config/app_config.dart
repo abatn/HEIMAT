@@ -18,3 +18,4 @@ class AppConfig {
     return url;
   }
 }
+
