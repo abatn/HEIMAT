@@ -17,14 +17,14 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook (Commit 7e5f063) — ✅ Live bestätigt am 2026-07-25 (Build-Log + funktionaler Beweis)
 - **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` mit X-Admin-Key positive-control HTTP 200 in ~213ms — Phase 23
 - **DB-Connection**: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`) — löst Supabase-IPv6-Only Problem auf Render Free Tier IPv4
-- **Taler-Exchange-Client**: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` live
+- **Taler Wallet-Client**: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` live. **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
 - **Backend CI grün**: Lint + Jest (113+ Tests) + tsc --noEmit auf jedem `src/backend/**` push
 - **Mobile CI grün**: dart format + flutter analyze + flutter test auf jedem `src/mobile/**` push
 - **Swagger/OpenAPI**: /docs UI + /docs.json live
 - **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
 
 ### ⚠️ Was ist offen (nicht-blockierend)
-- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber, keine BaFin-Lizenz nötig). Warte auf öffentlichen EUR-Exchange (GLS Bank Integration läuft via Horizon Europe). Aktuell Demo-KUDOS via `exchange.demo.taler.net` für Entwicklung.
+- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber, keine BaFin-Lizenz nötig). **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var, kein Code-Change nötig. Warte auf öffentlichen EUR-Exchange (GLS Bank Integration via Horizon Europe). Demo-KUDOS via `exchange.demo.taler.net` für Entwicklung.
 - Unit-Test für `migrate.ts` fehlt — gemockter pg pool, Migrations-Pfad tests-protected machen
 - `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im Workflow eingebunden (war Nice-to-have)
 

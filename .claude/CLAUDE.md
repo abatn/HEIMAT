@@ -192,7 +192,7 @@ src/ml-service/       # Python FastAPI (nur Docker)
 - Root `*.md`-Dateien sind Planungs-/Marketing-Dokumente, keine Code-Dokumentation
 - Schema-Quelle: `src/backend/src/database/schema.sql` (CI lädt via `psql`)
 - Kein `npm run migrate` oder `npm run seed` — diese Scripts existieren nicht
-- Taler Wallet-Client: HEIMAT ist reiner Wallet-Client (kein Exchange-Betreiber). Client-Code existiert (exchange.demo.taler.net, Ed25519, KUDOS). Production-EUR-Exchange erfordert öffentliche GLS-Bank-Integration (Horizon Europe Projekt, Status 2026: Pilot-Phase). Kein manueller Schritt nötig — Demo-KUDOS reicht für Entwicklung.
+- Taler Wallet-Client: HEIMAT ist reiner Wallet-Client (kein Exchange-Betreiber). Client-Code existiert (exchange.demo.taler.net, Ed25519). **Currency wird dynamisch aus /keys gelesen (Commit d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var, kein Code-Change nötig. Production-EUR-Exchange erfordert öffentliche GLS-Bank-Integration (Horizon Europe, Status: Pilot-Phase). Demo-KUDOS reicht für Entwicklung.
 
 ## Code-Existenz (geschrieben ≠ getestet/deployed)
 
@@ -201,7 +201,7 @@ src/ml-service/       # Python FastAPI (nur Docker)
 | User-Auth (JWT+bcryptjs) | ✅ | ✅ (14 Tests) | ❌ ungetestet | Routes/Service geschrieben, auf Production nie ausgeführt |
 | Zod-Validierung | ✅ (25 Tests) | ✅ (25 Tests) | ❌ ungetestet | Middleware validiert alle Inputs, per CI getestet |
 | Swagger/OpenAPI | ✅ | ✅ (in e2e) | ❌ ungetestet | `/docs` und `/docs.json` im Code |
-| Taler Wallet-Client | ✅ Client-Code | ✅ (12 Tests) | ⚠️ Demo-only (KUDOS) | exchange.demo.taler.net erreichbar. HEIMAT ist Wallet-Client, kein Exchange-Betreiber. Production-EUR wartet auf GLS-Bank-Integration. |
+| Taler Wallet-Client | ✅ Client-Code | ✅ (12 Tests) | ⚠️ Demo-only (KUDOS) | exchange.demo.taler.net erreichbar. Currency dynamisch aus /keys (d91fc76). EUR-ready: TALER_EXCHANGE_URL setzen, fertig. Production-EUR wartet auf GLS-Bank-Integration. |
 | E2E-Tests (Backend) | ✅ | ✅ (22 Tests) | 🔄 via CI | Testet User-Lifecycle, aber braucht Postgres (nur in CI) |
 | Backend CI health.test.ts | 🔴 1/7 Suites failed | ❌ | ❌ | pre-existing, vermutlich DB-Cleanup-Reihenfolge |
 
@@ -210,7 +210,7 @@ src/ml-service/       # Python FastAPI (nur Docker)
 1. ✅ **Finanzen: JWT-Auth ins Mobile integrieren** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in alle 5 Finance-HTTP-Calls) + `e00105d` (URL-Pfade ohne `/$userId`-Suffix; Backend identifiziert User aus Token; neue GET `/wallet`-Route; Schema-Migration für alte `wallet_priv`-Spalte). **Phase 23 abgeschlossen**: zusätzlich `25ac7ab` (Security-Fix: POST /api/migrate entfernt), `3414aea` (security.test.ts Regression-Lock), `e7fcd85` (preDeployCommand auto-migration). ADMIN_KEY auf Render gesetzt, positive-control `/api/admin/migrate` HTTP 200 verifiziert.
 2. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
 3. ✅ **Production-Validierung: User-Auth End-to-End testen** — erledigt 2026-07-25: Register/Login/Me gegen `heimat-backend.onrender.com` mit echtem User (`heimat-demo-user@heimat.de`) in Production-DB
-4. **Taler-Production-Readiness**: Sobald GLS Bank (oder andere) öffentlichen EUR-Exchange bereitstellt, Base-URL in talerExchangeClient.ts tauschen. Bis dahin Demo-KUDOS via exchange.demo.taler.net.
+4. **Taler-Production-Readiness**: Currency wird bereits dynamisch aus /keys gelesen (Commit d91fc76). Sobald öffentlicher EUR-Exchange verfügbar (GLS Bank?), `TALER_EXCHANGE_URL` env var setzen — kein Code-Change nötig. Bis dahin Demo-KUDOS via exchange.demo.taler.net.
 5. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
 6. **Auth-Routing-Bug regression-tests** — pre-commit-test der Hash-Routing-Pattern in `auth_screens_test.dart` (LoginScreen/RegisterScreen navigieren explizit nach `'/'`)
 7. ✅ **Mobile-Finance-Regression-Test** — erledigt 2026-07-25 mit Commit `3414aea` Regression-Lock für Security; mobile Finance-Headers durch code-review verifiziert
@@ -232,7 +232,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Swagger**: /docs + /docs.json live
 
 ### ⚠️ Was ist offen
-- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber) — Warte auf öffentlichen EUR-Exchange (GLS Bank Integration läuft via Horizon Europe). Aktuell Demo-KUDOS via exchange.demo.taler.net für Entwicklung.
+- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Currency dynamisch aus /keys (d91fc76) — EUR-ready via TALER_EXCHANGE_URL env var. Warte auf öffentlichen EUR-Exchange (GLS Bank via Horizon Europe). Demo-KUDOS für Entwicklung.
 - Unit-Test für migrate.ts (gemockter pg pool)
 - stale-doc-prescan.sh nicht im Workflow eingebunden (war Nice-to-have)
 
