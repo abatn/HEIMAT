@@ -203,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: _StatCard(
             icon: Icons.directions_bus_outlined,
             label: 'Haltestellen',
-            value: hasLocation ? '${nearby!.stopsNearby}' : '—',
+            value: hasLocation ? '${nearby.stopsNearby}' : '—',
             color: AppColors.primary,
           ),
         ),
