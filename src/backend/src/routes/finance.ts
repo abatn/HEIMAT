@@ -133,6 +133,23 @@ financeRouter.get('/transactions', requireAuth, asyncHandler(async (req: AuthReq
 }));
 
 // ---------------------------------------------------------------------------
+// LOCAL DEMO: KUDOS direkt in die DB schreiben (KEIN Taler-Exchange)
+// ---------------------------------------------------------------------------
+
+financeRouter.post('/taler/fund-local', requireAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const result = await talerService.fundLocal(req.userId!);
+  res.json({
+    status: 'ok',
+    source: 'local_demo',
+    balance: result.balance,
+    currency: result.currency,
+    note: 'Demo-KUDOS wurden direkt in die lokale DB geschrieben (KEIN Taler-Exchange). ' +
+      'Diese KUDOS sind NUR fuers Testen und verschwinden beim naechsten Exchange-Probe, ' +
+      'wenn eine echte Reserve gebunden wird.',
+  });
+}));
+
+// ---------------------------------------------------------------------------
 // HEIMAT-interne P2P-Purse-Endpoints — explizit KEIN Taler-Exchange
 // ---------------------------------------------------------------------------
 

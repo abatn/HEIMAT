@@ -152,6 +152,61 @@ export class TalerService {
   }
 
   // -------------------------------------------------------------------------
+  // fundLocal — HEIMAT-internes Demo-Guthaben (KEIN Taler-Exchange-Kontakt)
+  // -------------------------------------------------------------------------
+  //
+  // Dies ist eine EXPLIZIT ALS DEMO GEKENNZEICHNETE Funktion. Sie schreibt
+  // KUDOS direkt in die lokale DB, OHNE den Taler-Exchange zu kontaktieren.
+  // Der Sinn: Der User kann sofort P2P-Transaktionen testen, ohne einen
+  // externen Bank-Wire auf exchange.demo.taler.net auslösen zu müssen.
+  //
+  // Wichtig: Sobald ein EUR-Exchange verfügbar ist, sollten neue User NICHT
+  // mehr diesen Pfad nutzen, sondern den echten Taler-Bank-Wire-Workflow.
+  //
+  // Die Balance wird in taler_wallets.balance gesetzt (Spalte, die auch vom
+  // vollständig lokalen adjustBalance() für Purse-Operationen genutzt wird).
+  // exchange_reserve_pub bleibt NULL → getBalance() und createPurse() erkennen
+  // dass es sich um eine lokale Demo-Balance handelt und überschreiben sie
+  // nicht mit Exchange-Probes.
+  // -------------------------------------------------------------------------
+
+  async fundLocal(userId: string, amount: number = 25): Promise<{ balance: number; currency: string; source: string }> {
+    const currency = await this.getCurrency();
+    const newBalance = formatAmount(amount, currency);
+
+    // Wallet existiert? Sonst anlegen
+    let wallet = await queryOne<TalerWallet>('SELECT * FROM taler_wallets WHERE user_id = $1', [userId]);
+    if (!wallet) {
+      wallet = await this.createWallet(userId);
+    }
+
+    // Direkt in DB schreiben — exchange_reserve_pub bleibt NULL (kein Exchange-Probe)
+    await execute(
+      `UPDATE taler_wallets SET balance = $1, exchange_base_url = 'local://demo',
+                               last_probed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $2`,
+      [newBalance, userId],
+    );
+
+    // Transaktion loggen
+    await this.logTransaction({
+      kind: 'p2p',
+      reserveId: null,
+      purseId: null,
+      fromWalletId: 'local_demo_faucet',
+      toWalletId: userId,
+      amount,
+      contractHash: null,
+      exchangeSig: null,
+      status: 'completed',
+      description: `Local demo funding: ${amount} ${currency} (KEIN Taler-Exchange)`,
+    });
+
+    logger.info(`Local demo fund: user=${userId} amount=${amount} ${currency} (exchange_reserve_pub bleibt NULL, KEIN Taler-Exchange-Kontakt)`);
+    return { balance: amount, currency, source: 'local_demo' };
+  }
+
+  // -------------------------------------------------------------------------
   // /taler/config — echte /keys-Antwort vom Exchange
   // -------------------------------------------------------------------------
 
@@ -226,6 +281,22 @@ export class TalerService {
 
   async getBalance(userId: string): Promise<{ balance: number; currency: string; reserves_probed: number }> {
     const currency = await this.getCurrency();
+
+    // LOCAL_DEMO: Wenn exchange_reserve_pub NICHT gesetzt ist und
+    // die Wallet eine positive Balance hat, liefern wir sie direkt.
+    // Das ist z.B. nach fundLocal() der Fall — der User hat KUDOS
+    // ohne Exchange-Kontakt erhalten.
+    const walletCheck = await queryOne<{ balance: string; exchange_reserve_pub: string | null }>(
+      'SELECT balance, exchange_reserve_pub FROM taler_wallets WHERE user_id = $1',
+      [userId],
+    );
+    if (walletCheck && !walletCheck.exchange_reserve_pub) {
+      const localBal = parseAmount(walletCheck.balance);
+      if (localBal > 0) {
+        return { balance: localBal, currency, reserves_probed: -1 };
+      }
+    }
+
     const reserves = await query<{ reserve_pub: string; exchange_base_url: string }>(
       'SELECT reserve_pub, exchange_base_url FROM taler_reserves WHERE user_id = $1',
       [userId],
@@ -441,8 +512,9 @@ export class TalerService {
     const senderBalance = parseAmount(senderWallet.balance);
     if (senderBalance < amount) {
       throw new AppError(
-        `Insufficient RESERVE balance from live exchange: have ${senderBalance} ${purseCurrency}, need ${amount}. ` +
-        `Bitte zuerst eine Reserve extern finanzieren: https://bank.demo.taler.net/`,
+        `Insufficient balance: have ${senderBalance} ${purseCurrency}, need ${amount}. ` +
+        `Bitte zuerst Guthaben aufladen (z.B. via /api/finance/taler/fund-local für Demo-KUDOS ` +
+        `oder via https://bank.demo.taler.net/ für echten Taler-Bank-Wire).`,
         402,
       );
     }

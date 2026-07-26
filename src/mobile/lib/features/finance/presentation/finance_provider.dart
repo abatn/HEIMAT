@@ -176,6 +176,37 @@ class FinanceProvider extends ChangeNotifier {
     }
   }
 
+  /// Ruft POST /api/finance/taler/fund-local auf — gibt 25 Demo-KUDOS direkt
+  /// in die lokale DB (KEIN Taler-Exchange-Kontakt).
+  Future<bool> fundLocal() async {
+    final userId = _authService.userId;
+    if (userId == null) return false;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final url = '${AppConfig.backendUrl}/api/finance/taler/fund-local';
+      final response = await http
+          .post(Uri.parse(url), headers: _authService.authHeaders)
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        await loadWallet();
+        await loadTransactions();
+        return true;
+      } else {
+        _error =
+            'Demo-Guthaben konnte nicht geladen werden: ${response.statusCode}';
+        return false;
+      }
+    } catch (e) {
+      _error = 'Demo-Guthaben fehlgeschlagen: $e';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> loadTransactions() async {
     final userId = _authService.userId;
     if (userId == null) return;

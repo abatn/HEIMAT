@@ -77,11 +77,145 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
-  void _showFundSheet() async {
-    final provider = context.read<FinanceProvider>();
-    final result = await provider.openReserve();
+  void _showFundSheet() {
+    showHeimatBottomSheet(
+      context,
+      title: 'Guthaben aufladen',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // DEMO: Direkt 25 KUDOS erhalten
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.success.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.success.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_fix_high,
+                        color: AppColors.success, size: 20),
+                    const SizedBox(width: 8),
+                    Text('Sofort Demo-KUDOS erhalten',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.success)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '25 KUDOS direkt in dein Wallet — ohne Bank-Konto, ohne Taler-Exchange. '
+                  'Nur zum Testen und Ausprobieren gedacht.',
+                  style:
+                      TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final ok =
+                          await context.read<FinanceProvider>().fundLocal();
+                      if (!mounted) return;
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(ok
+                              ? '25 KUDOS Demo-Guthaben erhalten!'
+                              : 'Fehler: Demoguthaben konnte nicht geladen werden'),
+                          backgroundColor:
+                              ok ? AppColors.success : AppColors.error,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add_circle, size: 18),
+                    label: const Text('25 Demo-KUDOS erhalten'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // TALER: Bank-Wire Anleitung
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.account_balance,
+                        color: AppColors.warning, size: 20),
+                    const SizedBox(width: 8),
+                    Text('Taler-Bank-Wire (fortgeschritten)',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.warning)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Du hast ein Konto bei bank.demo.taler.net mit Guthaben? '
+                  'Dann erstellt HEIMAT eine Reserve, die du von dort befüllen kannst.',
+                  style:
+                      TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final result =
+                          await context.read<FinanceProvider>().openReserve();
+                      if (!mounted) return;
+                      Navigator.pop(context);
+                      if (!mounted) return;
+                      _showReserveSheet(result);
+                    },
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: const Text('Reserve-Adresse erstellen'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.warning,
+                      side:
+                          BorderSide(color: AppColors.warning.withOpacity(0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReserveSheet(ReserveOpenResult? result) {
     if (!mounted) return;
     if (result == null) {
+      final provider = context.read<FinanceProvider>();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
@@ -92,15 +226,14 @@ class _FinanceScreenState extends State<FinanceScreen> {
       return;
     }
 
-    if (!mounted) return;
     showHeimatBottomSheet(
       context,
-      title: 'Guthaben aufladen',
+      title: 'Reserve-Adresse',
       footer: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
           onPressed: () {
-            provider.loadWallet();
+            context.read<FinanceProvider>().loadWallet();
             Navigator.pop(context);
           },
           icon: const Icon(Icons.refresh, size: 18),
@@ -159,7 +292,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Infobox + Anleitung darunter
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
