@@ -159,6 +159,8 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - DB-Connection: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`), Node 20, devDeps-Prune
 - Taler Wallet-Client: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` (Ed25519). **Currency dynamisch aus /keys (Commit d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
 - **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button im Finanzen-Tab via POST /api/finance/taler/fund-local — 25 KUDOS direkt in DB, kein Exchange noetig. P2P-Purse-System bereit (createPurse/depositToPurse/mergePurse).
+- UX-Modernisierung (Commit 5ad8068, 661afb28, f389001): FinanceScreen (animierte Balance-Card, Quick Actions, Timeline), HealthScreen (Shimmer, DoctorCards mit Presseffekt, Gradienten), MobilityScreen (GPS/Route/Marker Widgets, Gradienten) — alle drei Screens modernes Design
+- CI-Fix: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt — Flutter CI stabil grün
 - Backend CI: Lint + Jest (113+ Tests) + tsc --noEmit — alle grün auf `main`
 - Mobile CI: dart format + flutter analyze + flutter test — alle grün
 - Swagger/OpenAPI: /docs + /docs.json live
@@ -173,7 +175,8 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort auf 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren]. Demo-KUDOS sind HEIMAT-intern (kein Exchange), Reserve-Workflow ist echter Taler.
 
 ### ❌ Was fehlt
-- Flutter Integration-Tests (kein Code vorhanden — Login → Finance → Logout Flow nicht durch UI getestet)
+- **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus der gelöschten auth_finance_logout_test.dart.
+- Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow
 - Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern mit `Navigator.pushNamedAndRemoveUntil('/', …)`) — kein Pre-Commit-Test
 - Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
 

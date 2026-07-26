@@ -15,6 +15,8 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - Admin-Pfad: `ADMIN_KEY` auf Render; `/api/admin/migrate` mit X-Admin-Key positive-control HTTP 200 in ~213ms
 - DB-Connection: Supavisor-Pooler mit IPv4-Force (`family:4`), SSL — stabil
 - Taler-Exchange-Client: GET /keys + GET /reserves/<pub> gegen `exchange.demo.taler.net` (Ed25519, KUDOS)
+- **UX-Modernisierung (Commit 5ad8068, 661afb28, f389001)**: FinanceScreen (animierte Balance-Card, Quick Actions, Timeline), HealthScreen (Shimmer, DoctorCards mit Presseffekt, Gradienten), MobilityScreen (GPS/Route/Marker Widgets, Gradienten)
+- **CI-Fix**: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt — Flutter CI stabil grün
 - Backend CI + Mobile CI grün auf `main`
 - Swagger/OpenAPI /docs + /docs.json
 - Mobilität und Gesundheit seit MVP grün
@@ -24,7 +26,8 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - **migrate.ts Unit-Test ✅ (Commit 06dc2e3)** — 18 Tests, alle gruen
 
 ### Was fehlt
-- Flutter Integration-Tests
+- **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus.
+- Flutter Integration-Tests fehlen noch
 - Auth-Routing-Bug Regression-Test in mobile tests
 - Auto-Migration health-check Tool
 

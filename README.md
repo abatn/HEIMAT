@@ -155,7 +155,7 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | **Finanzen (JWT-Roundtrip)** | ✅ Live (2026-07-25) | Bearer-Token in allen 5 Mobile-HTTP-Calls (initWallet/loadWallet/loadTransactions/sendMoney); Backend `GET /wallet` neu; Schema-Migration für legacy `wallet_priv`-Spalte |
 | **Phase 23 Security-Härtung** | ✅ Live (2026-07-25) | `POST /api/migrate` entfernt (Security-Lock); `preDeployCommand` Auto-Migration via `migrate.ts` (atomar); `security.test.ts` Regression-Lock aktiv (Commit 3414aea); ADMIN_KEY auf Render, `/api/admin/migrate` positive-control HTTP 200 verifiziert |
 | Finanzen (Taler Wallet-Client) | ✅ Client-Code live, EUR-ready | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519). **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var. Demo-KUDOS für Entwicklung. |
-| UX-Modernisierung | ✅ Abgeschlossen | Gradient-Karten, Pill-Nav, Bottom Sheets |
+| UX-Modernisierung (Finance/Health/Mobility) | ✅ Abgeschlossen | Finance: animierte Balance-Card, Quick Actions, Timeline. Health: Shimmer, DoctorCards mit Presseffekt, Gradienten. Mobility: GPS/Route/Marker Widgets, Gradienten. |
 
 ---
 
@@ -182,7 +182,8 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren].
 
 ### ❌ Was fehlt
-- Flutter Integration-Tests für Login → Finance → Logout Flow
+- **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-gruen. Schritt 1/5 des inkrementellen Wiederaufbaus.
+- Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow
 - Auth-Routing-Bug Regression-Test
 - `npm run migrate:status` health-check tool
 
