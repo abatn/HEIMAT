@@ -141,6 +141,8 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 **📱 Taler aus der App — So funktioniert es fuer den User:**
 Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren]. Demo-KUDOS sind HEIMAT-intern (kein Exchange), Reserve-Workflow ist echter Taler.
 
+**⚠️ Option B (Bank-API automatisieren) ist ein Dead End (2026-07-26):** Die Taler-Demo-Bank hat nur Lese-API-Endpoints (`GET /accounts/{username}`, `GET /accounts/{username}/transactions`, `POST /accounts/{username}/token`). KEIN REST-Endpoint fuer Wire-Transfer. Automatisierung via `POST /admin/add-incoming` benoetigt Admin-Login. Demo-KUDOS via `/api/finance/taler/fund-local` bleibt der einzig praktikable Weg.
+
 ### ❌ Was fehlt
 - **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus.
 - Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow
