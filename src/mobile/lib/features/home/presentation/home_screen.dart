@@ -9,7 +9,9 @@ import 'home_provider.dart';
 // ============================================================================
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final void Function(int tabIndex)? onNavigateTab;
+
+  const HomeScreen({super.key, this.onNavigateTab});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -205,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Haltestellen',
             value: hasLocation ? '${nearby.stopsNearby}' : '—',
             color: AppColors.primary,
+            onTap: () => _navigateToAction('mobility'),
           ),
         ),
         const SizedBox(width: 12),
@@ -214,6 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Ärzte',
             value: hasLocation ? '${nearby.doctorsNearby}' : '—',
             color: AppColors.error,
+            onTap: () => _navigateToAction('health'),
           ),
         ),
         const SizedBox(width: 12),
@@ -223,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'KUDOS',
             value: '—', // Später dynamisch aus Wallet
             color: AppColors.secondary,
+            onTap: () => _navigateToAction('finance'),
           ),
         ),
       ],
@@ -263,10 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _QuickActionButton(
                 icon: action.icon,
                 label: action.label,
-                onTap: () {
-                  // TODO: Tab-Wechsel via MainScreen-Callback
-                  // Aktuell: User navigiert via Bottom-Navigation-Bar
-                },
+                onTap: () => _navigateToAction(action.actionType),
               ),
             );
           }).toList(),
@@ -308,11 +310,35 @@ class _HomeScreenState extends State<HomeScreen> {
         ...context.suggestions.map((suggestion) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: _SuggestionCard(suggestion: suggestion),
+            child: _SuggestionCard(
+              suggestion: suggestion,
+              onTap: () => _navigateToAction(suggestion.actionType),
+            ),
           );
         }),
       ],
     );
+  }
+
+  /// Navigiert basierend auf actionType zum richtigen Tab
+  void _navigateToAction(String actionType) {
+    if (widget.onNavigateTab == null) return;
+    switch (actionType) {
+      case 'mobility':
+        widget.onNavigateTab!(1);
+        break;
+      case 'finance':
+        widget.onNavigateTab!(2);
+        break;
+      case 'health':
+        widget.onNavigateTab!(3);
+        break;
+      case 'apps':
+        widget.onNavigateTab!(4);
+        break;
+      default:
+        widget.onNavigateTab!(1);
+    }
   }
 
   String _getDayGreeting(int day) {
@@ -346,52 +372,61 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.icon,
     required this.label,
     required this.value,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -448,67 +483,75 @@ class _QuickActionButton extends StatelessWidget {
 
 class _SuggestionCard extends StatelessWidget {
   final Suggestion suggestion;
+  final VoidCallback? onTap;
 
-  const _SuggestionCard({required this.suggestion});
+  const _SuggestionCard({required this.suggestion, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                suggestion.icon,
-                style: const TextStyle(fontSize: 22),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border, width: 1),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    suggestion.icon,
+                    style: const TextStyle(fontSize: 22),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  suggestion.title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      suggestion.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      suggestion.description,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  suggestion.description,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: AppColors.textSecondary.withOpacity(0.5),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 14,
-            color: AppColors.textSecondary.withOpacity(0.5),
-          ),
-        ],
+        ),
       ),
     );
   }
