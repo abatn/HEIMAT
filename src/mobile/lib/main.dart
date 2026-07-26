@@ -14,6 +14,8 @@ import 'features/finance/presentation/finance_screen.dart';
 import 'features/health/presentation/health_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/home/presentation/home_provider.dart';
+import 'features/miniprogram/presentation/miniprogram_provider.dart';
+import 'features/miniprogram/presentation/miniprogram_launcher_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,13 +39,10 @@ class HeimatApp extends StatelessWidget {
               ),
               ChangeNotifierProvider(create: (_) => MobilityProvider()),
               ChangeNotifierProvider(create: (_) => HealthProvider()),
+              ChangeNotifierProvider(create: (_) => MiniProgramProvider()),
               ChangeNotifierProvider(
                 create: (_) {
                   final hp = HomeProvider(auth.authService);
-                  // Statischen Callback setzen: erlaubt anderen
-                  // Providern (Mobility, Health, Finance) die
-                  // Aufzeichnung von User-Aktionen für den
-                  // BayesClassifier ohne zirkuläre Abhängigkeiten.
                   HomeProvider.onUserAction = hp.recordAction;
                   return hp;
                 },
@@ -97,6 +96,7 @@ class _MainScreenState extends State<MainScreen> {
     const MobilityScreen(),
     const FinanceScreen(),
     const HealthScreen(),
+    const MiniProgramLauncherScreen(),
   ];
 
   @override
@@ -113,8 +113,6 @@ class _MainScreenState extends State<MainScreen> {
             tooltip: 'Menü',
             onSelected: (value) async {
               if (value == 'logout') {
-                // Auth-Gate in main.dart leitet nach logout() automatisch
-                // auf die Login-Seite, sobald isAuthenticated == false.
                 await context.read<AuthProvider>().logout();
               }
             },
@@ -155,7 +153,7 @@ class _MainScreenState extends State<MainScreen> {
             NavigationDestination(
               icon: Icon(Icons.map_outlined),
               selectedIcon: Icon(Icons.map),
-              label: 'Mobilit\u00e4t',
+              label: 'Mobilität',
             ),
             NavigationDestination(
               icon: Icon(Icons.account_balance_wallet_outlined),
@@ -166,6 +164,11 @@ class _MainScreenState extends State<MainScreen> {
               icon: Icon(Icons.local_hospital_outlined),
               selectedIcon: Icon(Icons.local_hospital),
               label: 'Gesundheit',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.apps_outlined),
+              selectedIcon: Icon(Icons.apps),
+              label: 'Apps',
             ),
           ],
         ),
