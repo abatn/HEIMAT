@@ -173,8 +173,11 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 - Taler — `exchange.demo.taler.net` erreichbar (GET /keys + /reserves/<pub>)
 
 ### ⚠️ Was ist offen
-- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`. Warte auf öffentlichen EUR-Exchange.
+- **Phase 24: Taler-Production-Readiness + Aufladen-Button** — Finanzen-Tab: "Guthaben aufladen" Button ruft Reserve-API auf, zeigt reserve_pub + Anleitung. Demo erfordert bank.demo.taler.net-Schritt; Production nahtlos via Exchange. Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`.
 - migrate.ts Unit-Test fehlt
+
+**📱 Taler aus der App — So geht's:**
+Finanzen-Tab → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → App erzeugt reserve_pub → Schritte: bank.demo.taler.net öffnen, registrieren, 25 KUDOS erhalten, zurück zu HEIMAT → [Aktualisieren]. Kein Fake-Geld — echter Taler-Workflow.
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests für Login → Finance → Logout Flow

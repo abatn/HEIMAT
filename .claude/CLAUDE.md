@@ -232,9 +232,12 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Swagger**: /docs + /docs.json live
 
 ### ⚠️ Was ist offen
-- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Currency dynamisch aus /keys (d91fc76) — EUR-ready via TALER_EXCHANGE_URL env var. Warte auf öffentlichen EUR-Exchange (GLS Bank via Horizon Europe). Demo-KUDOS für Entwicklung.
+- **Phase 24: Taler-Production-Readiness + Aufladen-Button** — Finanzen-Tab hat jetzt "Guthaben aufladen" Button mit reserve_pub-Anzeige + Schritt-für-Schritt-Anleitung. Demo erfordert externen Schritt (bank.demo.taler.net). Production wird nahtlos via Exchange-SEPA-Lastschrift. Currency dynamisch aus /keys (d91fc76) — EUR-ready via TALER_EXCHANGE_URL.
 - Unit-Test für migrate.ts (gemockter pg pool)
 - stale-doc-prescan.sh nicht im Workflow eingebunden (war Nice-to-have)
+
+**📱 Taler aus der App — User-Guide:**
+Finanzen-Tab → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → reserve_pub wird erzeugt → Schritt 1-4: (1) bank.demo.taler.net, (2) registrieren, (3) 25 KUDOS erhalten, (4) HEIMAT aktualisieren. Kein Fake-Guthaben — echter Taler-Workflow.
 
 ### ❌ Was fehlt
 - Flutter Integration-Tests für JWT-Flow

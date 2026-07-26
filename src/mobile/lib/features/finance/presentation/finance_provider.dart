@@ -4,6 +4,26 @@ import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/services/auth_service.dart';
 
+class ReserveOpenResult {
+  final String reservePub;
+  final String bankWireUrl;
+  final String note;
+
+  ReserveOpenResult({
+    required this.reservePub,
+    required this.bankWireUrl,
+    required this.note,
+  });
+
+  factory ReserveOpenResult.fromJson(Map<String, dynamic> json) {
+    return ReserveOpenResult(
+      reservePub: json['reserve_pub'] as String? ?? '',
+      bankWireUrl: json['bank_wire_url'] as String? ?? 'https://bank.demo.taler.net/',
+      note: json['note'] as String? ?? '',
+    );
+  }
+}
+
 double _toDouble(dynamic v) =>
     v == null ? 0.0 : (v is num ? v.toDouble() : double.parse(v.toString()));
 
@@ -119,6 +139,38 @@ class FinanceProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       _hasLoaded = true;
+      notifyListeners();
+    }
+  }
+
+  /// Ruft POST /api/finance/taler/reserve/open auf (erzeugt reserve_pub + bank_wire_url)
+  Future<ReserveOpenResult?> openReserve() async {
+    final userId = _authService.userId;
+    if (userId == null) return null;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final url = '${AppConfig.backendUrl}/api/finance/taler/reserve/open';
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: _authService.authHeaders,
+            body: json.encode({}),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ReserveOpenResult.fromJson(data);
+      } else {
+        _error = 'Reserve konnte nicht erstellt werden: ${response.statusCode}';
+        return null;
+      }
+    } catch (e) {
+      _error = 'Reserve fehlgeschlagen: $e';
+      return null;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }

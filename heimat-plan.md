@@ -24,7 +24,10 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
 
 ### ⚠️ Was ist offen (nicht-blockierend)
-- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber, keine BaFin-Lizenz nötig). **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var, kein Code-Change nötig. Warte auf öffentlichen EUR-Exchange (GLS Bank Integration via Horizon Europe). Demo-KUDOS via `exchange.demo.taler.net` für Entwicklung.
+- **Phase 24: Taler-Production-Readiness + Aufladen-Button** — Finanzen-Tab: "Guthaben aufladen" Button ruft `POST /api/finance/taler/reserve/open` auf, zeigt reserve_pub + bank_wire_url + Schritt-für-Schritt-Anleitung. Demo erfordert externen Schritt (bank.demo.taler.net); Production wird nahtlos via Exchange-SEPA-Lastschrift. Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`, kein Code-Change nötig.
+
+**📱 Taler aus der App — User-Guide:**
+Finanzen-Tab öffnen → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → App erzeugt reserve_pub → 4 Schritte: (1) bank.demo.taler.net öffnen, (2) registrieren, (3) 25 KUDOS erhalten, (4) zurück zu HEIMAT → [Aktualisieren]. Kein Fake-Geld — echter Taler-Workflow.
 - Unit-Test für `migrate.ts` fehlt — gemockter pg pool, Migrations-Pfad tests-protected machen
 - `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im Workflow eingebunden (war Nice-to-have)
 
@@ -649,7 +652,7 @@ HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Ra
 ### Nächste Schritte
 - Mobile Browser-Re-Test mit `heimat-demo-user@heimat.de` gegen Finanzen-Tab → echte Wallet-Daten statt 0.00 KUDOS-Demo
 - Unit-Test für `migrate.ts` (gemockter pool, redactConnectionSecrets edge cases)
-- Phase 24: Taler-Production-Readiness — Sobald öffentlicher EUR-Exchange verfügbar (GLS Bank?), Base-URL in talerExchangeClient.ts tauschen. Bis dahin Demo-KUDOS.
+- **Phase 24: Taler-Production-Readiness + Aufladen-Button im Finanzen-Tab** — Flutter: "Guthaben aufladen" Button mit reserve_pub-Anzeige + Schritt-für-Schritt-Anleitung (bank.demo.taler.net). Backend: POST /api/finance/taler/reserve/open existiert. Demo erfordert externen Schritt, Production wird nahtlos via Exchange-SEPA-Lastschrift. Currency dynamisch aus /keys (d91fc76) — EUR-ready via TALER_EXCHANGE_URL.
 - Phase 25: E2E-Tests Flutter (Integration Tests für Login → Finance → Logout Flow)
 
 ---

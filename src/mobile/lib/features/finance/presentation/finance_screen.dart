@@ -77,6 +77,146 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
+  void _showFundSheet() async {
+    final provider = context.read<FinanceProvider>();
+    final result = await provider.openReserve();
+    if (!mounted) return;
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Reserve konnte nicht erstellt werden'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    showHeimatBottomSheet(
+      context,
+      title: 'Guthaben aufladen',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Taler ist digitales Bargeld. Guthaben entsteht durch eine Überweisung auf deine persönliche Reserve-Adresse.',
+                    style: TextStyle(fontSize: 13, color: AppColors.primaryDark),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text('So funktioniert es:',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          _stepRow('1', 'Öffne die Taler-Demo-Bank',
+              'https://bank.demo.taler.net/webui/#/register'),
+          _stepRow('2', 'Registriere dich dort',
+              'Erstelle ein Konto (Demo, keine echten Daten)'),
+          _stepRow('3', 'Klicke auf "25 KUDOS erhalten"',
+              'Die Demo-Bank überweist Spielgeld an deine neue Reserve'),
+          _stepRow('4', 'Kehre zu HEIMAT zurück',
+              'Dein Guthaben wird automatisch aktualisiert'),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Deine Reserve-Adresse:',
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary)),
+                const SizedBox(height: 4),
+                SelectableText(
+                  result.reservePub,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => provider.loadWallet(),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Guthaben aktualisieren'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepRow(String num, String title, String description) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(num,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
+                Text(description,
+                    style: TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -195,21 +335,39 @@ class _FinanceScreenState extends State<FinanceScreen> {
           ),
           const SizedBox(height: 20),
           SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _showSendSheet,
-              icon: const Icon(Icons.send, size: 18),
-              label: const Text('Geld senden'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.primaryDark,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            width: double.infinity,              child: Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _showFundSheet,
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    label: const Text('Guthaben aufladen'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: _showSendSheet,
+                    icon: const Icon(Icons.send, size: 18),
+                    label: const Text('Geld senden'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.primaryDark,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
           ),
         ],
       ),

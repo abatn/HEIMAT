@@ -68,36 +68,18 @@ Commits:
 
 Verifikation: POST `/api/admin/migrate` mit X-Admin-Key Header gegen Render → HTTP 200 `{"success":true,"message":"Schema migrated"}` in 213ms.
 
-### Phase 24: Taler-Production-Readiness
-**Status:** Wallet-Client fertig (Commit d91fc76). Currency dynamisch aus /keys. EUR-ready via `TALER_EXCHANGE_URL` env var — kein Code-Change nötig. Warte auf öffentlichen EUR-Exchange (GLS Bank via Horizon Europe). Demo-KUDOS via `exchange.demo.taler.net` für Entwicklung.
+### Phase 24: Taler-Production-Readiness + Aufladen-Button
+**Status:** Wallet-Client fertig (d91fc76). **NEU:** Finanzen-Tab hat "Guthaben aufladen" Button (`POST /api/finance/taler/reserve/open`) mit reserve_pub-Anzeige + Schritt-für-Schritt-Anleitung. User öffnet bank.demo.taler.net, registriert sich, erhält 25 KUDOS, kehrt zurück zu HEIMAT → [Aktualisieren]. Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`. Demo erfordert externen Schritt; Production wird nahtlos via Exchange-SEPA-Lastschrift.
 
-**Was ist das?**
-Der `talerService.ts` spricht echte GNU-Taler-Wire-Spec — Ed25519-Reserve-Identity, `GET /keys` + `GET /reserves/<pub>`. Die Currency wird dynamisch aus dem Exchange-/keys-Response gelesen (Commit d91fc76). Kein manueller Bank-Wire-Schritt mehr nötig — Demo-KUDOS reicht für Entwicklung.
+**📱 Taler aus der App — User-Guide:**
+Finanzen-Tab öffnen → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → App erzeugt reserve_pub → 4 Schritte: (1) bank.demo.taler.net öffnen, (2) registrieren, (3) 25 KUDOS erhalten, (4) zurück zu HEIMAT → [Aktualisieren]. Kein Fake-Geld, keine App-Erfindung.
 
-**Was muss gemacht werden?**
-1. Prüfe ob `exchange.demo.taler.net` erreichbar ist (GNU Taler Demo-Exchange)
-2. Implementiere echte Taler-API-Calls in `talerService.ts`:
-   - `/keys` — Exchange-Public-Keys laden
-   - `/coins/TOKEN-DENOMINATION` — Coins abheben
-   - `/coins/TOKEN-DENOMINATION/deposit` — Coins einzahlen
-   - `/coins/TOKEN-DENOMINATION/melt` — Coins umschmelzen
-   - `/coins/TOKEN-DENOMINATION/refund` — Coins zurückerstatten
-3. Ersetze die lokale Balance-Verwaltung durch echte Taler-Transaktionen
-4. Behalte die DB nur als Cache/Log (nicht als Primärquelle)
-5. Tests schreiben für den echten Exchange
-6. 503-Propagation wenn Exchange nicht erreichbar (kein Fallback — Architekturentscheidung)
-
-**Wichtig:**
-- Nutze das echte Taler-Protokoll (Production-Wire-Spec)
-- Währung: KUDOS (echte GNU-Taler-Testnet-Currency)
-- Kein echtes Geld, kein echtes Risiko
-- Wenn der Exchange nicht erreichbar ist → 503-Propagation (kein Fallback)
-
-**Nächste Schritte nach Taler:**
-- CI/CD für ML-Service
-- E2E-Tests mit echtem Backend-Deploy
-- Performance-Optimierung
-- DSGVO-Audit
+**Backend bereits fertig:**
+- `POST /api/finance/taler/reserve/open` → reserve_pub + bank_wire_url
+- `POST /api/finance/taler/reserve` → existierende Reserve binden
+- `GET /api/finance/balance` → Balance vom echten Exchange
+- `POST /api/finance/taler/wallet` → Wallet auto-erstellen
+- `GET /api/finance/taler/status` → Exchange-Status (✅ reachable=true nach denomination_keys-Fix)
 
 ## BEFEHLE
 
