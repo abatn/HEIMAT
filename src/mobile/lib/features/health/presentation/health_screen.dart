@@ -203,9 +203,9 @@ class _HealthScreenState extends State<HealthScreen> {
       footer: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: selectedTime == null || nameController.text.isEmpty
-              ? null
-              : () async {
+          // ignore: unnecessary_null_comparison
+          onPressed: (selectedTime != null && nameController.text.isNotEmpty)
+              ? () async {
                   Navigator.pop(context);
                   final ok =
                       await context.read<HealthProvider>().bookAppointment(
@@ -226,7 +226,8 @@ class _HealthScreenState extends State<HealthScreen> {
                       ),
                     );
                   }
-                },
+                }
+              : null,
           child: const Text('Termin buchen'),
         ),
       ),
