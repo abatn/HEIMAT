@@ -9,8 +9,6 @@ import 'package:heimat_app/features/auth/presentation/login_screen.dart';
 import 'package:heimat_app/features/auth/presentation/register_screen.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_provider.dart';
 import 'package:heimat_app/features/health/presentation/health_provider.dart';
-import 'package:heimat_app/features/mobility/presentation/mobility_screen.dart';
-import 'package:heimat_app/features/health/presentation/health_screen.dart';
 
 class _StubMobility extends MobilityProvider {
   @override
