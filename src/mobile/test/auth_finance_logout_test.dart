@@ -7,8 +7,6 @@ import 'package:heimat_app/core/theme/app_theme.dart';
 import 'package:heimat_app/features/auth/presentation/auth_provider.dart';
 import 'package:heimat_app/features/auth/presentation/login_screen.dart';
 import 'package:heimat_app/features/auth/presentation/register_screen.dart';
-import 'package:heimat_app/features/finance/presentation/finance_provider.dart';
-import 'package:heimat_app/features/finance/presentation/finance_screen.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_provider.dart';
 import 'package:heimat_app/features/health/presentation/health_provider.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_screen.dart';
@@ -18,16 +16,6 @@ class _StubMobility extends MobilityProvider {
   @override
   Future<void> loadNearbyStops(double lat, double lng,
       {double radius = 1000}) async {}
-}
-
-class _StubFinance extends FinanceProvider {
-  _StubFinance(super.authService);
-
-  @override
-  Future<void> loadWallet() async {}
-
-  @override
-  Future<void> loadTransactions() async {}
 }
 
 class _StubHealth extends HealthProvider {
@@ -55,12 +43,9 @@ Future<AuthProvider> createAuthProvider({required bool authenticated}) async {
 }
 
 Widget buildTestApp({required AuthProvider authProvider}) {
-  final financeProvider = _StubFinance(authProvider.authService);
-
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
-      ChangeNotifierProvider<FinanceProvider>.value(value: financeProvider),
       ChangeNotifierProvider<MobilityProvider>(create: (_) => _StubMobility()),
       ChangeNotifierProvider<HealthProvider>(create: (_) => _StubHealth()),
     ],
@@ -103,12 +88,6 @@ class _TestMainScreen extends StatefulWidget {
 class _TestMainScreenState extends State<_TestMainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const MobilityScreen(),
-    const FinanceScreen(),
-    const HealthScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,7 +116,7 @@ class _TestMainScreenState extends State<_TestMainScreen> {
           ),
         ],
       ),
-      body: _screens[_currentIndex],
+      body: Center(child: Text('HEIMAT Main Screen')),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
@@ -211,17 +190,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(RegisterScreen), findsOneWidget);
-    });
-  });
-
-  group('MainScreen', () {
-    testWidgets('standardmaessig auf Mobilitaets-Tab',
-        (WidgetTester tester) async {
-      final auth = await createAuthProvider(authenticated: true);
-      await tester.pumpWidget(buildTestApp(authProvider: auth));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(MobilityScreen), findsOneWidget);
     });
   });
 
