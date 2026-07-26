@@ -60,7 +60,7 @@ class _MiniProgramLauncherScreenState extends State<MiniProgramLauncherScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: AppColors.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.apps_rounded,
@@ -176,7 +176,7 @@ class _MiniProgramLauncherScreenState extends State<MiniProgramLauncherScreen> {
             Icon(
               _searchQuery.isNotEmpty ? Icons.search_off : Icons.apps,
               size: 56,
-              color: AppColors.textSecondary.withValues(alpha: 0.4),
+              color: AppColors.textSecondary.withOpacity(0.4),
             ),
             const SizedBox(height: 12),
             Text(
@@ -218,7 +218,7 @@ class _MiniProgramLauncherScreenState extends State<MiniProgramLauncherScreen> {
             border: Border.all(color: AppColors.border, width: 0.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withOpacity(0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -231,7 +231,7 @@ class _MiniProgramLauncherScreenState extends State<MiniProgramLauncherScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
+                  color: AppColors.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(iconData, color: AppColors.primary, size: 26),

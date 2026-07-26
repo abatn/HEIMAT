@@ -1,3 +1,5 @@
+// ignore_for_file: undefined_shown_name
+
 import 'dart:html' show IFrameElement;
 import 'dart:ui' as ui show platformViewRegistry;
 import 'package:flutter/material.dart';
