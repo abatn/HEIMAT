@@ -184,14 +184,12 @@ class HomeProvider extends ChangeNotifier {
   Future<void> _fetchNearbySummary(double lat, double lng) async {
     try {
       // Stops in der Nähe zählen
-      final stopsResponse = await http
-          .get(
-            Uri.parse(
-              '${AppConfig.backendUrl}/api/mobility/stops?lat=$lat&lng=$lng&radius=1000',
-            ),
-            headers: {'Content-Type': 'application/json'},
-          )
-          .timeout(const Duration(seconds: 15));
+      final stopsResponse = await http.get(
+        Uri.parse(
+          '${AppConfig.backendUrl}/api/mobility/stops?lat=$lat&lng=$lng&radius=1000',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
 
       int stopsCount = 0;
       String? nearestStop;
@@ -208,14 +206,12 @@ class HomeProvider extends ChangeNotifier {
 
       // Doctors zählen
       int doctorsCount = 0;
-      final doctorsResponse = await http
-          .get(
-            Uri.parse(
-              '${AppConfig.backendUrl}/api/health/doctors/nearby?lat=$lat&lng=$lng&radius=5000',
-            ),
-            headers: {'Content-Type': 'application/json'},
-          )
-          .timeout(const Duration(seconds: 15));
+      final doctorsResponse = await http.get(
+        Uri.parse(
+          '${AppConfig.backendUrl}/api/health/doctors/nearby?lat=$lat&lng=$lng&radius=5000',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
 
       if (doctorsResponse.statusCode == 200) {
         final doctorsData = json.decode(doctorsResponse.body);
