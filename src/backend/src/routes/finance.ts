@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { talerService } from '../services/talerService';
 import { talerExchangeClient } from '../services/talerExchangeClient';
 import { AppError } from '../middleware/errorHandler';
+import { queryOne } from '../config/database';
 
 export const financeRouter = Router();
 
@@ -197,9 +198,18 @@ const payBodySchema = z.object({
 financeRouter.post('/pay', requireAuth, validate(payBodySchema, 'body'), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { to, amount, currency, description } = req.body;
   const from = req.userId!;
-  const purse = await talerService.createPurse(from, to, amount, undefined, description);
+
+  // Resolve 'to' — kann Email oder user_id sein
+  let receiverUserId = to;
+  if (to.includes('@')) {
+    const user = await queryOne<{ id: string }>('SELECT id FROM users WHERE email = $1', [to]);
+    if (!user) throw new AppError('Empfänger mit dieser E-Mail nicht gefunden', 404);
+    receiverUserId = user.id;
+  }
+
+  const purse = await talerService.createPurse(from, receiverUserId, amount, undefined, description);
   await talerService.depositToPurse(purse.id, from);
-  const { purse: merged } = await talerService.mergePurse(purse.id, to);
+  const { purse: merged } = await talerService.mergePurse(purse.id, receiverUserId);
   res.json({
     status: 'ok',
     transaction: {
