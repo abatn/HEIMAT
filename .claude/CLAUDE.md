@@ -192,7 +192,7 @@ src/ml-service/       # Python FastAPI (nur Docker)
 - Root `*.md`-Dateien sind Planungs-/Marketing-Dokumente, keine Code-Dokumentation
 - Schema-Quelle: `src/backend/src/database/schema.sql` (CI lädt via `psql`)
 - Kein `npm run migrate` oder `npm run seed` — diese Scripts existieren nicht
-- Taler: Client-Code existiert (exchange.demo.taler.net, Ed25519, KUDOS), aber kein vollständiger End-to-End-Flow — Bank-Wire-Funding erfordert manuellen Schritt auf bank.demo.taler.net/webui
+- Taler Wallet-Client: HEIMAT ist reiner Wallet-Client (kein Exchange-Betreiber). Client-Code existiert (exchange.demo.taler.net, Ed25519, KUDOS). Production-EUR-Exchange erfordert öffentliche GLS-Bank-Integration (Horizon Europe Projekt, Status 2026: Pilot-Phase). Kein manueller Schritt nötig — Demo-KUDOS reicht für Entwicklung.
 
 ## Code-Existenz (geschrieben ≠ getestet/deployed)
 
@@ -201,7 +201,7 @@ src/ml-service/       # Python FastAPI (nur Docker)
 | User-Auth (JWT+bcryptjs) | ✅ | ✅ (14 Tests) | ❌ ungetestet | Routes/Service geschrieben, auf Production nie ausgeführt |
 | Zod-Validierung | ✅ (25 Tests) | ✅ (25 Tests) | ❌ ungetestet | Middleware validiert alle Inputs, per CI getestet |
 | Swagger/OpenAPI | ✅ | ✅ (in e2e) | ❌ ungetestet | `/docs` und `/docs.json` im Code |
-| Taler-Exchange-Client | ⚠️ Client-Code | ✅ (12 Tests) | ❌ kein vollst. Flow | exchange.demo.taler.net erreichbar, aber Bank-Wire-Funding manuell |
+| Taler Wallet-Client | ✅ Client-Code | ✅ (12 Tests) | ⚠️ Demo-only (KUDOS) | exchange.demo.taler.net erreichbar. HEIMAT ist Wallet-Client, kein Exchange-Betreiber. Production-EUR wartet auf GLS-Bank-Integration. |
 | E2E-Tests (Backend) | ✅ | ✅ (22 Tests) | 🔄 via CI | Testet User-Lifecycle, aber braucht Postgres (nur in CI) |
 | Backend CI health.test.ts | 🔴 1/7 Suites failed | ❌ | ❌ | pre-existing, vermutlich DB-Cleanup-Reihenfolge |
 
@@ -210,7 +210,7 @@ src/ml-service/       # Python FastAPI (nur Docker)
 1. ✅ **Finanzen: JWT-Auth ins Mobile integrieren** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in alle 5 Finance-HTTP-Calls) + `e00105d` (URL-Pfade ohne `/$userId`-Suffix; Backend identifiziert User aus Token; neue GET `/wallet`-Route; Schema-Migration für alte `wallet_priv`-Spalte). **Phase 23 abgeschlossen**: zusätzlich `25ac7ab` (Security-Fix: POST /api/migrate entfernt), `3414aea` (security.test.ts Regression-Lock), `e7fcd85` (preDeployCommand auto-migration). ADMIN_KEY auf Render gesetzt, positive-control `/api/admin/migrate` HTTP 200 verifiziert.
 2. 🔴 **Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites)
 3. ✅ **Production-Validierung: User-Auth End-to-End testen** — erledigt 2026-07-25: Register/Login/Me gegen `heimat-backend.onrender.com` mit echtem User (`heimat-demo-user@heimat.de`) in Production-DB
-4. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden
+4. **Taler-Production-Readiness**: Sobald GLS Bank (oder andere) öffentlichen EUR-Exchange bereitstellt, Base-URL in talerExchangeClient.ts tauschen. Bis dahin Demo-KUDOS via exchange.demo.taler.net.
 5. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
 6. **Auth-Routing-Bug regression-tests** — pre-commit-test der Hash-Routing-Pattern in `auth_screens_test.dart` (LoginScreen/RegisterScreen navigieren explizit nach `'/'`)
 7. ✅ **Mobile-Finance-Regression-Test** — erledigt 2026-07-25 mit Commit `3414aea` Regression-Lock für Security; mobile Finance-Headers durch code-review verifiziert
@@ -232,7 +232,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Swagger**: /docs + /docs.json live
 
 ### ⚠️ Was ist offen
-- Taler-Bank-Wire-Funding (Phase 24) — manueller bank.demo.taler.net/webui Schritt
+- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber) — Warte auf öffentlichen EUR-Exchange (GLS Bank Integration läuft via Horizon Europe). Aktuell Demo-KUDOS via exchange.demo.taler.net für Entwicklung.
 - Unit-Test für migrate.ts (gemockter pg pool)
 - stale-doc-prescan.sh nicht im Workflow eingebunden (war Nice-to-have)
 

@@ -24,7 +24,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
 
 ### ⚠️ Was ist offen (nicht-blockierend)
-- Taler-Bank-Wire-Funding-Flow (Phase 24): manueller Schritt auf `bank.demo.taler.net/webui` — keine API-Alternative
+- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber, keine BaFin-Lizenz nötig). Warte auf öffentlichen EUR-Exchange (GLS Bank Integration läuft via Horizon Europe). Aktuell Demo-KUDOS via `exchange.demo.taler.net` für Entwicklung.
 - Unit-Test für `migrate.ts` fehlt — gemockter pg pool, Migrations-Pfad tests-protected machen
 - `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im Workflow eingebunden (war Nice-to-have)
 
@@ -649,7 +649,7 @@ HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Ra
 ### Nächste Schritte
 - Mobile Browser-Re-Test mit `heimat-demo-user@heimat.de` gegen Finanzen-Tab → echte Wallet-Daten statt 0.00 KUDOS-Demo
 - Unit-Test für `migrate.ts` (gemockter pool, redactConnectionSecrets edge cases)
-- Phase 24: Taler-End-to-End automatisieren (Bank-Wire-Workflow dokumentieren oder API-Workaround)
+- Phase 24: Taler-Production-Readiness — Sobald öffentlicher EUR-Exchange verfügbar (GLS Bank?), Base-URL in talerExchangeClient.ts tauschen. Bis dahin Demo-KUDOS.
 - Phase 25: E2E-Tests Flutter (Integration Tests für Login → Finance → Logout Flow)
 
 ---
@@ -1118,7 +1118,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 | **Mobilität: ÖPNV** | ✅ | transitous.org (MOTIS 2 API) — Abfahrten, Verbindungen, Echtzeit-Daten |
 | **Mobilität: Routing** | ✅ | OSRM für Fuß/Auto, RAPTOR für ÖPNV (GTFS-basiert) |
 | **Mobilität: GPS** | ✅ | echte GPS-Position via geolocator |
-| **Finanzen: Taler-Client** | ⚠️ Client-Code | exchange.demo.taler.net, Ed25519, KUDOS — echter HTTP-Client, aber Bank-Wire-Funding manuell (bank.demo.taler.net/webui), kein vollst. End-to-End-Flow |
+| **Finanzen: Taler Wallet-Client** | ✅ Client-Code | exchange.demo.taler.net, Ed25519, KUDOS — HEIMAT ist reiner Wallet-Client (kein Exchange-Betreiber). Production-EUR-Exchange wartet auf GLS-Bank-Integration. Demo-KUDOS für Entwicklung ausreichend. |
 | **Gesundheit: Ärzte** | ✅ | Overpass-Ärzte + registrierte Ärzte (DB) |
 | **Gesundheit: Termine** | ✅ | Terminbuchung mit verfügbaren Slots |
 | **Gesundheit: Registrierung** | ✅ | POST /api/health/doctors + Flutter-Formular |
@@ -1149,7 +1149,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 ### Bekannte Einschränkungen
 
-1. **Taler-Exchange-Client** — Client-Code für exchange.demo.taler.net (Ed25519, KUDOS) existiert + 12 Tests, aber Bank-Wire-Funding erfordert manuellen Schritt auf bank.demo.taler.net/webui — kein vollständiger End-to-End-Flow
+1. **Taler Wallet-Client** — Client-Code für exchange.demo.taler.net (Ed25519, KUDOS) existiert + 12 Tests. HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Production-EUR-Exchange erfordert öffentliche GLS-Bank-Integration. Demo-KUDOS für Entwicklung ausreichend.
 2. **Flutter-Finance: JWT-Auth-Integration** — Backend JWT+bcryptjs ist seit 2026-07-25 live auf Render (`/api/auth/{register,login,me}` End-to-End getestet). Verbleibend: `finance_provider.dart:45` hat noch `user-demo-001` hartkodiert — Flutter-Finance-Screens müssen gegen den echten Auth-Token arbeiten
 3. **CORS** — `process.env.CORS_ORIGIN || '*'` (Default allow-all, per env var einschränkbar)
 4. **Rate-Limiter** — 100 req/15min global (kann bei vielen API-Calls pro Screen limitieren)
@@ -1186,7 +1186,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 | User-Auth (JWT+bcryptjs) | ✅ | ✅ (14 Tests) | ✅ live (2026-07-25) | End-to-End auf `heimat-backend.onrender.com` validiert (Register 201, Login 200, /me 200). Test-User `heimat-demo-user@heimat.de` |
 | Zod-Validierung | ✅ | ✅ (25 Tests) | ❌ ungetestet | Middleware validiert alle Inputs, per CI getestet |
 | Swagger/OpenAPI | ✅ | ✅ (in e2e) | ❌ ungetestet | `/docs` und `/docs.json` im Code |
-| Taler-Exchange-Client | ⚠️ Client-Code | ✅ (12 Tests) | ❌ kein vollst. Flow | exchange.demo.taler.net erreichbar, Bank-Wire-Funding manuell |
+| Taler Wallet-Client | ✅ Client-Code | ✅ (12 Tests) | ⚠️ Demo-only (KUDOS) | HEIMAT ist Wallet-Client, kein Exchange-Betreiber. Production-EUR wartet auf GLS-Bank-Integration. |
 | E2E-Tests (Backend) | ✅ | ✅ (22 Tests) | 🔄 via CI | Testet User-Lifecycle, braucht Postgres (nur in CI) |
 | Backend CI health.test.ts | 🔴 1/7 Suites failed | ❌ | ❌ | pre-existing, vermutlich DB-Cleanup-Reihenfolge |
 
@@ -1194,7 +1194,7 @@ Diese Schritte können nicht automatisiert werden und müssen manuell durchgefü
 
 1. **🔴 Backend CI: `health.test.ts` fixen** — pre-existing failure (1/7 Suites); vermutlich DB-Cleanup-Reihenfolge
 2. **✅ Flutter-Finance: JWT-Auth-Integration** — erledigt 2026-07-25 mit Commits `cfb0561` (Bearer-Header in 5 Finance-Calls) + `e00105d` (URL-Pfade bereinigt + neue Backend-Route `GET /api/finance/wallet` + `wallet_priv` Legacy-Spalte gedroppt)
-3. **Taler-End-to-End automatisieren** — Bank-Wire-Schritt dokumentieren oder API-Workaround finden (Client-Code existiert, manueller Funding-Schritt)
+3. **Taler-Production-Readiness** — Sobald öffentlicher EUR-Exchange verfügbar (GLS Bank), Base-URL tauschen. Bis dahin Demo-KUDOS via exchange.demo.taler.net.
 4. **E2E-Tests (Flutter Integration)** — noch kein Code vorhanden
 5. **Auth-Routing-Bug regression-tests** — pre-commit-test der `pushNamedAndRemoveUntil('/', _)`-Pattern in `auth_screens_test.dart`, sonst kann der Hash-Routing-Bug regressieren
 

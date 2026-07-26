@@ -71,7 +71,7 @@ Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.
 - **GTFS import** via `src/backend/scripts/import-gtfs-local.ts` (not on Render — free-tier memory/timeout).
 - **Root `*.md` files** (`AI-*.md`, `heimat-plan.md`, `.loop.md`, `blog/`, `funding/`, `marketing/`) are planning/marketing docs, not code documentation.
 - **Admin endpoints** require `ADMIN_KEY` env var (no static fallback).
-- **Taler** is a real GNU Taler exchange client (`exchange.demo.taler.net`, KUDOS currency, Ed25519 wallets).
+- **Taler** is a real GNU Taler wallet client (`exchange.demo.taler.net`, KUDOS currency, Ed25519 wallets). HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Bei Verfügbarkeit eines öffentlichen Production-Exchanges (z.B. GLS Bank) kann die Base-URL getauscht werden.
 
 ## Known bugs
 
@@ -126,13 +126,13 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Auto-Migration**: `AUTO_MIGRATE=true` startup-hook (Commit 7e5f063) — ✅ Live bestätigt am 2026-07-25 (Build-Log + funktionaler Beweis)
 - **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` positive-control HTTP 200 in ~213ms
 - **DB-Connection**: Supavisor-Pooler via `family:4` IPv4-Force, SSL
-- **Taler**: `exchange.demo.taler.net` erreichbar, GET /keys + /reserves funktioniert
+- **Taler Wallet-Client**: `exchange.demo.taler.net` erreichbar (GET /keys + /reserves). HEIMAT ist reiner Wallet-Client — kein eigener Exchange-Betreiber.
 - **Backend CI**: Lint + Jest + tsc grün
 - **Swagger UI**: /docs + /docs.json live
 - **Mobilität + Gesundheit**: seit MVP grün
 
 ### ⚠️ Was ist offen
-- Taler-Bank-Wire-Funding (Phase 24): manueller Schritt auf `bank.demo.taler.net/webui` nötig
+- Taler-Bank-Wire-Funding (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber, keine BaFin-Lizenz nötig) — Warte auf öffentlichen Production-Exchange (GLS Bank Integration läuft via Horizon Europe). Aktuell Demo-Modus mit `exchange.demo.taler.net` (KUDOS) für Entwicklung.
 - Unit-Test für `migrate.ts` fehlt — gemockter pg pool
 
 ### ❌ Was fehlt
