@@ -10,6 +10,9 @@ on:
     paths:
       - 'src/backend/**'
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint
@@ -18,7 +21,12 @@ jobs:
       run:
         working-directory: src/backend
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (mit Retry)
+        uses: Wandalen/wretry.action@v3
+        with:
+          action: actions/checkout@v4
+          attempt_limit: 3
+          attempt_delay: 10000
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -49,7 +57,12 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (mit Retry)
+        uses: Wandalen/wretry.action@v3
+        with:
+          action: actions/checkout@v4
+          attempt_limit: 3
+          attempt_delay: 10000
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -74,7 +87,12 @@ jobs:
       run:
         working-directory: src/backend
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (mit Retry)
+        uses: Wandalen/wretry.action@v3
+        with:
+          action: actions/checkout@v4
+          attempt_limit: 3
+          attempt_delay: 10000
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
