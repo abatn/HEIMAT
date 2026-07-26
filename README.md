@@ -152,10 +152,13 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | Mobilität (OSM/Overpass/OSRM) | ✅ Abgeschlossen | Echte Haltestellen, Nominatim-Geocoding, Routing |
 | Gesundheit (OSM + Registrierung) | ✅ Abgeschlossen | Echte Ärzte aus Overpass, Arzt-Registrierung |
 | **User-Auth (JWT)** | ✅ Live (2026-07-25) | Register/Login/Logout end-to-end auf Render, Token in Browser-LocalStorage persistiert, AppBar mit ⋮-Logout |
-| **Finanzen (JWT-Roundtrip)** | ✅ Live (2026-07-25) | Bearer-Token in allen 5 Mobile-HTTP-Calls (initWallet/loadWallet/loadTransactions/sendMoney); Backend `GET /wallet` neu; Schema-Migration für legacy `wallet_priv`-Spalte |
-| **Phase 23 Security-Härtung** | ✅ Live (2026-07-25) | `POST /api/migrate` entfernt (Security-Lock); `preDeployCommand` Auto-Migration via `migrate.ts` (atomar); `security.test.ts` Regression-Lock aktiv (Commit 3414aea); ADMIN_KEY auf Render, `/api/admin/migrate` positive-control HTTP 200 verifiziert |
-| Finanzen (Taler Wallet-Client) | ✅ Client-Code live, EUR-ready | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519). **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var. Demo-KUDOS für Entwicklung. |
-| UX-Modernisierung (Finance/Health/Mobility) | ✅ Abgeschlossen | Finance: animierte Balance-Card, Quick Actions, Timeline. Health: Shimmer, DoctorCards mit Presseffekt, Gradienten. Mobility: GPS/Route/Marker Widgets, Gradienten. |
+| **Finanzen (JWT-Roundtrip)** | ✅ Live (2026-07-25) | Bearer-Token in allen 5 Mobile-HTTP-Calls; Backend `GET /wallet` neu; Schema-Migration |
+| **Phase 23 Security-Härtung** | ✅ Live (2026-07-25) | `POST /api/migrate` entfernt; `preDeployCommand` Auto-Migration; `security.test.ts` Regression-Lock |
+| Finanzen (Taler Wallet-Client) | ✅ Client-Code live, EUR-ready | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519, KUDOS); EUR-ready via `TALER_EXCHANGE_URL` |
+| UX-Modernisierung (Finance/Health/Mobility) | ✅ Abgeschlossen | Gradient-Karten, Pill-Nav, Bottom Sheets |
+| **Phase A: Mini-Program-Container** | ✅ **Live (2026-07-27)** | **WebView-Framework mit 10 Mini-Programmen (Futai, Wetter, Luft, Events, Jobs, E-Ladestationen, Abfall, Hotels, Parken, Bürgeramt) + Apps-Tab + Conditional Imports** |
+| **AI-Home Dashboard** | ✅ **Live** | **Personalisierter Startseiten-Tab mit Tageszeit-basierten Vorschlägen + Greeting-Card + Nearby-Stops** |
+| CI-Fix-Runde 2 | ✅ **Grün** | `withOpacity` (Flutter 3.24.5), `unnecessary_non_null_assertion` entfernt, Conditional Imports korrigiert |
 
 ## 🚀 HEIMAT Expansion — Neue Services
 
@@ -163,7 +166,7 @@ HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, abe
 
 | Service | Datenquelle | Status | AI |
 |---------|------------|--------|-----|
-| 💬 Chat (Futai) | github.com/abatn/futai | ⏳ Mini-Program | Ollama KI-Twin |
+| 💬 Chat (Futai) | github.com/abatn/futai | ✅ Mini-Program-Container fertig (Commit 92ec307) | Ollama KI-Twin |
 | 🌤️ Wetter | DWD (Deutscher Wetterdienst) | ⏳ Phase B | Unwetter-Früherkennung |
 | 🌬️ Luftqualität | Umweltbundesamt (UBA) | ⏳ Phase B | Gesundheitsempfehlung |
 | 🗑️ Abfallkalender | Kommunale Open Data | ⏳ Phase B | Sortier-Tipps |

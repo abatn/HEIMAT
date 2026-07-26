@@ -128,7 +128,10 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **DB-Connection**: Supavisor-Pooler via `family:4` IPv4-Force, SSL
 - **Taler Wallet-Client**: `exchange.demo.taler.net` erreichbar (GET /keys + /reserves). HEIMAT ist reiner Wallet-Client — kein eigener Exchange-Betreiber. Currency dynamisch aus /keys (Commit d91fc76) — EUR-ready via `TALER_EXCHANGE_URL` env var.
 - **UX-Modernisierung (Commit 5ad8068, 661afb28, f389001)**: FinanceScreen (animierte Balance-Card, Quick Actions, Timeline), HealthScreen (Shimmer, DoctorCards mit Presseffekt, Gradienten), MobilityScreen (GPS/Route/Marker Widgets, Gradienten)
-- **CI-Fix**: `unnecessary_null_comparison` lint durch `// ignore:` geloest, `dart format` auf beide Screens angewandt — Flutter CI stabil gruen
+- **CI-Fix Runde 1**: `unnecessary_null_comparison` lint durch `// ignore:` geloest, `dart format` auf beide Screens angewandt
+- **CI-Fix Runde 2 (2026-07-27)**: `withOpacity` statt `withValues` (Flutter 3.24.5 Kompatibilitaet), `unnecessary_non_null_assertion` in `home_screen.dart` entfernt, Conditional Imports korrigiert, `deploy-web.yml` safe.directory Fix — Flutter CI wieder gruen fuer Commit `246ece3`
+- **Phase A: Mini-Program-Container (Commit 92ec307)**: WebView-Framework mit 10 Mini-Programmen (Futai, Wetter, Luft, Events, Jobs, E-Ladestationen, Abfall, Hotels, Parken, Buergeramt) + Apps-Tab + Conditional Imports (dart:html fuer Web, Stub fuer Mobile)
+- **AI-Home Dashboard (Commit 0308bfaa)**: Personalisierter AI-Startseiten-Tab mit Tageszeit-basierten Vorschlaegen + Greeting-Card + Nearby-Stops
 - **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button ruft POST /api/finance/taler/fund-local auf — 25 KUDOS direkt in DB, kein Exchange noetig. P2P-Purse-System bereit.
 - **Backend CI**: Lint + Jest + tsc grün
 - **Swagger UI**: /docs + /docs.json live
@@ -148,6 +151,7 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow
 - Auth-Routing-Bug Regression-Test in mobile tests
 - Auto-Migration health-check (`npm run migrate:status`)
+- Phase B: Wetter/Luft/Abfall — naechste Services nach dem Mini-Program-Fundament
 
 ## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
 
@@ -155,23 +159,26 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 | # | Service | Datenquelle | AI | Status |
 |---|---------|------------|-----|--------|
-| 4 | 💬 **Chat/Social** | Futai (github.com/abatn/futai) integrieren via Mini-Program | Ollama Twin | ⏳ Phase D |
-| 5 | 🌤️ **Wetter** | DWD (Deutscher Wetterdienst) CC-BY | Unwetter-Früherkennung | ⏳ Phase B |
-| 6 | 🌬️ **Luftqualität** | Umweltbundesamt (UBA) Open Data | Gesundheitsempfehlung | ⏳ Phase B |
-| 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-Portale | Sortier-Tipps + Erinnerung | ⏳ Phase B |
-| 8 | 🔌 **E-Ladestationen** | OSM + GoingElectric | Routenplanung | ⏳ Phase C |
-| 9 | 💼 **Job-Suche** | BA (inoffiziell/Community-API) + Adzuna | Job-Matching | ⏳ Phase D |
-| 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | Persönl. Empfehlung | ⏳ Phase D |
-| 11 | 🏨 **Hotels** | OSM + Wikidata (nur Standort-Daten, keine Buchung) | Reise-Budget-Planung | ⏳ Phase E |
-| 12 | 🅿️ **Parken** | OpenStreetMap | — | ⏳ Phase C |
-| 13 | 🏛️ **Bürgeramt** | Kommunale APIs | AI-Terminfindung | ⏳ Phase E |
+| # | Service | Datenquelle | AI | Phase | Status |
+|---|---------|------------|-----|-------|--------|
+| 4 | 💬 **Chat/Social** | Futai (github.com/abatn/futai) via Mini-Program | Ollama Twin | D | ⏳ |
+| 5 | 🌤️ **Wetter** | DWD (Deutscher Wetterdienst) CC-BY | Unwetter-Früherkennung | B | ⏳ |
+| 6 | 🌬️ **Luftqualität** | Umweltbundesamt (UBA) Open Data | Gesundheitsempfehlung | B | ⏳ |
+| 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-Portale | Sortier-Tipps + Erinnerung | B | ⏳ |
+| 8 | 🔌 **E-Ladestationen** | OSM + GoingElectric | Routenplanung | C | ⏳ |
+| 9 | 💼 **Job-Suche** | BA (inoffiziell/Community-API) + Adzuna | Job-Matching | D | ⏳ |
+| 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | Persönl. Empfehlung | D | ⏳ |
+| 11 | 🏨 **Hotels** | OSM + Wikidata (nur Standort-Daten, keine Buchung) | Reise-Budget-Planung | E | ⏳ |
+| 12 | 🅿️ **Parken** | OpenStreetMap | — | C | ⏳ |
+| 13 | 🏛️ **Bürgeramt** | Kommunale APIs | AI-Terminfindung | E | ⏳ |
 
 ### Futai-Integration
 Futai ist eine React Native Social-Media-App unter github.com/abatn/futai (KI-Chat, Emotionen, Gedächtnis, Feed).
 Integration via **Mini-Program-Container (WebView)** — weil HEIMAT = Flutter ≠ React Native.
 
 ### Bau-Phasen
-A: Mini-Program-Container (2-3d) → B: Wetter/Luft/Abfall (3-5d) → C: E-Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20 Tage
+**A: Mini-Program-Container (2-3d) ✅ Live (Commit 92ec307, 2026-07-27)** — Fundament mit 10 Mini-Programmen und WebView-Framework.
+B: Wetter/Luft/Abfall (3-5d) → C: Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20 Tage
 
 ## Additional instruction files
 

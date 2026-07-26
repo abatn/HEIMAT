@@ -183,23 +183,59 @@ Futai ist eine React Native (Expo) Social-Media-App mit KI-Chat (Ollama), 12 Emo
 
 | Phase | Services | Tage |
 |-------|----------|------|
-| **A** | Mini-Program-Container (Fundament) | 2-3 |
+| **A** | Mini-Program-Container (Fundament) | ✅ Abgeschlossen |
 | **B** | Wetter (DWD) + Luftqualität (UBA) + Abfallkalender | 3-5 |
 | **C** | E-Ladestationen (OSM) + Parken (OSM) | 2-3 |
 | **D** | Futai-Chat (Mini-Program) + Job-Suche (BA) + Veranstaltungen | 3-5 |
 | **E** | Hotels (OSM/Wikidata) + Bürgeramt | 5-7 |
 | **🎯 Gesamt** | **10 neue Services** | **~15-20 Tage** |
 
-### AI-Strategie
+### AI-Strategie (Phase 25-26)
 
-Jeder Service bekommt eine AI-Komponente basierend auf Open-Source-Modellen (keine Cloud-AI):
-- **Wetter:** Unwetter-Früherkennung aus DWD-Trends (ML Service + R)
-- **Luft:** Gesundheitsempfehlung (Asthma-Risiko) via LightGBM
-- **Abfall:** Sortier-Tipps via Natural BayesClassifier
-- **Futai:** KI-Twin Chat via Ollama (lokal)
-- **Jobs:** Job-Matching via Keyword + Embeddings
-- **Events:** Personalisierte Empfehlung via Collaborative Filtering
-- **Hotels:** Budget-gerechte Reiseplanung via ML Budget Classifier
+**Vision:** AI als intelligente, zentrale Schicht über ALLEN Services — kein fragmentiertes AI mehr.
+
+#### Stufe 1: AI-Home Dashboard (2-3 Tage)
+Ein personalisiertes Dashboard, das AI-gesteuert die relevantesten Informationen pro Tageszeit/Location anzeigt:
+- 🌅 Morgens: Wetter + ÖPNV-Verspätungen + Abfallkalender
+- 🏢 Tagsüber: Nächste Termine + Routenvorschläge
+- 🎪 Wochenende: Veranstaltungen + Wetter + Ausflugsziele
+- 💼 Beruf: Job-Empfehlungen + Skill-Gap
+
+#### Stufe 2: Universal AI Assistant (5-7 Tage)
+Ein AI-Chat (basiert auf Futai's Ollama-Twin), der ALLE Services versteht und quervernetzt:
+- „Morgen 10 Uhr Arzt in Berlin" → Route + Wetter + Parken vorschlagen
+- „Wochenend-Trip nach Hamburg" → Hotels + Route + Events + Wetter kombinieren
+- Futai's Gedächtnis + Emotionen + HEIMATs BayesClassifier fusionieren
+
+#### AI pro Service (erweitert)
+
+| Service | AI-Feature | Technologie |
+|---------|-----------|-------------|
+| 🌤️ Wetter | Unwetter-Früherkennung + Natürliche Wetter-Ansage | ML Service + R + Ollama |
+| 🌬️ Luft | Gesundheitsempfehlung + Asthma-Risiko | LightGBM Classifier |
+| 🗑️ Abfall | Proaktive Erinnerung + Sortier-Tipps | Natural BayesClassifier |
+| 🔌 Ladestation | Predictive Route + Ladestopp-Optimierung | RAPTOR-artig + ML |
+| 💼 Jobs | Job-Matching + Skill-Gap + Profil-Learning | Keyword + Embeddings |
+| 📰 Events | Personalisierte Empfehlung + Wetter-Kopplung | Collaborative Filtering |
+| 🏨 Hotels | Budget-Reiseplanung + Routenoptimierung | ML Budget Classifier |
+| 💬 Futai | ZENTRALE AI — Ollama-Twin für ALLE Services | Ollama 7B lokal |
+
+#### AI-Architektur
+```
+Futai Ollama (lokal) ←→ HEIMAT AI Layer
+     │                        │
+     ├── Chat/Twin            ├── BayesClassifier (Intent)
+     ├── Emotion Memory       ├── LightGBM (Predictions)
+     ├── Feed Curation        └── ML Service (Budget/Delay)
+     └── Suggestion Engine
+               │
+      Cross-Service Intelligence
+      ├── Weather → Route → Event
+      ├── Job → Location → Commute
+      └── Health → Weather → Transport
+```
+
+**Prinzip:** Keine Cloud-AI, keine API-Kosten. Alles lokal via Ollama + Open-Source-Modelle. Privacy-by-Design.
 
 ## Phase 23 Recap — Stand Juli 2026
 
@@ -231,11 +267,25 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 **⚠️ Option B (Bank-API automatisieren) ist ein Dead End (2026-07-26):** Die Taler-Demo-Bank (`bank.demo.taler.net`) hat nur Lese-API-Endpoints (`GET /accounts/{username}`, `GET /accounts/{username}/transactions`, `POST /accounts/{username}/token`). Es gibt KEINEN REST-Endpoint um einen Wire-Transfer programmatisch auszuloesen. Die Web-UI erfordert eine Taler Wallet Browser Extension. Automatisierung ist nur via `POST /admin/add-incoming` moeglich (benoetigt Admin-Login, nicht User-Login). Demo-KUDOS via `/api/finance/taler/fund-local` bleibt der einzig praktikable Weg fuer Demo-Zwecke.
 
-### ❌ Was fehlt
-- **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus der gelöschten auth_finance_logout_test.dart.
+### ✅ Phase A: Mini-Program-Container (2026-07-27)
+**Status: 🎉 Live!** Mini-Program-Container (WebView-Framework) ist das Fundament für die HEIMAT-Expansion auf 10+ Services.
+
+**Commit 92ec307** — 7 Dateien, 913 Zeilen neuer Code:
+- `miniprogram_model.dart` — Datenmodell für Mini-Programme (Name, Icon, Kategorie, URL, Farbe)
+- `miniprogram_provider.dart` — Registry mit 10 Standard-Mini-Programmen (Futai, Wetter, Luft, Events, Jobs, E-Ladestationen, Abfall, Hotels, Parken, Bürgeramt) + Kategorie-Filter
+- `miniprogram_container.dart` — Cross-Plattform Container mit Conditional Imports (dart:html für Web, Stub für Mobile)
+- `miniprogram_container_web.dart` — IFrameElement via HtmlElementView
+- `miniprogram_container_stub.dart` — Leerer Stub für mobile Kompilation
+- `miniprogram_launcher_screen.dart` — Launcher mit Suche, Kategorie-Pillen, 2-Spalten-Grid, Viewer mit URL-Leiste, Bottom Sheet
+- `main.dart` — MiniProgramProvider + 5th Tab "Apps"
+
+**CI-Kompatibilität:** `withOpacity` statt `withValues` (Flutter 3.24.5), Conditional Imports ohne `else`-Klausel, kein `dart:io`/`dart:html` auf Mobile
+
+### ❌ Was fehlt (echte Lücken)
+- **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus.
 - Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow
-- Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern mit `Navigator.pushNamedAndRemoveUntil('/', …)`) — kein Pre-Commit-Test
-- Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
+- Auth-Routing-Bug Regression-Test
+- Auto-Migration health-check Tool
 
 
 

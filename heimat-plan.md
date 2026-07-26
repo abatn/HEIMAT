@@ -20,9 +20,12 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Taler Wallet-Client**: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` live. **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
 - **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button via POST /api/finance/taler/fund-local — 25 KUDOS direkt in DB, kein Exchange. P2P-Purse-System bereit.
 - **UX-Modernisierung (Commit 5ad8068, 661afb28, f389001)**: FinanceScreen (animierte Balance-Card, Quick Actions, Timeline), HealthScreen (Shimmer, DoctorCards mit Presseffekt, Gradienten), MobilityScreen (GPS/Route/Marker Widgets, Gradienten)
-- **CI-Fix**: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt — Flutter CI stabil grün
-- **Backend CI grün**: Lint + Jest (113+ Tests) + tsc --noEmit auf jedem `src/backend/**` push
-- **Mobile CI grün**: dart format + flutter analyze + flutter test auf jedem `src/mobile/**` push
+- **CI-Fix Runde 1**: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt
+- **CI-Fix Runde 2 (2026-07-27)**: `withOpacity` statt `withValues` (Flutter 3.24.5-Kompatibilität), `unnecessary_non_null_assertion` in `home_screen.dart` entfernt, Conditional Imports ohne `else`-Klausel korrigiert, `deploy-web.yml` safe.directory Fix — CI grün für Commit `246ece3`
+- **Phase A: Mini-Program-Container (Commit 92ec307)**: WebView-Framework mit 10 Mini-Programmen (Futai, Wetter, Luft, Events, Jobs, E-Ladestationen, Abfall, Hotels, Parken, Bürgeramt) + Conditional Imports (dart:html für Web, Stub für Mobile) + Apps-Tab
+- **AI-Home Dashboard (Commit 0308bfaa)**: Personalisierter Startseiten-Tab + Greeting-Card + Nearby-Stops + RecordAction-Cross-Provider
+- **Backend CI grün**: Lint + Jest (113+ Tests) + tsc --noEmit
+- **Mobile CI grün**: dart format + flutter analyze + flutter test — CI grün (Commit 246ece3 Verifikation)
 - **Swagger/OpenAPI**: /docs UI + /docs.json live
 - **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
 
@@ -77,12 +80,12 @@ Futai (github.com/abatn/futai) ist eine komplette React Native Social-Media-App:
 
 | Phase | Services | Tage | Priorität |
 |-------|----------|------|-----------|
-| **A** | Mini-Program-Container (WebView-Framework) | 2-3 | 🥇 Fundament |
+| **A** ✅ | **Mini-Program-Container (WebView-Framework)** — **Live (Commit 92ec307, 2026-07-27)** | **7 Dateien, 913 Zeilen** | 🥇 Fundament ✅ |
 | **B** | Wetter (DWD) + Luftqualität (UBA) + Abfallkalender | 3-5 | 🥇 Tägliche Helfer |
 | **C** | E-Ladestationen (OSM) + Parken (OSM) | 2-3 | 🥈 Mobilität Plus |
 | **D** | Futai-Chat + Job-Suche (BA) + Veranstaltungen | 3-5 | 🥈 Social + Jobs |
 | **E** | Hotels (OSM/Wikidata) + Bürgeramt | 5-7 | 🥉 Ökosystem |
-| **🎯** | **10 neue Services gesamt** | **~15-20** | |
+| **🎯** | **10 neue Services gesamt** — **Phase A Fundament steht** | **~15-20 Tage verbleibend** | |
 
 ### AI-Strategie
 

@@ -16,7 +16,10 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - DB-Connection: Supavisor-Pooler mit IPv4-Force (`family:4`), SSL — stabil
 - Taler-Exchange-Client: GET /keys + GET /reserves/<pub> gegen `exchange.demo.taler.net` (Ed25519, KUDOS)
 - **UX-Modernisierung (Commit 5ad8068, 661afb28, f389001)**: FinanceScreen (animierte Balance-Card, Quick Actions, Timeline), HealthScreen (Shimmer, DoctorCards mit Presseffekt, Gradienten), MobilityScreen (GPS/Route/Marker Widgets, Gradienten)
-- **CI-Fix**: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt — Flutter CI stabil grün
+- **CI-Fix Runde 1**: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt
+- **CI-Fix Runde 2 (2026-07-27)**: `withOpacity` statt `withValues` (Flutter 3.24.5), `unnecessary_non_null_assertion` in `home_screen.dart` entfernt, Conditional Imports korrigiert, `deploy-web.yml` safe.directory Fix — alle CI-Workflows grün (Commit 246ece3)
+- **Phase A: Mini-Program-Container (Commit 92ec307)**: 10 Mini-Programme + Apps-Tab + Conditional Imports (web/mobile)
+- **AI-Home Dashboard (Commit 0308bfaa)**: Personalisierter Startseiten-Tab mit Greeting-Card + Nearby-Stops + RecordAction-Cross-Provider
 - Backend CI + Mobile CI grün auf `main`
 - Swagger/OpenAPI /docs + /docs.json
 - Mobilität und Gesundheit seit MVP grün
@@ -74,7 +77,8 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 | 13 | 🏛️ Bürgeramt | Kommunale APIs | AI-Terminfindung | E |
 
 ### Bau-Phasen
-A: Mini-Program-Container (2-3d) → B: Wetter/Luft/Abfall (3-5d) → C: Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20 Tage
+**A: Mini-Program-Container (2-3d) ✅ Live (Commit 92ec307, 2026-07-27)** — 10 Mini-Programme + WebView-Framework.
+B: Wetter/Luft/Abfall (3-5d) → C: Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20 Tage
 
 ### Futai-Integration
 https://github.com/abatn/futai — React Native Social-Media-App mit KI-Chat (Ollama), 12 Emotionen, Gedächtnis, Social Feed (353 Tests). Integration via Mini-Program-Container (WebView), weil HEIMAT = Flutter ≠ React Native.
