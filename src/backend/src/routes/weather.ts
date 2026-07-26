@@ -33,10 +33,12 @@ weatherRouter.get('/current', asyncHandler(async (req: Request, res: Response) =
       source: data.source,
     });
   } catch (e: unknown) {
-    logger.error(`Weather fetch failed: ${e}`);
+    const errMsg = e instanceof Error ? e.message : String(e);
+    logger.error(`Weather fetch failed: ${errMsg}`);
     res.status(502).json({
       status: 'error',
       message: 'Wetterdaten konnten nicht abgerufen werden',
+      detail: errMsg,
     });
   }
 }));
@@ -69,10 +71,12 @@ weatherRouter.get('/forecast', asyncHandler(async (req: Request, res: Response) 
       source: data.source,
     });
   } catch (e: unknown) {
-    logger.error(`Weather forecast fetch failed: ${e}`);
+    const errMsg = e instanceof Error ? e.message : String(e);
+    logger.error(`Weather forecast fetch failed: ${errMsg}`);
     res.status(502).json({
       status: 'error',
       message: 'Wettervorhersage konnte nicht abgerufen werden',
+      detail: errMsg,
     });
   }
 }));

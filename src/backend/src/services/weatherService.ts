@@ -119,10 +119,11 @@ export class WeatherService {
       return cached.data;
     }
 
-    // Ein einziger Open-Meteo-Request: current + hourly + daily in einem Call
+    // Open-Meteo + Reverse-Geocode parallel, aber entkoppelt:
+    // Fehler beim Reverse-Geocode duerfen die Wetterdaten NICHT blockieren
     const [openMeteoData, locationName] = await Promise.all([
       this.fetchAll(lat, lng),
-      this.reverseGeocode(lat, lng),
+      this.reverseGeocode(lat, lng).catch(() => `${lat.toFixed(2)}, ${lng.toFixed(2)}`),
     ]);
 
     const weather: WeatherData = {
@@ -185,7 +186,7 @@ export class WeatherService {
     const response = await axios.get(`${this.baseUrl}/forecast`, {
       params,
       headers: { 'User-Agent': this.userAgent },
-      timeout: 10000,
+      timeout: 15000,
     });
 
     const d = response.data;
