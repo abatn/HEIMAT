@@ -149,8 +149,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
         children: [
           Row(
             children: [
-              _routeInfoChip(Icons.straighten, '$distKm km',
-                  AppColors.primary),
+              _routeInfoChip(Icons.straighten, '$distKm km', AppColors.primary),
               const SizedBox(width: 12),
               _routeInfoChip(
                   Icons.schedule, '$distMin Min', AppColors.secondary),
@@ -165,14 +164,14 @@ class _MobilityScreenState extends State<MobilityScreen> {
             ),
             child: Column(
               children: [
-                _routeLine(Icons.circle, _startController.text,
-                    AppColors.primary),
+                _routeLine(
+                    Icons.circle, _startController.text, AppColors.primary),
                 const SizedBox(height: 4),
                 _routeLine(Icons.arrow_downward, '$distKm km · $distMin Min',
                     AppColors.textSecondary),
                 const SizedBox(height: 4),
-                _routeLine(Icons.location_on, _endController.text,
-                    AppColors.error),
+                _routeLine(
+                    Icons.location_on, _endController.text, AppColors.error),
               ],
             ),
           ),
@@ -187,8 +186,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 8),
         Text(text,
-            style:
-                TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
       ],
     );
   }
@@ -298,8 +296,8 @@ class _MobilityScreenState extends State<MobilityScreen> {
                                     end: Alignment.bottomRight,
                                   ),
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white, width: 2),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                   boxShadow: [
                                     BoxShadow(
                                       color: _stopColor(stop.stopType)
@@ -575,23 +573,18 @@ class _MobilityScreenState extends State<MobilityScreen> {
                                           borderRadius:
                                               BorderRadius.circular(10),
                                         ),
-                                        child: const Icon(
-                                            Icons.location_on,
-                                            color: AppColors.primary,
-                                            size: 20),
+                                        child: const Icon(Icons.location_on,
+                                            color: AppColors.primary, size: 20),
                                       ),
-                                      title: Text(
-                                          displayName.split(',').first,
+                                      title: Text(displayName.split(',').first,
                                           style: const TextStyle(
                                               fontSize: 15,
                                               fontWeight: FontWeight.w500)),
-                                      subtitle: Text(
-                                          '$lat, $lng',
+                                      subtitle: Text('$lat, $lng',
                                           style: const TextStyle(
                                               fontSize: 12,
                                               color: AppColors.textSecondary)),
-                                      onTap: () =>
-                                          _selectSearchResult(result),
+                                      onTap: () => _selectSearchResult(result),
                                     ),
                                   );
                                 },
@@ -633,10 +626,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
                       height: 10,
                       decoration: const BoxDecoration(
                           color: AppColors.primary, shape: BoxShape.circle)),
-                  Container(
-                      width: 1,
-                      height: 20,
-                      color: AppColors.border),
+                  Container(width: 1, height: 20, color: AppColors.border),
                   Container(
                       width: 10,
                       height: 10,
@@ -742,8 +732,8 @@ class _MobilityScreenState extends State<MobilityScreen> {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: _stopColor(stop.stopType).withOpacity(0.2)),
+              border:
+                  Border.all(color: _stopColor(stop.stopType).withOpacity(0.2)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -921,8 +911,7 @@ class _ActionButton extends StatelessWidget {
         backgroundColor: color,
         foregroundColor: Colors.white,
         icon: Icon(icon, size: 20),
-        label: Text(label,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
         ),

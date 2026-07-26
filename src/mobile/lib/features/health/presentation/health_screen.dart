@@ -136,8 +136,7 @@ class _HealthScreenState extends State<HealthScreen> {
             ),
             child: const Row(
               children: [
-                Icon(Icons.info_outline,
-                    size: 18, color: AppColors.primary),
+                Icon(Icons.info_outline, size: 18, color: AppColors.primary),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -354,9 +353,7 @@ class _HealthScreenState extends State<HealthScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                     side: BorderSide(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.border,
+                      color: isSelected ? AppColors.primary : AppColors.border,
                     ),
                     onSelected: (_) {
                       setState(() => selectedTime = slot.startTime);
@@ -406,8 +403,7 @@ class _HealthScreenState extends State<HealthScreen> {
             child: SizedBox(
               height: 42,
               child: ListView.separated(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 scrollDirection: Axis.horizontal,
                 itemCount: _specialties.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
@@ -420,7 +416,8 @@ class _HealthScreenState extends State<HealthScreen> {
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(icon, size: 16,
+                          Icon(icon,
+                              size: 16,
                               color: isSelected
                                   ? Colors.white
                                   : AppColors.textSecondary),
@@ -434,17 +431,15 @@ class _HealthScreenState extends State<HealthScreen> {
                       checkmarkColor: Colors.white,
                       showCheckmark: false,
                       side: BorderSide(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.border,
+                        color:
+                            isSelected ? AppColors.primary : AppColors.border,
                         width: isSelected ? 0 : 1,
                       ),
                       labelStyle: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.textPrimary,
+                        color:
+                            isSelected ? Colors.white : AppColors.textPrimary,
                       ),
                       onSelected: (_) {
                         setState(() => _selectedSpecialty = value);
@@ -631,8 +626,7 @@ class _DoctorCardState extends State<_DoctorCard> {
                               ),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                  color:
-                                      AppColors.secondary.withOpacity(0.2)),
+                                  color: AppColors.secondary.withOpacity(0.2)),
                             ),
                             child: const Text(
                               'OSM',
