@@ -24,7 +24,7 @@ aiRouter.get('/home', asyncHandler(async (req: Request, res: Response) => {
 // Body: { recentActions: string[] }
 // ---------------------------------------------------------------------------
 
-aioRouter.post('/home/personalized', asyncHandler(async (req: Request, res: Response) => {
+aiRouter.post('/home/personalized', asyncHandler(async (req: Request, res: Response) => {
   const { recentActions } = req.body;
   const actions: string[] = Array.isArray(recentActions) ? recentActions : [];
   const context = getPersonalizedContext(actions);
