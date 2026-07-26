@@ -142,6 +142,8 @@ export class WeatherService {
   // fetchAll — EIN Open-Meteo-Request: current + hourly + daily
   // ---------------------------------------------------------------------------
 
+  private readonly maxRetries = 3;
+
   private async fetchAll(lat: number, lng: number): Promise<{
     current: CurrentWeather & { hourly: HourlyForecast[] };
     hourly: HourlyForecast[];
@@ -183,13 +185,37 @@ export class WeatherService {
       timezone: 'Europe/Berlin',
     };
 
-    const response = await axios.get(`${this.baseUrl}/forecast`, {
-      params,
-      headers: { 'User-Agent': this.userAgent },
-      timeout: 15000,
-    });
+    // Retry-Logik mit exponenziellem Backoff bei 429 (Rate Limit)
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response = await axios.get(`${this.baseUrl}/forecast`, {
+          params,
+          headers: { 'User-Agent': this.userAgent },
+          timeout: 15000,
+        });
+        return this.parseResponse(response.data);
+      } catch (e: unknown) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        const axiosError = e as { response?: { status?: number } };
+        const status = axiosError.response?.status;
+        if (status === 429 && attempt < this.maxRetries) {
+          const waitMs = Math.min(1000 * Math.pow(2, attempt), 5000);
+          logger.warn(`Open-Meteo 429 (attempt ${attempt}/${this.maxRetries}), retrying in ${waitMs}ms`);
+          await new Promise(r => setTimeout(r, waitMs));
+          continue;
+        }
+        break;
+      }
+    }
+    throw lastError || new Error('Open-Meteo request failed');
+  }
 
-    const d = response.data;
+  private parseResponse(d: any): {
+    current: CurrentWeather & { hourly: HourlyForecast[] };
+    hourly: HourlyForecast[];
+    daily: DailyForecast[];
+  } {
     const c = d.current;
 
     // Stündliche Vorhersage parsen
