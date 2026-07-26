@@ -161,9 +161,9 @@ Basierend auf WeChat (China) und Grab (Singapur) wird HEIMAT von 3 auf **10+ Ser
 | 6 | 🌬️ **Luftqualität** | Umweltbundesamt (UBA) | 🏛️ Staatlich Open Data | ✅ | Gesundheitsempfehlung |
 | 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-Portale | 🏛️ Staatlich | ✅ | Sortier-Tipps + Erinnerung |
 | 8 | 🔌 **E-Ladestationen** | OpenStreetMap + GoingElectric | 🌍 Open Source | ⚠️ | Routenplanung inkl. Ladestopps |
-| 9 | 💼 **Job-Suche** | BA (Bundesagentur für Arbeit) + Adzuna | 🏛️ Staatlich / Kommerziell | ✅ | Job-Matching + Skill-Gap |
+| 9 | 💼 **Job-Suche** | BA (inoffizielle/Community-API) + Adzuna | 🏛️ Staatlich / Kommerziell | ✅ | Job-Matching + Skill-Gap |
 | 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | 🌍 Open Source | ✅ | Personalisierte Empfehlung |
-| 11 | 🏨 **Hotels & Unterkünfte** | OpenStreetMap + Wikidata | 🌍 Open Source | ❌ | Reiseplanung mit Budget |
+| 11 | 🏨 **Hotels & Unterkünfte** | OSM + Wikidata (nur Standort-Daten, keine Buchung) | 🌍 Open Source | ❌ | Reiseplanung mit Budget |
 | 12 | 🅿️ **Parken** | OpenStreetMap (OSM) | 🌍 Open Source | ⚠️ | — |
 | 13 | 🏛️ **Bürgeramt-Services** | Kommunale APIs | 🏛️ Staatlich | ✅ | AI-Terminfindung |
 

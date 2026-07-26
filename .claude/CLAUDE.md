@@ -258,9 +258,9 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 | 6 | 🌬️ Luftqualität | UBA luftdaten.umweltbundesamt.de | Gesundheitsempfehlung |
 | 7 | 🗑️ Abfallkalender | Kommunale Open-Data-iCal | Sortier-Tipps |
 | 8 | 🔌 E-Ladestationen | OSM + GoingElectric | Routenplanung |
-| 9 | 💼 Job-Suche | BA (Bundesagentur) + Adzuna | Job-Matching |
+| 9 | 💼 Job-Suche | BA (inoffiziell/Community-API) + Adzuna | Job-Matching |
 | 10 | 📰 Veranstaltungen | Wikidata + OSM | Persönl. Empfehlung |
-| 11 | 🏨 Hotels | OSM + Wikidata (Standorte) | Reise-Budget |
+| 11 | 🏨 Hotels | OSM + Wikidata (nur Standort-Daten, keine Buchung) | Reise-Budget |
 | 12 | 🅿️ Parken | OSM | — |
 | 13 | 🏛️ Bürgeramt | Kommunale APIs | AI-Terminfindung |
 

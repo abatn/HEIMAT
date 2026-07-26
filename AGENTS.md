@@ -160,9 +160,9 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 | 6 | 🌬️ **Luftqualität** | Umweltbundesamt (UBA) Open Data | Gesundheitsempfehlung | ⏳ Phase B |
 | 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-Portale | Sortier-Tipps + Erinnerung | ⏳ Phase B |
 | 8 | 🔌 **E-Ladestationen** | OSM + GoingElectric | Routenplanung | ⏳ Phase C |
-| 9 | 💼 **Job-Suche** | BA Bundesagentur + Adzuna | Job-Matching | ⏳ Phase D |
+| 9 | 💼 **Job-Suche** | BA (inoffiziell/Community-API) + Adzuna | Job-Matching | ⏳ Phase D |
 | 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | Persönl. Empfehlung | ⏳ Phase D |
-| 11 | 🏨 **Hotels** | OSM + Wikidata (nur Standorte) | Reise-Budget-Planung | ⏳ Phase E |
+| 11 | 🏨 **Hotels** | OSM + Wikidata (nur Standort-Daten, keine Buchung) | Reise-Budget-Planung | ⏳ Phase E |
 | 12 | 🅿️ **Parken** | OpenStreetMap | — | ⏳ Phase C |
 | 13 | 🏛️ **Bürgeramt** | Kommunale APIs | AI-Terminfindung | ⏳ Phase E |
 
