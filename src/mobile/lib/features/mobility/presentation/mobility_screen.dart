@@ -149,41 +149,72 @@ class _MobilityScreenState extends State<MobilityScreen> {
         children: [
           Row(
             children: [
-              _routeInfoChip(Icons.straighten, '$distKm km'),
+              _routeInfoChip(Icons.straighten, '$distKm km',
+                  AppColors.primary),
               const SizedBox(width: 12),
-              _routeInfoChip(Icons.schedule, '$distMin Min'),
+              _routeInfoChip(
+                  Icons.schedule, '$distMin Min', AppColors.secondary),
             ],
           ),
           const SizedBox(height: 16),
-          Text('Von: ${_startController.text}',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13)),
-          const SizedBox(height: 4),
-          Text('Nach: ${_endController.text}',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13)),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                _routeLine(Icons.circle, _startController.text,
+                    AppColors.primary),
+                const SizedBox(height: 4),
+                _routeLine(Icons.arrow_downward, '$distKm km · $distMin Min',
+                    AppColors.textSecondary),
+                const SizedBox(height: 4),
+                _routeLine(Icons.location_on, _endController.text,
+                    AppColors.error),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _routeInfoChip(IconData icon, String label) {
+  Widget _routeLine(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 8),
+        Text(text,
+            style:
+                TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+      ],
+    );
+  }
+
+  Widget _routeInfoChip(IconData icon, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.12), color.withOpacity(0.04)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
+          Icon(icon, size: 16, color: color),
           const SizedBox(width: 6),
           Text(label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+                color: color,
               )),
         ],
       ),
@@ -205,7 +236,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Karte
+          // Map
           if (!_showSearch)
             Consumer<MobilityProvider>(
               builder: (context, provider, _) {
@@ -239,46 +270,14 @@ class _MobilityScreenState extends State<MobilityScreen> {
                             point: _startLocation!,
                             width: 44,
                             height: 44,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                                border:
-                                    Border.all(color: Colors.white, width: 3),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(Icons.circle,
-                                  color: Colors.white, size: 12),
-                            ),
+                            child: _MapMarker(color: AppColors.primary),
                           ),
                         if (_endLocation != null)
                           Marker(
                             point: _endLocation!,
                             width: 44,
                             height: 44,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.error,
-                                shape: BoxShape.circle,
-                                border:
-                                    Border.all(color: Colors.white, width: 3),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.error.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(Icons.circle,
-                                  color: Colors.white, size: 12),
-                            ),
+                            child: _MapMarker(color: AppColors.error),
                           ),
                         for (final stop in provider.nearbyStops)
                           Marker(
@@ -289,16 +288,24 @@ class _MobilityScreenState extends State<MobilityScreen> {
                               onTap: () => _showStopInfo(stop),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: _stopColor(stop.stopType),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      _stopColor(stop.stopType),
+                                      _stopColor(stop.stopType)
+                                          .withOpacity(0.8),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                                   shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
+                                  border: Border.all(
+                                      color: Colors.white, width: 2),
                                   boxShadow: [
                                     BoxShadow(
                                       color: _stopColor(stop.stopType)
-                                          .withOpacity(0.25),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
+                                          .withOpacity(0.35),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
                                     ),
                                   ],
                                 ),
@@ -314,7 +321,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
               },
             ),
 
-          // Suchfeld oben
+          // Search panel
           if (!_showSearch)
             Positioned(
               top: MediaQuery.of(context).padding.top + 8,
@@ -323,13 +330,12 @@ class _MobilityScreenState extends State<MobilityScreen> {
               child: _buildSearchPanel(),
             ),
 
-          // GPS "Locate Me" Button
+          // GPS Button
           if (!_showSearch)
             Positioned(
               top: MediaQuery.of(context).padding.top + 140,
               right: 16,
-              child: FloatingActionButton(
-                heroTag: 'gps',
+              child: _GpsButton(
                 onPressed: () async {
                   LatLng? loc = await LocationService.getCurrentLocation();
                   if (loc != null && mounted) {
@@ -341,13 +347,10 @@ class _MobilityScreenState extends State<MobilityScreen> {
                         );
                   }
                 },
-                backgroundColor: AppColors.card,
-                foregroundColor: AppColors.primary,
-                child: const Icon(Icons.my_location),
               ),
             ),
 
-          // Ladezustand
+          // Loading state
           if (!_showSearch)
             Consumer<MobilityProvider>(
               builder: (context, provider, _) {
@@ -357,23 +360,36 @@ class _MobilityScreenState extends State<MobilityScreen> {
                   left: 0,
                   right: 0,
                   child: Center(
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            SizedBox(
-                                width: 18,
-                                height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2)),
-                            SizedBox(width: 12),
-                            Text('Lade Daten...',
-                                style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.primary),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text('Lade Daten...',
+                              style: TextStyle(fontSize: 13)),
+                        ],
                       ),
                     ),
                   ),
@@ -381,7 +397,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
               },
             ),
 
-          // Fehler
+          // Error
           if (!_showSearch)
             Consumer<MobilityProvider>(
               builder: (context, provider, _) {
@@ -390,20 +406,44 @@ class _MobilityScreenState extends State<MobilityScreen> {
                   bottom: 24,
                   left: 16,
                   right: 16,
-                  child: Card(
-                    color: AppColors.error,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(provider.error!,
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 13)),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.error.withOpacity(0.9),
+                          AppColors.error.withOpacity(0.7),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.error.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(provider.error!,
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 13)),
+                        ),
+                      ],
                     ),
                   ),
                 );
               },
             ),
 
-          // Routen- + Reise-Buttons
+          // Route + Journey buttons
           if (!_showSearch)
             Consumer<MobilityProvider>(
               builder: (context, provider, _) {
@@ -414,11 +454,14 @@ class _MobilityScreenState extends State<MobilityScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FloatingActionButton.extended(
+                      _ActionButton(
                         heroTag: 'journey',
+                        icon: Icons.route,
+                        label: 'Reise',
+                        color: AppColors.secondary,
                         onPressed: () async {
-                          final provider = context.read<MobilityProvider>();
-                          await provider.loadJourney(
+                          final p = context.read<MobilityProvider>();
+                          await p.loadJourney(
                             _startLocation!.latitude,
                             _startLocation!.longitude,
                             _endLocation!.latitude,
@@ -432,19 +475,14 @@ class _MobilityScreenState extends State<MobilityScreen> {
                             );
                           }
                         },
-                        backgroundColor: AppColors.secondary,
-                        foregroundColor: Colors.white,
-                        icon: const Icon(Icons.route),
-                        label: const Text('Reise'),
                       ),
                       const SizedBox(height: 8),
-                      FloatingActionButton.extended(
+                      _ActionButton(
                         heroTag: 'routeInfo',
+                        icon: Icons.info_outline,
+                        label: 'Route',
+                        color: AppColors.primary,
                         onPressed: () => _showRouteInfo(provider),
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        icon: const Icon(Icons.info_outline),
-                        label: const Text('Route'),
                       ),
                     ],
                   ),
@@ -452,7 +490,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
               },
             ),
 
-          // Vollbild-Suche
+          // Full-screen search
           if (_showSearch)
             Positioned.fill(
               child: Material(
@@ -464,13 +502,20 @@ class _MobilityScreenState extends State<MobilityScreen> {
                         padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
                         child: Row(
                           children: [
-                            IconButton(
-                              onPressed: () => setState(() {
-                                _showSearch = false;
-                                _searchResults = [];
-                              }),
-                              icon: const Icon(Icons.arrow_back),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                onPressed: () => setState(() {
+                                  _showSearch = false;
+                                  _searchResults = [];
+                                }),
+                                icon: const Icon(Icons.arrow_back),
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: TextField(
                                 autofocus: true,
@@ -488,13 +533,24 @@ class _MobilityScreenState extends State<MobilityScreen> {
                           ],
                         ),
                       ),
-                      const Divider(height: 1),
+                      const Divider(height: 1, color: AppColors.border),
                       Expanded(
                         child: _searchResults.isEmpty
-                            ? const Center(
-                                child: Text('Tippe mindestens 3 Buchstaben...',
-                                    style: TextStyle(
-                                        color: AppColors.textSecondary)),
+                            ? Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.search,
+                                        size: 48,
+                                        color: AppColors.textSecondary
+                                            .withOpacity(0.3)),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                        'Tippe mindestens 3 Buchstaben...',
+                                        style: TextStyle(
+                                            color: AppColors.textSecondary)),
+                                  ],
+                                ),
                               )
                             : ListView.builder(
                                 itemCount: _searchResults.length,
@@ -502,19 +558,41 @@ class _MobilityScreenState extends State<MobilityScreen> {
                                   final result = _searchResults[index];
                                   final displayName =
                                       result['display_name'] as String? ?? '';
-                                  return ListTile(
-                                    leading: const Icon(Icons.location_on,
-                                        color: AppColors.textSecondary,
-                                        size: 20),
-                                    title: Text(displayName.split(',').first,
-                                        style: const TextStyle(fontSize: 15)),
-                                    subtitle: Text(displayName,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.textSecondary)),
-                                    onTap: () => _selectSearchResult(result),
+                                  final lat = result['lat'];
+                                  final lng = result['lng'];
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ListTile(
+                                      leading: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(
+                                            Icons.location_on,
+                                            color: AppColors.primary,
+                                            size: 20),
+                                      ),
+                                      title: Text(
+                                          displayName.split(',').first,
+                                          style: const TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500)),
+                                      subtitle: Text(
+                                          '$lat, $lng',
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary)),
+                                      onTap: () =>
+                                          _selectSearchResult(result),
+                                    ),
                                   );
                                 },
                               ),
@@ -555,7 +633,10 @@ class _MobilityScreenState extends State<MobilityScreen> {
                       height: 10,
                       decoration: const BoxDecoration(
                           color: AppColors.primary, shape: BoxShape.circle)),
-                  Container(width: 1, height: 20, color: AppColors.border),
+                  Container(
+                      width: 1,
+                      height: 20,
+                      color: AppColors.border),
                   Container(
                       width: 10,
                       height: 10,
@@ -584,12 +665,17 @@ class _MobilityScreenState extends State<MobilityScreen> {
             ),
             if (_startController.text.isNotEmpty ||
                 _endController.text.isNotEmpty)
-              IconButton(
-                onPressed: _swapLocations,
-                icon: const Icon(Icons.swap_vert, size: 20),
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.surface,
-                  foregroundColor: AppColors.textSecondary,
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: IconButton(
+                  onPressed: _swapLocations,
+                  icon: const Icon(Icons.swap_vert, size: 20),
+                  style: IconButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                  ),
                 ),
               ),
           ],
@@ -613,6 +699,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border.withOpacity(0.5)),
         ),
         child: Row(
           children: [
@@ -644,20 +731,29 @@ class _MobilityScreenState extends State<MobilityScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: _stopColor(stop.stopType).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              gradient: LinearGradient(
+                colors: [
+                  _stopColor(stop.stopType).withOpacity(0.15),
+                  _stopColor(stop.stopType).withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: _stopColor(stop.stopType).withOpacity(0.2)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(_stopIcon(stop.stopType),
-                    size: 14, color: _stopColor(stop.stopType)),
-                const SizedBox(width: 4),
+                    size: 16, color: _stopColor(stop.stopType)),
+                const SizedBox(width: 6),
                 Text(stop.stopType.toUpperCase(),
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: _stopColor(stop.stopType),
                     )),
@@ -665,10 +761,30 @@ class _MobilityScreenState extends State<MobilityScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            '${stop.latitude.toStringAsFixed(5)}, ${stop.longitude.toStringAsFixed(5)}',
-            style:
-                const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.location_on,
+                        size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${stop.latitude.toStringAsFixed(5)}, ${stop.longitude.toStringAsFixed(5)}',
+                      style: const TextStyle(
+                          fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -684,13 +800,132 @@ class _MobilityScreenState extends State<MobilityScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Map Marker
+// ============================================================================
+
+class _MapMarker extends StatelessWidget {
+  final Color color;
+  const _MapMarker({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color, color.withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Icon(Icons.circle, color: Colors.white, size: 12),
+    );
+  }
+}
+
+// ============================================================================
+// GPS Button
+// ============================================================================
+
+class _GpsButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _GpsButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        borderRadius: BorderRadius.circular(14),
+        color: AppColors.card,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onPressed,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            child: const Icon(Icons.my_location,
+                color: AppColors.primary, size: 22),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// Action Button (Route / Journey)
+// ============================================================================
+
+class _ActionButton extends StatelessWidget {
+  final String heroTag;
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const _ActionButton({
+    required this.heroTag,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: FloatingActionButton.extended(
+        heroTag: heroTag,
+        onPressed: onPressed,
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        icon: Icon(icon, size: 20),
+        label: Text(label,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
       ),
     );
   }
