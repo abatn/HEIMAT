@@ -96,84 +96,105 @@ class _FinanceScreenState extends State<FinanceScreen> {
     showHeimatBottomSheet(
       context,
       title: 'Guthaben aufladen',
+      footer: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            provider.loadWallet();
+            Navigator.pop(context);
+          },
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('Guthaben aktualisieren'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // reserve_pub direkt oben — sofort sichtbar
           Container(
-            padding: const EdgeInsets.all(12),
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.08),
               borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: AppColors.primary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Taler ist digitales Bargeld. Guthaben entsteht durch eine Überweisung auf deine persönliche Reserve-Adresse.',
-                    style:
-                        TextStyle(fontSize: 13, color: AppColors.primaryDark),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text('So funktioniert es:',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          _stepRow('1', 'Öffne die Taler-Demo-Bank',
-              'https://bank.demo.taler.net/webui/#/register'),
-          _stepRow('2', 'Registriere dich dort',
-              'Erstelle ein Konto (Demo, keine echten Daten)'),
-          _stepRow('3', 'Klicke auf "25 KUDOS erhalten"',
-              'Die Demo-Bank überweist Spielgeld an deine neue Reserve'),
-          _stepRow('4', 'Kehre zu HEIMAT zurück',
-              'Dein Guthaben wird automatisch aktualisiert'),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Deine Reserve-Adresse:',
-                    style: TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary)),
-                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.account_balance_wallet,
+                        size: 18, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text('Deine Reserve-Adresse',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryDark)),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 SelectableText(
                   result.reservePub,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'monospace',
                     color: AppColors.textPrimary,
                   ),
                 ),
+                const SizedBox(height: 4),
+                Text('Tippen zum Kopieren',
+                    style: TextStyle(
+                        fontSize: 11, color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Infobox + Anleitung darunter
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.lightbulb_outline,
+                    color: AppColors.warning, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Guthaben entsteht durch eine Überweisung von der Taler-Bank auf deine Reserve-Adresse.',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.warning.withOpacity(0.8)),
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => provider.loadWallet(),
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Guthaben aktualisieren'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
+          const Text('So überweist du von der Bank:',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          _stepRow('1', 'Gehe zu bank.demo.taler.net',
+              'Du hast dort bereits 100 KUDOS (wie du uns gezeigt hast)'),
+          _stepRow('2', 'Klicke "Geld senden" → "an Taler-Wallet"',
+              'Füge deine reserve_pub als Empfänger ein'),
+          _stepRow('3', 'Betrag 25 KUDOS eingeben und senden',
+              'Die Bank überweist an den Taler-Exchange'),
+          _stepRow('4', 'Zurück zu HEIMAT → "Aktualisieren"',
+              'Dein Guthaben wird live vom Exchange geladen'),
         ],
       ),
     );
