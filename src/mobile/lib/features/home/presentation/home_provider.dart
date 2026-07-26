@@ -107,7 +107,7 @@ class NearbySummary {
 }
 
 // ---------------------------------------------------------------------------
-// HomeProvider
+// HomeProvider — mit BayesClassifier-Personalisierung
 // ---------------------------------------------------------------------------
 
 class HomeProvider extends ChangeNotifier {
@@ -119,6 +119,9 @@ class HomeProvider extends ChangeNotifier {
   LatLng? _currentLocation;
   NearbySummary? _nearbySummary;
 
+  /// Letzte User-Aktionen für die BayesClassifier-Personalisierung
+  final List<String> _recentActions = [];
+
   HomeProvider(this._authService);
 
   bool get isLoading => _isLoading;
@@ -127,6 +130,20 @@ class HomeProvider extends ChangeNotifier {
   LatLng? get currentLocation => _currentLocation;
   NearbySummary? get nearbySummary => _nearbySummary;
   String get userName => _authService.userId ?? 'Gast';
+  List<String> get recentActions => List.unmodifiable(_recentActions);
+
+  /// Zeichnet eine User-Aktion auf und aktualisiert NUR den Context
+  /// (kein Location-Neuladen — das wäre zu langsam).
+  /// Wird von Screens aufgerufen wenn User interagiert.
+  void recordAction(String action) {
+    _recentActions.add(action);
+    // Maximal 10 Aktionen speichern (ältere werden verworfen)
+    if (_recentActions.length > 10) {
+      _recentActions.removeAt(0);
+    }
+    // Nur den Context neu laden (personalisiert), ohne Location/nearby
+    _fetchPersonalizedContext().then((_) => notifyListeners());
+  }
 
   /// Lädt Location + Dashboard-Kontext + Nearby-Summary
   Future<void> loadDashboard() async {
@@ -138,8 +155,12 @@ class HomeProvider extends ChangeNotifier {
       // 1. Location laden
       _currentLocation = await LocationService.getCurrentLocation();
 
-      // 2. Dashboard-Kontext vom Backend
-      await _fetchContext();
+      // 2. Dashboard-Kontext vom Backend (personalisiert wenn Aktionen vorhanden)
+      if (_recentActions.isNotEmpty) {
+        await _fetchPersonalizedContext();
+      } else {
+        await _fetchContext();
+      }
 
       // 3. Wenn Location verfügbar: Nearby-Summary laden
       if (_currentLocation != null) {
@@ -178,6 +199,36 @@ class HomeProvider extends ChangeNotifier {
     // Fallback falls Backend nicht antwortet
     if (_context == null) {
       _context = _generateLocalContext();
+    }
+  }
+
+  /// Ruft den personalisierten Endpoint auf (POST /api/ai/home/personalized)
+  /// der den BayesClassifier aus aiService.ts nutzt um Vorschläge
+  /// basierend auf den letzten User-Aktionen zu personalisieren.
+  Future<void> _fetchPersonalizedContext() async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('${AppConfig.backendUrl}/api/ai/home/personalized'),
+            headers: {
+              ..._authService.authHeaders,
+              'Content-Type': 'application/json',
+            },
+            body: json.encode({
+              'recentActions': _recentActions,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['context'] != null) {
+          _context = DashboardContext.fromJson(data['context']);
+        }
+      }
+    } catch (_) {
+      // Fallback: unpersonalisierten Context laden
+      await _fetchContext();
     }
   }
 

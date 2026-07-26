@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import { classifyIntent } from './aiService';
 
 // ---------------------------------------------------------------------------
 // AI Home Dashboard Service — liefert kontextualisierte Dashboard-Daten
@@ -135,7 +136,6 @@ function getQuickActions(): QuickAction[] {
 /**
  * Generiert den Dashboard-Context für die AI-Startseite.
  * Diese Daten werden im Backend pro Request berechnet (stateless).
- * Zukünftig: Personalisierung via User-Profile + Nutzungsstatistiken.
  */
 export function getDashboardContext(): DashboardContext {
   const { timeOfDay, greeting } = getTimeOfDay();
@@ -150,5 +150,127 @@ export function getDashboardContext(): DashboardContext {
     isWeekend,
     suggestions: getSuggestions(timeOfDay, isWeekend),
     quickActions: getQuickActions(),
+  };
+}
+
+/**
+ * Intent-spezifische Vorschläge — aktiviert nur wenn BayesClassifier
+ * einen bestimmten User-Intent erkennt.
+ */
+const intentSuggestions: Record<string, Suggestion[]> = {
+  journey: [
+    { icon: '🗺️', title: 'Reiseplanung', description: 'Du planst oft Routen — hier sind die aktuell besten Verbindungen.', actionType: 'mobility', actionLabel: 'Route planen' },
+    { icon: '🚄', title: 'Fernverkehr', description: 'ICE-Verbindungen ab deinem Standort — prüfe Verspätungen.', actionType: 'mobility', actionLabel: 'Fernverkehr prüfen' },
+  ],
+  departure: [
+    { icon: '🚇', title: 'Nächste Abfahrten', description: 'Du checkst oft Abfahrten — hier sind die aktuellen.', actionType: 'mobility', actionLabel: 'Abfahrten' },
+    { icon: '⏱️', title: 'Echtzeit-Status', description: 'Live-Verspätungen deiner letzten Linien.', actionType: 'mobility', actionLabel: 'Echtzeit prüfen' },
+  ],
+  disruption: [
+    { icon: '⚠️', title: 'Störungsalarm', description: 'Aktuelle Störungen auf deinen Strecken — bleib informiert!', actionType: 'mobility', actionLabel: 'Störungen anzeigen' },
+  ],
+  nearby: [
+    { icon: '📍', title: 'In deiner Nähe', description: 'Du suchst oft nach Dingen in der Nähe — hier sind Haltestellen und Ärzte um dich herum.', actionType: 'mobility', actionLabel: 'Nähe erkunden' },
+    { icon: '🏥', title: 'Ärzte um die Ecke', description: 'Ärzte und Praxen in deiner Nähe.', actionType: 'health', actionLabel: 'Ärzte suchen' },
+  ],
+  info: [
+    { icon: '💡', title: 'HEIMAT-Tipps', description: 'Wusstest du schon? HEIMAT kann mehr — entdecke alle Funktionen.', actionType: 'home', actionLabel: 'Entdecken' },
+  ],
+};
+
+/** Intent-spezifische Quick-Actions */
+const intentQuickActions: Record<string, QuickAction[]> = {
+  journey: [
+    { icon: '🗺️', label: 'Route', actionType: 'mobility' },
+    { icon: '📍', label: 'Ziele', actionType: 'mobility' },
+  ],
+  departure: [
+    { icon: '🚇', label: 'Abfahrten', actionType: 'mobility' },
+    { icon: '⏱️', label: 'Echtzeit', actionType: 'mobility' },
+  ],
+  disruption: [
+    { icon: '⚠️', label: 'Störungen', actionType: 'mobility' },
+    { icon: '🔄', label: 'Alternativ', actionType: 'mobility' },
+  ],
+  nearby: [
+    { icon: '📍', label: 'Nähe', actionType: 'mobility' },
+    { icon: '🏥', label: 'Ärzte', actionType: 'health' },
+  ],
+  info: [
+    { icon: '💡', label: 'Tipps', actionType: 'home' },
+    { icon: '❓', label: 'Hilfe', actionType: 'home' },
+  ],
+};
+
+/**
+ * Personalisierter Dashboard-Context — nutzt BayesClassifier aus aiService.ts
+ * um User-Intents aus aktuellen Aktionen zu erkennen und die Vorschläge
+ * entsprechend anzupassen.
+ *
+ * @param recentActions Liste der letzten User-Aktionen (z.B. "route geplant", "arzt gesucht")
+ */
+export function getPersonalizedContext(recentActions: string[]): DashboardContext {
+  const base = getDashboardContext();
+
+  if (!recentActions || recentActions.length === 0) {
+    return base;
+  }
+
+  // Jede Aktion durch den BayesClassifier schicken und Intents sammeln
+  const intentCounts: Record<string, number> = {};
+  for (const action of recentActions) {
+    const intent = classifyIntent(action);
+    if (intent && intent.type) {
+      intentCounts[intent.type] = (intentCounts[intent.type] || 0) + 1;
+    }
+  }
+
+  // Dominantesten Intent ermitteln
+  let dominantIntent: string | null = null;
+  let maxCount = 0;
+  for (const [intent, count] of Object.entries(intentCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantIntent = intent;
+    }
+  }
+
+  if (!dominantIntent || maxCount === 0) {
+    return base;
+  }
+
+  // Personalisierte Vorschläge: Zeit-basierte + Intent-spezifische Vorschläge mischen
+  const timeSuggestions = getSuggestions(base.timeOfDay, base.isWeekend);
+  const intentSpecific = intentSuggestions[dominantIntent];
+
+  const personalizedSuggestions: Suggestion[] = [];
+
+  // Intent-spezifische Vorschläge zuerst (sind relevanter)
+  if (intentSpecific) {
+    // Maximale 2 Intent-Vorschläge nehmen (wenn vorhanden)
+    // Markiere sie als personalisiert via actionType=home + speziellem Titel
+    personalizedSuggestions.push(...intentSpecific.slice(0, 2));
+  }
+
+  // Zeit-basierte Vorschläge danach (aber nicht duplizieren)
+  for (const ts of timeSuggestions) {
+    if (!personalizedSuggestions.some(s => s.title === ts.title)) {
+      personalizedSuggestions.push(ts);
+    }
+  }
+
+  // Personalisierte Quick-Actions
+  const personalizedQuickActions = intentQuickActions[dominantIntent] || getQuickActions();
+
+  logger.info(
+    `AI Dashboard personalized: dominantIntent=${dominantIntent} ` +
+    `(${maxCount}/${recentActions.length} actions), ` +
+    `${personalizedSuggestions.length} suggestions`
+  );
+
+  return {
+    ...base,
+    suggestions: personalizedSuggestions,
+    quickActions: personalizedQuickActions,
   };
 }
