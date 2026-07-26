@@ -16,6 +16,7 @@ import { financeRouter } from './routes/finance';
 import { healthRouter as healthServiceRouter } from './routes/healthService';
 import { authRouter } from './routes/auth';
 import adminRouter from './routes/admin';
+import { aiRouter } from './routes/ai';
 import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
 import { gtfsService } from './services/gtfsService';
@@ -49,6 +50,7 @@ app.use('/api/mobility', mobilityRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/health', healthServiceRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/ai', aiRouter);
 
 // Swagger API-Dokumentation
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

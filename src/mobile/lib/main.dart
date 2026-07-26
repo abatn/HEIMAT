@@ -12,6 +12,8 @@ import 'features/health/presentation/health_provider.dart';
 import 'features/mobility/presentation/mobility_screen.dart';
 import 'features/finance/presentation/finance_screen.dart';
 import 'features/health/presentation/health_screen.dart';
+import 'features/home/presentation/home_screen.dart';
+import 'features/home/presentation/home_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +37,9 @@ class HeimatApp extends StatelessWidget {
               ),
               ChangeNotifierProvider(create: (_) => MobilityProvider()),
               ChangeNotifierProvider(create: (_) => HealthProvider()),
+              ChangeNotifierProvider(
+                create: (_) => HomeProvider(auth.authService),
+              ),
             ],
             child: MaterialApp(
               title: AppConfig.appName,
@@ -80,6 +85,7 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
+    const HomeScreen(),
     const MobilityScreen(),
     const FinanceScreen(),
     const HealthScreen(),
@@ -133,6 +139,11 @@ class _MainScreenState extends State<MainScreen> {
           },
           backgroundColor: AppColors.card,
           destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Dashboard',
+            ),
             NavigationDestination(
               icon: Icon(Icons.map_outlined),
               selectedIcon: Icon(Icons.map),
