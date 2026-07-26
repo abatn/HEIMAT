@@ -180,9 +180,13 @@ export class TalerService {
       wallet = await this.createWallet(userId);
     }
 
-    // Direkt in DB schreiben — exchange_reserve_pub bleibt NULL (kein Exchange-Probe)
+    // Direkt in DB schreiben — exchange_reserve_pub EXPLIZIT auf NULL setzen
+    // (auch wenn der User vorher eine Exchange-Reserve hatte). Dadurch erkennen
+    // getBalance() und getWallet() dass es sich um lokale Demo-KUDOS handelt
+    // und überschreiben die Balance nicht mit Exchange-Probes.
     await execute(
       `UPDATE taler_wallets SET balance = $1, exchange_base_url = 'local://demo',
+                               exchange_reserve_pub = NULL,
                                last_probed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
        WHERE user_id = $2`,
       [newBalance, userId],
@@ -265,7 +269,8 @@ export class TalerService {
     );
     if (!wallet) wallet = await this.createWallet(userId);
 
-    if (opts.probeExchange !== false && wallet.exchange_reserve_pub) {
+    // LOCAL_DEMO: exchange_base_url='local://demo' → Exchange-Probe überspringen
+    if (opts.probeExchange !== false && wallet.exchange_base_url !== 'local://demo' && wallet.exchange_reserve_pub) {
       await this.refreshReserveSnapshot(wallet.exchange_reserve_pub);
       wallet = await queryOne<TalerWallet>(
         'SELECT * FROM taler_wallets WHERE user_id = $1',
@@ -282,15 +287,15 @@ export class TalerService {
   async getBalance(userId: string): Promise<{ balance: number; currency: string; reserves_probed: number }> {
     const currency = await this.getCurrency();
 
-    // LOCAL_DEMO: Wenn exchange_reserve_pub NICHT gesetzt ist und
-    // die Wallet eine positive Balance hat, liefern wir sie direkt.
-    // Das ist z.B. nach fundLocal() der Fall — der User hat KUDOS
-    // ohne Exchange-Kontakt erhalten.
-    const walletCheck = await queryOne<{ balance: string; exchange_reserve_pub: string | null }>(
-      'SELECT balance, exchange_reserve_pub FROM taler_wallets WHERE user_id = $1',
+    // LOCAL_DEMO: Wenn exchange_base_url='local://demo' (gesetzt von fundLocal()), 
+    // liefern wir die Wallet-Balance direkt ohne Exchange-Probe.
+    // Der User hat KUDOS ohne Exchange-Kontakt erhalten. 
+    // Zusätzlicher Check: exchange_reserve_pub ist NULL als Sicherheitsnetz.
+    const walletCheck = await queryOne<{ balance: string; exchange_base_url: string | null; exchange_reserve_pub: string | null }>(
+      'SELECT balance, exchange_base_url, exchange_reserve_pub FROM taler_wallets WHERE user_id = $1',
       [userId],
     );
-    if (walletCheck && !walletCheck.exchange_reserve_pub) {
+    if (walletCheck && (walletCheck.exchange_base_url === 'local://demo' || !walletCheck.exchange_reserve_pub)) {
       const localBal = parseAmount(walletCheck.balance);
       if (localBal > 0) {
         return { balance: localBal, currency, reserves_probed: -1 };
