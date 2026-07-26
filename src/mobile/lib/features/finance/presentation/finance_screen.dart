@@ -84,7 +84,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
     if (result == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(provider.error ?? 'Reserve konnte nicht erstellt werden'),
+          content:
+              Text(provider.error ?? 'Reserve konnte nicht erstellt werden'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -111,7 +112,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
                 Expanded(
                   child: Text(
                     'Taler ist digitales Bargeld. Guthaben entsteht durch eine Überweisung auf deine persönliche Reserve-Adresse.',
-                    style: TextStyle(fontSize: 13, color: AppColors.primaryDark),
+                    style:
+                        TextStyle(fontSize: 13, color: AppColors.primaryDark),
                   ),
                 ),
               ],
@@ -335,39 +337,40 @@ class _FinanceScreenState extends State<FinanceScreen> {
           ),
           const SizedBox(height: 20),
           SizedBox(
-            width: double.infinity,              child: Column(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _showFundSheet,
-                    icon: const Icon(Icons.add_circle_outline, size: 18),
-                    label: const Text('Guthaben aufladen'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.2),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+            width: double.infinity,
+            child: Column(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _showFundSheet,
+                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  label: const Text('Guthaben aufladen'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: _showSendSheet,
-                    icon: const Icon(Icons.send, size: 18),
-                    label: const Text('Geld senden'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.primaryDark,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: _showSendSheet,
+                  icon: const Icon(Icons.send, size: 18),
+                  label: const Text('Geld senden'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primaryDark,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

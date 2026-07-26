@@ -18,7 +18,8 @@ class ReserveOpenResult {
   factory ReserveOpenResult.fromJson(Map<String, dynamic> json) {
     return ReserveOpenResult(
       reservePub: json['reserve_pub'] as String? ?? '',
-      bankWireUrl: json['bank_wire_url'] as String? ?? 'https://bank.demo.taler.net/',
+      bankWireUrl:
+          json['bank_wire_url'] as String? ?? 'https://bank.demo.taler.net/',
       note: json['note'] as String? ?? '',
     );
   }
