@@ -119,14 +119,22 @@ Der GTFS-Zip-Import (`gtfs.de/nv_free`) verstößt gegen KEINE Projektdaten. CC-
 ### Ärzte: ECHTE Overpass-Ergebnisse
 Die 5 Ärzte auf der Gesundheitsseite sind echte Overpass-API-Ergebnisse für Berlin, keine hardcodierten Daten.
 
-### Finanzen: Demo-User ist Geschichte (Phase 23 abgeschlossen 2026-07-25)
-`finance_provider.dart:45` hatte früher `user-demo-001` hartkodiert. **JETZT GEFIXT** (Commits cfb0561 + e00105d): Mobile `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 Finance-HTTP-Calls (`initWallet`, `loadWallet` 2x, `loadTransactions`, `sendMoney`). URL-Pfade ohne `/$userId`-Suffix (Backend identifiziert User aus Bearer-Token). Schema hat alte `wallet_priv`-Legacy-Spalte per Migration verloren. Roundtrip ist end-to-end live gegen Render + Supabase.
+### Finanzen: JWT-Roundtrip + Demo-KUDOS + P2P (Phase 23-24)
+**Phase 23 (2026-07-25):** `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 Finance-HTTP-Calls. URL-Pfade ohne `/$userId`-Suffix. Roundtrip end-to-end live.
+
+**Phase 24 Demo-KUDOS (2026-07-26):** "25 Demo-KUDOS erhalten" Button via `POST /api/finance/taler/fund-local` — schreibt 25 KUDOS direkt in die DB, kein Exchange-Kontakt. `exchange_reserve_pub` wird auf NULL gesetzt, damit `getBalance()` die lokale Demo-Balance korrekt erkennt. Commits: `02dae6e`, `471079c`, `968aac2`.
+
+**P2P-Purse:** `createPurse()` / `depositToPurse()` / `mergePurse()` — HEIMAT-interner P2P-Transfer, kein Taler-Exchange. Wird vom `/pay`-Endpoint orchestriert.
+
+**P2P-Bugfix (Commit 54f1019):** POST /api/finance/pay: `to`-Parameter kann jetzt Email ODER userId. Vorher wurde die Email nicht aufgeloest — `createPurse()` suchte Wallet mit `user_id = email` statt `user_id = resolved_from_email`, Geld landete in Phantom-Wallet. Fix: `SELECT id FROM users WHERE email = $1` vor `createPurse()`.
 
 ### Security-Härtung (Phase 23)
-- `POST /api/migrate` wurde entfernt (war ungeschützt — jeder konnte DB-Schema mutieren)
-- `security.test.ts` Regression-Lock: prüft dass POST /api/migrate jetzt 404 retourniert UND Body nicht „Schema loaded successfully" lautet
-- `AUTO_MIGRATE=true` startup-hook wendet `schema.sql` bei jedem Render-Deploy automatisch auf Production-DB an
-- `ADMIN_KEY` muss auf Render-Dashboard gesetzt sein damit `/api/admin/migrate` funktioniert
+- `POST /api/migrate` wurde entfernt (war ungeschützt)
+- `security.test.ts` Regression-Lock: POST /api/migrate → 404
+- `AUTO_MIGRATE=true` startup-hook wendet `schema.sql` bei jedem Deploy an
+- `ADMIN_KEY` auf Render-Dashboard gesetzt für `/api/admin/migrate`
+- `src/backend/src/__tests__/migrate.test.ts`: 18 Unit-Tests (gemockter pg pool) — alle gruen ✅ (Commit 06dc2e3)
+- `src/backend/src/__tests__/health.test.ts`: 16 Tests, HAS_DB-Guards + breitere catch-Patterns für CI-Resilienz (Commit 6b7c7f5)
 
 ## Conventions
 
@@ -141,10 +149,13 @@ Die 5 Ärzte auf der Gesundheitsseite sind echte Overpass-API-Ergebnisse für Be
 ```
 src/mobile/           # Flutter app
   lib/                # Dart source
-  test/               # Widget tests
+  test/               # Widget + Integration tests
+    auth_finance_logout_test.dart  # Integration-Test: Login -> Finance -> Logout (Commit a0dbfc5)
   flutter/bin/        # Vendored Flutter SDK (DO NOT EDIT)
 src/backend/          # Node.js Express API
   src/__tests__/      # Jest tests
+    migrate.test.ts   # 18 Unit-Tests (gemockter pg pool)
+    health.test.ts    # 16 Tests, CI-resilient
 src/ml-service/       # Python FastAPI (Docker only)
 scripts/              # GTFS import, utilities
 ```
