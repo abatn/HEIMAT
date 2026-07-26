@@ -137,7 +137,9 @@ class HomeProvider extends ChangeNotifier {
       onUserAction = null;
     }
     super.dispose();
-  }  bool get isLoading => _isLoading;
+  }
+
+  bool get isLoading => _isLoading;
   String? get error => _error;
   DashboardContext? get context => _context;
   LatLng? get currentLocation => _currentLocation;
