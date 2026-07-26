@@ -214,7 +214,7 @@ src/ml-service/       # Python FastAPI (nur Docker)
 5. **E2E-Tests (Flutter Integration)** — kein Code vorhanden
 6. **Auth-Routing-Bug regression-tests** — pre-commit-test der Hash-Routing-Pattern in `auth_screens_test.dart` (LoginScreen/RegisterScreen navigieren explizit nach `'/'`)
 7. ✅ **Mobile-Finance-Regression-Test** — erledigt 2026-07-25 mit Commit `3414aea` Regression-Lock für Security; mobile Finance-Headers durch code-review verifiziert
-8. **migrate.ts Unit-Test** — `src/backend/src/__tests__/migrate.test.ts` schreiben mit gemocktem pg pool (Test (a) success path, (b) pool.query throws → exit 1, (c) redactConnectionSecrets edge cases).
+8. ✅ **migrate.ts Unit-Test (Commit 06dc2e3)** — 18 Tests, alle gruen (success path, pool throws, redactConnectionSecrets edge cases, schema fehlt, lesefehler, exception-safety)
 
 ## Phase 23 Recap — Stand Juli 2026
 
@@ -234,7 +234,6 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 
 ### ⚠️ Was ist offen
 - **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange noetig) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
-- Unit-Test fuer migrate.ts (gemockter pg pool)
 - stale-doc-prescan.sh nicht im Workflow eingebunden (war Nice-to-have)
 
 **📱 Taler aus der App — User-Guide:**

@@ -21,7 +21,7 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 
 ### Was ist offen
 - EUR-Exchange (Phase 24): Demo-KUDOS und P2P-Durchstich ✅ Live. "25 Demo-KUDOS erhalten" Button funktioniert (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange). P2P-Purse-System bereit. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
-- Unit-Test fuer `migrate.ts` fehlt
+- **migrate.ts Unit-Test ✅ (Commit 06dc2e3)** — 18 Tests, alle gruen
 
 ### Was fehlt
 - Flutter Integration-Tests

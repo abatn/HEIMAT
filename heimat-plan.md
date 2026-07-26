@@ -29,7 +29,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 
 **📱 Taler aus der App — User-Guide:**
 Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren]. Demo-KUDOS sind HEIMAT-intern (kein Exchange), Reserve-Workflow ist echter Taler.
-- Unit-Test für `migrate.ts` fehlt — gemockter pg pool, Migrations-Pfad tests-protected machen
+- **migrate.ts Unit-Test ✅ (Commit 06dc2e3)** — 18 Tests, alle gruen (success path, pool throws, redactConnectionSecrets edge cases, schema fehlt, lesefehler, exception-safety)
 - `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im Workflow eingebunden (war Nice-to-have)
 
 ### ❌ Was fehlt (echte Lücken)
@@ -651,7 +651,7 @@ HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Ra
 
 ### Nächste Schritte
 - Mobile Browser-Re-Test mit `heimat-demo-user@heimat.de` gegen Finanzen-Tab → echte Wallet-Daten statt 0.00 KUDOS-Demo
-- Unit-Test für `migrate.ts` (gemockter pool, redactConnectionSecrets edge cases) — noch offen
+- ✅ **migrate.ts Unit-Test (Commit 06dc2e3)** — 18 Tests, alle gruen
 - **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, 25 KUDOS direkt in DB, kein Exchange nötig) und (b) "Reserve-Adresse erstellen" (alter Flow für echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf öffentliche GLS-Bank-Integration.
 - Phase 25: E2E-Tests Flutter (Integration Tests für Login → Finance → Logout Flow)
 
