@@ -97,6 +97,7 @@ Alle 6 Data-Analytics-Analysen wurden durchgeführt, der heimat-dev Skill erstel
 | **Ärzte-Suche** | ✅ LIVE | Overpass API |
 | **Arzt-Registrierung** | ✅ LIVE | PostgreSQL |
 | **Terminbuchung** | ✅ LIVE | PostgreSQL |
+| **Auto-Migration** | ✅ LIVE (seit 2026-07-25) | `AUTO_MIGRATE` startup-hook + `migrate.ts` Unit-Tests (18/18) |
 
 ---
 

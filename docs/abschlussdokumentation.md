@@ -30,8 +30,9 @@ HEIMAT 2.0 ist ein Open-Source-Projekt für eine datenschutzkonforme Super App f
 | Phase 16: Förderantrag-Checkliste | ✅ Abgeschlossen |
 | Phase 17: Open Collective | ✅ Abgeschlossen |
 | Phase 18: Stiftungs-Anschreiben | ✅ Abgeschlossen |
+| Phase 23: Auto-Migration + Security-Härtung | ✅ Live seit 2026-07-25 |
 
-**Status:** 🟢 Alle Planungsphasen abgeschlossen – Entwicklung läuft
+**Status:** 🟢 Produktion end-to-end live — Auto-Migration bei jedem Render-Deploy (Commit 7e5f063)
 
 ---
 
@@ -165,18 +166,18 @@ HEIMAT/
 
 ## Zusammenfassung
 
-HEIMAT 2.0 ist ein vollständig geplantes Open-Source-Projekt mit:
-- ✅ 18 abgeschlossenen Phasen
-- ✅ Vollständiger Dokumentation
+HEIMAT 2.0 ist ein Open-Source-Projekt mit:
+- ✅ 18 abgeschlossenen Planungsphasen + Phase 23 (Auto-Migration + Security) live
+- ✅ Produktion end-to-end live auf Render + Supabase
+- ✅ Auto-Migration bei jedem Render-Deploy (Commit 7e5f063, 06dc2e3)
+- ✅ migrate.ts Unit-Tests: 18 Tests, alle Pfade abgedeckt
 - ✅ Marketing-Assets (Blog, Presse, Reddit)
 - ✅ Förderanträgen (Prototype Fund, BMWK, Stiftungen)
 - ✅ GitHub-Repository mit Templates und Workflows
 - ✅ Community-Infrastruktur (Matrix, CONTRIBUTING.md)
 
-Das Projekt ist bereit zur Umsetzung – es braucht nur noch die manuelle Umsetzung der nächsten Schritte.
-
 ---
 
 *Erstellt: Juli 2024*
 *Zuletzt aktualisiert: Juli 2026*
-*Status: 🟢 Planung abgeschlossen – Aktive Entwicklung*
+*Status: 🟢 Produktion end-to-end live — Auto-Migration bei jedem Render-Deploy (Commit 7e5f063)*

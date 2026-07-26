@@ -51,6 +51,8 @@ Dieses Verzeichnis enthält 6 umfassende Datenanalysen für das HEIMAT 2.0 Proje
 - **Backend:** heimat-backend.onrender.com (Render.com, Free Tier)
 - **Frontend:** abatn.github.io/HEIMAT (GitHub Pages)
 - **Datenbank:** Supabase (PostgreSQL, 16 Tabellen)
+- **Auto-Migration:** `AUTO_MIGRATE=true` startup-hook bei jedem Render-Deploy ✅ Live seit 2026-07-25
+- **migrate.ts Tests:** 18 Unit-Tests, alle Pfade (Commit 06dc2e3)
 - **CI/CD:** 10/10 GitHub Actions grün
 
 ### Finanzplan (investor-report.md)
