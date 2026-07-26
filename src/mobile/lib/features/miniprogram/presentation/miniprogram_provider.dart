@@ -51,10 +51,10 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'weather',
       name: 'Wetter',
-      url: 'https://dwd.api.bund.dev',
+      url: 'https://heimat-backend.onrender.com/mini/weather.html',
       iconPath: 'weather',
       description:
-          'Aktuelle Wetterdaten und Unwetterwarnungen des Deutschen Wetterdienstes.',
+          'Aktuelle Wetterdaten & 7-Tage-Vorhersage — DWD Open Data via Open-Meteo. Standort-basiert.',
       category: 'Alltag',
     ),
     const MiniProgram(

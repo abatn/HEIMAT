@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -17,6 +18,7 @@ import { healthRouter as healthServiceRouter } from './routes/healthService';
 import { authRouter } from './routes/auth';
 import adminRouter from './routes/admin';
 import { aiRouter } from './routes/ai';
+import { weatherRouter } from './routes/weather';
 import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
 import { gtfsService } from './services/gtfsService';
@@ -51,6 +53,21 @@ app.use('/api/finance', financeRouter);
 app.use('/api/health', healthServiceRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/weather', weatherRouter);
+
+// Statische Dateien ausliefern (Mini-Programme, Favicon, etc.)
+const miniDir = path.join(__dirname, '../public/miniprograms');
+app.use('/mini', express.static(miniDir, {
+  setHeaders: (res) => {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Content-Security-Policy',
+      "default-src 'self'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data:; " +
+      "script-src 'self' 'unsafe-inline'; " +
+      "connect-src 'self';");
+  },
+}));
 
 // Swagger API-Dokumentation
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
