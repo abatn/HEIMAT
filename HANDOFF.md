@@ -20,7 +20,7 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - Mobilität und Gesundheit seit MVP grün
 
 ### Was ist offen
-- Taler-Bank-Wire-Funding (Phase 24) — manueller bank.demo.taler.net/webui Schritt
+- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`. Warte auf öffentlichen EUR-Exchange. Demo-KUDOS für Entwicklung.
 - Unit-Test für `migrate.ts` fehlt
 
 ### Was fehlt
@@ -34,7 +34,7 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 ### Was bereits implementiert ist
 - Mobilität: Overpass, Nominatim, OSRM, transitous.org, RAPTOR, GTFS Stop-Matching
 - Gesundheit: Overpass-Ärzte, Registrierung, Slots, Terminbuchung
-- Finanzen: Echter GNU-Taler-Exchange-Client (Ed25519-Identity, /keys + /reserves/<pub> gegen exchange.demo.taler.net)
+- Finanzen: Taler Wallet-Client (echte GNU-Taler-Software, Ed25519, /keys + /reserves/<pub>). **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
 - AI: Intent-Klassifikation (BayesClassifier), Disruption-Analyse, Personal Routing
 - ML-Service: LightGBM Delay Predictor + Naive Bayes Budget Classifier (mit Training-Endpoints)
 - **Auth: JWT + bcryptjs — end-to-end live auf Production** (Register/Login/Profile/Password; Flutter-Token-Roundtrip via `AuthProvider`+`AuthService`+`AuthGate`; AppBar mit Logout-PopupMenu; Login-Routing-Bug 2026-07-25 gefixt)
@@ -68,11 +68,11 @@ Commits:
 
 Verifikation: POST `/api/admin/migrate` mit X-Admin-Key Header gegen Render → HTTP 200 `{"success":true,"message":"Schema migrated"}` in 213ms.
 
-### Phase 18: Echte Taler-Exchange (Backend-Code fertig, E2E noch offen)
-**Hinweis:** Finance-Roundtrip mit JWT-Auth ist seit 2026-07-25 end-to-end live (Commit `cfb0561` + `e00105d`). Die nächste offene Finance-Strecke ist die echte Taler-Exchange-Anbindung via Bank-Wire (siehe unten).
+### Phase 24: Taler-Production-Readiness
+**Status:** Wallet-Client fertig (Commit d91fc76). Currency dynamisch aus /keys. EUR-ready via `TALER_EXCHANGE_URL` env var — kein Code-Change nötig. Warte auf öffentlichen EUR-Exchange (GLS Bank via Horizon Europe). Demo-KUDOS via `exchange.demo.taler.net` für Entwicklung.
 
 **Was ist das?**
-Der `talerService.ts` (Phase 18 abgeschlossen) spricht echte GNU-Taler-Wire-Spec — Ed25519-Reserve-Identity, `GET /keys` + `GET /reserves/<pub>` Lives gegen `exchange.demo.taler.net`, Bank-Wire-Workflow über `bank.demo.taler.net/webui`.
+Der `talerService.ts` spricht echte GNU-Taler-Wire-Spec — Ed25519-Reserve-Identity, `GET /keys` + `GET /reserves/<pub>`. Die Currency wird dynamisch aus dem Exchange-/keys-Response gelesen (Commit d91fc76). Kein manueller Bank-Wire-Schritt mehr nötig — Demo-KUDOS reicht für Entwicklung.
 
 **Was muss gemacht werden?**
 1. Prüfe ob `exchange.demo.taler.net` erreichbar ist (GNU Taler Demo-Exchange)

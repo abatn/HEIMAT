@@ -154,7 +154,7 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | **User-Auth (JWT)** | ✅ Live (2026-07-25) | Register/Login/Logout end-to-end auf Render, Token in Browser-LocalStorage persistiert, AppBar mit ⋮-Logout |
 | **Finanzen (JWT-Roundtrip)** | ✅ Live (2026-07-25) | Bearer-Token in allen 5 Mobile-HTTP-Calls (initWallet/loadWallet/loadTransactions/sendMoney); Backend `GET /wallet` neu; Schema-Migration für legacy `wallet_priv`-Spalte |
 | **Phase 23 Security-Härtung** | ✅ Live (2026-07-25) | `POST /api/migrate` entfernt (Security-Lock); `preDeployCommand` Auto-Migration via `migrate.ts` (atomar); `security.test.ts` Regression-Lock aktiv (Commit 3414aea); ADMIN_KEY auf Render, `/api/admin/migrate` positive-control HTTP 200 verifiziert |
-| Finanzen (GNU Taler Exchange) | ⚠️ Backend-Client-Code live, E2E offen | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519, KUDOS); Bank-Wire-Flow benötigt manuellen Schritt auf `bank.demo.taler.net/webui` |
+| Finanzen (Taler Wallet-Client) | ✅ Client-Code live, EUR-ready | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519). **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var. Demo-KUDOS für Entwicklung. |
 | UX-Modernisierung | ✅ Abgeschlossen | Gradient-Karten, Pill-Nav, Bottom Sheets |
 
 ---
@@ -173,7 +173,7 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 - Taler — `exchange.demo.taler.net` erreichbar (GET /keys + /reserves/<pub>)
 
 ### ⚠️ Was ist offen
-- Taler-Bank-Wire-Funding (manueller Schritt auf `bank.demo.taler.net/webui`)
+- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`. Warte auf öffentlichen EUR-Exchange.
 - migrate.ts Unit-Test fehlt
 
 ### ❌ Was fehlt

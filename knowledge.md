@@ -157,14 +157,14 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - Auto-Migration: `AUTO_MIGRATE=true` startup-hook (Commit 7e5f063) — ✅ Live bestätigt am 2026-07-25 (Build-Log + funktionaler Beweis via wallet-Endpoint)
 - Admin-Pfad: `ADMIN_KEY` auf Render gesetzt; `POST /api/admin/migrate` mit `X-Admin-Key` positive-control HTTP 200 in ~213ms
 - DB-Connection: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`), Node 20, devDeps-Prune
-- Taler-Exchange-Client: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` (Ed25519, KUDOS)
+- Taler Wallet-Client: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` (Ed25519). **Currency dynamisch aus /keys (Commit d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
 - Backend CI: Lint + Jest (113+ Tests) + tsc --noEmit — alle grün auf `main`
 - Mobile CI: dart format + flutter analyze + flutter test — alle grün
 - Swagger/OpenAPI: /docs + /docs.json live
 - Mobilität (Überpass/Nominatim/OSRM/transitous) und Gesundheit (Ärzte+Termine) seit MVP grün
 
 ### ⚠️ Was ist offen
-- Bank-Wire-Funding-Flow für Taler (Phase 24): manueller Schritt auf `bank.demo.taler.net/webui` nötig — keine API-Alternative
+- Taler-Production-Readiness (Phase 24): HEIMAT ist Wallet-Client (kein Exchange-Betreiber). Currency dynamisch aus /keys (d91fc76) — EUR-ready via `TALER_EXCHANGE_URL`. Warte auf öffentlichen EUR-Exchange (GLS Bank via Horizon Europe). Demo-KUDOS für Entwicklung.
 - Unit-Test für `migrate.ts` (gemockter pg pool) fehlt — Coverage-Lücke
 - `scripts/stale-doc-prescan.sh` ist seit Phase 23-Fix nicht mehr im preDeploy-Workflow eingebunden (war Nice-to-have, jetzt deaktiviert)
 
