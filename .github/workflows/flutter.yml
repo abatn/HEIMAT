@@ -23,12 +23,12 @@ jobs:
       run:
         working-directory: src/mobile
     steps:
-      - name: Checkout (mit Retry)
-        uses: Wandalen/wretry.action@v3
-        with:
-          action: actions/checkout@v4
-          attempt_limit: 3
-          attempt_delay: 10000
+      - name: Checkout
+        run: |
+          git init
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout FETCH_HEAD
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
@@ -48,12 +48,12 @@ jobs:
       run:
         working-directory: src/mobile
     steps:
-      - name: Checkout (mit Retry)
-        uses: Wandalen/wretry.action@v3
-        with:
-          action: actions/checkout@v4
-          attempt_limit: 3
-          attempt_delay: 10000
+      - name: Checkout
+        run: |
+          git init
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout FETCH_HEAD
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
@@ -71,12 +71,12 @@ jobs:
       run:
         working-directory: src/mobile
     steps:
-      - name: Checkout (mit Retry)
-        uses: Wandalen/wretry.action@v3
-        with:
-          action: actions/checkout@v4
-          attempt_limit: 3
-          attempt_delay: 10000
+      - name: Checkout
+        run: |
+          git init
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout FETCH_HEAD
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
@@ -94,12 +94,12 @@ jobs:
       run:
         working-directory: src/mobile
     steps:
-      - name: Checkout (mit Retry)
-        uses: Wandalen/wretry.action@v3
-        with:
-          action: actions/checkout@v4
-          attempt_limit: 3
-          attempt_delay: 10000
+      - name: Checkout
+        run: |
+          git init
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout FETCH_HEAD
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
@@ -122,12 +122,12 @@ jobs:
       run:
         working-directory: src/mobile
     steps:
-      - name: Checkout (mit Retry)
-        uses: Wandalen/wretry.action@v3
-        with:
-          action: actions/checkout@v4
-          attempt_limit: 3
-          attempt_delay: 10000
+      - name: Checkout
+        run: |
+          git init
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout FETCH_HEAD
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
@@ -166,12 +166,12 @@ jobs:
       run:
         working-directory: src/mobile
     steps:
-      - name: Checkout (mit Retry)
-        uses: Wandalen/wretry.action@v3
-        with:
-          action: actions/checkout@v4
-          attempt_limit: 3
-          attempt_delay: 10000
+      - name: Checkout
+        run: |
+          git init
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout FETCH_HEAD
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
