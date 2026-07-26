@@ -28,8 +28,9 @@ import crypto from 'crypto';
 import { talerExchangeClient, TalerKeysResponse, TalerReserveStatus, TalerExchangeNotReachable, TalerExchangeRejected } from './talerExchangeClient';
 import { ed25519PubToCrockford } from '../utils/crockfordBase32';
 
-const CURRENCY = 'KUDOS';
 const RESERVE_CACHE_TTL_MS = 30 * 1000; // 30s Cache für GET /reserves/<pub>
+// Früher: `const CURRENCY = 'KUDOS'` — ENTFERNT. Currency wird jetzt dynamisch aus
+// TALER_EXCHANGE.fetchKeys().currency gelesen (via TalerService.ensureCurrency()).
 // Früher: `const INITIAL_BALANCE = 100` — ENTFERNT. Eine Wallet ohne echte externe Reserve hat 0.
 
 export interface TalerWallet {
@@ -83,7 +84,7 @@ function sha512Hex(input: string): string {
 
 function parseAmount(amount: string | null | undefined): number {
   if (amount === null || amount === undefined || amount === '') return 0;
-  // Taler amount format: "KUDOS:25" or "KUDOS:0.50"
+  // Taler amount format: "CURRENCY:VALUE" z.B. "KUDOS:25" or "EUR:12.50"
   if (amount.includes(':')) {
     const n = parseFloat(amount.split(':')[1] || '0');
     return Number.isFinite(n) ? n : 0;
@@ -92,17 +93,27 @@ function parseAmount(amount: string | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function formatAmount(value: number): string {
-  // Taler-Standard: 'CURRENCY:VALUE' (z.B. "KUDOS:25.00", "KUDOS:0.00")
-  return `${CURRENCY}:${value.toFixed(2)}`;
+function extractCurrency(amount: string | null | undefined): string {
+  // Extrahiert die Currency aus einem Taler-Amount-String ("EUR:12.50" → "EUR")
+  if (amount && amount.includes(':')) return amount.split(':')[0];
+  return 'KUDOS';  // Fallback für unbekanntes Format
 }
 
-/** Addiert/Subtrahiert im Node-Code (vermeidet Postgres-Cast-Fehler mit 'KUDOS:0'::numeric). */
+function formatAmount(value: number, currency?: string): string {
+  // Taler-Standard: 'CURRENCY:VALUE' (z.B. "KUDOS:25.00", "EUR:12.50")
+  // currency-Parameter für dynamische Currency (aus Exchange-/keys gelesen).
+  // Fallback auf 'KUDOS' für backward-compat (wenn Exchange nicht erreichbar).
+  return `${currency ?? 'KUDOS'}:${value.toFixed(2)}`;
+}
+
+/** Addiert/Subtrahiert im Node-Code (vermeidet Postgres-Cast-Fehler mit 'CURRENCY:0'::numeric). */
 async function adjustBalance(walletId: string, delta: number): Promise<{ newBalanceStr: string; newBalanceNum: number }> {
   const w = await queryOne<{ balance: string }>('SELECT balance FROM taler_wallets WHERE id = $1', [walletId]);
   const current = parseAmount(w?.balance);
   const next = Math.max(0, current + delta);
-  const nextStr = formatAmount(next);
+  // Currency aus der bestehenden Wallet-Balance extrahieren (z.B. 'KUDOS' aus 'KUDOS:25')
+  const currency = extractCurrency(w?.balance);
+  const nextStr = formatAmount(next, currency);
   await execute(`UPDATE taler_wallets SET balance = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [nextStr, walletId]);
   return { newBalanceStr: nextStr, newBalanceNum: next };
 }
@@ -120,6 +131,25 @@ function newReservePrivPub(): { reserve_pub: string; reserve_priv_pkcs8: string 
 
 export class TalerService {
   private reserveCache: Map<string, { value: TalerReserveStatus; at: number }> = new Map();
+  private _currency: string | null = null;
+
+  /**
+   * Liest die Currency dynamisch aus exchange.demo.taler.net/keys (oder
+   * TALER_EXCHANGE_URL-env-var). Gecached bis naechster fetchKeys()-Call
+   * (1h Cache im talerExchangeClient). Fallback 'KUDOS' fuer Demo-Betrieb.
+   */
+  private async getCurrency(): Promise<string> {
+    if (this._currency) return this._currency;
+    try {
+      const keys = await talerExchangeClient.fetchKeys();
+      this._currency = keys.currency;
+      logger.info(`Taler currency resolved from exchange: ${this._currency}`);
+    } catch {
+      this._currency = 'KUDOS';
+      logger.warn('Taler exchange not reachable, using fallback currency: KUDOS');
+    }
+    return this._currency;
+  }
 
   // -------------------------------------------------------------------------
   // /taler/config — echte /keys-Antwort vom Exchange
@@ -159,16 +189,17 @@ export class TalerService {
     const pubRaw = publicKey.export({ type: 'spki', format: 'der' }).subarray(-32);
     const walletPub = ed25519PubToCrockford(pubRaw);
     const walletPrivPkcs8 = privateKey.export({ type: 'pkcs8', format: 'der' }).toString('hex');
+    const currency = await this.getCurrency();
 
     const inserted = await queryOne<TalerWallet>(
       `INSERT INTO taler_wallets (user_id, wallet_pub, wallet_priv_pkcs8, balance, currency,
                                  exchange_base_url, last_probed_at)
-       VALUES ($1, $2, $3, 'KUDOS:0', $4, $5, CURRENT_TIMESTAMP)
+       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
        RETURNING *`,
-      [userId, walletPub, walletPrivPkcs8, CURRENCY, talerExchangeClient.instance.baseUrl],
+      [userId, walletPub, walletPrivPkcs8, `${currency}:0`, currency, talerExchangeClient.instance.baseUrl],
     );
 
-    logger.info(`Taler wallet identity created (real ed25519): user=${userId} wallet_pub=${walletPub.slice(0, 16)}…`);
+    logger.info(`Taler wallet identity created (real ed25519): user=${userId} wallet_pub=${walletPub.slice(0, 16)}… currency=${currency}`);
     return stripPrivateFields(inserted!);
   }
 
@@ -194,6 +225,7 @@ export class TalerService {
   // -------------------------------------------------------------------------
 
   async getBalance(userId: string): Promise<{ balance: number; currency: string; reserves_probed: number }> {
+    const currency = await this.getCurrency();
     const reserves = await query<{ reserve_pub: string; exchange_base_url: string }>(
       'SELECT reserve_pub, exchange_base_url FROM taler_reserves WHERE user_id = $1',
       [userId],
@@ -202,7 +234,7 @@ export class TalerService {
     if (reserves.length === 0) {
       // Wallet existiert, aber noch keine externe Reserve gebunden.
       // Echt: 0 ist die korrekte Antwort, kein erfundener 100-Default.
-      return { balance: 0, currency: CURRENCY, reserves_probed: 0 };
+      return { balance: 0, currency, reserves_probed: 0 };
     }
 
     // Wir fragen das echte Exchange für jede Reserve
@@ -230,10 +262,10 @@ export class TalerService {
     await execute(
       `UPDATE taler_wallets SET balance = $1, last_probed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
        WHERE user_id = $2`,
-      [`${CURRENCY}:${total.toFixed(2)}`, userId],
+      [`${currency}:${total.toFixed(2)}`, userId],
     );
 
-    return { balance: total, currency: CURRENCY, reserves_probed: probed };
+    return { balance: total, currency, reserves_probed: probed };
   }
 
   // -------------------------------------------------------------------------
@@ -279,8 +311,9 @@ export class TalerService {
 
     // Reserve neu eintragen
     // Snapshot aus dem echten Exchange normalisieren — Taler-Balance-Format ist 'CURRENCY:VALUE'.
-    // Wenn der Server nur 'VALUE' liefert, konvertieren wir auf 'KUDOS:VALUE'.
-    const normalisedBalance = formatAmount(parseAmount(status.current_balance));
+    // Currency wird dynamisch aus dem Exchange-/keys-Response extrahiert.
+    const reserveCurrency = extractCurrency(status.current_balance);
+    const normalisedBalance = formatAmount(parseAmount(status.current_balance), reserveCurrency);
 
     await execute(
       `INSERT INTO taler_reserves (user_id, reserve_pub, reserve_priv_pkcs8, initial_balance,
@@ -322,11 +355,12 @@ export class TalerService {
   // Wir generieren hier NUR das lokale Ed25519-Schlüsselpaar. Wir behaupten NICHT,
   // dass die Reserve am Exchange real ist — das wird sie erst nach dem Bank-Wire.
 
-  async createReserveForUser(userId: string, _initialBalance?: 'KUDOS:25' | 'KUDOS:10'): Promise<{
+  async createReserveForUser(userId: string, _initialBalance?: `${string}:${string}`): Promise<{
     reserve_pub: string; status: string; exchange_base_url: string;
     bank_wire_url: string;
     note: string;
   }> {
+    const currency = await this.getCurrency();
     // 1. Frisches ed25519-Schlüsselpaar lokal erzeugen
     const { reserve_pub, reserve_priv_pkcs8 } = newReservePrivPub();
 
@@ -334,8 +368,8 @@ export class TalerService {
     await execute(
       `INSERT INTO taler_reserves (user_id, reserve_pub, reserve_priv_pkcs8, initial_balance,
                                   current_balance, status, exchange_base_url, last_probed_at)
-       VALUES ($1, $2, $3, 'KUDOS:0', 'KUDOS:0', 'pending_bank_wire', $4, CURRENT_TIMESTAMP)`,
-      [userId, reserve_pub, reserve_priv_pkcs8, talerExchangeClient.instance.baseUrl],
+       VALUES ($1, $2, $3, $5, $5, 'pending_bank_wire', $4, CURRENT_TIMESTAMP)`,
+      [userId, reserve_pub, reserve_priv_pkcs8, talerExchangeClient.instance.baseUrl, `${currency}:0`],
     );
     // _initialBalance ist aus Backward-Compat erhalten; Bank legt den Betrag fest.
     void _initialBalance;
@@ -375,11 +409,12 @@ export class TalerService {
     const status = await talerExchangeClient.getReserveStatus(reserve_pub);
     this.reserveCache.set(reserve_pub, { value: status, at: Date.now() });
 
+    const balCurrency = extractCurrency(status.current_balance);
     await execute(
       `UPDATE taler_reserves SET current_balance = $1, status = $2, last_probed_at = CURRENT_TIMESTAMP,
                                  raw_exchange_response = $3, updated_at = CURRENT_TIMESTAMP
        WHERE reserve_pub = $4`,
-      [formatAmount(parseAmount(status.current_balance)), status.reserve_status, JSON.stringify(status), reserve_pub],
+      [formatAmount(parseAmount(status.current_balance), balCurrency), status.reserve_status, JSON.stringify(status), reserve_pub],
     );
 
     return status;
@@ -402,10 +437,11 @@ export class TalerService {
 
     const senderWallet = await this.getWallet(senderUserId, { probeExchange: true });
     // Echte Reserve-Balance als Fundings-Quelle (NICHT erfunden)
+    const purseCurrency = await this.getCurrency();
     const senderBalance = parseAmount(senderWallet.balance);
     if (senderBalance < amount) {
       throw new AppError(
-        `Insufficient RESERVE balance from live exchange: have ${senderBalance} ${CURRENCY}, need ${amount}. ` +
+        `Insufficient RESERVE balance from live exchange: have ${senderBalance} ${purseCurrency}, need ${amount}. ` +
         `Bitte zuerst eine Reserve extern finanzieren: https://bank.demo.taler.net/`,
         402,
       );
@@ -424,10 +460,10 @@ export class TalerService {
         sender_wallet_id, receiver_wallet_id, status, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'created', $8)
        RETURNING *`,
-      [purse_pub, purse_priv_pkcs8, amount.toFixed(2), CURRENCY, effectiveContractHash, senderWallet.id, receiverWallet.id, expiresAt.toISOString()],
+      [purse_pub, purse_priv_pkcs8, amount.toFixed(2), purseCurrency, effectiveContractHash, senderWallet.id, receiverWallet.id, expiresAt.toISOString()],
     );
 
-    logger.info(`Purse ${purse!.id} created (heimat_p2p_helper, NOT Taler exchange): ${amount} ${CURRENCY} from ${senderUserId} to ${receiverUserId}${description ? ` desc: ${description}` : ''}`);
+    logger.info(`Purse ${purse!.id} created (heimat_p2p_helper, NOT Taler exchange): ${amount} ${purseCurrency} from ${senderUserId} to ${receiverUserId}${description ? ` desc: ${description}` : ''}`);
     return purse!;
   }
 
@@ -450,6 +486,7 @@ export class TalerService {
     await adjustBalance(senderWallet.id, -amount);
     await execute("UPDATE taler_purses SET status = 'funded' WHERE id = $1", [purseId]);
 
+    const fundingCurrency = await this.getCurrency();
     const tx = await this.logTransaction({
       kind: 'purse_funding',
       reserveId: null,
@@ -459,10 +496,10 @@ export class TalerService {
       amount, contractHash: purse.contract_hash,
       exchangeSig: null,
       status: 'completed',
-      description: `Purse funding: ${amount} ${CURRENCY}`,
+      description: `Purse funding: ${amount} ${fundingCurrency}`,
     });
     const updatedPurse = await queryOne<TalerPurse>('SELECT * FROM taler_purses WHERE id = $1', [purseId]);
-    logger.info(`Purse ${purseId} funded: ${amount} ${CURRENCY} from ${senderUserId}`);
+    logger.info(`Purse ${purseId} funded: ${amount} ${fundingCurrency} from ${senderUserId}`);
     return { purse: updatedPurse!, transaction: tx };
   }
 
@@ -480,6 +517,7 @@ export class TalerService {
     await adjustBalance(receiverWallet.id, +amount);
     await execute("UPDATE taler_purses SET status = 'merged', merged_at = CURRENT_TIMESTAMP WHERE id = $1", [purseId]);
 
+    const mergeCurrency = await this.getCurrency();
     const tx = await this.logTransaction({
       kind: 'purse_merge',
       reserveId: null,
@@ -489,10 +527,10 @@ export class TalerService {
       amount, contractHash: purse.contract_hash,
       exchangeSig: null,
       status: 'completed',
-      description: `Purse merge: ${amount} ${CURRENCY}`,
+      description: `Purse merge: ${amount} ${mergeCurrency}`,
     });
     const updatedPurse = await queryOne<TalerPurse>('SELECT * FROM taler_purses WHERE id = $1', [purseId]);
-    logger.info(`Purse ${purseId} merged: ${amount} ${CURRENCY} to ${receiverUserId}`);
+    logger.info(`Purse ${purseId} merged: ${amount} ${mergeCurrency} to ${receiverUserId}`);
     return { purse: updatedPurse!, transaction: tx };
   }
 
@@ -564,7 +602,7 @@ export class TalerService {
        RETURNING *`,
       [
         data.reserveId, data.purseId, data.fromWalletId, data.toWalletId,
-        data.amount.toFixed(2), CURRENCY, data.contractHash, data.kind,
+        data.amount.toFixed(2), await this.getCurrency(), data.contractHash, data.kind,
         data.status, data.exchangeSig, data.description,
       ],
     ))!;
