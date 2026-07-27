@@ -546,3 +546,82 @@ Phase 26 (JWT-Auth) führte `requireAuth` für alle Finance-Routen ein. Die best
 - AuthLock-Vertrag: `lib/core/auth/auth_gate.dart` ist jetzt der einzige Ort wo auth→Route-Entscheidungen getroffen werden — zukünftige AuthFlows (Biometric, MFA) brauchen nur AuthProvider + AuthGate zu ändern.
 - Drift-Risiko: 0 — Tests referenzieren SELBEN Import wie Production.
 
+## Phase R.5 — Auto-Migration Health-Check Tool (2026-07-27)
+
+> **Ziel:** Die in `knowledge.md:283` + `AGENTS.md:283` explizit als OFFEN gelistete Task A `npm run migrate:status` umsetzen. Pre-Deploy-Health-Check der Production-DB gegen `schema.sql` — drift-Detection fuer lokale Devs + CI vor jedem Render-Deploy.
+
+### Status
+
+- ✅ Production-Script `src/backend/src/scripts/migrate-status.ts` (~290 Zeilen)
+- ✅ Tests `src/backend/src/__tests__/migrate-status.test.ts` (29/29 gruen)
+- ✅ npm-Script `migrate:status` in `src/backend/package.json` hinzugefuegt
+- ✅ Mock-Policy-konform (audit-no-mocks.sh 0 violations)
+- ✅ Keine `src/`- oder `test/`-Invention — mirror-pattern zu bestehendem `migrate.ts` + `migrate.test.ts`
+
+### Architektur
+
+```
+  src/backend/src/scripts/migrate-status.ts
+    |
+    +-- parseExpectedSchema(sql: string): SchemaSnapshot
+    |     -> regex: CREATE TABLE [IF NOT EXISTS] <name> (...)
+    |     -> extractTableBody: depth-counter Klammern (nested CHECK/DEFAULT)
+    |     -> parseColumnNamesFromBody: split ,/\n, skip CONSTRAINT/INDEX/KEY
+    |
+    +-- queryCurrentSchema(poolOverride): SchemaSnapshot
+    |     -> SELECT table_name FROM information_schema.tables WHERE table_schema='public'
+    |     -> SELECT column_name FROM information_schema.columns (1x pro Tabelle, lower-cased)
+    |
+    +-- computeDrift(expected, actual): DriftReport
+    |     -> missingTables, missingColumns, extraTables (Cache-Layer-exempt via ALLOWED_EXTRA_TABLES)
+    |     -> extraTables werden NICHT als Drift behandelt wenn in ALLOWED_EXTRA_TABLES
+    |
+    +-- formatReport(report): string (Human-readable multi-line)
+    |
+    +-- run(options): RunResult (ok | drift | script_error)
+          -> reads schema.sql, queries DB, returns RunResult union
+          -> requires.main === module -> CLI exit(0|1|2)
+```
+
+### Exit-Codes
+
+- `0` — Schema ist synchron (`status: 'ok'`)
+- `1` — Schema-Drift erkannt (`status: 'drift'`); `npm run migrate:dev` ausfuehren
+- `2` — Script-Error (`reason: schema_not_found | schema_unreadable | db_unreachable`)
+
+### Use Cases
+
+1. **Pre-Commit Hook** — lokale Devs koennen `npm run migrate:status` laufen lassen bevor sie Push (verhindert dass schema-Aenderungen ohne migration gepusht werden).
+2. **CI-Integration** — als Job-Step in `backend.yml` zwischen Lint + Jest. Verifiziert dass Test-DB dem schema.sql entspricht.
+3. **Render preDeploy-Healthcheck** — vor `npm run migrate` laufen lassen; falls drift UND gleichzetig nicht-migrate-faehig, dann skip.
+
+### Validation Befehle
+
+- `cd src/backend && npx tsc --noEmit` → 0 Errors
+- `cd src/backend && npx eslint src/scripts/migrate-status.ts src/__tests__/migrate-status.test.ts` → 0 Errors (1 deprecation-warning von `.eslintignore`, pre-existing, nicht-R.5-bezogen)
+- `cd src/backend && npx jest src/__tests__/migrate-status.test.ts` → 29/29 passed
+- `bash scripts/audit-no-mocks.sh` → 0 violations (Mock-Policy konform)
+- `cd src/backend && npm run migrate:status` → CLI startet, ECONNREFUSED ohne lokale DB expected (kind=script_error reason=db_unreachable)
+
+### Lessons-Learned (in Tests verriegelt)
+
+- **BUG #1 fixed:** `extractTableBody` depth-counter startete bei 0 statt 1 → 3 Tests schlagen initial fehl. Fix: depth=1 INNERHALB der oeffnenden Klammer, countet nur verschachtelte Klammern. Root-Cause fix, kein symptom-fix.
+- **BUG #2 fixed:** `queryCurrentSchema` lower-cased Spalten aber NICHT table_name → mixed-case Test failure. Fix: `tableName = row.table_name.toLowerCase()`. Kompatibel mit PostgreSQL info_schema.
+- **BUG #3 fixed:** Test `drift-Status mit nur missing_tables` erwartete `missing_columns (` als Substring bei leerer Section. Korrektes Verhalten ist: Section erscheint nur wenn non-empty. Test korrigiert aud `not.toContain`.
+
+### Offene Folgetasks (Phase R.6+)
+
+- **Phase R.6: audit-no-mocks.sh SCAN_PATHS erweitern** — `src/backend/src/scripts/` hinzufuegen. Aktueller Commit waere sonst von zukuenftigen Mock-Violations in scripts/ nicht abgedeckt.
+- **Phase R.7: migrate:status --json Flag** — fuer CI-Consumer (Render preDeploy-Healthcheck, GitHub-Actions). JSON-Output statt Human-readable text.
+- **Phase R.8: shared `_schema-path.ts` extrahieren** — `resolveSchemaPath` ist jetzt in `migrate.ts` UND `migrate-status.ts` dupliziert (~5 LOC). Mini-Refactor in eigene utility-Datei.
+
+### Bekannte Limitationen
+
+- PostgreSQL quoted mixed-case identifiers (`"MiXed_Case"`) werden durch `toLowerCase()` falsch gefaltet. HEIMAT's `schema.sql` nutzt aktuell keine quoted mixed-case, daher OK. Wenn schema.sql erweitert wird → separate Anpassung noetig.
+- Parser erkennt keine `CREATE TABLE ... PARTITION OF parent` Konstrukte (PostgreSQL-spezifisch). Falls schema.sql Partition-Tables enthaelt → manuell pflegen.
+- `queryCurrentSchema` macht N+1 Queries (1 fuer tables + N fuer columns). Bei HEIMAT's 16 Tables = 17 Queries. Akzeptabel fuer CI.
+
+### Bezug zu User-Auftrag (Phase-R-Auftrag-Tracking)
+
+- Phase R.5 schliesst Task A aus knowledge.md:283 "Was fehlt" + AGENTS.md:283 "Was fehlt" + heimat-plan.md Phase-Plaene. Verbleibt: Phase B Rest (Luft + Abfallkalender), EUR-Production-Exchange (blockiert externer GLS-Bank-Endpoint), AI on-device (Phase 8.4 project-prompt.md).
+
