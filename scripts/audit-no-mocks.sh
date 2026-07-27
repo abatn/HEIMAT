@@ -35,10 +35,16 @@ set -uo pipefail
 # -----------------------------------------------------------------------------
 
 # Production code paths (single source of truth — no tests/ no docs/)
+# Phase R.6 (2026-07-27): src/backend/src/scripts/ hinzugefuegt.
+#   Hintergrund: Phase R.5 hat migrate-status.ts unter src/backend/src/scripts/
+#   platziert (mirror-pattern zu migrate.ts). Die Mock-Policy muss neu hinzugekommene
+#   Production-Scripts automatisch scannen, sonst waere die Policy-Durchsetzung
+#   fuer scripts/ eine ungedeckte Coverage-Luecke.
 SCAN_PATHS=(
     "src/backend/src/services/"
     "src/backend/src/routes/"
     "src/backend/src/middleware/"
+    "src/backend/src/scripts/"
     "src/mobile/lib/"
 )
 
