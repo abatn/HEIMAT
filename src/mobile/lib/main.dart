@@ -7,6 +7,7 @@ import 'core/theme/app_colors.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/presentation/register_screen.dart';
+import 'core/auth/auth_gate.dart';
 import 'features/mobility/presentation/mobility_provider.dart';
 import 'features/finance/presentation/finance_provider.dart';
 import 'features/health/presentation/health_provider.dart';
@@ -63,7 +64,7 @@ class HeimatApp extends StatelessWidget {
               darkTheme: AppTheme.darkTheme,
               themeMode: ThemeMode.system,
               routes: {
-                '/': (_) => const AuthGate(),
+                '/': (_) => AuthGate(authenticated: const MainScreen()),
                 '/login': (_) => const LoginScreen(),
                 '/register': (_) => const RegisterScreen(),
               },
@@ -74,19 +75,6 @@ class HeimatApp extends StatelessWidget {
         },
       ),
     );
-  }
-}
-
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    if (auth.isAuthenticated) {
-      return const MainScreen();
-    }
-    return const LoginScreen();
   }
 }
 
