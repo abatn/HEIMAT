@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api/api_client.dart';
 import '../../core/services/location_service.dart';
+import '../ai/local_sentiment_classifier.dart';
 import 'weather_dto.dart';
 
 /// WeatherProvider — Backend-Anbindung für das Wetter-Mini-Program.
@@ -42,6 +43,20 @@ class WeatherProvider extends ChangeNotifier {
   bool _isStale = false;
 
   // ------------------------------------------------------------------
+  // AI Hook (Phase E - On-Device Sentiment-Klassifikation)
+  // ------------------------------------------------------------------
+  /// Classifier-Impl ist injizierbar (Constructor) für Tests + spaeteren
+  /// TFLite-Swap. Default = StubNaiveBayesClassifier (Dart-only, 0 Bytes Netzwerk).
+  final LocalSentimentClassifier _classifier;
+
+  /// Phase E: Sentiment-Score fuer current.weatherText.
+  /// Wird in refresh() gesetzt nachdem forecast parsiert wurde.
+  SentimentResult? _sentiment;
+
+  WeatherProvider({LocalSentimentClassifier? classifier})
+      : _classifier = classifier ?? defaultSentimentClassifier;
+
+  // ------------------------------------------------------------------
   // Getter
   // ------------------------------------------------------------------
   bool get isLoading => _isLoading;
@@ -52,6 +67,10 @@ class WeatherProvider extends ChangeNotifier {
   String get locationName => _locationName;
   double get lat => _lat;
   double get lng => _lng;
+
+  /// Aktuelles Sentiment-Result (von on-device Stub Naive-Bayes-Classifier).
+  /// Null solange noch kein refresh() gelaufen ist.
+  SentimentResult? get sentiment => _sentiment;
 
   /// True wenn (cached ODER live) Daten verfügbar — Widget kann rendern
   bool get hasData => _forecast != null;
@@ -92,6 +111,10 @@ class WeatherProvider extends ChangeNotifier {
     if (_isLoading) return;
     _isLoading = true;
     _error = null;
+    // MAJOR-Fix: _sentiment reset vor neuem Fetch damit Pull-to-Refresh
+    // nicht stale UI anzeigt (altes Sentiment waere waehrend Network-Latenz
+    // noch sichtbar obwohl Forecast schon neuen Wettertext hat).
+    _sentiment = null;
     notifyListeners();
     try {
       final data = await apiGet('/api/weather/forecast?lat=$_lat&lng=$_lng');
@@ -106,6 +129,17 @@ class WeatherProvider extends ChangeNotifier {
               _locationName;
       _lastUpdated = DateTime.now();
       _isStale = false;
+
+      // Phase E AI Hook: on-device Sentiment-Klassifikation.
+      // Pattern ist TFLite-swap-ready: spaeter nur Impl austauschen,
+      // Aufruf-Site bleibt unveraendert. Classifier ist injizierbar
+      // via Constructor fuer Test-Stubs.
+      try {
+        _sentiment = await _classifier.classify(_forecast!.current.weatherText);
+      } catch (_) {
+        // Classifier-Fehler ist nicht-kritisch: ohne Sentiment weiterleben.
+        _sentiment = null;
+      }
 
       // Cache persistieren
       await _persistForecast(data);
@@ -144,9 +178,24 @@ class WeatherProvider extends ChangeNotifier {
         _lat = double.tryParse(lat) ?? _lat;
         _lng = double.tryParse(lng) ?? _lng;
       }
+      // MAJOR-Fix: Klassifiziere gecachten Wetter-Text sofort nach Restore,
+      // damit die KI-Wetterstimmung-Row direkt nach Cold-Start ohne
+      // Netzwerk-Roundtrip sichtbar ist. Fire-and-forget + notifyListeners()
+      // wenn Klassifikation fertig.
+      unawaited(_restoreSentimentFromCache());
     } catch (_) {
       // Cache corrupted — silent fallback to in-memory-only mode
       _forecast = null;
+    }
+  }
+
+  Future<void> _restoreSentimentFromCache() async {
+    if (_forecast == null) return;
+    try {
+      _sentiment = await _classifier.classify(_forecast!.current.weatherText);
+      notifyListeners();
+    } catch (_) {
+      _sentiment = null;
     }
   }
 

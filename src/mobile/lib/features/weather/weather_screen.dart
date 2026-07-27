@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/skeleton_loader.dart';
 import '../../core/widgets/empty_state.dart';
+import '../ai/local_sentiment_classifier.dart';
 import 'weather_provider.dart';
 import 'widgets/current_weather_hero.dart';
 import 'widgets/hourly_forecast_strip.dart';
@@ -109,6 +110,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
           locationName: p.locationName,
           isStale: p.isStale,
         ),
+        if (p.sentiment != null) ...[
+          const SizedBox(height: 12),
+          _buildSentimentRow(p.sentiment!),
+        ],
         const SizedBox(height: 16),
         if (f.hourly.isNotEmpty) HourlyForecastStrip(hourly: f.hourly),
         const SizedBox(height: 16),
@@ -116,6 +121,79 @@ class _WeatherScreenState extends State<WeatherScreen> {
         const SizedBox(height: 8),
         _buildAttribution(f),
       ],
+    );
+  }
+
+  /// Phase E AI Hook: On-Device Sentiment-Row.
+  /// Zeigt dem User EXPLIZIT dass hier lokal klassifiziert wird,
+  /// nicht von einem Cloud-AI. Macht die AI transparent + privacy-friendly.
+  Widget _buildSentimentRow(SentimentResult s) {
+    final scoreColor = s.isGood
+        ? AppColors.success
+        : s.isBad
+            ? AppColors.error
+            : AppColors.textSecondary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.psychology_outlined,
+              size: 14, color: AppColors.primary),
+          const SizedBox(width: 8),
+          const Text(
+            'KI-Wetterstimmung',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text('·', style: TextStyle(color: AppColors.textSecondary)),
+          const SizedBox(width: 6),
+          Text(
+            s.emoji,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            s.uiCompact,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: scoreColor,
+            ),
+          ),
+          const Spacer(),
+          // Source-Attribution: ehrlich kommunizieren dass es Stub ist,
+          // nicht ein echtes TFLite-Modell. User weiss was sie/er bekommt.
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: s.source.contains('fallback')
+                  ? AppColors.warning.withOpacity(0.12)
+                  : AppColors.info.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              s.source,
+              style: TextStyle(
+                fontSize: 9,
+                color: s.source.contains('fallback')
+                    ? AppColors.warning
+                    : AppColors.info,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
