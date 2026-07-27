@@ -51,7 +51,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Admin-Pfad**: `ADMIN_KEY` auf Render; `POST /api/admin/migrate` mit X-Admin-Key positive-control HTTP 200 in ~213ms — Phase 23
 - **DB-Connection**: Supavisor-Pooler `aws-0-eu-west-1.pooler.supabase.com:5432` mit `DB_SSL=true`, IPv4-Force (`family:4`) — löst Supabase-IPv6-Only Problem auf Render Free Tier IPv4
 - **Taler Wallet-Client**: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` live. **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
-- **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button via POST /api/finance/taler/fund-local — 25 KUDOS direkt in DB, kein Exchange. P2P-Purse-System bereit.
+- **Funded-Wallet-Pfad (Phase R, 2026-07-27)**: Wallet-Balance bleibt 0.00 KUDOS bis ein EUR-Production-Exchange (oder bank.demo.taler.net) echtes Taler-Guthaben via Reserve-Adresse-Bank-Wire bucht. fundLocal Mock-Endpoint liefert HTTP 410 Gone (Commit 2d3ae18). Mobile Demo-Button "25 Demo-KUDOS" + `_computeMockLiveStatus` entfernt (Commit 7718333). User-Regel (AGENTS.md:143 + knowledge.md:283): "mock, simulation, fake sind verboten" — enforced via audit-no-mocks.sh in CI (Commit 82047ad).
 - **UX-Modernisierung (Commit 5ad8068, 661afb28, f389001)**: FinanceScreen (animierte Balance-Card, Quick Actions, Timeline), HealthScreen (Shimmer, DoctorCards mit Presseffekt, Gradienten), MobilityScreen (GPS/Route/Marker Widgets, Gradienten)
 - **CI-Fix Runde 1**: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt- **CI-Fix Runde 2 (2026-07-27)** : `withOpacity` statt `withValues` (Flutter 3.24.5-Kompatibilität), `unnecessary_non_null_assertion` in `home_screen.dart` entfernt, Conditional Imports ohne `else`-Klausel korrigiert, `deploy-web.yml` safe.directory Fix — CI grün für Commit `246ece3`
 - **Phase A: Mini-Program-Container (Commit 92ec307)**: WebView-Framework mit 10 Mini-Programmen (Futai, Wetter, Luft, Events, Jobs, E-Ladestationen, Abfall, Hotels, Parken, Bürgeramt) + Conditional Imports (dart:html für Web, Stub für Mobile) + Apps-Tab
@@ -66,7 +66,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
 
 ### ⚠️ Was ist offen (nicht-blockierend)
-- **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange noetig) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+- **Wallet-Balance bleibt 0.00 KUDOS bis EUR-Exchange-Live (Phase R geschlossen, 2026-07-27)**: Demo-Mock-Bypass fundLocal entfernt per User-Regel (AGENTS.md:143 + knowledge.md:283 "mock, simulation, fake sind verboten"). Wallet wird via echten Reserve-Adresse-Bank-Wire gefuellt (bank.demo.taler.net heute, EUR-Production-Exchange wartet auf oeffentliche GLS-Bank-Integration). Demo-Option (a) im Finanzen-Tab-Bottom-Sheet entfernt (Commit 7718333). audit-no-mocks.sh enforced in CI (Commit 82047ad).
 
 **📱 Taler aus der App — User-Guide:**
 Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren]. Demo-KUDOS sind HEIMAT-intern (kein Exchange), Reserve-Workflow ist echter Taler.
@@ -781,7 +781,7 @@ HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Ra
 ### Nächste Schritte
 - Mobile Browser-Re-Test mit `heimat-demo-user@heimat.de` gegen Finanzen-Tab → echte Wallet-Daten statt 0.00 KUDOS-Demo
 - ✅ **migrate.ts Unit-Test (Commit 06dc2e3)** — 18 Tests, alle gruen
-- **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, 25 KUDOS direkt in DB, kein Exchange nötig) und (b) "Reserve-Adresse erstellen" (alter Flow für echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf öffentliche GLS-Bank-Integration.
+- **Wallet-Balance bleibt 0.00 KUDOS bis EUR-Exchange-Live (Phase R geschlossen, 2026-07-27)**: Demo-Mock-Bypass fundLocal entfernt per User-Regel (AGENTS.md:143 + knowledge.md:283 "mock, simulation, fake sind verboten"). Wallet wird via echten Reserve-Adresse-Bank-Wire gefuellt (bank.demo.taler.net heute, EUR-Production-Exchange wartet auf oeffentliche GLS-Bank-Integration). Demo-Option (a) im Finanzen-Tab-Bottom-Sheet entfernt (Commit 7718333). audit-no-mocks.sh enforced in CI (Commit 82047ad).
 - Phase 25: E2E-Tests Flutter (Integration Tests für Login → Finance → Logout Flow)
 
 ---

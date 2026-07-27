@@ -197,14 +197,14 @@ HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, abe
 - Taler — `exchange.demo.taler.net` erreichbar (GET /keys + /reserves/<pub>)
 - **Wetter-Vorhersage (Phase E Real-Fix)** | ✅ **Live (2026-07-27, Commit 99daa9c)** | **Mirror-Fallback-Pattern: Open-Meteo + Bright Sky (api.brightsky.dev). Render-Shared-IP-429-Rate-Limit behoben. 10 Regression-Tests grün. Live-Verifikation: 200 OK mit realen Berlin-Daten (21.1°C). Real-Data-Only — keine Mocks (User-Regel)** |
 
-### ✅ Phase 24: Demo-KUDOS und P2P-Durchstich (2026-07-26)
-**Demo-KUDOS fund-local ist live!** Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" — sofort 25 KUDOS direkt in die DB, kein Exchange noetig; (b) "Reserve-Adresse erstellen" — fuer echten Taler-Bank-Wire. P2P-Purse-System bereit (createPurse/depositToPurse/mergePurse). EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+### ✅ Phase R: Mock-Removal + Wallet 0.00 bis EUR-Exchange-Live (2026-07-27)
+**Phase R geschlossen.** Wallet-Balance bleibt 0.00 KUDOS bis ein EUR-Production-Exchange (oder bank.demo.taler.net) echtes Taler-Guthaben via Reserve-Adresse-Bank-Wire bucht. Demo-Mock-Bypass fundLocal (POST /api/finance/taler/fund-local) liefert HTTP 410 Gone (Commit 2d3ae18). Mobile Demo-Button "25 Demo-KUDOS" im Finanzen-Tab-Bottom-Sheet + `_computeMockLiveStatus` im Apps-Tab entfernt (Commit 7718333). P2P-Send an registrierte HEIMAT-User (createPurse/depositToPurse/mergePurse) bleibt funktional nach erfolgreichem Bank-Wire. audit-no-mocks.sh enforced in Backend+Flutter CI (Commit 82047ad). EUR-Production-Exchange bleibt offen (GLS-Bank-Integration). User-Regel (AGENTS.md:143 + knowledge.md:283): "mock, simulation, fake sind verboten".
 
 ### ⚠️ Was noch offen ist
 - Flutter Integration-Tests
 
 **📱 Taler aus der App — So geht's:**
-Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> Zwei Optionen: (1) "25 Demo-KUDOS erhalten" -> Balance sofort 25.00 KUDOS -> Geld senden testen. (2) "Reserve-Adresse erstellen" -> reserve_pub wird erzeugt -> bank.demo.taler.net -> ueberweisen -> zurueck -> [Aktualisieren].
+Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> nur echter Reserve-Adresse-Weg (Phase R, 2026-07-27): reserve_pub wird erzeugt -> bank.demo.taler.net -> echtes KUDOS-Wire ausloesen -> zurueck zu HEIMAT -> [Aktualisieren] -> Balance zeigt via Bank-Wire gebuchten Live-Wert. Demo-KUDOS-Option (1) "25 Demo-KUDOS erhalten" wurde komplett entfernt (kein Mock, kein Bypass).
 
 ### ❌ Was fehlt
 - **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-gruen. Schritt 1/5 des inkrementellen Wiederaufbaus.

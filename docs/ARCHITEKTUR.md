@@ -91,7 +91,8 @@ main.dart
   │     ├── loadWallet() → GET /api/finance/wallet
   │     ├── loadTransactions() → GET /api/finance/transactions
   │     ├── sendMoney(to, amount) → POST /api/finance/send
-  │     └── requestFundLocal(amount) → POST /api/finance/taler/fund-local
+  │     └── [REMOVED 2026-07-27 per Phase R] POST /api/finance/taler/fund-local → HTTP 410 Gone
+  │     └── openReserve() → POST /api/finance/taler/reserve/open (echter Reserve-Adresse-Flow, Source-of-Truth fuer Wallet-Funding)
   │
   ├── HealthProvider (ChangeNotifier)
   │     ├── searchDoctors(specialty, location) → Overpass + DB
@@ -204,7 +205,7 @@ Fehlerfall (Backend offline):
 | `POST` | `/api/finance/send` | `requireAuth` + Zod | FinanceService | Supabase |
 | `GET` | `/api/finance/transactions` | `requireAuth` | FinanceService | Supabase |
 | `POST` | `/api/finance/taler/reserve/open` | `requireAuth` | TalerService | exchange.demo.taler.net |
-| `POST` | `/api/finance/taler/fund-local` | `requireAuth` | FinanceService | Supabase |
+| `POST` | `/api/finance/taler/fund-local` | `requireAuth` | FinanceService (REMOVED Phase R 2026-07-27) | HTTP 410 Gone (Code-Gone für Mock-Removal per User-Regel) |
 | `GET` | `/api/finance/taler/status` | `requireAuth` | TalerService | exchange.demo.taler.net |
 | `GET` | `/api/health/doctors` | Zod | HealthService | Overpass + Supabase |
 | `GET` | `/api/health/doctors/nearby` | Zod | HealthService | Overpass |

@@ -29,7 +29,7 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - Mobilität und Gesundheit seit MVP grün
 
 ### Was ist offen
-- EUR-Exchange (Phase 24): Demo-KUDOS und P2P-Durchstich ✅ Live. "25 Demo-KUDOS erhalten" Button funktioniert (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange). P2P-Purse-System bereit. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+- EUR-Exchange: Wallet-Balance bleibt 0.00 KUDOS bis EUR-Production-Exchange (oder bank.demo.taler.net) echtes Taler-Guthaben via Reserve-Adresse-Bank-Wire bucht. Demo-Mock-Bypass fundLocal liefert HTTP 410 Gone (Commit 2d3ae18). Mobile Demo-Button "25 Demo-KUDOS" + `_computeMockLiveStatus` entfernt (Commit 7718333). audit-no-mocks.sh enforced in CI (Commit 82047ad). User-Regel (AGENTS.md:143 + knowledge.md:283): "mock, simulation, fake sind verboten".
 - **migrate.ts Unit-Test ✅ (Commit 06dc2e3)** — 18 Tests, alle gruen
 
 ### Was fehlt
@@ -103,11 +103,11 @@ Commits:
 
 Verifikation: POST `/api/admin/migrate` mit X-Admin-Key Header gegen Render → HTTP 200 `{"success":true,"message":"Schema migrated"}` in 213ms.
 
-### Phase 24: Demo-KUDOS und P2P-Durchstich (2026-07-26)
-**Status:** ✅ Demo-KUDOS fund-local live. Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, 25 KUDOS direkt in DB, kein Exchange noetig) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
+### Phase R: Mock-Removal + Wallet 0.00 bis EUR-Exchange-Live (2026-07-27)
+**Status:** ✅ Phase R geschlossen. Wallet-Balance bleibt 0.00 KUDOS bis ein EUR-Production-Exchange (oder bank.demo.taler.net) echtes Taler-Guthaben via Reserve-Adresse-Bank-Wire bucht. Demo-Mock-Bypass fundLocal (POST /api/finance/taler/fund-local) liefert HTTP 410 Gone (Commit 2d3ae18). Mobile Demo-Button "25 Demo-KUDOS" im Finanzen-Tab-Bottom-Sheet + `_computeMockLiveStatus` im Apps-Tab entfernt (Commit 7718333). P2P-Send an registrierte HEIMAT-User bleibt funktional nach erfolgreichem Bank-Wire. audit-no-mocks.sh enforced in CI (Commit 82047ad) + Pre-Commit-Hook-Installer verfuegbar (bash scripts/install-audit-hook.sh). EUR-Production-Exchange bleibt offen (GLS-Bank-Integration).
 
 **📱 Taler aus der App — User-Guide:**
-Finanzen-Tab öffnen → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → App erzeugt reserve_pub → 4 Schritte: (1) bank.demo.taler.net öffnen, (2) registrieren, (3) 25 KUDOS erhalten, (4) zurück zu HEIMAT → [Aktualisieren]. Kein Fake-Geld, keine App-Erfindung.
+Finanzen-Tab öffnen → Wallet auto-erstellt → 0.00 KUDOS → [Guthaben aufladen] → nur echter Reserve-Adresse-Weg (Phase R, 2026-07-27): App erzeugt reserve_pub → 4 Schritte: (1) bank.demo.taler.net öffnen, (2) registrieren, (3) echtes KUDOS-Wire auslösen, (4) zurück zu HEIMAT → [Aktualisieren] → Balance zeigt via Bank-Wire gebuchten Live-Wert. Demo-KUDOS-Option "25 Demo-KUDOS erhalten" wurde komplett entfernt (kein Mock-Bypass, kein Fake-Geld-Pfad).
 
 **Backend bereits fertig:**
 - `POST /api/finance/taler/reserve/open` → reserve_pub + bank_wire_url
