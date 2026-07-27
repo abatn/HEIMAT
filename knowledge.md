@@ -113,6 +113,13 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 - **No `npm run migrate` / `npm run seed`** — those don't exist. Schema is loaded via `POST /api/migrate` (admin-only) or CI `psql -f`.
 - **Root `*.md` files (`AI-*.md`, `heimat-plan.md`, `blog/`, `funding/`, `marketing/`)** are planning/marketing docs, NOT code documentation. Don't read them for code context.
 
+## Phase E — Status (2026-07-27)
+- ✅ Wetter-Pilot als nativer Flutter-Service implementiert (CurrentWeatherHero + HourlyForecastStrip + WeeklyOutlookGrid). CI grün (`dart analyze` 0, `dart format` OK).
+- ServiceRegistry-Pattern: pro Service `useNative: true` in `MiniProgram` → nativ, sonst IFrame-Fallback. Migration inkrementell pro Service.
+- Dokumentiert: `heimat-plan.md` (Phase E), `AGENTS.md` (Phase E Block). Folgemitziehen: README.md, HANDOFF.md, bauplan.md, AI-*.md, CONTRIBUTING.md (separater Doku-Sweep).
+
+---
+
 ## Critical gotchas (READ before touching files)
 
 1. **Never `git add -A` / `git add .` from repo root.**
