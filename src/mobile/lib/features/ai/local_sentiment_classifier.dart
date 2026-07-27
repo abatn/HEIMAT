@@ -1,17 +1,16 @@
-/// LocalSentimentClassifier - Phase E AI Hook Fundament
+/// LocalSentimentClassifier - Phase R (2026-07-27) AI Hook.
 ///
-/// **AI-Architektur.md §Frontend** zeigt GENA dieses Pattern:
-///   abstract `LocalClassifier` mit `classify(text) -> Vorhersage`
-///   → vorbereitet fuer spaeteren TFLite-Swap (`Interpreter.fromAsset`)
+/// User-Regel (AGENTS.md:143 + knowledge.md:283): "mock, simulation, fake sind verboten".
 ///
-/// Wir bauen 1:1 das gleiche Pattern fuer Wetter-Sentiment:
-///   - abstraktes `LocalSentimentClassifier` Interface
-///   - `StubNaiveBayesClassifier` als Default-Impl (Dart-only Mocks)
-///   - `TfliteSentimentClassifier` (zukuenftig, Phase 1 nach AI-Implementierungsplan)
+/// Phase R hat [StubNaiveBayesClassifier] ENTFERNT (war hand-tuned Score-Tabelle —
+/// technisch ein Mock). Stattdessen ehrliche [UninitialisedClassifier]-Default-
+/// Implementation, die neutrale SentimentResult { score: 0.0, axis: neutral,
+/// emoji: '🤖', source: 'uninitialised' } zurueckgibt. Das UI zeigt
+/// "KI noch nicht initialisiert" — User weiss was er bekommt.
 ///
-/// **AI-Implementierungsplan.md §Phase 1 Meilenstein:**
-/// "Sprachsteuerung und lokale Kategorisierung funktionieren offline".
-/// Dies ist der erste konkrete Schritt in diese Richtung.
+/// **AI-Implementierungsplan.md §Phase 1 Meilenstein:** TFLite-Swap kommt spaeter.
+/// Wenn das echte Modell kommt: nur [UninitialisedClassifier] austauschen,
+/// das Interface [LocalSentimentClassifier] bleibt unveraendert.
 library;
 
 /// Sentiment-Achsen fuer den Output eines beliebigen LocalSentimentClassifier.
@@ -66,109 +65,46 @@ class SentimentResult {
 /// LocalSentimentClassifier - Abstrakte AI-Hook Schnittstelle.
 ///
 /// Alle Implementierungen MUSSEN `classify(text)` als Future exposen.
-/// Aktuell: [StubNaiveBayesClassifier] (Dart-only Mock).
-/// Phase 1: [TfliteSentimentClassifier] mit echtem TFLite-Modell aus assets/.
+/// Phase R Default: [UninitialisedClassifier] (ehrlich "AI noch nicht aktiv",
+/// kein Mock-Score). Phase 1: [TfliteSentimentClassifier] mit echtem TFLite-
+/// Modell aus assets/ ersetzt die UninitialisedClassifier-Implementation
+/// direkt — Interface bleibt unveraendert.
 abstract class LocalSentimentClassifier {
   Future<SentimentResult> classify(String text);
 }
 
-/// StubNaiveBayesClassifier - Phase E Default-Implementierung.
+/// UninitialisedClassifier - Phase R Default-Implementierung.
 ///
-/// **Status:** Echte Implementierung kommt in Phase 1 nach `AI-Implementierungsplan.md`.
-/// Heute: hand-tuned Score-Tabelle fuer die ~27 deutschen WMO-Wetter-Texte
-/// (Backend weatherService.ts liefert diese direkt im JSON).
+/// **Status:** Phase R (2026-07-27). Echte ML/TFLite-Implementation kommt in
+/// Phase 1 nach `AI-Implementierungsplan.md`. Diese Default-Implementation ist
+/// KEIN Mock (User-Regel "mock, simulation, fake sind verboten"):
+///   - Keine hand-tuned Score-Tabelle
+///   - Keine erfundenen Wetter-Texte-Mappings
+///   - Kein fake "always-positive" Sentiment
 ///
-/// **Warum hand-tuned statt ML?**
-/// - Web-Build kann TFLite nicht zuverlaessig (WASM-Loader issue)
-/// - Stub ist deterministisch + versionierbar (kein random ML-Output)
-/// - Wenn das echte Modell kommt: nur Stub austauschen, Pattern bleibt
-/// - SMILIE: User kann im Code lesen WIE der Score zustande kommt
+/// Stattdessen: ehrliche `SentimentResult { score: 0.0, axis: neutral,
+/// emoji: '🤖', source: 'uninitialised' }`. Das UI (WeatherScreen) zeigt
+/// "KI: nicht initialisiert" mit warning-Color — User weiss explizit dass
+/// KEIN AI-Score berechnet wurde.
 ///
 /// **On-Device:** Alles laeuft im Flutter-Dart, 0 Bytes Netzwerk-Traffic.
-class StubNaiveBayesClassifier implements LocalSentimentClassifier {
-  const StubNaiveBayesClassifier();
+class UninitialisedClassifier implements LocalSentimentClassifier {
+  const UninitialisedClassifier();
 
   @override
   Future<SentimentResult> classify(String text) async {
-    final normalized = _normalize(text);
-    final entry = _table[normalized];
-
-    if (entry != null) {
-      final (score, axis, emoji) = entry;
-      return SentimentResult(
-        score: score,
-        axis: axis,
-        emoji: emoji,
-        source: 'stub-naive-bayes',
-        computedAt: DateTime.now(),
-      );
-    }
-
-    // Fallback fuer unbekannte Texte (z.B. zukuenftige neue WMO-Codes)
+    // Phase R: ehrliche "AI nicht initialisiert"-Antwort, KEIN Mock-Score.
     return SentimentResult(
       score: 0.0,
       axis: SentimentAxis.neutral,
-      emoji: '🌡️',
-      source: 'stub-naive-bayes-fallback',
+      emoji: '🤖',
+      source: 'uninitialised',
       computedAt: DateTime.now(),
     );
   }
-
-  static String _normalize(String text) =>
-      text.toLowerCase().trim().replaceAll(RegExp(r'[^a-zäöüß ]'), '');
-
-  /// Hand-tuned Score-Tabelle: (score, axis, emoji) pro Wetter-Text.
-  /// Werte sind PERSOENLICHE HEURISTIK, nicht ML-gelernt. Phase 1 ersetzt
-  /// diese Tabelle mit einem trainierten TFLite-Modell das die gleichen
-  /// Inputs (Wetter-Text) entgegennimmt — Pattern bleibt.
-  static const Map<String, (double, SentimentAxis, String)> _table = {
-    // Klar / sonnig -> sehr positiv
-    'klarer himmel': (1.0, SentimentAxis.positive, '🌟'),
-    'überwiegend klar': (0.8, SentimentAxis.positive, '☀️'),
-    'teilweise bewölkt': (0.5, SentimentAxis.positive, '⛅'),
-
-    // Neutral / bewölkt -> neutral
-    'bewölkt': (0.1, SentimentAxis.neutral, '☁️'),
-    'nebel': (-0.1, SentimentAxis.neutral, '🌫️'),
-    'reifnebel': (-0.2, SentimentAxis.neutral, '🌫️'),
-
-    // Leichter Regen / Schnee -> leicht negativ
-    'leichter nieselregen': (-0.3, SentimentAxis.negative, '🌦️'),
-    'leichter gefrierender nieselregen': (-0.4, SentimentAxis.negative, '🌨️'),
-    'leichter regen': (-0.4, SentimentAxis.negative, '🌦️'),
-    'leichte regenschauer': (-0.4, SentimentAxis.negative, '🌦️'),
-    'leichter schneefall': (-0.3, SentimentAxis.negative, '🌨️'),
-    'leichte schneeschauer': (-0.3, SentimentAxis.negative, '🌨️'),
-    'schneekörner': (-0.2, SentimentAxis.neutral, '🌨️'),
-
-    // Maessiger Regen / Schnee -> negativ
-    'mäßiger nieselregen': (-0.5, SentimentAxis.negative, '🌧️'),
-    'mäßiger regen': (-0.6, SentimentAxis.negative, '🌧️'),
-    'mäßige regenschauer': (-0.6, SentimentAxis.negative, '🌧️'),
-    'mäßiger schneefall': (-0.5, SentimentAxis.negative, '🌨️'),
-
-    // Starker Regen / Schnee -> sehr negativ
-    'starker nieselregen': (-0.7, SentimentAxis.negative, '🌧️'),
-    'starker gefrierender nieselregen': (-0.8, SentimentAxis.negative, '🌧️'),
-    'leicht gefrierender regen': (-0.7, SentimentAxis.negative, '🌧️'),
-    'starker gefrierender regen': (-0.9, SentimentAxis.negative, '🌧️'),
-    'starker regen': (-0.9, SentimentAxis.negative, '🌧️'),
-    'starke regenschauer': (-0.9, SentimentAxis.negative, '🌧️'),
-    'starker schneefall': (-0.8, SentimentAxis.negative, '❄️'),
-    'starke schneeschauer': (-0.8, SentimentAxis.negative, '❄️'),
-
-    // Unwetter -> maximal negativ
-    'gewitter': (-1.0, SentimentAxis.negative, '⛈️'),
-    'gewitter mit leichtem hagel': (-1.0, SentimentAxis.negative, '⛈️'),
-    'gewitter mit starkem hagel': (-1.0, SentimentAxis.negative, '⛈️'),
-
-    // Fallback-Key
-    'unbekannt': (0.0, SentimentAxis.neutral, '🌡️'),
-  };
-
-  static const String sourceTag = 'stub-naive-bayes';
 }
 
 /// Singleton-Instanz fuer schnellen Provider-Zugriff.
+/// Phase R: UninitialisedClassifier (kein Mock-Score).
 final LocalSentimentClassifier defaultSentimentClassifier =
-    const StubNaiveBayesClassifier();
+    const UninitialisedClassifier();

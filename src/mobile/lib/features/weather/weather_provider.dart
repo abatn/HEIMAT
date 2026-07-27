@@ -47,7 +47,8 @@ class WeatherProvider extends ChangeNotifier {
   // AI Hook (Phase E - On-Device Sentiment-Klassifikation)
   // ------------------------------------------------------------------
   /// Classifier-Impl ist injizierbar (Constructor) für Tests + spaeteren
-  /// TFLite-Swap. Default = StubNaiveBayesClassifier (Dart-only, 0 Bytes Netzwerk).
+  /// TFLite-Swap. Phase R Default = UninitialisedClassifier (ehrlich "AI noch
+  /// nicht aktiv", kein Mock-Score). 0 Bytes Netzwerk-Traffic (On-Device).
   final LocalSentimentClassifier _classifier;
 
   /// Phase E: Sentiment-Score fuer current.weatherText.
@@ -74,7 +75,7 @@ class WeatherProvider extends ChangeNotifier {
   double get lat => _lat;
   double get lng => _lng;
 
-  /// Aktuelles Sentiment-Result (von on-device Stub Naive-Bayes-Classifier).
+  /// Aktuelles Sentiment-Result (Phase R: UninitialisedClassifier = "AI noch nicht initialisiert").
   /// Null solange noch kein refresh() gelaufen ist.
   SentimentResult? get sentiment => _sentiment;
 

@@ -204,12 +204,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
             ),
           ),
           const Spacer(),
-          // Source-Attribution: ehrlich kommunizieren dass es Stub ist,
-          // nicht ein echtes TFLite-Modell. User weiss was sie/er bekommt.
+          // Source-Attribution: ehrlich kommunizieren ob Echt oder Stub.
+          // Phase R: 'uninitialised' oder 'fallback' source bekommen warning-Color.
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: s.source.contains('fallback')
+              color: s.source.contains('uninitialised') ||
+                      s.source.contains('fallback')
                   ? AppColors.warning.withOpacity(0.12)
                   : AppColors.info.withOpacity(0.10),
               borderRadius: BorderRadius.circular(4),
@@ -218,7 +219,8 @@ class _WeatherScreenState extends State<WeatherScreen> {
               s.source,
               style: TextStyle(
                 fontSize: 9,
-                color: s.source.contains('fallback')
+                color: s.source.contains('uninitialised') ||
+                        s.source.contains('fallback')
                     ? AppColors.warning
                     : AppColors.info,
                 fontWeight: FontWeight.w600,
