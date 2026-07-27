@@ -19,6 +19,7 @@ import { authRouter } from './routes/auth';
 import adminRouter from './routes/admin';
 import { aiRouter } from './routes/ai';
 import { weatherRouter } from './routes/weather';
+import { airQualityRouter } from './routes/airQuality';
 import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
 import { gtfsService } from './services/gtfsService';
@@ -54,6 +55,7 @@ app.use('/api/health', healthServiceRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/weather', weatherRouter);
+app.use('/api/air-quality', airQualityRouter);
 
 // Statische Dateien ausliefern (Mini-Programme, Favicon, etc.)
 const miniDir = path.join(__dirname, '../public/miniprograms');

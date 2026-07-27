@@ -60,10 +60,10 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'air',
       name: 'Luftqualität',
-      url: 'https://luftdaten.umweltbundesamt.de',
+      url: 'https://heimat-backend.onrender.com/mini/air.html',
       iconPath: 'air',
       description:
-          'Feinstaub- und Ozonwerte für deinen Standort vom Umweltbundesamt.',
+          'Feinstaub- und Ozonwerte für deinen Standort — CAMS Copernicus via Open-Meteo. Standort-basiert.',
       category: 'Alltag',
     ),
     const MiniProgram(
