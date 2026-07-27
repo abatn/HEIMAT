@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/config/app_config.dart';
+import 'core/navigator/app_navigator.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
 import 'features/auth/presentation/auth_provider.dart';
@@ -98,6 +99,32 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+
+  /// Registers in den globalen AppNavigator-switchMainTab static-mirror
+  /// (Pattern-Mirror zu HomeProvider.onUserAction). Damit koennen
+  /// Sub-Baeume (Cross-Service-Insight in Wetter, Mini-Program-Container)
+  /// ohne Navigation-Callback durch-Threading zum Mobility-Tab springen.
+  @override
+  void initState() {
+    super.initState();
+    AppNavigator.switchMainTab = _onSwitchTab;
+  }
+
+  @override
+  void dispose() {
+    // Identical-Check damit nur unser eigener Handler geraeumt wird
+    // (nicht ein spaeter von aussen gesetzter).
+    if (identical(AppNavigator.switchMainTab, _onSwitchTab)) {
+      AppNavigator.switchMainTab = null;
+    }
+    super.dispose();
+  }
+
+  void _onSwitchTab(int index) {
+    if (mounted) {
+      setState(() => _currentIndex = index);
+    }
+  }
 
   List<Widget> get _screens => [
         HomeScreen(

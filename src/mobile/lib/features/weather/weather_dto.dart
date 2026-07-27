@@ -368,3 +368,43 @@ class WeatherAlertsResponse {
         'attribution': attribution,
       };
 }
+
+// =========================================================================
+// Cross-Service-Insight Helpers (Phase E Super-App-Pacing)
+//
+// WMO weatherCode-Semantik (siehe backend/src/services/weatherService.ts):
+//   45-48 Nebel           -> NICHT Regen -> Insight NICHT triggern
+//   51-55 Nieselregen     -> Regen (leicht)
+//   56-57 Eis-Niesel      -> Regen (Vereisung)
+//   61-65 Regen           -> Regen (mittel)
+//   66-67 Eis-Regen       -> Regen (Vereisung)
+//   80-82 Schauer         -> Regen (stark)
+//   95-99 Gewitter        -> Regen (sehr stark)
+//
+// Schwellwert >= 51 erfasst ALLE Regen-Formen, schliesst aber Nebel (Visibility-Issue)
+// aus. Letzteres wuerde Mobility-Hint unnoetig triggern wenn man nur schlecht
+// sehen kann — andere Sensorik noetig.
+// =========================================================================
+
+/// Extension: aktueller Wetter-Code ist irgendeine Form von Regen.
+extension CurrentWeatherInsight on CurrentWeatherDto {
+  bool get isRainingNow => weatherCode >= 51;
+}
+
+/// Extension: Regen in der naechsten Vorhersage-Stunde wahrscheinlich.
+///
+/// HourlyForecastDto hat KEIN precipitationProbability-Feld (das gibt es
+/// nur auf DailyForecastDto). Wir nutzen die tatsaechliche Niederschlags-
+/// Menge in mm — > 0.5 mm/h = "spuerbarer Regen" (Drizzle unter dieser
+/// Schwelle gilt als netter Spruehregen, kein Hint noetig).
+//
+// FIXME: backend liefert aktuell keine precipitationProbability auf
+// HourlyForecastDto. Sobald weatherService.ts das nachzieht, koennen wir
+// wieder einen AND-Check mit Wahrscheinlichkeit machen.
+extension ForecastInsight on WeatherForecastResponse {
+  bool get isRainingSoon {
+    if (hourly.isEmpty) return false;
+    final next = hourly.first;
+    return next.weatherCode >= 51 && next.precipitation > 0.5;
+  }
+}

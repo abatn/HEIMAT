@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/navigator/app_navigator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/skeleton_loader.dart';
 import '../../core/widgets/empty_state.dart';
 import '../ai/local_sentiment_classifier.dart';
+import '../home/presentation/home_provider.dart';
+import 'weather_dto.dart';
 import 'weather_provider.dart';
 import 'widgets/alert_banner.dart';
+import 'widgets/cross_service_insight_card.dart';
 import 'widgets/current_weather_hero.dart';
 import 'widgets/hourly_forecast_strip.dart';
 import 'widgets/weekly_outlook_grid.dart';
@@ -48,18 +52,23 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<WeatherProvider>(
-      builder: (context, p, _) {
-        return RefreshIndicator(
-          onRefresh: p.refresh,
-          color: AppColors.primary,
-          child: _buildBody(context, p),
-        );
-      },
+    // Phase E Super-App-Pacing: WeatherScreen liest WeatherProvider +
+    // HomeProvider parallel. Consumer2 — beide rebuild bei State-Change.
+    // Tradeoff: doppelte rebuilds, aber Cross-Service-Insight braucht BEIDE.
+    final weather = context.watch<WeatherProvider>();
+    final home = context.watch<HomeProvider>();
+    return RefreshIndicator(
+      onRefresh: weather.refresh,
+      color: AppColors.primary,
+      child: _buildBody(context, weather, home),
     );
   }
 
-  Widget _buildBody(BuildContext context, WeatherProvider p) {
+  Widget _buildBody(
+    BuildContext context,
+    WeatherProvider p,
+    HomeProvider home,
+  ) {
     if (p.isLoading && !p.hasData) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -117,7 +126,23 @@ class _WeatherScreenState extends State<WeatherScreen> {
           current: f.current,
           locationName: p.locationName,
           isStale: p.isStale,
-        ),
+        ), // Phase E Super-App-Pacing: Cross-Service Insight (oben vor Sentiment).
+        // Widget macht defensive null-check selbst; wir gaten nur das
+        // rain-event weil sonst 5mb-Karte ohne Kontext waere.
+        if (f.current.isRainingNow || f.isRainingSoon) ...[
+          const SizedBox(height: 14),
+          CrossServiceInsightCard(
+            nearbySummary: home.nearbySummary,
+            isRainingNow: f.current.isRainingNow,
+            isRainingSoon: f.isRainingSoon,
+            onTap: () {
+              // recordAction fuellt BayesClassifier mit realer User-Behavior
+              HomeProvider.onUserAction?.call('regen_insight_mobility_tap');
+              // Tab-Switch via global static (Pattern-Mirror zu Provider)
+              AppNavigator.switchMainTab?.call(1); // 1 = Mobility
+            },
+          ),
+        ],
         if (p.sentiment != null) ...[
           const SizedBox(height: 12),
           _buildSentimentRow(p.sentiment!),
