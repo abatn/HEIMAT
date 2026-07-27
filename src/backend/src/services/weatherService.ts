@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
 // ---------------------------------------------------------------------------
 // WeatherService — Ruft Wetterdaten von Open-Meteo ab.
@@ -102,11 +102,47 @@ function wmoToIcon(code: number): string {
   return '🌡️';
 }
 
+// -------------------------------------------------------------------------
+// Bright Sky (https://api.brightsky.dev/) — kostenloser DWD-Proxy,
+// CC-BY 4.0 Namensnennung, kein API-Key. Wird als 2. Mirror genutzt wenn
+// Open-Meteo durch Rate-Limit (HTTP 429) oder Server-Fehler (HTTP 5xx) oder
+// Timeout vom Render-Shared-IP blockiert ist.
+//
+// Architektur-Mirror: gleiches Mirror-Fallback-Pattern wie
+// mobilityService.ts (overpass-api.de + overpass.kumi.systems + maps.mail.ru)
+// — bewährte Resilienz gegen Single-Vendor-Ausfälle, keine Mock-Daten, kein
+// Cloud-AI. Real-DWD-Daten via zwei verschiedenen Vendor-IP-Ranges.
+// -------------------------------------------------------------------------
+const BRIGHTSKY_BASE = 'https://api.brightsky.dev';
+
+// Bright Sky Condition-Strings (8 Buckets, dokumentiert unter
+// https://api.brightsky.dev/) → WMO Weather Code (Industrie-Standard).
+// Mobile DTOs (weather_dto.dart) erwarten WMO-Codes (siehe WMO_CODES oben).
+const BRIGHTSKY_CONDITION_TO_WMO: Record<string, number> = {
+  dry: 0,            // Klarer Himmel
+  fog: 45,           // Nebel
+  cloudy: 3,         // Bewölkt
+  rain: 63,          // Mäßiger Regen (Bright Sky kennt keine Light/Heavy-Granularität)
+  sleet: 66,         // Gefrierender Regen
+  snow: 73,          // Mäßiger Schneefall
+  hail: 96,          // Gewitter mit Hagel
+  thunderstorm: 95,  // Gewitter
+};
+
 export class WeatherService {
   private readonly baseUrl = 'https://api.open-meteo.com/v1';
   private readonly userAgent = 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
   private readonly cache = new Map<string, { data: WeatherData; at: number }>();
   private readonly cacheTtlMs = 5 * 60 * 1000; // 5 Minuten
+
+  // -----------------------------------------------------------------------
+  // DI-Konstruktor (Test-Seam): Tests können ein mock-http injizieren
+  // (`new WeatherService({ get: jest.fn() })`). Production-Singleton
+  // `weatherService` weiter unten nutzt echtes axios (Default-Param).
+  // Vor diesem Refactor scheiterten die Mock-Tests an TypeScript's
+  // `__importDefault`-Resolution für `import axios from 'axios'`.
+  // -----------------------------------------------------------------------
+  constructor(private readonly http: AxiosInstance = axios) {}
 
   // ---------------------------------------------------------------------------
   // getCurrentWeather & getForecast — öffentliche API
@@ -131,7 +167,8 @@ export class WeatherService {
       current: openMeteoData.current,
       hourly: openMeteoData.hourly,
       daily: openMeteoData.daily,
-      source: 'Deutscher Wetterdienst (DWD) via Open-Meteo',
+      // Source kommt aus fetchAll (Open-Meteo vs Bright Sky-Fallback).
+      source: openMeteoData.source,
     };
 
     this.cache.set(cacheKey, { data: weather, at: Date.now() });
@@ -139,12 +176,77 @@ export class WeatherService {
   }
 
   // ---------------------------------------------------------------------------
-  // fetchAll — EIN Open-Meteo-Request: current + hourly + daily
+  // fetchAll — Mirror-Fallback-Pattern (Option B aus Thinker-Architektur-Pass):
+  //
+  // Phase 1: Open-Meteo Primary   (2-retry-with-backoff, kombinierter Endpoint)
+  // Phase 2: Bright Sky Fallback  (2 parallele Calls, +150ms Round-Trip)
+  // Total-Ausfall beider → Open-Meteo-Original-Error wird geworfen
+  // (Bright Sky-Fehler nur in Render-Log; im 502-Body erscheint der
+  //  aussagekräftigere Open-Meteo-Detail-String).
+  //
+  // Source-Information wird hier zurückgegeben statt hardcoded in
+  // getWeather() — so kann die mobile App transparent entscheiden ob sie
+  // "DWD via Open-Meteo" oder "DWD via Bright Sky" anzeigt (Doku-Drift-Schutz).
   // ---------------------------------------------------------------------------
 
-  private readonly maxRetries = 3;
+  private readonly maxRetries = 2;
 
-  private async fetchAll(lat: number, lng: number): Promise<{
+  private async fetchAll(
+    lat: number,
+    lng: number
+  ): Promise<{
+    current: CurrentWeather & { hourly: HourlyForecast[] };
+    hourly: HourlyForecast[];
+    daily: DailyForecast[];
+    source: string;
+  }> {
+    try {
+      const data = await this.fetchOpenMeteo(lat, lng);
+      return {
+        ...data,
+        source: 'Deutscher Wetterdienst (DWD) via Open-Meteo',
+      };
+    } catch (e: unknown) {
+      const axiosError = e as {
+        response?: { status?: number; headers?: Record<string, string> };
+        code?: string;
+      };
+      const status = axiosError.response?.status;
+      const isRecoverable =
+        status === 429 ||
+        (typeof status === 'number' && status >= 500) ||
+        axiosError.code === 'ECONNABORTED';
+
+      if (!isRecoverable) throw e;
+
+      logger.warn(
+        `Open-Meteo primary failed (status=${status ?? 'timeout'}), ` +
+          `falling back to Bright Sky mirror`
+      );
+      try {
+        const bsData = await this.fetchBrightSky(lat, lng);
+        return {
+          ...bsData,
+          source: 'Deutscher Wetterdienst (DWD) via Bright Sky',
+        };
+      } catch (bsErr) {
+        const bsMsg = bsErr instanceof Error ? bsErr.message : String(bsErr);
+        logger.error(`Bright Sky fallback also failed: ${bsMsg}`);
+        // Original Open-Meteo-Error werfen — Detail-String ist aussagekräftiger
+        // als "Bright Sky ECONNREFUSED" (zeigt Original-Provider + Status an).
+        throw e;
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // fetchOpenMeteo — Primary Mirror mit Retry-Backoff (MAX_RETRIES=2)
+  // -------------------------------------------------------------------------
+
+  private async fetchOpenMeteo(
+    lat: number,
+    lng: number
+  ): Promise<{
     current: CurrentWeather & { hourly: HourlyForecast[] };
     hourly: HourlyForecast[];
     daily: DailyForecast[];
@@ -185,11 +287,11 @@ export class WeatherService {
       timezone: 'Europe/Berlin',
     };
 
-    // Retry-Logik mit exponenziellem Backoff bei 429 (Rate Limit)
+    // Retry-Logik mit exponenziellem Backoff bei 429 (Rate Limit).
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        const response = await axios.get(`${this.baseUrl}/forecast`, {
+        const response = await this.http.get(`${this.baseUrl}/forecast`, {
           params,
           headers: { 'User-Agent': this.userAgent },
           timeout: 15000,
@@ -200,8 +302,10 @@ export class WeatherService {
         const axiosError = e as { response?: { status?: number } };
         const status = axiosError.response?.status;
         if (status === 429 && attempt < this.maxRetries) {
-          const waitMs = Math.min(1000 * Math.pow(2, attempt), 5000);
-          logger.warn(`Open-Meteo 429 (attempt ${attempt}/${this.maxRetries}), retrying in ${waitMs}ms`);
+          const waitMs = Math.min(1000 * Math.pow(2, attempt), 3000);
+          logger.warn(
+            `Open-Meteo 429 (attempt ${attempt}/${this.maxRetries}), retrying in ${waitMs}ms`
+          );
           await new Promise(r => setTimeout(r, waitMs));
           continue;
         }
@@ -209,6 +313,179 @@ export class WeatherService {
       }
     }
     throw lastError || new Error('Open-Meteo request failed');
+  }
+
+  // -------------------------------------------------------------------------
+  // fetchBrightSky — Fallback Mirror (DWD-Proxy, kein API-Key, CC-BY 4.0)
+  //
+  // Bright Sky hat 2 separate Endpoints:
+  //   - /current_weather                — aktuelle Bedingungen
+  //   - /weather?date=&last_date=       — flaches Hourly-Array
+  //
+  // Beide PARALLEL via Promise.all (~150-300ms Round-Trip).
+  //
+  // Aggregationen aus dem flachen Hourly-Array:
+  //   - temperatureMax/Min/precipSum: gruppieren by date, daily aggregieren
+  //   - windSpeedMax: max(wind_gust_speed_10), Fallback max(wind_speed_10)
+  //     (GUST ist entscheidend für STURM-Alert — wind_speed_10 ist Mittelwert)
+  //   - precipitationProbability: Heuristik (Tages-Summe → 80%/50%/0%)
+  //     Bright Sky liefert keine echte Wahrscheinlichkeit wie Open-Meteo's
+  //     precipitation_probability_max, aber für UI-Warnbanner ausreichend.
+  //   - weatherCode: Modus der hourly-Conditions → WMO (siehe Map oben)
+  //   - UV/Sunrise/Sunset: Bright Sky hat das nicht → 0 / leere Strings
+  //     Mobile DTOs behandeln das defensiv (siehe weather_dto.dart).
+  // -------------------------------------------------------------------------
+
+  private async fetchBrightSky(
+    lat: number,
+    lng: number
+  ): Promise<{
+    current: CurrentWeather & { hourly: HourlyForecast[] };
+    hourly: HourlyForecast[];
+    daily: DailyForecast[];
+  }> {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const nextWeek = new Date(today.getTime() + 7 * 86400000);
+    const nextWeekStr = nextWeek.toISOString().split('T')[0];
+
+    const [currRes, forecastRes] = await Promise.all([
+      this.http.get(`${BRIGHTSKY_BASE}/current_weather`, {
+        params: { lat, lon: lng },
+        headers: { 'User-Agent': this.userAgent },
+        timeout: 15000,
+      }),
+      this.http.get(`${BRIGHTSKY_BASE}/weather`, {
+        params: { lat, lon: lng, date: todayStr, last_date: nextWeekStr },
+        headers: { 'User-Agent': this.userAgent },
+        timeout: 20000,
+      }),
+    ]);
+
+    const cw = currRes.data?.weather ?? {};
+    const fw: any[] = Array.isArray(forecastRes.data?.weather)
+      ? forecastRes.data.weather
+      : [];
+
+    if (fw.length === 0) {
+      throw new Error('Bright Sky /weather liefert leeres Hourly-Array');
+    }
+
+    // Hourly: erste 24 Einträge (Mobile-UI-Stundenleiste).
+    const hourly: HourlyForecast[] = fw.slice(0, 24).map((h: any) => ({
+      time: String(h.timestamp),
+      temperature: h.temperature ?? 0,
+      precipitation:
+        h.precipitation_60 ?? h.precipitation_30 ?? h.precipitation_10 ?? 0,
+      weatherCode: BRIGHTSKY_CONDITION_TO_WMO[h.condition] ?? 0,
+      windSpeed: h.wind_speed_10 ?? 0,
+    }));
+
+    // Daily: flaches Hourly-Array by date aggregieren.
+    type DailyAgg = {
+      minTemp: number;
+      maxTemp: number;
+      precipSum: number;
+      windSpeedMax: number;
+      conditions: string[];
+    };
+    const dailyMap = new Map<string, DailyAgg>();
+    for (const h of fw) {
+      const ts = String(h.timestamp ?? '');
+      const date = ts.substring(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+      const precip =
+        h.precipitation_60 ?? h.precipitation_30 ?? h.precipitation_10 ?? 0;
+      // GUST-Speed ist relevant für STURM-Alert — Fallback auf Avg-Speed.
+      const windNow = h.wind_gust_speed_10 ?? h.wind_speed_10 ?? 0;
+      const cond = String(h.condition ?? 'dry');
+
+      const existing = dailyMap.get(date);
+      if (!existing) {
+        dailyMap.set(date, {
+          minTemp: h.temperature ?? 0,
+          maxTemp: h.temperature ?? 0,
+          precipSum: precip,
+          windSpeedMax: windNow,
+          conditions: [cond],
+        });
+      } else {
+        existing.minTemp = Math.min(existing.minTemp, h.temperature ?? existing.minTemp);
+        existing.maxTemp = Math.max(existing.maxTemp, h.temperature ?? existing.maxTemp);
+        existing.precipSum += precip;
+        existing.windSpeedMax = Math.max(existing.windSpeedMax, windNow);
+        existing.conditions.push(cond);
+      }
+    }
+
+    // Modus (häufigster Wert) der hourly Conditions pro Tag.
+    // Tie-Break: hail > thunderstorm > snow > sleet > rain > fog > cloudy > dry
+    // (Hagel ist gefährlicher als Gewitter ohne Hagel → bei Gleichstand Hagel priorisieren.
+    //  Range frei wählbar; Determinismus ist das wichtige Kriterium.)
+    const SEVERITY_RANK: Record<string, number> = {
+      hail: 8, thunderstorm: 7, snow: 6, sleet: 5, rain: 4,
+      fog: 2, cloudy: 1, dry: 0,
+    };
+    const modeCondition = (arr: string[]): string => {
+      if (!arr.length) return 'dry';
+      const counts: Record<string, number> = {};
+      for (const c of arr) counts[c] = (counts[c] ?? 0) + 1;
+      let best = 'dry';
+      let bestN = 0;
+      for (const [k, v] of Object.entries(counts)) {
+        if (
+          v > bestN ||
+          (v === bestN && (SEVERITY_RANK[k] ?? 0) > (SEVERITY_RANK[best] ?? 0))
+        ) {
+          best = k;
+          bestN = v;
+        }
+      }
+      return best;
+    };
+
+    const daily: DailyForecast[] = Array.from(dailyMap.entries()).map(
+      ([date, stats]) => {
+        const dominantCond = modeCondition(stats.conditions);
+        const wmoCode = BRIGHTSKY_CONDITION_TO_WMO[dominantCond] ?? 0;
+        return {
+          date,
+          temperatureMax: stats.maxTemp,
+          temperatureMin: stats.minTemp,
+          precipitationSum: stats.precipSum,
+          // Heuristik: Bright Sky hat keine echte Wahrscheinlichkeit.
+          // Schwellen: >1mm → 80%, >0.1mm → 50%, sonst 0%.
+          precipitationProbability:
+            stats.precipSum > 1 ? 80 : stats.precipSum > 0.1 ? 50 : 0,
+          weatherCode: wmoCode,
+          weatherText: wmoToText(wmoCode),
+          windSpeedMax: stats.windSpeedMax,
+          sunrise: '',
+          sunset: '',
+        };
+      }
+    );
+
+    const currentWmo = BRIGHTSKY_CONDITION_TO_WMO[cw.condition] ?? 0;
+    return {
+      current: {
+        temperature: cw.temperature ?? 0,
+        feelsLike: cw.temperature ?? 0,  // Bright Sky hat kein apparent_temperature
+        humidity: cw.relative_humidity ?? 0,
+        pressure: cw.pressure_msl ?? 0,
+        windSpeed: cw.wind_speed_10 ?? 0,
+        windDirection: cw.wind_direction_10 ?? 0,
+        weatherCode: currentWmo,
+        weatherText: wmoToText(currentWmo),
+        precipitation:
+          cw.precipitation_60 ?? cw.precipitation_30 ?? cw.precipitation_10 ?? 0,
+        cloudCover: cw.cloud_cover ?? 0,
+        uvIndex: 0,  // Bright Sky liefert keine UV-Daten
+        hourly,
+      },
+      hourly,
+      daily,
+    };
   }
 
   private parseResponse(d: any): {
@@ -277,7 +554,7 @@ export class WeatherService {
 
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
-      const response = await axios.get(
+      const response = await this.http.get(
         'https://nominatim.openstreetmap.org/reverse',
         {
           params: { lat, lon: lng, format: 'json', zoom: 10, 'accept-language': 'de' },
