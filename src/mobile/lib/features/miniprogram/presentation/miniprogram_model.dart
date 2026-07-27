@@ -1,6 +1,10 @@
-/// Datenmodell für ein Mini-Programm im HEIMAT-Ökosystem.
-/// Mini-Programme sind externe Web-Apps, die in einem WebView-Container
-/// innerhalb der HEIMAT-App ausgeführt werden (wie WeChat Mini-Programs).
+import '../domain/live_status_model.dart';
+
+/// Mini-Program Domain Model mit Live-Status + AI-Priority
+/// Erweitert um:
+///   - liveData: optionaler Live-Wert (z.B. Temperatur) — final mit copyWith
+///   - hero: wird als großes Empfehlungs-Widget angezeigt
+///   - searchTags: zusätzliche Tags für semantische Suche
 class MiniProgram {
   final String id;
   final String name;
@@ -8,7 +12,12 @@ class MiniProgram {
   final String iconPath;
   final String description;
   final String category;
-  final bool isActive;
+  final List<String> searchTags;
+  final bool supportsLiveStatus;
+  final bool isHero;
+
+  // Live Data — final + nullable, gesetzt via copyWith()
+  final LiveStatus? liveData;
 
   const MiniProgram({
     required this.id,
@@ -17,29 +26,28 @@ class MiniProgram {
     required this.iconPath,
     required this.description,
     required this.category,
-    this.isActive = true,
+    this.searchTags = const [],
+    this.supportsLiveStatus = false,
+    this.isHero = false,
+    this.liveData,
   });
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'url': url,
-        'icon': iconPath,
-        'description': description,
-        'category': category,
-        'isActive': isActive,
-      };
+  /// Copy-with für LiveData replacement — gibt neue Instanz mit aktualisiertem liveData
+  MiniProgram copyWith({LiveStatus? liveData}) {
+    return MiniProgram(
+      id: id,
+      name: name,
+      url: url,
+      iconPath: iconPath,
+      description: description,
+      category: category,
+      searchTags: searchTags,
+      supportsLiveStatus: supportsLiveStatus,
+      isHero: isHero,
+      liveData: liveData ?? this.liveData,
+    );
+  }
 
-  factory MiniProgram.fromJson(Map<String, dynamic> json) => MiniProgram(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        url: json['url'] as String? ?? '',
-        iconPath: json['icon'] as String? ?? 'apps',
-        description: json['description'] as String? ?? '',
-        category: json['category'] as String? ?? 'Allgemein',
-        isActive: json['isActive'] as bool? ?? true,
-      );
-
-  @override
-  String toString() => 'MiniProgram($id: $name)';
+  /// Visibility-Flag: alle Registry-Entries werden angezeigt
+  bool get isActive => true;
 }

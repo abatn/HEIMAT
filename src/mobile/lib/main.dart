@@ -15,7 +15,7 @@ import 'features/health/presentation/health_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/home/presentation/home_provider.dart';
 import 'features/miniprogram/presentation/miniprogram_provider.dart';
-import 'features/miniprogram/presentation/miniprogram_launcher_screen.dart';
+import 'features/miniprogram/presentation/launchpad_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -98,7 +98,7 @@ class _MainScreenState extends State<MainScreen> {
         const MobilityScreen(),
         const FinanceScreen(),
         const HealthScreen(),
-        const MiniProgramLauncherScreen(),
+        const LaunchpadScreen(),
       ];
 
   @override
