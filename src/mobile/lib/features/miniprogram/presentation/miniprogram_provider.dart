@@ -136,11 +136,15 @@ class MiniProgramProvider extends ChangeNotifier {
     final candidates =
         _programs.where((p) => p.supportsLiveStatus).toList(growable: false);
 
-    // Mocking für Live-Status: jedes aktive Programm bekommt simulierte Live-Werte
-    // (Production würde Backend /api/v1/mini/live aufrufen)
+    // Phase R (2026-07-27): KEIN Mock-Live-Status mehr.
+    // User-Regel: AGENTS.md:143 + knowledge.md:283 — "mock, simulation, fake sind verboten".
+    // Programme ohne echten Backend-Endpoint bleiben in LiveState.fallback
+    // sichtbar (transparente Anzeige) bis das zugehoerige Backend-Endpoint da ist.
     final futures = candidates.map((p) async {
-      await Future.delayed(const Duration(milliseconds: 320));
-      return _computeMockLiveStatus(p);
+      return LiveStatus(
+        state: LiveState.fallback,
+        fetchedAt: DateTime.now(),
+      );
     });
 
     final results = await Future.wait(futures);
@@ -148,56 +152,6 @@ class MiniProgramProvider extends ChangeNotifier {
       candidates[i] = candidates[i].copyWith(liveData: results[i]);
     }
     notifyListeners();
-  }
-
-  LiveStatus _computeMockLiveStatus(MiniProgram p) {
-    final hour = DateTime.now().hour;
-    switch (p.id) {
-      case 'weather':
-        // Werksseitig: 18-22°C je nach Tageszeit
-        final temp = 15 + (hour % 10);
-        return LiveStatus(
-          value: '$temp°C',
-          subtext: hour < 18 ? 'Heiter · Berlin' : 'Klar · Berlin',
-          state: LiveState.live,
-          fetchedAt: DateTime.now(),
-        );
-      case 'air':
-        // EAQI 20-50 je nach Stunde
-        final aqi = 20 + (hour % 30);
-        return LiveStatus(
-          value: 'AQI $aqi',
-          subtext: aqi < 40 ? 'Gut' : (aqi < 60 ? 'Mäßig' : 'Ungesund'),
-          state: LiveState.live,
-          fetchedAt: DateTime.now(),
-        );
-      case 'mobility':
-        return LiveStatus(
-          value: 'Bus M29',
-          subtext: '4 Min',
-          state: LiveState.cached,
-          fetchedAt: DateTime.now(),
-        );
-      case 'finance':
-        return LiveStatus(
-          value: '25 KUDOS',
-          subtext: 'Wallet aktiv',
-          state: LiveState.live,
-          fetchedAt: DateTime.now(),
-        );
-      case 'health':
-        return LiveStatus(
-          value: '5 Praxen',
-          subtext: 'in 500m',
-          state: LiveState.cached,
-          fetchedAt: DateTime.now(),
-        );
-      default:
-        return LiveStatus(
-          state: LiveState.fallback,
-          fetchedAt: DateTime.now(),
-        );
-    }
   }
 
   // ------------------------------------------------------------------

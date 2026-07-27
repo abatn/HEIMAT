@@ -92,86 +92,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.success.withOpacity(0.15),
-                  AppColors.success.withOpacity(0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.success.withOpacity(0.25)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.auto_fix_high,
-                          color: AppColors.success, size: 18),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text('Demo-KUDOS erhalten',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.success)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  '25 KUDOS direkt in dein Wallet — ohne Bank-Konto, ohne Taler-Exchange.',
-                  style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                      height: 1.4),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      final ok =
-                          await context.read<FinanceProvider>().fundLocal();
-                      if (!mounted) return;
-                      Navigator.pop(context);
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(ok
-                              ? '25 KUDOS Demo-Guthaben erhalten!'
-                              : 'Fehler: Demoguthaben konnte nicht geladen werden'),
-                          backgroundColor:
-                              ok ? AppColors.success : AppColors.error,
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.add_circle, size: 18),
-                    label: const Text('25 Demo-KUDOS erhalten'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
               color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.grey.shade200),
@@ -716,7 +636,8 @@ class _TransactionsSection extends StatelessWidget {
           const EmptyState(
             icon: Icons.receipt_long,
             title: 'Noch keine Transaktionen',
-            description: 'Sende Geld an einen Freund, um loszulegen.',
+            description:
+                'Erstelle eine Reserve-Adresse und überweise KUDOS von deiner Taler-Bank.',
           )
         else
           ...transactions.map((tx) => _TransactionTimelineTile(tx: tx)),
