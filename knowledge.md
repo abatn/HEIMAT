@@ -251,6 +251,8 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - Taler Wallet-Client: GET /keys + GET /reserves/<pub> erreicht `exchange.demo.taler.net` (Ed25519). **Currency dynamisch aus /keys (Commit d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
 - **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button im Finanzen-Tab via POST /api/finance/taler/fund-local — 25 KUDOS direkt in DB, kein Exchange noetig. P2P-Purse-System bereit (createPurse/depositToPurse/mergePurse).
 - UX-Modernisierung (Commit 5ad8068, 661afb28, f389001): FinanceScreen (animierte Balance-Card, Quick Actions, Timeline), HealthScreen (Shimmer, DoctorCards mit Presseffekt, Gradienten), MobilityScreen (GPS/Route/Marker Widgets, Gradienten) — alle drei Screens modernes Design
+- **Dashboard-Navigation (Commits bd04e2b + 4fcb0ac)**: Quick Actions, Stat-Karten und AI-Vorschläge navigieren jetzt per `onNavigateTab`-Callback zum richtigen Tab. CI grün, deployed ✅
+- **Phase B: Wetter-Mini-Programm (Commit 9e42a30)**: Backend (weatherService.ts + weather.ts) + Mini-Program HTML (weather.html) deployed. DWD Open-Meteo mit 429-Retry (0d75f1f) ✅
 - CI-Fix: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt — Flutter CI stabil grün
 - Backend CI: Lint + Jest (113+ Tests) + tsc --noEmit — alle grün auf `main`
 - Mobile CI: dart format + flutter analyze + flutter test — alle grün
@@ -280,6 +282,18 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - `main.dart` — MiniProgramProvider + 5th Tab "Apps"
 
 **CI-Kompatibilität:** `withOpacity` statt `withValues` (Flutter 3.24.5), Conditional Imports ohne `else`-Klausel, kein `dart:io`/`dart:html` auf Mobile
+
+### ✅ Phase B: Wetter-Mini-Programm (2026-07-27)
+**Status: 🎉 Live auf main!** Erster Service auf dem Mini-Program-Fundament.
+
+**Commit 9e42a30** — 5 Dateien, 859 Zeilen neuer Code:
+- `weatherService.ts` — Open-Meteo DWD-Client mit 5-Min-Cache + 429 Retry (3 Versuche, exponentieller Backoff)
+- `weather.ts` — 3 Endpoints: GET /api/weather/{current, forecast, status}
+- `weather.html` — Standalone HTML-Seite: Geolocation, 24h-Scroll, 7-Tage-Vorhersage, Glas-Design
+- `index.ts` — Weather-Route gemounted, Static-Files-Serving für Mini-Programme unter /mini
+- `miniprogram_provider.dart` — Wetter-URL auf Backend-Programm umgestellt
+
+**Pipeline:** Mini-Program (IFrame) → Render /mini/weather.html → JS Geolocation → Backend /api/weather/forecast → Open-Meteo (DWD ICON)
 
 ### ❌ Was fehlt (echte Lücken)
 - **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus.
