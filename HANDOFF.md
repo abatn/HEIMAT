@@ -22,6 +22,7 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - **AI-Home Dashboard (Commit 0308bfaa)**: Personalisierter Startseiten-Tab mit Greeting-Card + Nearby-Stops + RecordAction-Cross-Provider
 - **Dashboard-Navigation (Commits bd04e2b + 4fcb0ac)**: Quick Actions, Stat-Karten und AI-Vorschläge navigieren per onNavigateTab-Callback. CI grün ✅
 - **Phase B: Wetter-Mini-Programm (Commit 9e42a30)**: weatherService.ts + weather.ts + weather.html. DWD Open-Meteo mit 429-Retry (0d75f1f) ✅
+- **Phase E Wetter Real-Fix ✅ (2026-07-27, Commit 99daa9c)**: Wetter-Tab-Bug "Wettervorhersage konnte nicht abgerufen werden" behoben — Render Free-Tier Shared-IP wurde von Open-Meteo mit HTTP 429 rate-limited. Mirror-Fallback-Pattern etabliert (gleiche Architektur wie mobilityService.ts Overpass-Mirror-List): Open-Meteo primary + Bright Sky DWD-Proxy (api.brightsky.dev). Trigger: HTTP 429/5xx/ECONNABORTED. Real-Data-Only (keine Mocks). 10 Regression-Tests grün. Live-Verifikation: heimat-backend.onrender.com/api/weather/forecast → 200 OK mit echten Berlin-Daten (21.1°C, Klarer Himmel). Public-API getWeather unverändert.
 - **Quick-Actions-Flicker-Fix (Commit 8aad85f)**: getPersonalizedContext() überschrieb Quick Actions mit intent-spezifischen 2-Button-Sets („Störungen/Alternativ"). Fix: Nur Suggestions werden personalisiert, Quick Actions bleiben 4 Standard-Buttons. Dead Code entfernt. ✅
 - Backend CI + Mobile CI grün auf `main`
 - Swagger/OpenAPI /docs + /docs.json

@@ -157,6 +157,7 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | Finanzen (Taler Wallet-Client) | ✅ Client-Code live, EUR-ready | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519, KUDOS); EUR-ready via `TALER_EXCHANGE_URL` |
 | UX-Modernisierung (Finance/Health/Mobility) | ✅ Abgeschlossen | Gradient-Karten, Pill-Nav, Bottom Sheets |
 | **Phase A: Mini-Program-Container** | ✅ **Live (2026-07-27)** | **WebView-Framework mit 10 Mini-Programmen (Futai, Wetter, Luft, Events, Jobs, E-Ladestationen, Abfall, Hotels, Parken, Bürgeramt) + Apps-Tab + Conditional Imports** |
+| **Phase E Wetter Real-Fix** | ✅ **Live (2026-07-27, Commit 99daa9c)** | **Mirror-Fallback Open-Meteo + Bright Sky. Behebt Render-IP-429. 10/10 Tests. Live-Verifikation 200 OK mit echten DWD-Daten. Real-Data-Only.** |
 | **AI-Home Dashboard** | ✅ **Live** | **Personalisierter Startseiten-Tab mit Tageszeit-basierten Vorschlägen + Greeting-Card + Nearby-Stops** |
 | CI-Fix-Runde 2 | ✅ **Grün** | `withOpacity` (Flutter 3.24.5), `unnecessary_non_null_assertion` entfernt, Conditional Imports korrigiert |
 
@@ -193,6 +194,7 @@ HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, abe
 - Admin-Pfad — `ADMIN_KEY` auf Render; `/api/admin/migrate` positive-control HTTP 200 verifiziert
 - DB — Supavisor-Pooler + IPv4-Force + SSL lösen Supabase-IPv6 Problem auf Render Free Tier
 - Taler — `exchange.demo.taler.net` erreichbar (GET /keys + /reserves/<pub>)
+- **Wetter-Vorhersage (Phase E Real-Fix)** | ✅ **Live (2026-07-27, Commit 99daa9c)** | **Mirror-Fallback-Pattern: Open-Meteo + Bright Sky (api.brightsky.dev). Render-Shared-IP-429-Rate-Limit behoben. 10 Regression-Tests grün. Live-Verifikation: 200 OK mit realen Berlin-Daten (21.1°C). Real-Data-Only — keine Mocks (User-Regel)** |
 
 ### ✅ Phase 24: Demo-KUDOS und P2P-Durchstich (2026-07-26)
 **Demo-KUDOS fund-local ist live!** Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" — sofort 25 KUDOS direkt in die DB, kein Exchange noetig; (b) "Reserve-Adresse erstellen" — fuer echten Taler-Bank-Wire. P2P-Purse-System bereit (createPurse/depositToPurse/mergePurse). EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
