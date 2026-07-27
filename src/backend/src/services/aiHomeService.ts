@@ -178,30 +178,6 @@ const intentSuggestions: Record<string, Suggestion[]> = {
   ],
 };
 
-/** Intent-spezifische Quick-Actions */
-const intentQuickActions: Record<string, QuickAction[]> = {
-  journey: [
-    { icon: '🗺️', label: 'Route', actionType: 'mobility' },
-    { icon: '📍', label: 'Ziele', actionType: 'mobility' },
-  ],
-  departure: [
-    { icon: '🚇', label: 'Abfahrten', actionType: 'mobility' },
-    { icon: '⏱️', label: 'Echtzeit', actionType: 'mobility' },
-  ],
-  disruption: [
-    { icon: '⚠️', label: 'Störungen', actionType: 'mobility' },
-    { icon: '🔄', label: 'Alternativ', actionType: 'mobility' },
-  ],
-  nearby: [
-    { icon: '📍', label: 'Nähe', actionType: 'mobility' },
-    { icon: '🏥', label: 'Ärzte', actionType: 'health' },
-  ],
-  info: [
-    { icon: '💡', label: 'Tipps', actionType: 'home' },
-    { icon: '❓', label: 'Hilfe', actionType: 'home' },
-  ],
-};
-
 /**
  * Personalisierter Dashboard-Context — nutzt BayesClassifier aus aiService.ts
  * um User-Intents aus aktuellen Aktionen zu erkennen und die Vorschläge
@@ -259,8 +235,10 @@ export function getPersonalizedContext(recentActions: string[]): DashboardContex
     }
   }
 
-  // Personalisierte Quick-Actions
-  const personalizedQuickActions = intentQuickActions[dominantIntent] || getQuickActions();
+  // Quick-Actions bleiben IMMER die Standard-4 (Route/Arzt/KUDOS/Nähe)
+  // Intent-spezifische Quick-Actions würden die UI verwirren (wechselnde Anzahl/Labels)
+  // Nur die Vorschläge werden personalisiert.
+  const personalizedQuickActions = getQuickActions();
 
   logger.info(
     `AI Dashboard personalized: dominantIntent=${dominantIntent} ` +

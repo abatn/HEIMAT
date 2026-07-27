@@ -334,6 +334,7 @@ class _HomeScreenState extends State<HomeScreen> {
         widget.onNavigateTab!(3);
         break;
       case 'apps':
+      case 'weather':
         widget.onNavigateTab!(4);
         break;
       default:
