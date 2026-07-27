@@ -92,14 +92,14 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
   List<Widget> get _screens => [
-    HomeScreen(
-      onNavigateTab: (index) => setState(() => _currentIndex = index),
-    ),
-    const MobilityScreen(),
-    const FinanceScreen(),
-    const HealthScreen(),
-    const MiniProgramLauncherScreen(),
-  ];
+        HomeScreen(
+          onNavigateTab: (index) => setState(() => _currentIndex = index),
+        ),
+        const MobilityScreen(),
+        const FinanceScreen(),
+        const HealthScreen(),
+        const MiniProgramLauncherScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {
