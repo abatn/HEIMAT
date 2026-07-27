@@ -6,6 +6,39 @@ HEIMAT 2.0 ist eine Open-Source Super App für den deutschen Alltag, die ausschl
 
 ---
 
+## API-Audit (2026-07-27)
+
+### Vollständige Prüfung aller externen API-Endpoints im Backend-Code
+
+**Methode:** Systematische Durchsuchung aller 11 Service-Dateien (`services/*.ts`) nach `axios.get`, `axios.post` und `fetch`-Aufrufen.
+
+**Ergebnis: 18 externe API-Endpoints gefunden, 1 Doku-Lücke identifiziert.**
+
+| # | API | Service | In Doku? |
+|---|-----|---------|:--------:|
+| 1 | `overpass-api.de/api/interpreter` | mobility, health | ✅ |
+| 2 | `overpass.kumi.systems/api/interpreter` (Mirror 1) | mobility, health | ❌ **fehlte** → ✅ jetzt ergänzt |
+| 3 | `maps.mail.ru/osm/tools/overpass/api/interpreter` (Mirror 2) | mobility, health | ❌ **fehlte** → ✅ jetzt ergänzt |
+| 4 | `nominatim.openstreetmap.org/search` | mobility, health | ✅ |
+| 5 | `nominatim.openstreetmap.org/reverse` | weather, airQuality | ✅ |
+| 6 | `router.project-osrm.org/route/v1/driving/…` | mobility | ✅ |
+| 7 | `api.transitous.org/api/v1/map/stops` | dbVendo | ✅ |
+| 8 | `api.transitous.org/api/v1/stoptimes` | dbVendo | ✅ (mit #7) |
+| 9 | `api.transitous.org/api/v1/plan` | dbVendo | ✅ (mit #7) |
+| 10 | `api.transitous.org/api/v1/alerts` | disruptionAgent | ✅ (mit #7) |
+| 11 | `api.open-meteo.com/v1/forecast` (DWD) | weatherService | ✅ |
+| 12 | `air-quality-api.open-meteo.com/v1/air-quality` (CAMS) | airQuality | ✅ |
+| 13 | `exchange.demo.taler.net/keys` | talerExchangeClient | ✅ |
+| 14 | `exchange.demo.taler.net/reserves/{pub}` | talerExchangeClient | ✅ (mit #13) |
+| 15 | `bank.demo.taler.net` (Web UI) | talerService | ✅ |
+| 16 | `aws-0-eu-west-1.pooler.supabase.com:5432` | alle (DB) | ✅ (Deployment-Tabelle) |
+
+**Lücke:** Overpass-Mirrors `kumi.systems` + `maps.mail.ru` waren nicht in ARCHITEKTUR.md Section 7 gelistet.
+**Fix:** In ARCHITEKTUR.md ergänzt (Commit nach cb0b628). Der Code selbst war korrekt (3 Mirrors mit Fallback).
+**Keine Code-Änderungen nötig** — nur Doku.
+
+---
+
 ## Phase 0: Status-Rekap Juli 2026
 
 Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert. Historische Phasen 1-7 (Marktanalyse, Service-Blaupausen, Tech-Stack, Rechtliches, Go-to-Market, Business-Case, Repo-Setup) bleiben als Decision-Record bestehen; die operativen Phasen (18 Auth, 23 Finance-Roundtrip) sind am Ende dieses Dokuments.

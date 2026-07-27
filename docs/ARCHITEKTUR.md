@@ -462,7 +462,9 @@ Git Push → main
 
 | API | Zweck | Lizenz | Auth |
 |-----|-------|--------|------|
-| `overpass-api.de` | OSM-Daten (Stops, Doctors) | ODbL | Kein Token |
+| `overpass-api.de` | OSM-Daten (Stops, Doctors) — Primär | ODbL | Kein Token |
+| `overpass.kumi.systems` | Overpass-Mirror 1 (Fallback) | ODbL | Kein Token |
+| `maps.mail.ru/osm/tools/overpass` | Overpass-Mirror 2 (Fallback) | ODbL | Kein Token |
 | `nominatim.openstreetmap.org` | Geocoding | CC-BY | User-Agent |
 | `router.project-osrm.org` | Routing (Fuß/Auto) | BSD | Kein Token |
 | `transitous.org` | ÖPNV-Routing (MOTIS 2) | AGPL | Kein Token |
