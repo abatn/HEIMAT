@@ -37,7 +37,8 @@ class _FakeAuthProvider extends AuthProvider {
   @override
   Future<bool> login(String email, String password) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', 'fake-token-${DateTime.now().microsecondsSinceEpoch}');
+    await prefs.setString(
+        'auth_token', 'fake-token-${DateTime.now().microsecondsSinceEpoch}');
     await prefs.setString('user_id', 'fake-user-001');
     await prefs.setString('user_email', email);
     await prefs.setString('user_display_name', 'Fake User');
@@ -133,8 +134,7 @@ void main() {
       await auth.init();
     });
 
-    testWidgets('1. Cold-Start unauth ⇒ LoginScreen sichtbar',
-        (tester) async {
+    testWidgets('1. Cold-Start unauth ⇒ LoginScreen sichtbar', (tester) async {
       await tester.pumpWidget(_buildApp(auth));
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -235,7 +235,8 @@ void main() {
 
       expect(find.byType(RegisterScreen), findsOneWidget);
       expect(find.text('Konto erstellen'), findsOneWidget);
-      expect(find.byType(TextField), findsNWidgets(4)); // name + email + password + confirm
+      expect(find.byType(TextField),
+          findsNWidgets(4)); // name + email + password + confirm
     });
   });
 }

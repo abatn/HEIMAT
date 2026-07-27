@@ -98,8 +98,7 @@ void main() {
       expect(find.text('MOCK_MAIN_MARKER'), findsNothing);
     });
 
-    testWidgets(
-        '5. AUTH-LOCK: Partial-Auth (Token ohne user_id) ⇒ LoginScreen',
+    testWidgets('5. AUTH-LOCK: Partial-Auth (Token ohne user_id) ⇒ LoginScreen',
         (tester) async {
       // AuthService.isAuthenticated requires BOTH token AND userId.
       // Wenn eins fehlt, ist der User ungültig angemeldet.
