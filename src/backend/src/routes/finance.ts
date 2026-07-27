@@ -134,19 +134,26 @@ financeRouter.get('/transactions', requireAuth, asyncHandler(async (req: AuthReq
 }));
 
 // ---------------------------------------------------------------------------
-// LOCAL DEMO: KUDOS direkt in die DB schreiben (KEIN Taler-Exchange)
+// fund-local — Phase R (2026-07-27) ENTFERNT.
+// User-Regel: "mock, simulation, fake sind verboten" (AGENTS.md:143).
+// Wallet-Balance ist 0.00 bis echter Taler-Exchange-Bank-Wire live ist.
+// Route bleibt mit 501 Not Implemented für Backward-Compat (alte mobile-Versionen).
 // ---------------------------------------------------------------------------
 
 financeRouter.post('/taler/fund-local', requireAuth, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const result = await talerService.fundLocal(req.userId!);
-  res.json({
-    status: 'ok',
-    source: 'local_demo',
-    balance: result.balance,
-    currency: result.currency,
-    note: 'Demo-KUDOS wurden direkt in die lokale DB geschrieben (KEIN Taler-Exchange). ' +
-      'Diese KUDOS sind NUR fuers Testen und verschwinden beim naechsten Exchange-Probe, ' +
-      'wenn eine echte Reserve gebunden wird.',
+  // Phase R (2026-07-27): fundLocal() PERMANENT entfernt per User-Regel
+  // "mock, simulation, fake sind verboten" (AGENTS.md:143). 410 Gone signalisiert
+  // klar dass das Feature permanent weg ist (nicht "temporär nicht implementiert"
+  // wie 501 Not Implemented suggerieren würde). Für echte Taler-Transfers siehe
+  // /taler/reserve oder /taler/reserve/open.
+  res.status(410).json({
+    error: 'gone',
+    message: 'fundLocal endpoint wurde in Phase R (2026-07-27) entfernt per Mock-Policy ' +
+      '(AGENTS.md:143: "mock, simulation, fake sind verboten"). Wallet-Balance ist 0.00 ' +
+      'bis ein echter Taler-Exchange-Bank-Wire am live-Exchange registriert ist. ' +
+      'Nutze bank.demo.taler.net fuer echtes Taler-Geld.',
+    alternativeEndpoints: ['/api/finance/taler/reserve/open', '/api/finance/taler/reserve'],
+    policy: 'https://github.com/abatn/HEIMAT/blob/main/AGENTS.md#mock-policy',
   });
 }));
 

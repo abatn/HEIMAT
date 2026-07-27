@@ -1,9 +1,11 @@
 /**
  * talerService.ts
  * ---------------
- * Echte GNU-Taler-Integration. KEIN Simulator, KEINE erfundenen Balance-Werte, KEIN
- * stiller Fallback. Wenn der Taler-Exchange nicht erreichbar ist → Fehler 503 zur
- * API (kein erfundenes "balance: 100").
+ * Echte GNU-Taler-Integration.
+ *
+ * Mock-Policy (Phase R, 2026-07-27): KEIN Mock, KEINE Simulation, KEINE erfundenen Balance-Werte
+ * (User-Regel: AGENTS.md:143 + knowledge.md:283 — "mock, simulation, fake sind verboten").
+ * Wenn der Taler-Exchange nicht erreichbar ist → Fehler 503 zur API (kein erfundenes "balance: 100").
  *
  * Datenquellen-Vertrag:
  *   - "wallet" ist die Ed25519-Identität des HEIMAT-Users (real EdDSA, node:crypto).
@@ -13,12 +15,15 @@
  *     Kommentar in createPurse().
  *   - "exchange" (Config) ist direkter Read von GET /keys (Cache: 1h).
  *
- * Der frühere lokale "100 KUDOS Initial Balance"-Simulator ist entfernt.
+ * Phase R: fundLocal() ist PERMANENT entfernt (war Mock-Bypass fuer Demo-Wallet).
+ * Wallet-Balance ist 0.00 bis ein echter Taler-Bank-Wire am live-Exchange gebunden ist.
+ * setBalance / reserveBind / createReserveForUser / createPurse bleiben — alle live-only.
  *
- * openReserve-Mechanismus wurde entfernt (siehe talerExchangeClient.ts). Neue Reserves
- * entstehen ausschliesslich durch Bank-Wire-Transfers, deren Subject die Crockford
- * reserve_pub enthält. createReserveForUser() generiert nur das lokale Schlüsselpaar
- * und speichert es mit status='pending_bank_wire'.
+ * openReserve-Mechanismus via REST ist nicht möglich (siehe talerExchangeClient.ts).
+ * Neue Reserves entstehen ausschliesslich durch Bank-Wire-Transfers, deren Subject die
+ * Crockford reserve_pub enthält. createReserveForUser() generiert nur das lokale
+ * Schlüsselpaar und speichert es mit status='pending_bank_wire' — die Reserve wird
+ * erst nach dem Bank-Wire am Exchange real.
  */
 
 import { query, queryOne, execute } from '../config/database';
@@ -151,64 +156,9 @@ export class TalerService {
     return this._currency;
   }
 
-  // -------------------------------------------------------------------------
-  // fundLocal — HEIMAT-internes Demo-Guthaben (KEIN Taler-Exchange-Kontakt)
-  // -------------------------------------------------------------------------
-  //
-  // Dies ist eine EXPLIZIT ALS DEMO GEKENNZEICHNETE Funktion. Sie schreibt
-  // KUDOS direkt in die lokale DB, OHNE den Taler-Exchange zu kontaktieren.
-  // Der Sinn: Der User kann sofort P2P-Transaktionen testen, ohne einen
-  // externen Bank-Wire auf exchange.demo.taler.net auslösen zu müssen.
-  //
-  // Wichtig: Sobald ein EUR-Exchange verfügbar ist, sollten neue User NICHT
-  // mehr diesen Pfad nutzen, sondern den echten Taler-Bank-Wire-Workflow.
-  //
-  // Die Balance wird in taler_wallets.balance gesetzt (Spalte, die auch vom
-  // vollständig lokalen adjustBalance() für Purse-Operationen genutzt wird).
-  // exchange_reserve_pub bleibt NULL → getBalance() und createPurse() erkennen
-  // dass es sich um eine lokale Demo-Balance handelt und überschreiben sie
-  // nicht mit Exchange-Probes.
-  // -------------------------------------------------------------------------
-
-  async fundLocal(userId: string, amount: number = 25): Promise<{ balance: number; currency: string; source: string }> {
-    const currency = await this.getCurrency();
-    const newBalance = formatAmount(amount, currency);
-
-    // Wallet existiert? Sonst anlegen
-    let wallet = await queryOne<TalerWallet>('SELECT * FROM taler_wallets WHERE user_id = $1', [userId]);
-    if (!wallet) {
-      wallet = await this.createWallet(userId);
-    }
-
-    // Direkt in DB schreiben — exchange_reserve_pub EXPLIZIT auf NULL setzen
-    // (auch wenn der User vorher eine Exchange-Reserve hatte). Dadurch erkennen
-    // getBalance() und getWallet() dass es sich um lokale Demo-KUDOS handelt
-    // und überschreiben die Balance nicht mit Exchange-Probes.
-    await execute(
-      `UPDATE taler_wallets SET balance = $1, exchange_base_url = 'local://demo',
-                               exchange_reserve_pub = NULL,
-                               last_probed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-       WHERE user_id = $2`,
-      [newBalance, userId],
-    );
-
-    // Transaktion loggen
-    await this.logTransaction({
-      kind: 'p2p',
-      reserveId: null,
-      purseId: null,
-      fromWalletId: 'local_demo_faucet',
-      toWalletId: userId,
-      amount,
-      contractHash: null,
-      exchangeSig: null,
-      status: 'completed',
-      description: `Local demo funding: ${amount} ${currency} (KEIN Taler-Exchange)`,
-    });
-
-    logger.info(`Local demo fund: user=${userId} amount=${amount} ${currency} (exchange_reserve_pub bleibt NULL, KEIN Taler-Exchange-Kontakt)`);
-    return { balance: amount, currency, source: 'local_demo' };
-  }
+  // Hinweis: Phase R (2026-07-27) hat fundLocal() entfernt (User-Regel
+  // "mock, simulation, fake sind verboten"). Wallet-Balance ist 0.00 bis ein
+  // echter Taler-Exchange-Bank-Wire am live-Exchange registriert ist.
 
   // -------------------------------------------------------------------------
   // /taler/config — echte /keys-Antwort vom Exchange
@@ -269,8 +219,8 @@ export class TalerService {
     );
     if (!wallet) wallet = await this.createWallet(userId);
 
-    // LOCAL_DEMO: exchange_base_url='local://demo' → Exchange-Probe überspringen
-    if (opts.probeExchange !== false && wallet.exchange_base_url !== 'local://demo' && wallet.exchange_reserve_pub) {
+    // Phase R: kein LOCAL_DEMO-Fallback. Probe nur wenn echte Reserve gebunden.
+    if (opts.probeExchange !== false && wallet.exchange_reserve_pub) {
       await this.refreshReserveSnapshot(wallet.exchange_reserve_pub);
       wallet = await queryOne<TalerWallet>(
         'SELECT * FROM taler_wallets WHERE user_id = $1',
@@ -287,21 +237,9 @@ export class TalerService {
   async getBalance(userId: string): Promise<{ balance: number; currency: string; reserves_probed: number }> {
     const currency = await this.getCurrency();
 
-    // LOCAL_DEMO: Wenn exchange_base_url='local://demo' (gesetzt von fundLocal()), 
-    // liefern wir die Wallet-Balance direkt ohne Exchange-Probe.
-    // Der User hat KUDOS ohne Exchange-Kontakt erhalten. 
-    // Zusätzlicher Check: exchange_reserve_pub ist NULL als Sicherheitsnetz.
-    const walletCheck = await queryOne<{ balance: string; exchange_base_url: string | null; exchange_reserve_pub: string | null }>(
-      'SELECT balance, exchange_base_url, exchange_reserve_pub FROM taler_wallets WHERE user_id = $1',
-      [userId],
-    );
-    if (walletCheck && (walletCheck.exchange_base_url === 'local://demo' || !walletCheck.exchange_reserve_pub)) {
-      const localBal = parseAmount(walletCheck.balance);
-      if (localBal > 0) {
-        return { balance: localBal, currency, reserves_probed: -1 };
-      }
-    }
-
+    // Phase R: kein LOCAL_DEMO-Fallback mehr (User-Regel "mock, simulation,
+    // fake sind verboten"). Wenn exchange_reserve_pub NULL, ist Balance 0
+    // und User muss echten Taler-Bank-Wire auslösen.
     const reserves = await query<{ reserve_pub: string; exchange_base_url: string }>(
       'SELECT reserve_pub, exchange_base_url FROM taler_reserves WHERE user_id = $1',
       [userId],
