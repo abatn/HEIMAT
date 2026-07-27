@@ -267,6 +267,8 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - Swagger/OpenAPI: /docs + /docs.json live
 - Mobilität (Überpass/Nominatim/OSRM/transitous) und Gesundheit (Ärzte+Termine) seit MVP grün
 
+- **Phase E Wetter Real-Fix ✅ (2026-07-27, Commit 99daa9c)**: Wetter-Tab `Exception: Wettervorhersage konnte nicht abgerufen werden` behoben via Mirror-Fallback-Pattern. Open-Meteo primary + Bright Sky DWD-Proxy (`api.brightsky.dev`) als 2. öffentlicher Anbieter. Architektur-Spiegel von `mobilityService.ts` Overpass-Mirror-List. Trigger HTTP 429/5xx/ECONNABORTED. BrightSky Condition→WMO Map (8 Buckets), Gust-Speed priority für STURM-Accuracy. **Real-Data-Only** (keine Mocks, keine Simulation per User-Regel "mock, simulation, fake sind verboten"). 10 Regression-Tests grün. Live-Verifikation: `heimat-backend.onrender.com/api/weather/forecast` → 200 OK mit echten Berlin-Daten (21.1°C, Klarer Himmel, 28.1 km/h Wind). Public-API `getWeather()` unverändert, Mobile DTO-Kontrakt stabil → kein Flutter-Rebuild nötig.
+
 ### ⚠️ Was ist offen
 - **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt jetzt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, direkt in DB, kein Exchange nötig) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
 - **migrate.ts Unit-Test ✅ (Commit 06dc2e3)** — 18 Tests, alle gruen (success path, pool throws, redactConnectionSecrets edge cases, schema fehlt, lesefehler, exception-safety)

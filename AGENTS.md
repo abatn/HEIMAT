@@ -140,6 +140,8 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Swagger UI**: /docs + /docs.json live
 - **Mobilität + Gesundheit**: seit MVP grün
 
+- **Phase E Wetter Real-Fix ✅ (2026-07-27, Commit 99daa9c)**: Render Free-Tier 429-Rate-Limit auf Open-Meteo behoben via Mirror-Fallback-Pattern. Open-Meteo primary (reduziert 2× Retry) + Bright Sky DWD-Proxy (`api.brightsky.dev`) als fallback. Architektur-Spiegel von mobilityService.ts Overpass-Mirror-List. **WICHTIG: keine Mocks/Simulations** (per User-Regel "mock, simulation, fake sind verboten") — alle HTTP-Calls gegen reale Upstream-APIs. Constructor-DI für Test-Seam. 10/10 Tests grün (jest). Live: Berlin 21.1°C, Klarer Himmel, 28.1 km/h Wind via `heimat-backend.onrender.com/api/weather/forecast`. Mobile DTO erhalten → kein Flutter-Rebuild.
+
 ### ⚠️ Was ist offen
 - **Phase 24: Demo-KUDOS und P2P-Durchstich ✅ Live (2026-07-26)** — Finanzen-Tab: "Guthaben aufladen" Button zeigt zwei Optionen: (a) "25 Demo-KUDOS erhalten" (POST /api/finance/taler/fund-local, direkt in DB) und (b) "Reserve-Adresse erstellen" (alter Flow fuer echten Taler-Bank-Wire). P2P-Purse-System (createPurse/depositToPurse/mergePurse) arbeitet korrekt mit lokaler Demo-Balance. EUR-Exchange wartet auf oeffentliche GLS-Bank-Integration.
 - **migrate.ts Unit-Test ✅ (Commit 06dc2e3)** — 18 Tests, alle gruen (success path, pool throws, redactConnectionSecrets edge cases, schema fehlt, lesefehler, exception-safety)
