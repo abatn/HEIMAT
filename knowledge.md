@@ -154,7 +154,7 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 13. **Phase 23 Roundtrip ✅ Live (2026-07-25):** Finance-JWT-Integration abgeschlossen. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün am 2026-07-25. security.test.ts Regression-Lock aktiv (Commit 3414aea). Konkret: (a) Mobile `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 HTTP-Calls. (b) Backend `GET /api/finance/wallet` Route neu (Commit e00105d). (c) Schema `wallet_priv` Legacy-Spalte per `ALTER TABLE DROP COLUMN IF EXISTS` verloren. (d) Ungeschützter `POST /api/migrate` entfernt (Commit 25ac7ab); nur `/api/admin/migrate` mit `X-Admin-Key` Header bleibt. (e) `src/backend/src/scripts/migrate.ts` (Node.js) läuft im `preDeployCommand` nach `buildCommand` (Commit e7fcd85) — wendet `dist/database/schema.sql` automatisch auf Production-DB an. (f) `src/backend/src/__tests__/security.test.ts` (Commit 3414aea) regresssion-locked dass POST /api/migrate 404 retourniert (sonst 200 mit Schema-loaded-Body). (g) Backend-CI Run #30173698956 für e7fcd85 grün (Lint/Test/Build).
 
 ### Phase Q Recap — Stand 2026-07-27
-**Commits dieser Phase:** `78a371d`. Architektur-Drift zwischen Production und Test aufgelöst.
+**Commits dieser Phase:** `78a371d` (Refactor + 11 AuthLock-Tests) und `ea29e63` (CI-Format-Fix für 2 Test-Files). Architektur-Drift zwischen Production und Test aufgelöst, CI grün am 2026-07-27.
 
 | Schritt | Datei | Was geändert |
 |---------|-------|--------------|
@@ -323,7 +323,7 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
 - Auto-Migration health-check Tool (`npm run migrate:status`)
 
-### ✅ Phase Q: Quality-Pass (2026-07-27, Commit 78a371d)
+### ✅ Phase Q: Quality-Pass (2026-07-27, Commit 78a371d, CI grün via ea29e63)
 
 **AuthGate-Extraktion + 11 neue authlock-regression-Tests:**
 

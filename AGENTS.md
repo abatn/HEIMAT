@@ -157,7 +157,7 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auto-Migration health-check (`npm run migrate:status`)
 - Phase B Rest: Luftqualität (UBA) + Abfallkalender — noch nicht gebaut. Wetter ist ✅ deployed (Commit 9e42a30).
 
-### Phase Q Recap — AuthLock Qualitäts-Pass (2026-07-27, Commit 78a371d)
+### Phase Q Recap — AuthLock Qualitäts-Pass (2026-07-27, Commit 78a371d, CI grün via ea29e63)
 
 **AuthGate-Extraktion eliminiert Production-Test-Drift:**
 - Neu: `lib/core/auth/auth_gate.dart` — Pure routing widget mit required `authenticated` Parameter (kein DefaultRenderer der Bugs versteckt). Single Source of Truth für auth-Routen-Entscheidung.

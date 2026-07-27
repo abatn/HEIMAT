@@ -79,7 +79,7 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern `Navigator.pushNamedAndRemoveUntil('/', …)`)
 - Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
 
-## Phase Q: Quality-Pass — Stand 2026-07-27 (Commit 78a371d)
+## Phase Q: Quality-Pass — Stand 2026-07-27 (Commit 78a371d, CI grün via ea29e63)
 
 **Quality-Pass vor Phase-26-Weiterführung: AuthLock-Vertrag über 11 neue Tests verriegelt.**
 
