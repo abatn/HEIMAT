@@ -159,6 +159,7 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | **Phase A: Mini-Program-Container** | ✅ **Live (2026-07-27)** | **WebView-Framework mit 10 Mini-Programmen (Futai, Wetter, Luft, Events, Jobs, E-Ladestationen, Abfall, Hotels, Parken, Bürgeramt) + Apps-Tab + Conditional Imports** |
 | **Phase E Wetter Real-Fix** | ✅ **Live (2026-07-27, Commit 99daa9c)** | **Mirror-Fallback Open-Meteo + Bright Sky. Behebt Render-IP-429. 10/10 Tests. Live-Verifikation 200 OK mit echten DWD-Daten. Real-Data-Only.** |
 | **AI-Home Dashboard** | ✅ **Live** | **Personalisierter Startseiten-Tab mit Tageszeit-basierten Vorschlägen + Greeting-Card + Nearby-Stops** |
+| **Phase Q: Quality-Pass (AuthLock)** | ✅ **Live** | **AuthGate extrahiert in `lib/core/auth/auth_gate.dart` mit required `authenticated` Parameter; 11 neue authlock-regression-Tests (5 auth_gate + 6 auth_integration mit FakeAuthProvider Stub-Vererbungs-Pattern). Eliminiert Production-Test-Drift.** |
 | CI-Fix-Runde 2 | ✅ **Grün** | `withOpacity` (Flutter 3.24.5), `unnecessary_non_null_assertion` entfernt, Conditional Imports korrigiert |
 
 ## 🚀 HEIMAT Expansion — Neue Services

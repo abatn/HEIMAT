@@ -515,3 +515,34 @@ Phase 26 (JWT-Auth) führte `requireAuth` für alle Finance-Routen ein. Die best
 
 - Backend: `npm run lint` → 0 Errors, `npx tsc --noEmit` → 0 Errors
 - Mobile: `dart format lib/ test/` → 0 changes, `dart analyze lib/ test/` → 0 Issues
+
+## Phase Q: Quality-Pass (2026-07-27, Commit 78a371d)
+
+**AuthGate-Extraktion + 11 neue authlock-regression-Tests — Production-Test-Drift eliminiert.**
+
+### Was passierte
+
+1. **`lib/core/auth/auth_gate.dart` (NEU)** — AuthGate aus `main.dart` extrahiert. Required `authenticated` Parameter (kein Default = keine silent-routing-bugs). Single Source of Truth für auth-Routen-Entscheidung.
+2. **`lib/main.dart` (EDIT)** — Inline `class AuthGate extends StatelessWidget` Block entfernt (11 Zeilen). Route '/' jetzt `AuthGate(authenticated: const MainScreen())`. Alle 22 Imports weiterhin verwendet.
+3. **`test/auth_gate_test.dart` (REWRITE)** — Importiert echtes AuthGate via `package:heimat_app/core/auth/auth_gate.dart` (KEINE inline-Kopie mehr). 5 Tests: unauth→LoginScreen, auth→MockMain, transition logout→LoginScreen, loading-state vor init, partial-auth (token ohne user_id edge case).
+4. **`test/auth_integration_test.dart` (NEU)** — `_FakeAuthProvider extends AuthProvider` Stub-Vererbung (Pattern-Mirror zu `_StubFinance` in `app_smoke_test.dart`). `_MockMainWithLogout` mit PopupMenuButton Logout-Spiegel. 6 Tests: Cold-Start, Login transition, Logout via PopupTap, Login-Logout-Login cycle, AUTH-LOCK state-injection, RegisterScreen.
+
+### Lessons-Learned (im Repo verankert)
+
+- **`pumpAndSettle()` verboten** in Mobile-Tests → infinite-animation hang.
+- **Stub-Vererbung `_Stub<X>` bevorzugt** gegenüber `Mockito`-build_runner.
+- **`SharedPreferences.setMockInitialValues({})` in jedem setUp()** für Test-Isolation.
+
+### Validation
+
+- Code-Reviewer-minimax-m3: **9/9 Fragen PASS** (Q1-Q9); 5 minor feedbacks (non-blocker).
+- Static drift-check: Single AuthGate-Declaration in der ganzen Codebase verifiziert.
+- Unused-Imports Audit: alle 22 Imports in `main.dart` werden verwendet (kein flutter analyze-Lint).
+
+### CI
+
+- Commit `78a371d` gepuscht zu `origin main`.
+- Flutter CI Pipeline (analyze + test + smoke) läuft automatisch.
+- AuthLock-Vertrag: `lib/core/auth/auth_gate.dart` ist jetzt der einzige Ort wo auth→Route-Entscheidungen getroffen werden — zukünftige AuthFlows (Biometric, MFA) brauchen nur AuthProvider + AuthGate zu ändern.
+- Drift-Risiko: 0 — Tests referenzieren SELBEN Import wie Production.
+

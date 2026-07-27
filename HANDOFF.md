@@ -33,12 +33,13 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - **migrate.ts Unit-Test ✅ (Commit 06dc2e3)** — 18 Tests, alle gruen
 
 ### Was fehlt
-- **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus.
-- Flutter Integration-Tests fehlen noch
-- Auth-Routing-Bug Regression-Test in mobile tests
+- ~~Flutter Integration-Tests fehlen noch~~ ✅ erledigt in Phase Q (Commit 78a371d, `test/auth_integration_test.dart` mit 6 Tests).
+- ~~Auth-Routing-Bug Regression-Test in mobile tests~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`).
 - Auto-Migration health-check Tool
 
 **Auth-Track seit 2026-07-25 end-to-end live auf Production** (`/api/auth/{register, login, me}` gegen `heimat-backend.onrender.com`, Smoke-Test-User in Supabase-Production-DB).
+
+**Quality-Pass Phase Q ✅ (2026-07-27, Commit 78a371d):** AuthGate-Extraktion eliminiert Production-Test-Drift. Neu: `lib/core/auth/auth_gate.dart` mit required `authenticated` Parameter (Single Source of Truth). `main.dart` Route '/' jetzt `AuthGate(authenticated: const MainScreen())`. 11 neue authlock-regression-Tests (5 `auth_gate_test.dart` + 6 `auth_integration_test.dart` mit FakeAuthProvider Stub-Vererbungs-Pattern). Flutter CI läuft automatisch.
 
 ### Was bereits implementiert ist
 - Mobilität: Overpass, Nominatim, OSRM, transitous.org, RAPTOR, GTFS Stop-Matching

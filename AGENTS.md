@@ -152,11 +152,29 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 **⚠️ Option B (Bank-API automatisieren) ist ein Dead End (2026-07-26):** Die Taler-Demo-Bank hat nur Lese-API-Endpoints (`GET /accounts/{username}`, `GET /accounts/{username}/transactions`, `POST /accounts/{username}/token`). KEIN REST-Endpoint fuer Wire-Transfer. Automatisierung via `POST /admin/add-incoming` benoetigt Admin-Login. Demo-KUDOS via `/api/finance/taler/fund-local` bleibt der einzig praktikable Weg.
 
 ### ❌ Was fehlt
-- **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus.
-- Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow
-- Auth-Routing-Bug Regression-Test in mobile tests
+- ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (Commit 78a371d, `test/auth_integration_test.dart` mit 6 Tests).
+- ~~Auth-Routing-Bug Regression-Test in mobile tests~~ ✅ erledigt in Phase Q (`test/auth_gate_test.dart` 5 authlock-regression-Tests).
 - Auto-Migration health-check (`npm run migrate:status`)
 - Phase B Rest: Luftqualität (UBA) + Abfallkalender — noch nicht gebaut. Wetter ist ✅ deployed (Commit 9e42a30).
+
+### Phase Q Recap — AuthLock Qualitäts-Pass (2026-07-27, Commit 78a371d)
+
+**AuthGate-Extraktion eliminiert Production-Test-Drift:**
+- Neu: `lib/core/auth/auth_gate.dart` — Pure routing widget mit required `authenticated` Parameter (kein DefaultRenderer der Bugs versteckt). Single Source of Truth für auth-Routen-Entscheidung.
+- `lib/main.dart`: Inline `class AuthGate` 11-Zeilen-Block entfernt; Route '/' jetzt `AuthGate(authenticated: const MainScreen())`.
+- `test/auth_gate_test.dart`: Importiert echtes AuthGate via package-Pfad (keine inline-Copy mehr) → Tests verifizieren EXAKT das was Production nutzt.
+- `test/auth_integration_test.dart` (NEU): Full-flow-Test (Login → Logout cycle) mit `_FakeAuthProvider extends AuthProvider` — Stub-Vererbungs-Pattern mirror zu `_StubFinance` in `app_smoke_test.dart`. Kein HTTP, kein Test-Worker-Bootstrap.
+
+**11 neue Tests:**
+- 5 in `auth_gate_test.dart`: unauth→LoginScreen, auth→MockMain, transition-logout, loading-state, partial-auth (token ohne user_id edge case).
+- 6 in `auth_integration_test.dart`: Cold-Start, Login()→Main, Logout-via-PopupMenuButton, Login-Logout-Login cycle, AUTH-LOCK state-injection, RegisterScreen Top-Level.
+
+**Lessons-Learned in Test-Code (berritsch-Wichtiger Repo-Standard):**
+- `pumpAndSettle()` **VERBOTEN** → infinite-Animation-Hang hält Tests auf ewig. Stattdessen `tester.pump(Duration)` mit 100-200ms Intervallen.
+- `SharedPreferences.setMockInitialValues({})` in jedem setUp() für isolation.
+- Stub-Vererbungs-Pattern (`_Stub<X>` + overrides) bevorzugt gegenüber Mockito-build_runner.
+
+CI: Code-Reviewer-minimax-m3 9/9 PASS, Code gepuscht, Flutter CI Analyse+Test+Smoke läuft.
 
 ## Phase E: Native Flutter Services — Mini-Program Refactor (2026-07-27)
 

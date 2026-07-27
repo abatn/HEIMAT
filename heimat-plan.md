@@ -79,6 +79,26 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern `Navigator.pushNamedAndRemoveUntil('/', …)`)
 - Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
 
+## Phase Q: Quality-Pass — Stand 2026-07-27 (Commit 78a371d)
+
+**Quality-Pass vor Phase-26-Weiterführung: AuthLock-Vertrag über 11 neue Tests verriegelt.**
+
+Architektur-Verbesserung:
+- `lib/core/auth/auth_gate.dart` (NEU): AuthGate extrahiert mit required `authenticated` Parameter. Single Source of Truth für auth-Routen-Entscheidung. main.dart injiziert MainScreen; Tests injizieren Mock-Widget. Eliminiert Production-Test-Drift.
+- `lib/main.dart`: Inline 11-zeilen `class AuthGate extends StatelessWidget` Block entfernt; Route '/' jetzt `AuthGate(authenticated: const MainScreen())`.
+
+Tests (11 neue, alle authlock-regression-Tests):
+- `test/auth_gate_test.dart`: 5 Tests — unauth→LoginScreen, auth→MockMain, transition logout→LoginScreen, loading-state vor init, partial-auth (token ohne user_id).
+- `test/auth_integration_test.dart`: 6 Tests mit `_FakeAuthProvider extends AuthProvider` (Stub-Vererbungs-Pattern) — Cold-Start, Login transition, Logout via PopupMenuButton, Login-Logout-Login cycle, AUTH-LOCK state-injection, RegisterScreen Top-Level.
+
+Validation:
+- Code-Reviewer-minimax-m3: 9/9 PASS.
+- Static drift-check: Single AuthGate-Declaration in der ganzen Codebase.
+- Unused-Imports Audit: alle 22 Imports in `main.dart` verwendet.
+- Lessons-learned (im Knowledge-Repo festgehalten): `pumpAndSettle()` verboten (infinite-animation hang), Stub-Vererbung `_Stub<X>` bevorzugt.
+
+CI: Code gepuscht (78a371d), Flutter CI Analyse + Test + Smoke laufen automatisch.
+
 ## Phase 25-26: HEIMAT Expansion — Von 3 auf 10+ Services
 HEIMAT expandiert von 3 Kern-Services (Mobilität, Finanzen, Gesundheit) auf 10+ Services — inspiriert von WeChat (China) und Grab (Singapur), aber mit deutscher Open-Source-DNA: keine Verträge, keine kommerziellen APIs, Privacy-by-Design.
 

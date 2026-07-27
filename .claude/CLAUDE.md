@@ -248,6 +248,31 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auth-Routing-Bug Regression-Test
 - `npm run migrate:status` Auto-Migration health-check
 
+## Phase Q Recap — AuthLock Quality-Pass (2026-07-27)
+
+**Commit 78a371d — AuthGate-Extraktion + 11 neue authlock-regression-Tests.**
+
+Architektur-Verbesserung (Eliminiert Production-Test-Drift):
+- `lib/core/auth/auth_gate.dart` (NEU): Pure Routing-Widget, required `authenticated` Parameter (kein DefaultRenderer der Bugs versteckt). Single Source of Truth für auth-zustandsabhängige Routen-Entscheidung.
+- `lib/main.dart`: Inline `class AuthGate extends StatelessWidget` Block entfernt (war 11 Zeilen). Route '/' jetzt `AuthGate(authenticated: const MainScreen())`.
+
+Tests verriegeln AuthLock-Vertrag:
+- `test/auth_gate_test.dart` (REWRITE): 5 Tests — unauth→LoginScreen, auth→MockMain, transition logout→LoginScreen, loading-state (vor init), partial-auth edge (token ohne user_id).
+- `test/auth_integration_test.dart` (NEU): 6 Tests mit `_FakeAuthProvider extends AuthProvider` (Stub-Vererbungs-Pattern, kein HTTP) — Cold-Start, Login transition, Logout via PopupMenuButton, Login-Logout-Login cycle, AUTH-LOCK state-injection, RegisterScreen Top-Level.
+
+**Lessons-Learned (im Repo verriegeln):**
+- `pumpAndSettle()` **VERBOTEN** in Mobile-Tests → infinite-animation hang. Stattdessen `tester.pump(Duration(milliseconds: 100))` mit 100-200ms Intervallen.
+- `SharedPreferences.setMockInitialValues({})` in JEDEM setUp() für Test-Isolation.
+- Stub-Vererbung-`_Stub<X>` (Pattern aus `app_smoke_test.dart`) > Mockito-build_runner.
+- AuthGate-Required-Parameter-Pattern verhindert silent-default-widget-bugs.
+
+Validation:
+- Code-Reviewer-minimax-m3: 9/9 PASS (Q1-Q9); 5 minor feedback non-blocker.
+- Static drift-check: Single AuthGate-Declaration im ganzen Repo verifiziert.
+- Unused-Imports Audit: alle 22 Imports in `main.dart` werden verwendet.
+
+CI: Code gepuscht (78a371d), Flutter CI Pipeline (analyze + test + smoke) automatisch.
+
 ## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
 
 ### Neue Services (10+)
