@@ -38,3 +38,7 @@ coverage/
 # Planning docs (never push)
 bauplan.md
 .loop.md
+
+# 2026-07-27 Working-Tree cleanup
+src/mobile/android/local.properties
+dartsdk-linux-x64-release.zip
