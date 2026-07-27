@@ -240,7 +240,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - stale-doc-prescan.sh nicht im Workflow eingebunden (war Nice-to-have)
 
 **📱 Taler aus der App — User-Guide:**
-Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> nur echter Reserve-Adresse-Weg (Phase R, 2026-07-27): reserve_pub wird erzeugt -> bank.demo.taler.net -> echtes KUDOS-Wire -> zurueck zu HEIMAT -> [Aktualisieren] -> Balance zeigt via Bank-Wire gebuchten Live-Wert. Demo-KUDOS-Option (1) "25 Demo-KUDOS erhalten" wurde komplett entfernt (kein Mock-Bypass, kein "Schnell-guthaben"-Button). P2P-Send an registrierte HEIMAT-User funktioniert nach erfolgreichem Bank-Wire.
+Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> nur echter Reserve-Adresse-Weg (Phase R, 2026-07-27): reserve_pub wird erzeugt -> bank.demo.taler.net -> echtes KUDOS-Wire vom bank.demo.taler.net-Konto ausfuehren -> zurueck zu HEIMAT -> [Aktualisieren] -> Balance zeigt via Bank-Wire gebuchten Live-Wert. Demo-KUDOS-Option (1) "25 Demo-KUDOS erhalten" wurde komplett entfernt (kein Mock-Bypass, kein "Schnell-guthaben"-Button). P2P-Send an registrierte HEIMAT-User funktioniert nach erfolgreichem Bank-Wire.
 
 ### ❌ Was fehlt
 - **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-grün ✅. Schritt 1/5 des inkrementellen Wiederaufbaus.

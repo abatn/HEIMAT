@@ -204,7 +204,7 @@ HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, abe
 - Flutter Integration-Tests
 
 **📱 Taler aus der App — So geht's:**
-Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> nur echter Reserve-Adresse-Weg (Phase R, 2026-07-27): reserve_pub wird erzeugt -> bank.demo.taler.net -> echtes KUDOS-Wire ausloesen -> zurueck zu HEIMAT -> [Aktualisieren] -> Balance zeigt via Bank-Wire gebuchten Live-Wert. Demo-KUDOS-Option (1) "25 Demo-KUDOS erhalten" wurde komplett entfernt (kein Mock, kein Bypass).
+Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen] -> nur echter Reserve-Adresse-Weg (Phase R, 2026-07-27): reserve_pub wird erzeugt -> bank.demo.taler.net -> echtes KUDOS-Wire vom bank.demo.taler.net-Konto ausfuehren -> zurueck zu HEIMAT -> [Aktualisieren] -> Balance zeigt via Bank-Wire gebuchten Live-Wert. Demo-KUDOS-Option (1) "25 Demo-KUDOS erhalten" wurde komplett entfernt (kein Mock, kein Bypass).
 
 ### ❌ Was fehlt
 - **auth_gate_test.dart (Commit 6274675)** — neue Testdatei, 1 Test (AuthGate→LoginScreen bei unauth), CI-gruen. Schritt 1/5 des inkrementellen Wiederaufbaus.
