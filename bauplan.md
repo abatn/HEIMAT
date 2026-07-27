@@ -428,6 +428,9 @@ Erst Taler-Testnet-Prototyp (KUDOS) lauffähig machen, dann UI anbinden.
 
 ### Verbleibend (nicht umsetzbar)
 
+- **Quick-Actions-Flicker-Fix (Commit 8aad85f)** — aiHomeService.ts: getPersonalizedContext() überschrieb Quick Actions mit intent-spezifischen 2-Button-Sets. Fix: Nur Suggestions werden personalisiert, Quick Actions bleiben die 4 Standard-Buttons (Route/Arzt/KUDOS/Nähe). Dead Code (intentQuickActions, 25 Zeilen) entfernt. ✅
+- **Dashboard-Navigation (Commits bd04e2b + 4fcb0ac)** — home_screen.dart: Quick Actions, Stat-Karten und AI-Vorschläge navigieren per onNavigateTab-Callback. main.dart: _screens als Getter, Callback von MainScreen. ✅
+- **Phase B: Wetter-Mini-Programm (Commit 9e42a30)** — WeatherService + WeatherRoute + weather.html (Mini-Program). 429-Retry (0d75f1f). 5 Dateien, 859 Zeilen. ✅
 - **TypeScript ~5.6.3 → 7** — GEBLOCKT: `@typescript-eslint@8.65.0` bricht mit `typescript-eslint does not support TS 7.0`. tsc compiliert, aber eslint unbrauchbar. Siehe `typescript-eslint/typescript-eslint#10940`.
 - **Taler Exchange 502** — `exchange.demo.taler.net` antwortet mit 502 von Render aus. Externer Service.
 - **GTFS Feed-Import auf Supabase** — `import-gtfs-local.ts` muss manuell via `DATABASE_URL=... npx ts-node scripts/import-gtfs-local.ts` ausgeführt werden. Render Free-Tier hat zu wenig RAM/Timeout für 244MB Download + 500MB stop_times. Nach Import: RAPTOR initialisiert sich automatisch aus DB.
