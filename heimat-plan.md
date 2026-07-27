@@ -25,6 +25,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **AI-Home Dashboard (Commit 0308bfaa)**: Personalisierter Startseiten-Tab + Greeting-Card + Nearby-Stops + RecordAction-Cross-Provider
 - **Dashboard-Navigation (Commits bd04e2b + 4fcb0ac)**: Quick Actions, Stat-Karten und AI-Vorschläge navigieren jetzt per `onNavigateTab`-Callback — CI grün ✅
 - **Phase B: Wetter-Mini-Programm (Commit 9e42a30)**: weatherService.ts (Open-Meteo DWD-Client), weather.ts (3 Endpoints), weather.html (Mini-Program) — auf main deployed ✅
+- **Quick-Actions-Flicker-Fix (Commit 8aad85f)**: getPersonalizedContext() überschrieb Quick Actions mit intent-spezifischen 2-Button-Sets. Fix: Nur Suggestions werden personalisiert, Quick Actions bleiben die 4 Standard-Buttons. Dead Code entfernt. ✅
 - **Backend CI grün**: Lint + Jest (113+ Tests) + tsc --noEmit
 - **Mobile CI grün**: dart format + flutter analyze + flutter test — CI grün (Commit 246ece3 Verifikation)
 - **Swagger/OpenAPI**: /docs UI + /docs.json live
