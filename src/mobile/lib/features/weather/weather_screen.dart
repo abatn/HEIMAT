@@ -5,6 +5,7 @@ import '../../core/widgets/skeleton_loader.dart';
 import '../../core/widgets/empty_state.dart';
 import '../ai/local_sentiment_classifier.dart';
 import 'weather_provider.dart';
+import 'widgets/alert_banner.dart';
 import 'widgets/current_weather_hero.dart';
 import 'widgets/hourly_forecast_strip.dart';
 import 'widgets/weekly_outlook_grid.dart';
@@ -105,6 +106,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
       children: [
         _buildHeader(p),
         const SizedBox(height: 12),
+        // Phase E Forecast-Schicht: Unwetter-Banner oben.
+        // Backend Rule-Engine (weatherAlertsService) liefert sortierte Liste
+        // — DANGER zuerst, dann WARNING, dann INFO pro Tag.
+        if (p.hasAlerts) ...[
+          for (final alert in p.alerts) AlertBanner(alert: alert),
+          const SizedBox(height: 10),
+        ],
         CurrentWeatherHero(
           current: f.current,
           locationName: p.locationName,

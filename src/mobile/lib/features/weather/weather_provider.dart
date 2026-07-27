@@ -26,6 +26,7 @@ class WeatherProvider extends ChangeNotifier {
   static const String _kLatKey = 'weather_last_lat_v1';
   static const String _kLngKey = 'weather_last_lng_v1';
   static const String _kNameKey = 'weather_last_name_v1';
+  static const String _kAlertsKey = 'weather_last_alerts_v1';
   static const Duration _ttl = Duration(minutes: 5);
 
   // ------------------------------------------------------------------
@@ -53,6 +54,11 @@ class WeatherProvider extends ChangeNotifier {
   /// Wird in refresh() gesetzt nachdem forecast parsiert wurde.
   SentimentResult? _sentiment;
 
+  /// Phase E Forecast-Schicht: Unwetter-Alerts vom Backend Rule-Engine.
+  /// Concurrent-fetched mit dem Forecast-Endpoint /api/weather/alerts.
+  /// Default = leere Liste (kein Alert = keine Warnung).
+  List<WeatherAlert> _alerts = const [];
+
   WeatherProvider({LocalSentimentClassifier? classifier})
       : _classifier = classifier ?? defaultSentimentClassifier;
 
@@ -72,6 +78,13 @@ class WeatherProvider extends ChangeNotifier {
   /// Null solange noch kein refresh() gelaufen ist.
   SentimentResult? get sentiment => _sentiment;
 
+  /// Phase E Alerts-Liste (Unwetter-Vorhersagen vom Backend).
+  /// Immer sortiert vom Backend (dayIndex ASC, severity DANGER > WARNING > INFO).
+  List<WeatherAlert> get alerts => _alerts;
+
+  /// True wenn aktive Alerts vorhanden (= Banner sichtbar).
+  bool get hasAlerts => _alerts.isNotEmpty;
+
   /// True wenn (cached ODER live) Daten verfügbar — Widget kann rendern
   bool get hasData => _forecast != null;
 
@@ -81,6 +94,12 @@ class WeatherProvider extends ChangeNotifier {
   Future<void> init() async {
     await _loadFromCache();
     notifyListeners();
+    // MAJOR-Fix (Code-Reviewer): Wenn Cache geladen UND aelter als TTL,
+    // automatisch refresh() triggern. Sonst sieht der User stale data
+    // fuer Ewigkeit — bis manuelles pull-to-refresh.
+    if (hasData && _isStale) {
+      unawaited(refresh());
+    }
     // Location update ist best-effort — Fehler ignorieren, Berlin bleibt Fallback
     unawaited(_tryUpdateLocation());
   }
@@ -144,6 +163,19 @@ class WeatherProvider extends ChangeNotifier {
       // Cache persistieren
       await _persistForecast(data);
       await _persistLocation();
+
+      // Phase E Forecast-Schicht: Unwetter-Alerts (separater Endpoint).
+      // /api/weather/alerts liefert Rule-Engine Output (kein Cloud-AI).
+      // Fehler ist NICHT critical: ohne Alerts nur keine Banner oben.
+      try {
+        final alertsData =
+            await apiGet('/api/weather/alerts?lat=$_lat&lng=$_lng');
+        final alertsResp = WeatherAlertsResponse.fromJson(alertsData);
+        _alerts = alertsResp.alerts;
+        await _persistAlerts(alertsResp);
+      } catch (_) {
+        // Alerts-Fehler: behalte vorherige _alerts (oder leere Liste)
+      }
     } catch (e) {
       _error = e.toString();
       // Wenn wir alte Daten haben: Als stale markieren, nicht überschreiben
@@ -178,6 +210,19 @@ class WeatherProvider extends ChangeNotifier {
         _lat = double.tryParse(lat) ?? _lat;
         _lng = double.tryParse(lng) ?? _lng;
       }
+
+      // Phase E Forecast-Schicht: Alerts aus Cache restaurieren damit
+      // Banner direkt nach Cold-Start sichtbar (kein Network-Roundtrip).
+      final alertsRaw = prefs.getString(_kAlertsKey);
+      if (alertsRaw != null) {
+        try {
+          final alertsJson = jsonDecode(alertsRaw) as Map<String, dynamic>;
+          _alerts = WeatherAlertsResponse.fromJson(alertsJson).alerts;
+        } catch (_) {
+          // Corrupted alerts cache — silently ignore
+        }
+      }
+
       // MAJOR-Fix: Klassifiziere gecachten Wetter-Text sofort nach Restore,
       // damit die KI-Wetterstimmung-Row direkt nach Cold-Start ohne
       // Netzwerk-Roundtrip sichtbar ist. Fire-and-forget + notifyListeners()
@@ -220,6 +265,15 @@ class WeatherProvider extends ChangeNotifier {
       await prefs.setString(_kLngKey, _lng.toString());
     } catch (_) {
       // ignore
+    }
+  }
+
+  Future<void> _persistAlerts(WeatherAlertsResponse resp) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kAlertsKey, jsonEncode(resp.toJson()));
+    } catch (_) {
+      // Cache write failed — in-memory alerts bleiben gültig
     }
   }
 }

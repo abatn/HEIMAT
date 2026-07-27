@@ -194,3 +194,177 @@ class LocationDto {
     );
   }
 }
+
+// =========================================================================
+// Phase E Forecast-DTO Block — Unwetter-Alerts
+// (Backend: src/backend/src/services/weatherAlertsService.ts)
+// =========================================================================
+
+/// AlertCode — Backend-String wird zu Dart-enum gemappt.
+enum AlertCode {
+  sturm,
+  extremregen,
+  dauerregen;
+
+  static AlertCode fromString(String? raw) {
+    switch (raw) {
+      case 'sturm':
+        return AlertCode.sturm;
+      case 'extremregen':
+        return AlertCode.extremregen;
+      case 'dauerregen':
+        return AlertCode.dauerregen;
+      default:
+        return AlertCode.sturm; // Fallback — sollte nie passieren
+    }
+  }
+
+  String get displayLabel {
+    switch (this) {
+      case AlertCode.sturm:
+        return 'Sturm';
+      case AlertCode.extremregen:
+        return 'Starkregen';
+      case AlertCode.dauerregen:
+        return 'Dauerregen';
+    }
+  }
+
+  // IconData-Mapping lebt absichtlich im Widget (alert_banner.dart::_iconFor).
+  // Hier kein icon-Property weil sonst zirkulaerer Import (Flutter material
+  // in DTO). Wer das Icon braucht: AlertBanner nutzt es intern.
+}
+
+/// AlertSeverity — 3 Stufen
+enum AlertSeverity {
+  info,
+  warning,
+  danger;
+
+  static AlertSeverity fromString(String? raw) {
+    switch (raw) {
+      case 'info':
+        return AlertSeverity.info;
+      case 'warning':
+        return AlertSeverity.warning;
+      case 'danger':
+        return AlertSeverity.danger;
+      default:
+        return AlertSeverity.info;
+    }
+  }
+}
+
+/// AlertMetric — optional [label, value, unit] Triple
+class AlertMetric {
+  final String label;
+  final String value;
+  final String unit;
+
+  const AlertMetric({
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
+
+  factory AlertMetric.fromJson(Map<String, dynamic> json) {
+    return AlertMetric(
+      label: json['label'] as String? ?? '',
+      value: json['value'] as String? ?? '',
+      unit: json['unit'] as String? ?? '',
+    );
+  }
+}
+
+/// WeatherAlert — spiegelt backend WeatherAlert.
+/// Bei Dauerregen: dayIndex=start, endDayIndex=end.
+/// Bei STURM/EXTREMREGEN: kein endDayIndex (Single-Day-Alert).
+class WeatherAlert {
+  final AlertCode code;
+  final AlertSeverity severity;
+  final String title;
+  final String message;
+  final int dayIndex;
+  final int? endDayIndex;
+  final AlertMetric? metric;
+
+  const WeatherAlert({
+    required this.code,
+    required this.severity,
+    required this.title,
+    required this.message,
+    required this.dayIndex,
+    this.endDayIndex,
+    this.metric,
+  });
+
+  factory WeatherAlert.fromJson(Map<String, dynamic> json) {
+    return WeatherAlert(
+      code: AlertCode.fromString(json['code'] as String?),
+      severity: AlertSeverity.fromString(json['severity'] as String?),
+      title: json['title'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      dayIndex: (json['dayIndex'] as num?)?.toInt() ?? 0,
+      endDayIndex: (json['endDayIndex'] as num?)?.toInt(),
+      metric: json['metric'] is Map<String, dynamic>
+          ? AlertMetric.fromJson(json['metric'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  /// Range-Span (z.B. Dauerregen Tag 0-4) oder single day
+  bool get isSpan => endDayIndex != null && endDayIndex! > dayIndex;
+}
+
+/// WeatherAlertsResponse — Root-Container für /api/weather/alerts
+class WeatherAlertsResponse {
+  final String status;
+  final List<WeatherAlert> alerts;
+  final DateTime generatedAt;
+  final String source;
+  final String attribution;
+
+  const WeatherAlertsResponse({
+    required this.status,
+    required this.alerts,
+    required this.generatedAt,
+    required this.source,
+    required this.attribution,
+  });
+
+  factory WeatherAlertsResponse.fromJson(Map<String, dynamic> json) {
+    return WeatherAlertsResponse(
+      status: json['status'] as String? ?? 'unknown',
+      alerts: (json['alerts'] as List<dynamic>? ?? const [])
+          .map((e) => WeatherAlert.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      generatedAt: DateTime.tryParse(json['generatedAt'] as String? ?? '') ??
+          DateTime.now(),
+      source: json['source'] as String? ?? '',
+      attribution: json['attribution'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'status': status,
+        'alerts': alerts
+            .map((a) => {
+                  'code': a.code.name,
+                  'severity': a.severity.name,
+                  'title': a.title,
+                  'message': a.message,
+                  'dayIndex': a.dayIndex,
+                  if (a.endDayIndex != null) 'endDayIndex': a.endDayIndex,
+                  if (a.metric != null)
+                    'metric': {
+                      'label': a.metric!.label,
+                      'value': a.metric!.value,
+                      'unit': a.metric!.unit,
+                    },
+                })
+            .toList(),
+        'generatedAt': generatedAt.toIso8601String(),
+        'source': source,
+        'attribution': attribution,
+      };
+}
