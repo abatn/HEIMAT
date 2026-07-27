@@ -1,6 +1,6 @@
 # HEIMAT 2.0 — Systemarchitektur
 
-> **Stand:** 2026-07-27 | **Letzter Commit:** `d6a7f3f`
+> **Stand:** 2026-07-27 | **Letzter Commit:** `5c69ea6`
 > **Ziel:** Vollständige Dokumentation der Systemarchitektur, Datenflüsse und Komponenten.
 > **Lizenz:** AGPL v3
 
@@ -222,6 +222,9 @@ Fehlerfall (Backend offline):
 | `GET` | `/api/weather/current` | — | WeatherService | api.open-meteo.com |
 | `GET` | `/api/weather/forecast` | — | WeatherService | api.open-meteo.com |
 | `GET` | `/api/weather/status` | — | — | — |
+| `GET` | `/api/air-quality/current` | — | AirQualityService | api.open-meteo.com (CAMS) |
+| `GET` | `/api/air-quality/forecast` | — | AirQualityService | api.open-meteo.com (CAMS) |
+| `GET` | `/api/air-quality/status` | — | — | — |
 | `GET` | `/mini/*` | CSP-Header | Static Files | — |
 | `GET` | `/docs` | — | Swagger UI | — |
 | `GET` | `/docs.json` | — | Swagger Spec | — |
@@ -254,6 +257,7 @@ Fehlerfall (Backend offline):
 | **AuthService** | `services/authService.ts` | JWT-Generierung/Verifikation, bcryptjs-Passwort-Hashing, User-CRUD |
 | **GtfsService** | `services/gtfsService.ts` | GTFS-Daten-Status, Stop-Suche, Routen-Query |
 | **RaptorService** | `services/raptorService.ts` | RAPTOR-Routing-Engine (In-Memory, opt-in via ENABLE_RAPTOR) |
+| **AirQualityService** | `services/airQualityService.ts` | Open-Meteo CAMS-Client, 5-Min-Cache, 429-Retry, EAQI-Level mit Farben, Nominatim Reverse-Geocode |
 | **DisruptionAgent** | `services/disruptionAgent.ts` | Störungsmeldungen analysieren |
 | **PersonalRoutingAgent** | `services/personalRoutingAgent.ts` | Personalisierte Routenvorschläge |
 
@@ -288,7 +292,7 @@ MiniProgramLauncherScreen
 |---|------|------|-----------|---------------|-------|--------|
 | 1 | 💬 Futai | `chat` | Social | extern | D | ⏳ |
 | 2 | 🌤️ **Wetter** | `weather` | **Alltag** | **`/mini/weather.html`** | **B** | **✅ Live** |
-| 3 | 🌬️ Luftqualität | `air` | Alltag | — | B | ⏳ |
+| 3 | 🌬️ **Luftqualität** | `air` | **Alltag** | **`/mini/air.html`** | **B** | **✅ Live** |
 | 4 | 📰 Events | `events` | Alltag | — | D | ⏳ |
 | 5 | 💼 Jobs | `work` | Alltag | — | D | ⏳ |
 | 6 | 🔌 E-Ladestationen | `ev_charging` | Mobilität | — | C | ⏳ |
@@ -332,6 +336,43 @@ User klickt auf 🌤️ Wetter im Apps-Tab
               ├── Details: Wind, Feuchte, Niederschlag
               ├── 24h-Stunden-Scroll (horizontal)
               └── 7-Tage-Vorhersage (vertikale Liste)
+```
+
+### 4.4 Luftqualität-Mini-Programm (Datenfluss)
+
+```
+User klickt auf 🌬️ Luftqualität im Apps-Tab
+  │
+  ├── MiniProgramContainer öffnet IFrame
+  │     └── src = https://heimat-backend.onrender.com/mini/air.html
+  │
+  └── air.html (Client-seitig)
+        │
+        ├── 1. navigator.geolocation.getCurrentPosition()
+        │     → Erfolg: lat, lng
+        │     → Fehler: Fallback Berlin (52.52, 13.405)
+        │
+        ├── 2. fetch(/api/air-quality/forecast?lat=X&lng=Y)
+        │     │
+        │     └── Backend (airQuality.ts → AirQualityService)
+        │           │
+        │           ├── Cache-Prüfung (5 Min TTL)
+        │           │
+        │           ├── fetchAll(lat, lng) → air-quality-api.open-meteo.com
+        │           │     ├── current: EAQI, PM10, PM2.5, NO₂, O₃, CO, SO₂
+        │           │     └── hourly: 24h (EAQI, PM10, PM2.5, NO₂, O₃)
+        │           │
+        │           ├── reverseGeocode(lat, lng) → Nominatim
+        │           │     → Ortsname (z.B. "Berlin")
+        │           │
+        │           └── JSON-Antwort: {status, location, current, hourly}
+        │
+        └── 3. HTML rendert
+              ├── AQI-Ring (SVG-Gauge mit Farbe)
+              ├── EAQI-Wert + Level-Text (Sehr gut → Gefährlich)
+              ├── Schadstoff-Grid (PM10, PM2.5, NO₂, O₃)
+              ├── Gesundheitshinweis (kontextabhängig)
+              └── 24h-AQI-Verlauf (horizontal scrollend)
 ```
 
 ---
@@ -428,6 +469,7 @@ Git Push → main
 | `api.open-meteo.com` | DWD-Wetterdaten | CC-BY 4.0 | Kein Token |
 | `exchange.demo.taler.net` | GNU Taler Exchange | GPL | Ed25519 |
 | `bank.demo.taler.net` | Taler Demo-Bank | GPL | Login |
+| `api.open-meteo.com` (Air Quality) | CAMS-Copernicus-Luftqualität | CC-BY 4.0 | Kein Token |
 
 ---
 
@@ -459,6 +501,7 @@ Git Push → main
 | Dashboard (Greeting/Stats/Actions) | 0 | 2026-07-27 | `8aad85f` Quick-Actions-Fix |
 | Mini-Program-Container | 4 | 2026-07-27 | `92ec307` |
 | Wetter (DWD/Open-Meteo) | 4→Apps | 2026-07-27 | `0d75f1f` 429-Retry |
+| Luftqualität (CAMS Copernicus) | 4→Apps | 2026-07-27 | `5c69ea6` Phase B |
 | Demo-KUDOS (fund-local) | 2 | 2026-07-26 | — |
 | CI/CD (3 Workflows) | — | 2026-07-27 | `246ece3` withOpacity-Fix |
 
@@ -466,7 +509,6 @@ Git Push → main
 
 | Feature | Phase | Grund |
 |---------|-------|-------|
-| Luftqualität (UBA) | B | Nicht priorisiert |
 | Abfallkalender | B | Nicht priorisiert |
 | E-Ladestationen | C | Nicht priorisiert |
 | Parken | C | Nicht priorisiert |
@@ -492,5 +534,6 @@ Git Push → main
 | `d7cdb0c` | 2026-07-27 | Doku: Pipeline-Logik + Dashboard-Navi + Phase B |
 | `4fcb0ac` | 2026-07-27 | Fix: dart format indentation |
 | `bd04e2b` | 2026-07-27 | **Fix: Dashboard-Navigation** (onNavigateTab-Callback) |
+| `5c69ea6` | 2026-07-27 | **Phase B: Luftqualität** (airQualityService + air.html + airQualityRoute) |
 | `9e42a30` | 2026-07-27 | **Phase B: Wetter-Mini-Programm** (weatherService + weather.html) |
 | `92ec307` | 2026-07-27 | **Phase A: Mini-Program-Container** (10 Programme + Apps-Tab) |
