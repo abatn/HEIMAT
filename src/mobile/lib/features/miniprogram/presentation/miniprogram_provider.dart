@@ -253,6 +253,7 @@ class MiniProgramProvider extends ChangeNotifier {
       category: 'Alltag',
       searchTags: ['temperatur', 'regen', 'sonne', 'dwd', 'wettervorhersage'],
       supportsLiveStatus: true,
+      useNative: true, // Phase E: Wetter ist Pilot → natives Flutter-Widget
     ),
     const MiniProgram(
       id: 'air',

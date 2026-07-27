@@ -156,6 +156,31 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auto-Migration health-check (`npm run migrate:status`)
 - Phase B Rest: Luftqualität (UBA) + Abfallkalender — noch nicht gebaut. Wetter ist ✅ deployed (Commit 9e42a30).
 
+## Phase E: Native Flutter Services — Mini-Program Refactor (2026-07-27)
+
+### Status
+- ✅ **Wetter-Pilot implementiert + CI-grün (2026-07-27):** 9 neue Files unter `features/weather/` + `features/miniprogram/domain/service_definition.dart` + `features/miniprogram/domain/service_registry.dart` + `features/miniprogram/presentation/native_mini_program_screen.dart`. Alte `miniprogram_container.dart` bleibt als IFrame-Fallback für nicht-migrierte Services.
+- ⏳ Andere 8 Mini-Programme (Air, Futai, Events, Jobs, Waste, Hotels, Parken, Bürgeramt) bleiben im IFrame-Fallback bis zu ihrer jeweiligen Migration.
+
+### Architecture-Entscheidungen
+- **ServiceRegistry-Pattern**: Singleton mit `Widget Function(BuildContext)` pro Service-ID. Tap auf App-Karte → Registry-Lookup → entweder native Builder ODER `MiniProgramContainer`-Fallback. Inversion-of-Control für saubere Trennung.
+- **DTO Layer**: Thin DTO-Klassen spiegeln Backend JSON (kein doppeltes WMO-Decoding in Flutter). Backend bleibt Source-of-Truth.
+- **Cache-Strategy**: Zwei-Tier Cache (In-Memory + SharedPreferences, 5-Min-TTL) für instant Tab-Switching + Cold-Boot-Persistenz.
+- **LocationService-Integration**: `LocationService.getCurrentLocation()` mit 3-Sekunden-Timeout + Berlin-Fallback. Kein Hard-Code.
+- **Pure Flutter-Widgets**: Kein `fl_chart`, kein `flutter_map` im Wetter-Pilot. Container + LinearGradient + ListView + CustomPainter sind ausreichend.
+
+### Wichtiger Hinweis für Devs
+- Für MIGRATION eines weiteren Services: ein Eintrag in `service_registry.dart` + neuer Provider + neuer Screen + in `miniprogram_provider.dart` `_defaultPrograms` setze `useNative: true` für die ID.
+- Für AIR-QUALITY: bereits Backend-fertig (`src/backend/src/services/airQuality.ts` + `routes/airQuality.ts`). Reihenfolge: DTO → Provider → Screen → Registry-Eintrag.
+- TODOs für Phase 1 nach `AI-Implementierungsplan.md`: TFLite-Klassifikation lokal, Vosk für Voice-Input, Coqui für TTS.
+
+### Migration-Sicherheit
+- IFrame-Backup bleibt für unbekannte serviceIds — kein Breaking Change.
+- `useNative=false` per Default in `MiniProgram` Model → rückwärtskompatibel.
+- Tap-Routing in `launchpad_screen.dart` `_launchProgram` → `NativeMiniProgramScreen` (siehe `_body` für die Lookup-Logik).
+
+---
+
 ## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
 
 ### Von 3 auf 10+ Services — wie WeChat/Grab, aber Open Source

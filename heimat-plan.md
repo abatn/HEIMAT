@@ -79,8 +79,6 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
 
 ## Phase 25-26: HEIMAT Expansion — Von 3 auf 10+ Services
-
-### Vision
 HEIMAT expandiert von 3 Kern-Services (Mobilität, Finanzen, Gesundheit) auf 10+ Services — inspiriert von WeChat (China) und Grab (Singapur), aber mit deutscher Open-Source-DNA: keine Verträge, keine kommerziellen APIs, Privacy-by-Design.
 
 ### Neue Services mit Echtzeit-Datenquellen

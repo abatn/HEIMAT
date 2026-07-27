@@ -19,6 +19,11 @@ class MiniProgram {
   // Live Data — final + nullable, gesetzt via copyWith()
   final LiveStatus? liveData;
 
+  // Phase E: Wenn true, wird das native Flutter-Widget aus der
+  // ServiceRegistry genutzt. Wenn false (default), greift der bestehende
+  // IFrame-Pfad in MiniProgramContainer (für noch nicht migrierte Services).
+  final bool useNative;
+
   const MiniProgram({
     required this.id,
     required this.name,
@@ -30,6 +35,7 @@ class MiniProgram {
     this.supportsLiveStatus = false,
     this.isHero = false,
     this.liveData,
+    this.useNative = false,
   });
 
   /// Copy-with für LiveData replacement — gibt neue Instanz mit aktualisiertem liveData
@@ -45,6 +51,7 @@ class MiniProgram {
       supportsLiveStatus: supportsLiveStatus,
       isHero: isHero,
       liveData: liveData ?? this.liveData,
+      useNative: useNative,
     );
   }
 

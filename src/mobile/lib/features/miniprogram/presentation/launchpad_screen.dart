@@ -4,7 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../domain/ai_context_model.dart';
 import 'miniprogram_model.dart';
 import 'miniprogram_provider.dart';
-import 'miniprogram_container.dart';
+import 'native_mini_program_screen.dart';
 import 'widgets/smart_program_card.dart';
 
 /// Smart Launchpad - Intelligenter Mini-Program Hub (Phase C)
@@ -463,11 +463,14 @@ class _LaunchpadScreenState extends State<LaunchpadScreen> {
   void _launchProgram(
       BuildContext context, MiniProgramProvider provider, MiniProgram p) {
     provider.launchProgram(p);
+    // Phase E: NativeMiniProgramScreen routet intern — wenn Registry
+    // einen nativeBuilder für die ID hat → natives Widget, sonst IFrame-Fallback.
+    // ServiceRegistry ist bereits in main() initialisiert (siehe main.dart).
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider.value(
           value: provider,
-          child: const _MiniProgramViewerWrapper(),
+          child: NativeMiniProgramScreen(program: p),
         ),
       ),
     );
@@ -494,44 +497,6 @@ class _LaunchpadScreenState extends State<LaunchpadScreen> {
 // Viewer Wrapper (geleitet von hier aus)
 // -----------------------------------------------------------------
 
-class _MiniProgramViewerWrapper extends StatelessWidget {
-  const _MiniProgramViewerWrapper();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _MiniProgramViewerScreen();
-  }
-}
-
-class _MiniProgramViewerScreen extends StatelessWidget {
-  const _MiniProgramViewerScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<MiniProgramProvider>();
-    final program = provider.activeProgram;
-    if (program == null) {
-      return const Scaffold(
-        body: Center(child: Text('Kein Mini-Programm ausgewählt')),
-      );
-    }
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(program.name),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            provider.closeProgram();
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      body: MiniProgramContainer(url: program.url, title: program.name),
-    );
-  }
-}
+// Phase E: _MiniProgramViewerWrapper + _MiniProgramViewerScreen sind obsolet.
+// NativeMiniProgramScreen ersetzt sie vollständig — Registry routet zu
+// nativem Widget ODER behält MiniProgramContainer als IFrame-Fallback.

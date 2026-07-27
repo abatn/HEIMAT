@@ -16,9 +16,14 @@ import 'features/home/presentation/home_screen.dart';
 import 'features/home/presentation/home_provider.dart';
 import 'features/miniprogram/presentation/miniprogram_provider.dart';
 import 'features/miniprogram/presentation/launchpad_screen.dart';
+import 'features/miniprogram/domain/service_registry.dart';
+import 'features/weather/weather_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Phase E: ServiceRegistry wird beim App-Start initialisiert, damit der
+  // erste Tap auf das Wetter-Mini-Program sofort das native Widget zeigt.
+  ServiceRegistry.instance.initialize();
   runApp(const HeimatApp());
 }
 
@@ -46,6 +51,9 @@ class HeimatApp extends StatelessWidget {
                   HomeProvider.onUserAction = hp.recordAction;
                   return hp;
                 },
+              ),
+              ChangeNotifierProvider(
+                create: (_) => WeatherProvider()..init(),
               ),
             ],
             child: MaterialApp(
