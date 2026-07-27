@@ -47,8 +47,12 @@ class SmartProgramCard extends StatelessWidget {
             children: [
               _buildHeader(),
               const SizedBox(height: 10),
+              // Phase R.4-Part3 UX-Polish (2026-07-27): bei LiveState.fallback
+              // ehrlicher Backend-Hint statt leerem Badge oder Beschreibung.
               if (live != null && live.isLive)
                 _buildLiveBody(live)
+              else if (live != null && live.state == LiveState.fallback)
+                _buildFallbackHint(live)
               else
                 _buildStaticBody(),
               const Spacer(),
@@ -109,6 +113,31 @@ class SmartProgramCard extends StatelessWidget {
       style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  /// Phase R.4-Part3 (2026-07-27): Ehrlicher Hint statt leerem Badge bei
+  /// LiveState.fallback -- weckt User-Erwartung nicht ("Wetter zeigt 18°C")
+  /// und macht transparent dass das Service-Backend noch nicht live ist.
+  Widget _buildFallbackHint(LiveStatus live) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.hourglass_empty,
+            size: 12, color: AppColors.textSecondary),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            'Backend folgt — Live-Daten automatisch sobald das Service-Backend verfügbar ist.',
+            style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondary,
+                fontStyle: FontStyle.italic),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 

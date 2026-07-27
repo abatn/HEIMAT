@@ -283,6 +283,72 @@ class _FinanceScreenState extends State<FinanceScreen> {
     );
   }
 
+  // -----------------------------------------------------------------------
+  // Phase R.4-Part3 (2026-07-27): EmptyWallet-Card
+  // Wird gezeigt wenn balance == 0.0 && walletInitialized (d.h. Wallet wurde
+  // erstellt aber noch nicht via Reserve-Adresse-Bank-Wire gefuellt).
+  //
+  // Loest das Problem: ein Erstlogin-User sieht sonst "0.00 KUDOS" in einer
+  // Premium-Gradient-Card. Das wirkt wie ein Bug. Die EmptyWallet-Card
+  // erklaert transparent was zu tun ist (Reserve-Adresse erstellen).
+  // -----------------------------------------------------------------------
+  Widget _buildEmptyWalletCard(BuildContext context, FinanceProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(Icons.account_balance_wallet_outlined,
+              color: AppColors.warning, size: 48),
+          const SizedBox(height: 12),
+          const Text('Wallet ist leer',
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 6),
+          const Text(
+            'Erstelle eine Reserve-Adresse für echtes Taler-Guthaben.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final result = await provider.openReserve();
+              if (!mounted) return;
+              if (result != null) {
+                _showReserveSheet(result);
+              } else if (provider.error != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text(provider.error!),
+                      backgroundColor: AppColors.error),
+                );
+              }
+            },
+            icon: const Icon(Icons.account_balance),
+            label: const Text('Reserve-Adresse erstellen'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -315,7 +381,15 @@ class _FinanceScreenState extends State<FinanceScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _AnimatedBalanceCard(provider: provider),
+                  // Phase R.4-Part3 UX-Polish (2026-07-27): EmptyWallet-Card
+                  // statt 0.00-KUDOS-Premium-Gradient-Card -- vermeidet
+                  // irreführenden Eindruck "Wallet hat 0 Guthaben" bei Erstlogin.
+                  if (provider.balance == 0.0 &&
+                      provider.hasLoaded &&
+                      provider.walletInitialized)
+                    _buildEmptyWalletCard(context, provider)
+                  else
+                    _AnimatedBalanceCard(provider: provider),
                   const SizedBox(height: 20),
                   _QuickActions(onFund: _showFundSheet, onSend: _showSendSheet),
                   const SizedBox(height: 24),

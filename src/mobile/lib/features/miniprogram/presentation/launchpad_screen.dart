@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../domain/ai_context_model.dart';
+import '../domain/live_status_model.dart';
 import 'miniprogram_model.dart';
 import 'miniprogram_provider.dart';
 import 'native_mini_program_screen.dart';
@@ -224,11 +225,22 @@ class _LaunchpadScreenState extends State<LaunchpadScreen> {
                             fontWeight: FontWeight.bold,
                             color: Colors.white)),
                     const SizedBox(height: 4),
-                    if (live != null && live.value != null)
+                    // Phase R.4-Part3 UX-Polish (2026-07-27): bei LiveState.fallback
+                    // ehrlicher Backend-Hint statt leerem Wert oder Beschreibung.
+                    if (live != null &&
+                        live.value != null &&
+                        live.state != LiveState.fallback)
                       Text('${live.value} · ${live.subtext ?? ""}',
                           style: TextStyle(
                               fontSize: 13,
                               color: Colors.white.withOpacity(0.95)))
+                    else if (live != null && live.state == LiveState.fallback)
+                      Text(
+                          '⌛ Backend folgt — Live-Daten automatisch sobald verfügbar',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withOpacity(0.85),
+                              fontStyle: FontStyle.italic))
                     else
                       Text(hero.description,
                           style: const TextStyle(
@@ -351,8 +363,14 @@ class _LaunchpadScreenState extends State<LaunchpadScreen> {
                 const SizedBox(height: 2),
                 Text(
                   p.liveData?.value ?? p.description,
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: (p.liveData?.state == LiveState.fallback)
+                          ? AppColors.textSecondary.withOpacity(0.7)
+                          : AppColors.textSecondary,
+                      fontStyle: (p.liveData?.state == LiveState.fallback)
+                          ? FontStyle.italic
+                          : FontStyle.normal),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
