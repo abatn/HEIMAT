@@ -34,6 +34,9 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
+      - name: Mock-Policy-Audit
+        working-directory: ${{ github.workspace }}
+        run: bash scripts/audit-no-mocks.sh
       - name: Run ESLint
         run: npx eslint src/
 
