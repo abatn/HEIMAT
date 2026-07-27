@@ -253,6 +253,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - UX-Modernisierung (Commit 5ad8068, 661afb28, f389001): FinanceScreen (animierte Balance-Card, Quick Actions, Timeline), HealthScreen (Shimmer, DoctorCards mit Presseffekt, Gradienten), MobilityScreen (GPS/Route/Marker Widgets, Gradienten) — alle drei Screens modernes Design
 - **Dashboard-Navigation (Commits bd04e2b + 4fcb0ac)**: Quick Actions, Stat-Karten und AI-Vorschläge navigieren jetzt per `onNavigateTab`-Callback zum richtigen Tab. CI grün, deployed ✅
 - **Phase B: Wetter-Mini-Programm (Commit 9e42a30)**: Backend (weatherService.ts + weather.ts) + Mini-Program HTML (weather.html) deployed. DWD Open-Meteo mit 429-Retry (0d75f1f) ✅
+- **Quick-Actions-Flicker-Fix (Commit 8aad85f)**: getPersonalizedContext() überschrieb Quick Actions mit intent-spezifischen 2-Button-Sets. Fix: Nur Suggestions werden personalisiert. ✅
 - CI-Fix: `unnecessary_null_comparison` lint durch `// ignore:` gelöst, `dart format` auf beide Screens angewandt — Flutter CI stabil grün
 - Backend CI: Lint + Jest (113+ Tests) + tsc --noEmit — alle grün auf `main`
 - Mobile CI: dart format + flutter analyze + flutter test — alle grün

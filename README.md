@@ -167,7 +167,7 @@ HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, abe
 | Service | Datenquelle | Status | AI |
 |---------|------------|--------|-----|
 | 💬 Chat (Futai) | github.com/abatn/futai | ✅ Mini-Program-Container fertig (Commit 92ec307) | Ollama KI-Twin |
-| 🌤️ Wetter | DWD (Deutscher Wetterdienst) | ⏳ Phase B | Unwetter-Früherkennung |
+| 🌤️ Wetter | DWD (Deutscher Wetterdienst) | ✅ Phase B deployed (Commit 9e42a30) | Unwetter-Früherkennung |
 | 🌬️ Luftqualität | Umweltbundesamt (UBA) | ⏳ Phase B | Gesundheitsempfehlung |
 | 🗑️ Abfallkalender | Kommunale Open Data | ⏳ Phase B | Sortier-Tipps |
 | 🔌 E-Ladestationen | OpenStreetMap | ⏳ Phase C | Routenplanung |

@@ -134,6 +134,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **AI-Home Dashboard (Commit 0308bfaa)**: Personalisierter AI-Startseiten-Tab mit Tageszeit-basierten Vorschlaegen + Greeting-Card + Nearby-Stops
 - **Dashboard-Navigation (Commits bd04e2b + 4fcb0ac)**: Quick Actions, Stat-Karten (Haltestellen/Ärzte/KUDOS) und AI-Vorschläge navigieren jetzt per onNavigateTab-Callback zum richtigen Tab. CI grün, Deployed ✅
 - **Phase B: Wetter-Mini-Programm (Commit 9e42a30)**: weatherService.ts (Open-Meteo DWD-Client), weather.ts (3 Endpoints), weather.html (Standalone HTML-Seite mit Geolocation + 24h + 7-Tage). 429-Retry mit exponentiellem Backoff fix deployed ✅
+- **Quick-Actions-Flicker-Fix (Commit 8aad85f)**: Root Cause: getPersonalizedContext() überschrieb Quick Actions mit intent-spezifischen 2-Button-Sets („Störungen/Alternativ", „Abfahrten/Echtzeit"). Fix: Nur Suggestions werden personalisiert, Quick Actions bleiben immer die 4 Standard-Buttons. Dead Code (intentQuickActions, 25 Zeilen) entfernt. ✅
 - **Demo-KUDOS fund-local (2026-07-26)**: "25 Demo-KUDOS erhalten" Button ruft POST /api/finance/taler/fund-local auf — 25 KUDOS direkt in DB, kein Exchange noetig. P2P-Purse-System bereit.
 - **Backend CI**: Lint + Jest + tsc grün
 - **Swagger UI**: /docs + /docs.json live
@@ -153,7 +154,7 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow
 - Auth-Routing-Bug Regression-Test in mobile tests
 - Auto-Migration health-check (`npm run migrate:status`)
-- Phase B Rest (Luftqualität + Abfallkalender) — Wetter ✅ deployed auf main (Commit 9e42a30, 429-Retry fix 0d75f1f)
+- Phase B Rest: Luftqualität (UBA) + Abfallkalender — noch nicht gebaut. Wetter ist ✅ deployed (Commit 9e42a30).
 
 ## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
 
