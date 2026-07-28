@@ -19,6 +19,15 @@ class ServiceDefinition {
   /// Anzeige-Name für UI
   final String name;
 
+  /// Optionale Kategorie für UI-Gruppierung (z.B. 'Alltag', 'Mobilität')
+  final String? category;
+
+  /// Optionale Beschreibung für Service-Such-Tooltip und Detail-View
+  final String? description;
+
+  /// Optionale Such-Tags für Mini-Program-Launcher Filter-Funktion
+  final List<String>? searchTags;
+
   /// Externe URL — wird nur verwendet wenn kein nativeBuilder gesetzt ist
   final String? fallbackUrl;
 
@@ -28,6 +37,9 @@ class ServiceDefinition {
   const ServiceDefinition({
     required this.id,
     required this.name,
+    this.category,
+    this.description,
+    this.searchTags,
     this.fallbackUrl,
     this.nativeBuilder,
   });
