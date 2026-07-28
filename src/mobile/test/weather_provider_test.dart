@@ -54,9 +54,13 @@ class _StubClassifier implements LocalSentimentClassifier {
 
   _StubClassifier({
     this.shouldThrow = false,
+    // ignore: unused_element
     this.score = 0.8,
+    // ignore: unused_element
     this.axis = SentimentAxis.positive,
+    // ignore: unused_element
     this.emoji = '🌟',
+    // ignore: unused_element
     this.source = 'stub',
   });
 

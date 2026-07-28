@@ -22,7 +22,6 @@ import 'features/miniprogram/domain/service_registry.dart';
 import 'features/weather/weather_provider.dart';
 import 'features/air_quality/air_quality_provider.dart';
 import 'features/waste/presentation/waste_provider.dart';
-import 'features/waste/waste_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
