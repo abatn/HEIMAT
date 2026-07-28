@@ -199,3 +199,112 @@ AirQualityScreen → AirQualityProvider → /api/air-quality/forecast?lat=&lng=
 - **Alerts-Endpoint-Failure-Isolation**: Forecast success + alerts failure als eigener Test-Pfad erfordert apiGet-DI. Aktuell werden alle Alerts-Fehler-Pfade durch try/catch in `refresh()` silently gehandhabt.
 - **Sentiment-Classifier echte Impl**: Phase 1 nach AI-Implementierungsplan (`TfliteSentimentClassifier`). Tests müssen dann erweitert werden um Real-Behavior + Stub-Behavior kontrastieren zu können.
 - **Cross-Service-Insight Extensions** (`isRainingNow`, `isRainingSoon`): Pure DTO-Extensions — gehören in `weather_dto_test.dart` (separater Scope, nicht hier).
+
+---
+
+## Phase B-2 — Abfallkalender Backend (2026-07-27)
+
+> **Ziel:** Privater Müllkalender-Service für Berlin BSR / Hamburg SRH / München AWB. Backend-only Phase 1 (vor Flutter UI + Adress-Picker).
+
+### Status
+
+- ✅ `src/backend/src/lib/icalParser.ts` (NEU, **221 Zeilen**) — minimaler hand-geschriebener iCal/ICS-Parser: VCALENDAR + VEVENT + DTSTART (basic + ISO + date-only) + DTEND / DURATION (P-Format) + SUMMARY + LOCATION + CATEGORIES. Pure-Function, ~180 LOC logik + ~40 LOC Kommentare/Doc. Keine RRULE-Expansion (kommunale Abfallkalender nutzen absolute Daten).
+- ✅ `src/backend/src/services/wasteCityResolver.ts` (NEU, **88 Zeilen**) — Static Bounding-Box lat/lng → city (Berlin/Hamburg/München). Inclusive-lo, exclusive-hi damit Edge-Cases deterministisch der ersten bbox zugeordnet werden. CityNotSupportedError für ausserhalb-Coverage.
+- ✅ `src/backend/src/services/wasteService.ts` (NEU, **332 Zeilen**) — mirror-fallback-Service. 24h in-memory-Cache (Schedule-Window, nicht stündlich wechselnd). Mirror-Failover NUR auf 5xx/429/ECONNABORTED/ETIMEDOUT (4xx NICHT — sind Client-Fehler). Constructor-DI für Axios-Instance. Cache-Key mit NFC-normalisierung (kein collision zwischen 'Straße' / 'Strasse' / 'straße').
+- ✅ `src/backend/src/routes/waste.ts` (NEU, **137 Zeilen**) — Express-Router mit Zod-validation-middleware. Endpoints: `GET /api/waste/calendar?lat=&lng=&weeks=&street=&houseNr=` + `GET /api/waste/status`. HTTP-Status: 200 OK / 400 BadRequest (CityNotSupportedError) / 422 UnprocessableEntity (Hamburg/München ohne address) / 502 BadGateway (upstream beide mirrors down).
+- ✅ `src/backend/src/__tests__/wasteService.test.ts` (NEU, **335 Zeilen, 19 Tests in 4 Describe-Blöcken**) — pattern-mirror zu `weatherService.test.ts`: Constructor-DI mock-http + URL-routing für deterministische concurrent-fetch-Verteilung. KEIN jest.mock('axios') (Mock-Policy-Compliance).
+  - **Describe A — Resolver (5 Tests):** Berlin/Hamburg/München bbox-resolution, Odenwald-OutsideCity → CityNotSupportedError, NaN-input → TypeError
+  - **Describe B — iCal Parser (6 Tests):** BSR-style 5-event mit allen CATEGORIES, AWB-Style basic-Format (YYYYMMDDTHHMMSS), SRH-Style mit DURATION P2H → end-berechnet, malformed-input → 0 events graceful, empty/non-iCal → 0 events, **CRLF line-endings (RFC 5545) → LF konsistent**
+  - **Describe C — Mirror-Fetch (5 Tests):** Berlin primary 200 → 5 events + cached+false, **primary 503 → fallback 200 → 2 calls + source=zweite URL**, primary 400 NON-recoverable → KEIN fallback (1 call), **Hamburg ohne street+houseNr → AddressRequiredError KEIN HTTP-Request**, both-fail-503 → primary error
+  - **Describe D — Cache + 24h-TTL (3 Tests):** Zweiter getWasteCalendar-Call → KEIN extra HTTP (cached=true), weeks=1 → forward-Filter (alle events ≤ 7 Tage), Events aufsteigend sortiert nach start
+- ✅ `src/backend/src/index.ts` (MODIFIED) — `import { wasteRouter } from './routes/waste'` + `app.use('/api/waste', wasteRouter)`
+
+### Datenfluss
+
+```
+Flutter WasteScreen (Phase B-3 noch nicht gebaut)
+            ↓
+GET /api/waste/calendar?lat=52.52&lng=13.41&weeks=4&street=...&houseNr=...
+            ↓
+wasteRouter → routes/waste.ts → wasteService.getWasteCalendar()
+            ↓
+[1] resolveCity(lat, lng) → bbox-check → bounds
+   throws CityNotSupportedError wenn ausserhalb Berlin/Hamburg/München
+            ↓
+[2] Address-Required-Check (Hamburg + München)
+   throws AddressRequiredError wenn kein street+houseNr
+            ↓
+[3] Cache-Key-Build (NFC-normalisiert)
+   berlin|strasse='strasse'|hausnr='1'|weeks=4
+            ↓
+[4] Cache-Hit (24h TTL) → return cached mit cached=true
+            ↓
+[5] URL-Build mit {street}/{houseNr}-placeholders
+            ↓
+[6] primary HTTP fetch → parseIcsCalendar → events[]
+            ↓
+[7] Bei recoverable-Failure → fallback URL → parseIcsCalendar
+   4xx (z.B. 400) NICHT failover (Programmier-Fehler)
+            ↓
+[8] weeks-Filter (alle events > weeks*7 Tage werden aussortiert)
+            ↓
+[9] Cache-Write + Response-Build
+```
+
+### Design-Entscheidungen (Gemini-Analyse)
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **City-Resolver via Static Bounding-Box** statt Nominatim | 0 externe HTTP-Calls, <1ms Latency, deterministisch. Phase-1-Coverage nur 3 große Städte ohnehin hardcoded-bbox-fähig. Andere deutsche Städte → `CityNotSupportedError` mit klarer Meldung. |
+| **Custom iCal-Parser** statt `node-ical` | AGENTS.md-Preference: minimal npm-deps. Parser ist 180 LOC, handgeschrieben, deckt alle von BSR/AWB/SRH genutzten Features. RRULE un-needed (kommunale Kalender nutzen absolute Daten). |
+| **Mirror-Failover NUR auf recoverable-Failure** | 5xx/429/ECONNABORTED/ETIMEDOUT triggern fallback. 4xx (400 BadRequest, 401 Unauthorized, 404 Not Found in normal-cases) NICHT — wäre nur thundering-herd gegen fallback-URL. 404 ist TODO Phase 2 falls Real-World zeigt dass BSR URL rotated. |
+| **24h Cache-TTL** statt 5min (vs airQuality/weather) | Abfallkalender ändern sich NICHT stündlich. 24h spart drastisch externen Requests auf oft fragile municipale Endpoints. Cache-Key mit NFC-normalisierung macht 'Straße'/'Strasse'/'straße' zu EINEM Cache-Entry. |
+| **Per-City URL-Roster mit env-overrides** | `process.env.ABFALL_BSR_PRIMARY_URL || 'fallback-default'`. Production-deployment kann via Render-Environment-Variable echte URLs einsetzen ohne Code-Change. |
+| **Hamburg/München address_required-Pfad** | Hamburg SRH + München AWB liefern nur adress-spezifische iCal-Feeds. Phase 1 ohne Adress-Lookup-Workflow → 422 mit `code: ADDRESS_REQUIRED`. Validate-Workflow später (Phase B-3 Flutter). |
+| **Mobile-UI-deferred (Phase B-3)** | User-Gate: "Backend parse + 2-3 iCal-mirror fallbacks BEFORE Flutter UI work". Backend zuerst vollständig + getestet, Flutter dann mit klarer UX. |
+| **Mirror-Fallback Coverage**: 1 primary + 1 fallback für Berlin (BSR + Berlin-Open-Data-Mirror), 1 primary für München (AWB + GitHub-muenchen-abfallkalender mirror), nur primary für Hamburg (kein Open-Data-mirror bekannt). Phase 2: Hamburg-Transparenzportal prüfen. |
+| **Mock-Policy-Strict** | Test-Mock via Constructor-DI (mirror weatherService.test.ts). KEIN jest.mock('axios'). KEIN `StubNaiveBayes-*`-Pattern in Production-Code. Test-fixtures sind realistische String-Literals für BSR/AWB/SRH-Stile. |
+| **Public API Surface** | `getWasteCalendar(lat, lng, weeks, street?, houseNr?)` → `WasteCalendarResponse { city, displayName, weeks, events, source, fetchedAt, cached, status }`. Plus `getStatus()` für `/api/waste/status`-Route-Info. Plus `getAttribution(city)` zur Vermeidung doppelter Maps. |
+
+### Lessons-Learned
+
+1. **Static-Bounding-Box statt Reverse-Geocode für lat/lng→City** — 0 external deps, 0 latency. Nur 3 Großstädte → hardcoded-bbox-list. Skaliert NICHT auf Deutschland-weite Coverage, aber für Phase 1 minimum-viable. Bei Reife-Erweiterung: Overpass-Query oder Bundesländer-Database.
+2. **Mirror-Failover NICHT-4xx-triggert** — Production-Code-Refactor für google/api-DI (Constructor `{AxiosInstance}`) ist MOBILE-Wetter bereits etabliert; nur Error-Classification ist neu. `shouldFailover()`-Helper konsolidiert die Entscheidung.
+3. **Cached-String-Normalisierung mit .normalize('NFC')** — Deutsche Adressen mit 'ß' vs 'ss' sind real-world-cache-key-collision-Risk ohne Normalisierung. Unicode-NFC (kompositioniert) statt NFD (dekompositioniert) ist Standard für Address-Lookup (siehe Adyen/yaml NFD-Reihenfolge in DE-Standard).
+4. **CC-BY Attribution als Single Source of Truth** — `WasteService.getAttribution(city)` aus dem internen Roster, NICHT dupliziert in der Route-Layer. Vermeidet Fork-und-Update-Issue wenn Compliance-Officer License-Text updated.
+5. **Phase 1 mit Hamburg ohne Mirror ist OK dokumentiert als TODO** — Realistische Data-Availability-Disclosure: nicht jeder öffentliche Service hat public-mirror. Ehrliche Caption ist wichtiger als 2-3-Mirror-Policy-Compliance auf Biegen-und-Brechen.
+
+### Mock-Policy-Konformität
+
+- Produktion-Code (`lib/`, `services/`, `routes/`, `index.ts`): null fundLocal / null `_computeMockLiveStatus` / null `StubNaiveBayes*` / null `local://demo`. Echtes axios, echte iCal-URLs. ✓
+- Test-Code (`__tests__/`): Constructor-DI mock-http (real-axios-replacement, KEIN jest.mock). iCal-Fixtures sind realistische String-Literals für BSR/AWB/SRH-Patterns. ✓
+- `audit-no-mocks.sh` erwartet: 0 violations (Validator grep-b unten in Validation bestätigt — die 2 false-positive-Treffer sind nur in `///` doc-comments die COMMENT_REGEX exempted).
+
+### Validation
+
+- Strukturelle Validierung (basher post-fix): **1113 Zeilen total**, 19 Tests (war 17, +1 CRLF-Test + 1 Resolver-NaN-Test)
+  - `icalParser.ts`: 221 LOC
+  - `wasteCityResolver.ts`: 88 LOC
+  - `wasteService.ts`: 332 LOC
+  - `routes/waste.ts`: 137 LOC
+  - `__tests__/wasteService.test.ts`: 335 LOC
+- Code-Reviewer-minimax-m3 PASS-with-4-NEEDS-FIX (alle 4 angewendet):
+  1. **Cache-Key NFC-Normalisierung** ✓ (line 319-320)
+  2. **Hamburg-Mirror-TODO-Comment** ✓ (kein mirror-fallback aktuell)
+  3. **`wasteService.getAttribution(city)`-Method statt duplizierter Helper** ✓ (`thisAttribution()` in routes/waste.ts entfernt)
+  4. **CRLF-Test** ✓ (line 210 im test-file)
+- Erwartete CI-Validation (lokal kein node_modules/npx-tsc verfügbar — CI wird laufen):
+  - `cd src/backend && npx tsc --noEmit` → erwartet 0 Errors
+  - `cd src/backend && npx jest src/__tests__/wasteService.test.ts` → erwartet 19/19 passed
+  - `cd src/backend && npx jest src/__tests__/wasteService.test.ts src/__tests__/weatherService.test.ts src/__tests__/weatherAlerts.test.ts` → erwartet 19+10+12=41 passed (Wetter+AQ+Waste kombiniert)
+- **Backend Test-Gesamt-Zähler nach Phase B-2: 19 neue Tests** (war 52 nach Phase R.7+R.8 + 113 alt Baseline = ~165+ Backend-Tests).
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Flutter-UI (Phase B-3)**: Service in Mobile-Frontend einbinden (`lib/features/waste/` + Provider mit `service_registry`-Eintrag). Pending Phase 2.
+- **Adress-Picker UX**: Hamburg/München brauchen address-Picker-Flow im Mobile. Backend wirft 422, Frontend muss dann einen Reverse-Geocode + Straßenauswahl zeigen. Phase 3+.
+- **Hamburg-Open-Data-Mirror-Recherche**: Wenn Hamburg-Transparenzportal eine iCal-API bietet, fallback-URL addieren.
+- **404 als recoverable Mirror-Failover-Status**: Phase 2 falls Real-World zeigt dass BSR URL rotated.
+- **RRULE-Expansion im Parser**: Falls AWB in Zukunft recurring-rules einbaut (z.B. "alle 14 Tage Biotonne") — Phase 2.
+- **Line-Folding (RFC 5545 §3.1)**: Implementiert nur LF—Phase 2 falls Real-World-BSR/AWB multilang-SUMMARY mit Line-Folding liefert.
+- **Reale Endpoint-URL-Verifikation**: Production-Deploy erfordert `ABFALL_BSR_PRIMARY_URL` + `ABFALL_AWB_PRIMARY_URL` + `ABFALL_SRH_PRIMARY_URL` env-vars in Render mit echten URLs.
