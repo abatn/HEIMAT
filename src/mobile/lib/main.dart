@@ -21,6 +21,8 @@ import 'features/miniprogram/presentation/launchpad_screen.dart';
 import 'features/miniprogram/domain/service_registry.dart';
 import 'features/weather/weather_provider.dart';
 import 'features/air_quality/air_quality_provider.dart';
+import 'features/waste/presentation/waste_provider.dart';
+import 'features/waste/waste_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +62,10 @@ class HeimatApp extends StatelessWidget {
               ),
               ChangeNotifierProvider(
                 create: (_) => AirQualityProvider()..init(),
+              ),
+              // Phase B-3: Abfallkalender als 3. nativer Flutter-Service (nach weather + air).
+              ChangeNotifierProvider(
+                create: (_) => WasteProvider()..init(),
               ),
             ],
             child: MaterialApp(

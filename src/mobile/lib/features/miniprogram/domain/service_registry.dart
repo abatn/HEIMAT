@@ -40,6 +40,12 @@ class ServiceRegistry {
         fallbackUrl: 'https://heimat-backend.onrender.com/mini/air.html',
         nativeBuilder: (_) => const AirQualityScreen(),
       ),
+      'waste': ServiceDefinition(
+        id: 'waste',
+        name: 'Abfallkalender',
+        fallbackUrl: 'https://opendata.de',
+        nativeBuilder: (_) => const WasteScreen(),
+      ),
       // Alle anderen Services bleiben vorerst im IFrame-Fallback-Modus.
       // Die fallbackUrl wird im bestehenden MiniProgramProvider gepflegt.
       // Hier registrieren wir nur die NATIVEN Services, der Rest defaultet

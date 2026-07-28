@@ -283,6 +283,8 @@ class MiniProgramProvider extends ChangeNotifier {
       description: 'Abfuhrtermine & Sortier-Tipps.',
       category: 'Alltag',
       searchTags: ['müll', 'abfuhr', 'entsorgung', 'recycling', 'gelber sack'],
+      supportsLiveStatus: true,
+      useNative: true, // Phase B-3: Abfallkalender native (2026-07-27)
     ),
     const MiniProgram(
       id: 'hotels',
