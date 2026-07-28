@@ -32,6 +32,7 @@ import { logger } from '../utils/logger';
 import crypto from 'crypto';
 import { talerExchangeClient, TalerKeysResponse, TalerReserveStatus, TalerExchangeNotReachable, TalerExchangeRejected } from './talerExchangeClient';
 import { ed25519PubToCrockford } from '../utils/crockfordBase32';
+import { externalServices } from '../config/externalServices';
 
 const RESERVE_CACHE_TTL_MS = 30 * 1000; // 30s Cache für GET /reserves/<pub>
 // Früher: `const CURRENCY = 'KUDOS'` — ENTFERNT. Currency wird jetzt dynamisch aus
@@ -303,7 +304,7 @@ export class TalerService {
       if (e instanceof TalerExchangeRejected && e.statusCode === 404) {
         throw new AppError(
           `Reserve ${reserve_pub} ist am echten GNU Taler Exchange nicht registriert. ` +
-          `Wahrscheinlich wurde noch kein Bank-Wire ausgefuehrt. Bitte ueber https://bank.demo.taler.net/ ` +
+          `Wahrscheinlich wurde noch kein Bank-Wire ausgefuehrt. Bitte ueber ${externalServices.talerBankBase}/ ` +
           `einen Wire-Transfer ausloesen und reserve_pub als Subject/Reference angeben.`,
           404,
         );
@@ -402,9 +403,9 @@ export class TalerService {
       reserve_pub,
       status: 'pending_bank_wire',
       exchange_base_url: talerExchangeClient.instance.baseUrl,
-      bank_wire_url: 'https://bank.demo.taler.net/',
+      bank_wire_url: `${externalServices.talerBankBase}/`,
       note: `GNU Taler erfordert eine Bank-Transaktion, damit die Reserve am Exchange real wird. ` +
-        `Bitte ueber https://bank.demo.taler.net/ einen Wire-Transfer ausloesen und die reserve_pub ` +
+        `Bitte ueber ${externalServices.talerBankBase}/ einen Wire-Transfer ausloesen und die reserve_pub ` +
         `(${reserve_pub}) als Subject/Reference angeben. Sobald der Exchange den Wire empfaengt, ` +
         `wird /api/finance/balance/:userId die echte Balance automatisch anzeigen (Refresh ca. alle 30s).`,
     };
@@ -457,7 +458,7 @@ export class TalerService {
       throw new AppError(
         `Insufficient balance: have ${senderBalance} ${purseCurrency}, need ${amount}. ` +
         `Bitte zuerst Guthaben aufladen (z.B. via /api/finance/taler/fund-local für Demo-KUDOS ` +
-        `oder via https://bank.demo.taler.net/ für echten Taler-Bank-Wire).`,
+        `oder via ${externalServices.talerBankBase}/ für echten Taler-Bank-Wire).`,
         402,
       );
     }

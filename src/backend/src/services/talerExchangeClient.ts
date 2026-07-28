@@ -29,8 +29,15 @@ import * as https from 'https';
 import * as crypto from 'crypto';
 import { ed25519PubToCrockford, crockfordDecode } from '../utils/crockfordBase32';
 import { logger } from '../utils/logger';
+import { externalServices } from '../config/externalServices';
 
-const DEFAULT_EXCHANGE_URL = process.env.TALER_EXCHANGE_URL || 'https://exchange.demo.taler.net/';
+// Phase X.4a: Default-URL kommt aus externalServices-Registry
+// (TRANSITOUS_BASE_URL/TALER_EXCHANGE_BASE_URL env-var-override via registry).
+// process.env.TALER_EXCHANGE_URL bleibt als legacy-override erhalten (finance.test.ts
+// setzt die Variable direkt — backward-compat). Wenn gesetzt, gewinnt env-var.
+const DEFAULT_EXCHANGE_URL =
+  process.env.TALER_EXCHANGE_URL
+    ?? `${externalServices.talerExchangeBase.replace(/\/+$/, '')}/`;
 const KEYS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 Stunde
 
 function ipv4HttpsAgent() {

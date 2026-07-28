@@ -53,6 +53,22 @@ describe('ExternalServiceRegistry', () => {
       expect(r.brightSkyBase).toBe('https://api.brightsky.dev');
       expect(r.openAirQualityUrl).toBe('https://air-quality-api.open-meteo.com/v1');
     });
+
+    // ─ Phase X.4a: Transitous + Taler Exchange + Taler Bank Defaults ─
+    it('verwendet Transitous-Default wenn TRANSITOUS_BASE_URL nicht gesetzt', () => {
+      const r = new ExternalServiceRegistry({});
+      expect(r.transitousBase).toBe('https://api.transitous.org/api/v1');
+    });
+
+    it('verwendet Taler-Exchange-Default wenn TALER_EXCHANGE_BASE_URL nicht gesetzt', () => {
+      const r = new ExternalServiceRegistry({});
+      expect(r.talerExchangeBase).toBe('https://exchange.demo.taler.net');
+    });
+
+    it('verwendet Taler-Bank-Default wenn TALER_BANK_BASE_URL nicht gesetzt', () => {
+      const r = new ExternalServiceRegistry({});
+      expect(r.talerBankBase).toBe('https://bank.demo.taler.net');
+    });
   });
 
   describe('Group 2: env-var Override + NEEDS-FIX Mitigations', () => {
@@ -149,6 +165,46 @@ describe('ExternalServiceRegistry', () => {
         () => new ExternalServiceRegistry({ OSRM_URL: 'ftp://wrong-scheme' })
       ).toThrow(/(non-http|scheme)/);
     });
+
+    // ─ Phase X.4a: Transitous + Taler env-overrides ─
+    it('TRANSITOUS_BASE_URL-Override mit trailing-slash-strip', () => {
+      const r = new ExternalServiceRegistry({
+        TRANSITOUS_BASE_URL: 'http://transitous-internal.test/v1/',
+      });
+      expect(r.transitousBase).toBe('http://transitous-internal.test/v1');
+    });
+
+    it('TALER_EXCHANGE_BASE_URL-Override mit trailing-slash-strip', () => {
+      const r = new ExternalServiceRegistry({
+        TALER_EXCHANGE_BASE_URL: 'https://eur-exchange.taler.net/',
+      });
+      expect(r.talerExchangeBase).toBe('https://eur-exchange.taler.net');
+    });
+
+    it('TALER_BANK_BASE_URL-Override mit trailing-slash-strip', () => {
+      const r = new ExternalServiceRegistry({
+        TALER_BANK_BASE_URL: 'https://bank-test.taler.net/',
+      });
+      expect(r.talerBankBase).toBe('https://bank-test.taler.net');
+    });
+
+    it('fail-fast: TRANSITOUS_BASE_URL="ftp://x" wirft Error (scheme-check)', () => {
+      expect(
+        () => new ExternalServiceRegistry({ TRANSITOUS_BASE_URL: 'ftp://x.test' })
+      ).toThrow(/(non-http|scheme)/);
+    });
+
+    it('fail-fast: TALER_EXCHANGE_BASE_URL="invalid" wirft Error (scheme-check)', () => {
+      expect(
+        () => new ExternalServiceRegistry({ TALER_EXCHANGE_BASE_URL: 'invalid' })
+      ).toThrow(/(non-http|scheme)/);
+    });
+
+    it('fail-fast: TALER_BANK_BASE_URL="/" wirft Error (empty-string nach strip)', () => {
+      expect(
+        () => new ExternalServiceRegistry({ TALER_BANK_BASE_URL: '/' })
+      ).toThrow(/empty/);
+    });
   });
 
   describe('Group 3: Mirror-Listen-Parsing (comma-separated)', () => {
@@ -201,8 +257,11 @@ describe('ExternalServiceRegistry', () => {
       expect(desc).toHaveProperty('nominatimUrl');
       expect(desc).toHaveProperty('osrmUrl');
       expect(desc).toHaveProperty('overpassMirrorCount');
+      expect(desc).toHaveProperty('transitousBase');
       expect(desc).toHaveProperty('openMeteoUrl');
       expect(desc).toHaveProperty('brightSkyBase');
+      expect(desc).toHaveProperty('talerExchangeBase');
+      expect(desc).toHaveProperty('talerBankBase');
       expect(desc).toHaveProperty('envOverridesActive');
       expect(desc.overpassMirrorCount).toBe(3);
       expect(desc.envOverridesActive).toEqual([]); // kein override im test

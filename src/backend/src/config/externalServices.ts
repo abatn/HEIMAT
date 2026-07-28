@@ -32,10 +32,14 @@ export interface ExternalServiceEnv {
   NOMINATIM_URL?: string;
   OSRM_URL?: string;
   OVERPASS_MIRRORS?: string;
+  TRANSITOUS_BASE_URL?: string;
   // --- Weather ---
   OPEN_METEO_URL?: string;
   OPEN_AIR_QUALITY_URL?: string;
   BRIGHTSKY_BASE_URL?: string;
+  // --- Taler (Phase X.4a) ---
+  TALER_EXCHANGE_BASE_URL?: string;
+  TALER_BANK_BASE_URL?: string;
   // --- Allgemein ---
   HEIMAT_USER_AGENT?: string;
 }
@@ -65,6 +69,15 @@ export class ExternalServiceRegistry {
 
   /** Bright Sky Base-URL (DWD-Wetterdaten, 2. Mirror/Fallback). */
   public readonly brightSkyBase: string;
+
+  /** Transitous Base-URL (community-maintained GTFS-Aggregator). */
+  public readonly transitousBase: string;
+
+  /** GNU Taler Exchange Base-URL (echte Reserve-/wallet-Operationen). */
+  public readonly talerExchangeBase: string;
+
+  /** GNU Taler Demo-Bank Base-URL (Web-UI fuer Bank-Wire-Transfer zum Exchange). */
+  public readonly talerBankBase: string;
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
     // VALIDATE-URL-HELPER (Phase X.3b — NEEDS-FIX #2 resolution):
@@ -124,6 +137,9 @@ export class ExternalServiceRegistry {
     const openMeteoRaw = normalizeEnvValue(env.OPEN_METEO_URL);
     const openAirQualityRaw = normalizeEnvValue(env.OPEN_AIR_QUALITY_URL);
     const brightSkyRaw = normalizeEnvValue(env.BRIGHTSKY_BASE_URL);
+    const transitousRaw = normalizeEnvValue(env.TRANSITOUS_BASE_URL);
+    const talerExchangeRaw = normalizeEnvValue(env.TALER_EXCHANGE_BASE_URL);
+    const talerBankRaw = normalizeEnvValue(env.TALER_BANK_BASE_URL);
     const userAgentRaw = normalizeEnvValue(env.HEIMAT_USER_AGENT);
     const overpassRaw = normalizeEnvValue(env.OVERPASS_MIRRORS);
 
@@ -148,6 +164,18 @@ export class ExternalServiceRegistry {
 
     this.brightSkyBase = validateUrl(
       brightSkyRaw, 'BRIGHTSKY_BASE_URL', 'https://api.brightsky.dev'
+    );
+
+    this.transitousBase = validateUrl(
+      transitousRaw, 'TRANSITOUS_BASE_URL', 'https://api.transitous.org/api/v1'
+    );
+
+    this.talerExchangeBase = validateUrl(
+      talerExchangeRaw, 'TALER_EXCHANGE_BASE_URL', 'https://exchange.demo.taler.net'
+    );
+
+    this.talerBankBase = validateUrl(
+      talerBankRaw, 'TALER_BANK_BASE_URL', 'https://bank.demo.taler.net'
     );
 
     // Mirror-Liste: comma-separated env-var oder 3-Default-Mirrors.
@@ -188,27 +216,36 @@ export class ExternalServiceRegistry {
     nominatimUrl: string;
     osrmUrl: string;
     overpassMirrorCount: number;
+    transitousBase: string;
     openMeteoUrl: string;
     openAirQualityUrl: string;
     brightSkyBase: string;
+    talerExchangeBase: string;
+    talerBankBase: string;
     envOverridesActive: string[];
   } {
     const activeOverrides: string[] = [];
     if (process.env.NOMINATIM_URL) activeOverrides.push('NOMINATIM_URL');
     if (process.env.OSRM_URL) activeOverrides.push('OSRM_URL');
     if (process.env.OVERPASS_MIRRORS) activeOverrides.push('OVERPASS_MIRRORS');
+    if (process.env.TRANSITOUS_BASE_URL) activeOverrides.push('TRANSITOUS_BASE_URL');
     if (process.env.OPEN_METEO_URL) activeOverrides.push('OPEN_METEO_URL');
     if (process.env.OPEN_AIR_QUALITY_URL) activeOverrides.push('OPEN_AIR_QUALITY_URL');
     if (process.env.BRIGHTSKY_BASE_URL) activeOverrides.push('BRIGHTSKY_BASE_URL');
+    if (process.env.TALER_EXCHANGE_BASE_URL) activeOverrides.push('TALER_EXCHANGE_BASE_URL');
+    if (process.env.TALER_BANK_BASE_URL) activeOverrides.push('TALER_BANK_BASE_URL');
     if (process.env.HEIMAT_USER_AGENT) activeOverrides.push('HEIMAT_USER_AGENT');
     return {
       userAgent: this.userAgent,
       nominatimUrl: this.nominatimUrl,
       osrmUrl: this.osrmUrl,
       overpassMirrorCount: this.overpassMirrors.length,
+      transitousBase: this.transitousBase,
       openMeteoUrl: this.openMeteoUrl,
       openAirQualityUrl: this.openAirQualityUrl,
       brightSkyBase: this.brightSkyBase,
+      talerExchangeBase: this.talerExchangeBase,
+      talerBankBase: this.talerBankBase,
       envOverridesActive: activeOverrides,
     };
   }

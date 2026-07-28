@@ -1,12 +1,10 @@
 import { logger } from '../utils/logger';
 import { errorMessage } from '../utils/error';
+import { externalServices } from '../config/externalServices';
 
 const CACHE_TTL_DEPARTURES = 300;
 const CACHE_TTL_JOURNEYS = 900;
 const CACHE_TTL_LOCATIONS = 3600;
-
-const TRANSITOUS_BASE = 'https://api.transitous.org/api/v1';
-const USER_AGENT = 'HEIMAT/2.0 (github.com/abatn/HEIMAT)';
 
 export interface NormalizedStop {
   id: string;
@@ -192,9 +190,9 @@ function formatTime(iso: string): string {
 
 async function transitousGet<T>(path: string, params: Record<string, string>): Promise<T> {
   const qs = new URLSearchParams(params).toString();
-  const url = `${TRANSITOUS_BASE}${path}?${qs}`;
+  const url = `${externalServices.transitousBase}${path}?${qs}`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': USER_AGENT },
+    headers: { 'User-Agent': externalServices.userAgent },
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`transitous ${path}: HTTP ${res.status}`);
