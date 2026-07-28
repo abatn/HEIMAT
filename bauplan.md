@@ -1218,3 +1218,47 @@ Polished Open Items (deferred to Phase X.4):
 - **Constructor-DI für wasteService-roster (Phase X.4c?)** — Mock-Policy-Strict: Constructor-Surface-Expansion riskant (würde alle Tests brechen die `new WasteService(http)` machen). Pattern bleibt instance-build-time env-only-read.
 - **`mobilityService.ts`/`weatherService.ts`/`airQualityService.ts`/`evChargingService.ts` URL-Refactor**: bereits in Phase X.2 + X.3a getan. Konsistent mit X.4b-pattern.
 - **Test-Local-fail-Doc**: auth/finance-auth/e2e/mobility/validation pre-existing failures lokal (Postgres fehlt), CI-grün (Postgres-container). Phase X.4b-edits berühren diese Tests nicht.
+
+---
+
+## Phase X.4c — Backend-Config-Registry: healthService + disruptionAgent (2026-07-28)
+
+> **Ziel:** Letzte 2 Backend-Services mit hardcoded URL-Literals auf `externalServices`-Registry refactoren. `healthService.ts` (userAgent + 3 Overpass-Mirrors + Nominatim-URL) + `disruptionAgent.ts` (transitous alerts-URL). Alle 4 benötigten Registry-Felder existierten bereits aus Phase X.2/X.3a — KEINE neuen Felder nötig.
+
+### Status
+
+- ✅ `src/backend/src/services/healthService.ts` (MODIFIED, -8/+6 LOC):
+  - Import: `import { externalServices } from '../config/externalServices'`
+  - `private readonly userAgent = 'HEIMAT-App/1.0 (...)'` → `externalServices.userAgent`
+  - `private readonly overpassMirrors = [3 hardcoded URLs]` → `externalServices.overpassMirrors`
+  - `geoUrl = 'https://nominatim.openstreetmap.org/search?...'` → `${externalServices.nominatimUrl}/search?...`
+- ✅ `src/backend/src/services/disruptionAgent.ts` (MODIFIED, +2/-1 LOC):
+  - Import: `import { externalServices } from '../config/externalServices'`
+  - `fetch('https://api.transitous.org/api/v1/alerts')` → `fetch(`${externalServices.transitousBase}/alerts`)`
+
+### Design-Entscheidungen
+
+| Entscheidung | Begründung |
+|---|---|
+| **Minimal-invasive Property-Zuweisung** | `private readonly userAgent = externalServices.userAgent` statt Field-Entfernung + Direkt-Referenz. Class-API bleibt stabil, `this.userAgent`/`this.overpassMirrors` usages unverändert. |
+| **Keine neuen externalServices-Felder** | Alle 4 Felder (`userAgent`, `overpassMirrors`, `nominatimUrl`, `transitousBase`) existierten bereits aus Phase X.2/X.3a. Refactor ist reiner Consumer-Wechsel. |
+| **readonly string[] Assignments** | `externalServices.overpassMirrors` ist `readonly string[]` (Object.freeze). Assignment an `private readonly overpassMirrors` ist typ-safe. `for...of` iteration funktioniert unverändert. |
+| **Template-Literal für Nominatim** | `${externalServices.nominatimUrl}/search` → `nominatimUrl` ist trailing-slash-stripped (`https://nominatim.openstreetmap.org`) → korrekte URL `https://nominatim.openstreetmap.org/search`. |
+| **Template-Literal für Transitous alerts** | `${externalServices.transitousBase}/alerts` → `transitousBase` ist `https://api.transitous.org/api/v1` → korrekte URL `https://api.transitous.org/api/v1/alerts`. |
+
+### Validation
+
+- `npx tsc --noEmit` → 0 errors ✓
+- `npx eslint src/services/healthService.ts src/services/disruptionAgent.ts` → 0 errors ✓
+- `npx jest src/__tests__/externalServices.test.ts src/__tests__/health.test.ts` → 2/2 suites passed ✓
+- `npx jest src/__tests__/validation.test.ts` → 4 fails (pre-existing Postgres-dependent, NICHT durch X.4c verursacht — validation.test.ts testet finance-route, nicht health/disruption)
+- `bash scripts/audit-no-mocks.sh` → 0 violations ✓
+- Hardcoded-URL-Audit: 0 URL-Literals verbleiben in healthService.ts + disruptionAgent.ts ✓
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **admin.ts Debug-Route Magic-Numbers** (52.52/13.40 Berlin-Test-Coords): Admin-Debug-Endpoint, kein Production-Code-Path. Kein Regelverstoß (User-Regel betrifft Production-Code, nicht Debug-Diagnose).
+- **wasteService.ts userAgent**: 1-Zeile Konsistenz-Fix → Phase X.4d.
+- **Test-Magic-Numbers** (52.5200/13.4050 in airQuality/e2e/evCharging/health/mobility Tests): Test-Fixtures, nicht Production-Code. `bboxCenter`-Helper retroaktiv wäre separater Sweep.
+
+---
