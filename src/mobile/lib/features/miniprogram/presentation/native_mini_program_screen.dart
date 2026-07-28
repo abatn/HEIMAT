@@ -63,8 +63,7 @@ class NativeMiniProgramScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.help_outline,
-                size: 64, color: Colors.grey),
+            const Icon(Icons.help_outline, size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
               'Service "${program.id}" unbekannt',

@@ -122,8 +122,8 @@ class ComingSoonScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: AppColors.background,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: AppColors.border, width: 1),
+                              border:
+                                  Border.all(color: AppColors.border, width: 1),
                             ),
                             child: Text(
                               tag,
@@ -150,8 +150,7 @@ class ComingSoonScreen extends StatelessWidget {
             ),
             child: const Row(
               children: [
-                Icon(Icons.bolt_outlined,
-                    size: 20, color: AppColors.primary),
+                Icon(Icons.bolt_outlined, size: 20, color: AppColors.primary),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(

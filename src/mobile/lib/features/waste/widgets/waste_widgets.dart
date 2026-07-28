@@ -19,13 +19,20 @@ class WasteEventCard extends StatelessWidget {
   Color _categoryColor(BuildContext context) {
     final cat = (event.category ?? '').toLowerCase();
     return switch (cat) {
-      'restmuell' || 'restmüll' => const Color(0xFFB91C1C), // dunkelrot Restmülltonne
+      'restmuell' ||
+      'restmüll' =>
+        const Color(0xFFB91C1C), // dunkelrot Restmülltonne
       'bio' || 'biotonne' => const Color(0xFF16A34A), // grün Biotonne
-      'papier' || 'papiertonne' || 'altpapier' => const Color(0xFF2563EB), // blau Papiertonne
-      'gelbe tonne' || 'gelb' || 'lvp' || 'verpackung' =>
+      'papier' ||
+      'papiertonne' ||
+      'altpapier' =>
+        const Color(0xFF2563EB), // blau Papiertonne
+      'gelbe tonne' ||
+      'gelb' ||
+      'lvp' ||
+      'verpackung' =>
         const Color(0xFFF59E0B), // gelb Gelbe Tonne
-      'sperrmuell' || 'sperrmüll' =>
-        const Color(0xFF9333EA), // lila Sperrmüll
+      'sperrmuell' || 'sperrmüll' => const Color(0xFF9333EA), // lila Sperrmüll
       _ => AppColors.primary,
     };
   }
@@ -52,8 +59,18 @@ class WasteEventCard extends StatelessWidget {
     final day = parts.length >= 3 ? parts[2] : '?';
     final monthNum = parts.length >= 2 ? int.tryParse(parts[1]) ?? 1 : 1;
     const monthNames = [
-      'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'
+      'Jan',
+      'Feb',
+      'Mär',
+      'Apr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Dez'
     ];
     final month =
         monthNum >= 1 && monthNum <= 12 ? monthNames[monthNum - 1] : '?';

@@ -41,7 +41,8 @@ void main() {
       expect(e.location, isNull);
     });
 
-    test('handles malformed event JSON (empty start → empty string fallback)', () {
+    test('handles malformed event JSON (empty start → empty string fallback)',
+        () {
       final e = WasteCalendarEvent.fromJson(<String, dynamic>{});
       expect(e.start, '');
       expect(e.summary, '');
@@ -105,7 +106,8 @@ void main() {
       expect(r.attribution, ''); // 422 hat keine attribution
     });
 
-    test('handles empty events list (e.g. Berlin keine Termine im Fenster)', () {
+    test('handles empty events list (e.g. Berlin keine Termine im Fenster)',
+        () {
       final json = {
         'status': 'ok',
         'city': 'berlin',

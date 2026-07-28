@@ -49,12 +49,16 @@ class WasteCalendarResponse {
 class WasteCalendarEvent {
   /// ISO-8601 datetime 'YYYY-MM-DDTHH:mm:ss' (lokale Abfuhrzeit)
   final String start;
+
   /// Optional: aus DURATION berechnet oder DTEND (RFC 5545)
   final String? end;
+
   /// z.B. 'Restmülltonne', 'Biotonne', 'Gelbe Tonne (Verpackungen)'
   final String summary;
+
   /// Normalisiert vom Provider: 'restmuell' / 'bio' / 'papier' etc.
   final String? category;
+
   /// Optional: BSR-Style 'Berlin, Unter den Linden 1'
   final String? location;
 

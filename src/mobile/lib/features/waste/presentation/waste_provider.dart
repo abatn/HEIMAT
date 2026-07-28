@@ -426,18 +426,20 @@ class WasteProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         _kConfigCacheKey,
-        jsonEncode(_cityDefaults.map((c) => {
-              'name': c.name,
-              'displayName': c.displayName,
-              'bbox': {
-                'minLat': c.bbox.minLat,
-                'maxLat': c.bbox.maxLat,
-                'minLng': c.bbox.minLng,
-                'maxLng': c.bbox.maxLng,
-              },
-              'addressRequired': c.addressRequired,
-              'attribution': c.attribution,
-            }).toList()),
+        jsonEncode(_cityDefaults
+            .map((c) => {
+                  'name': c.name,
+                  'displayName': c.displayName,
+                  'bbox': {
+                    'minLat': c.bbox.minLat,
+                    'maxLat': c.bbox.maxLat,
+                    'minLng': c.bbox.minLng,
+                    'maxLng': c.bbox.maxLng,
+                  },
+                  'addressRequired': c.addressRequired,
+                  'attribution': c.attribution,
+                })
+            .toList()),
       );
       await prefs.setInt(_kConfigTsKey, DateTime.now().millisecondsSinceEpoch);
     } catch (_) {

@@ -46,7 +46,8 @@ void main() {
     }
 
     test('Unbekannte Service-ID liefert null (kein Crash)', () {
-      final def = ServiceRegistry.instance.lookup('nicht-existierender-service');
+      final def =
+          ServiceRegistry.instance.lookup('nicht-existierender-service');
       expect(def, isNull);
       expect(ServiceRegistry.instance.isNative('nicht-existierender-service'),
           isFalse);

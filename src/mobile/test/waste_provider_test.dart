@@ -115,7 +115,8 @@ void main() {
 
   // ------------------------------- Group 4 -------------------------------
   group('Group 4: updateAddress(city, street, houseNr)', () {
-    test('updateAddress setzt city/street/houseNr synchron (deterministic)', () {
+    test('updateAddress setzt city/street/houseNr synchron (deterministic)',
+        () {
       provider.updateAddress(
         city: 'hamburg',
         street: 'Beispielstraße',
@@ -164,8 +165,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs1 = await SharedPreferences.getInstance();
       await prefs1.setString('waste_data_v1', jsonEncode(fakeData));
-      await prefs1.setInt(
-          'waste_ts_v1', DateTime.now().millisecondsSinceEpoch);
+      await prefs1.setInt('waste_ts_v1', DateTime.now().millisecondsSinceEpoch);
       await prefs1.setString('waste_city_v1', 'berlin');
       await prefs1.setInt('waste_weeks_v1', 4);
 
@@ -176,7 +176,8 @@ void main() {
       expect(reloadProvider.events.length, 1);
     });
 
-    test('init() mit corrupted cache (invalid JSON) → silent fallback', () async {
+    test('init() mit corrupted cache (invalid JSON) → silent fallback',
+        () async {
       SharedPreferences.setMockInitialValues({
         'waste_data_v1': '{not-json{',
         'waste_ts_v1': DateTime.now().millisecondsSinceEpoch,
@@ -280,7 +281,8 @@ void main() {
       expect(provider.isLoading, isFalse);
     });
 
-    test('refresh() bei backend-network-failure: cache-preservation wenn vorher data',
+    test(
+        'refresh() bei backend-network-failure: cache-preservation wenn vorher data',
         () async {
       final fakeData = <String, dynamic>{
         'status': 'ok',
@@ -351,9 +353,7 @@ void main() {
       expect(WasteProvider.pickCityFromBbox(52.34, 13.10), 'berlin');
     });
 
-    test(
-        'Hamburg upper-bound edge just-inside (53.73, 10.31) → hamburg',
-        () {
+    test('Hamburg upper-bound edge just-inside (53.73, 10.31) → hamburg', () {
       expect(WasteProvider.pickCityFromBbox(53.73, 10.31), 'hamburg');
     });
 
@@ -363,9 +363,7 @@ void main() {
       expect(WasteProvider.pickCityFromBbox(52.68, 13.41), 'berlin');
     });
 
-    test(
-        'Out-of-bbox Koeln (50.94, 6.96) → berlin (Fallback)',
-        () {
+    test('Out-of-bbox Koeln (50.94, 6.96) → berlin (Fallback)', () {
       expect(WasteProvider.pickCityFromBbox(50.94, 6.96), 'berlin');
     });
 
@@ -450,7 +448,8 @@ void main() {
       expect(pCached.cityDefaults.length, 1);
       expect(pCached.cityDefaults.first.name, 'berlin');
       expect(pCached.cityDefaults.first.bbox.minLat, 51.99,
-          reason: 'Dynamic-config aus Cache verwendet, NICHT Hardcoded-Fallback');
+          reason:
+              'Dynamic-config aus Cache verwendet, NICHT Hardcoded-Fallback');
     });
 
     test('Corrupted config-cache → fallback-Konstanten', () async {
@@ -476,15 +475,12 @@ void main() {
       await provider.refreshLocationDefaults();
       expect(provider.hasCityConfig, isTrue,
           reason: 'hasCityConfig bleibt true (fallback oder cached)');
-      expect(provider.cityDefaults.length, beforeFallback > 0
-          ? beforeFallback
-          : 3,
-          reason:
-              'Failed-fetch behält letzten Stand (fallback oder cache)');
+      expect(
+          provider.cityDefaults.length, beforeFallback > 0 ? beforeFallback : 3,
+          reason: 'Failed-fetch behält letzten Stand (fallback oder cache)');
     });
 
-    test('Group-10-cityDefaults ist read-only (List.unmodifiable)',
-        () async {
+    test('Group-10-cityDefaults ist read-only (List.unmodifiable)', () async {
       await provider.init();
       expect(() => provider.cityDefaults.removeAt(0), throwsUnsupportedError,
           reason: 'cityDefaults ist read-only public-API');

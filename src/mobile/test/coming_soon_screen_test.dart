@@ -36,7 +36,8 @@ void main() {
     expect(find.text('Kategorie: Alltag'), findsOneWidget);
   });
 
-  testWidgets('rendert Search-Tags (max 6 sichtbar)', (WidgetTester tester) async {
+  testWidgets('rendert Search-Tags (max 6 sichtbar)',
+      (WidgetTester tester) async {
     await tester.pumpWidget(_wrap(const ComingSoonScreen(
       serviceName: 'Service',
       description: 'Desc',
@@ -54,7 +55,8 @@ void main() {
     expect(find.text('h'), findsNothing);
   });
 
-  testWidgets('rendert ohne Search-Tags ohne Crash', (WidgetTester tester) async {
+  testWidgets('rendert ohne Search-Tags ohne Crash',
+      (WidgetTester tester) async {
     await tester.pumpWidget(_wrap(const ComingSoonScreen(
       serviceName: 'Service',
       description: 'Beschreibung',

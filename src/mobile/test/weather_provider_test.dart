@@ -198,7 +198,8 @@ void main() {
     // --- Weather-spezifische Defaults ---
     test('sentiment ist null initial (kein refresh gelaufen)', () {
       expect(provider.sentiment, isNull,
-          reason: 'Sentiment wird erst nach refresh()/unawaited-restore gesetzt');
+          reason:
+              'Sentiment wird erst nach refresh()/unawaited-restore gesetzt');
     });
 
     test('alerts ist empty initial (constructor default: const [])', () {
@@ -376,7 +377,8 @@ void main() {
   // sein wenn refresh's _sentiment = null reset schneller ist). Wir
   // assertieren NICHT hart auf sentiment-Wert in der stale-Pfad.
   // ==================================================================
-  group('init() mit stale Cache (>5min TTL)', () {    test(
+  group('init() mit stale Cache (>5min TTL)', () {
+    test(
         'laedt Forecast trotz stale Timestamp (Background-Refresh wird getriggert)',
         () async {
       final staleTs = DateTime.now()
@@ -399,10 +401,10 @@ void main() {
       expect(provider.lastUpdated, isNotNull,
           reason: 'lastUpdated aus Cache-Timestamp restauriert');
       expect(
-        provider.lastUpdated!.isBefore(
-            DateTime.now().subtract(const Duration(minutes: 9))),
-        isTrue,
-        reason: 'lastUpdated reflektiert 10min-Versatz aus Cache');
+          provider.lastUpdated!
+              .isBefore(DateTime.now().subtract(const Duration(minutes: 9))),
+          isTrue,
+          reason: 'lastUpdated reflektiert 10min-Versatz aus Cache');
     });
 
     // Weather-spezifisch: stale Forecast triggert refresh. Alerts werden
@@ -410,8 +412,7 @@ void main() {
     // werden wenn Network verfuegbar (race). Wir testen NUR dass init() nicht
     // crashst und forecast-cache geladen wurde. Die genauen alerts-Werte
     // sind race-prone (kann von refresh ueberschrieben werden in Network-CI).
-    test('stale Forecast mit alerts-Cache: init() crashst nicht',
-        () async {
+    test('stale Forecast mit alerts-Cache: init() crashst nicht', () async {
       final staleTs = DateTime.now()
           .subtract(const Duration(minutes: 10))
           .millisecondsSinceEpoch;
@@ -494,8 +495,7 @@ void main() {
   // ==================================================================
   // Group 6: init() mit partiellem Cache (Berlin-Defaults)
   // ==================================================================
-  group('init() mit partiellem Cache (Berlin-Defaults bei fehlenden Keys)',
-      () {
+  group('init() mit partiellem Cache (Berlin-Defaults bei fehlenden Keys)', () {
     test('behaelt Berlin-Defaults wenn lat/lng-Keys fehlen', () async {
       final now = DateTime.now();
       SharedPreferences.setMockInitialValues({
@@ -586,7 +586,8 @@ void main() {
         () async {
       // DI-Stub wirft → inner try/catch in refresh() fängt das → _sentiment=null.
       SharedPreferences.setMockInitialValues({});
-      provider = WeatherProvider(classifier: _StubClassifier(shouldThrow: true));
+      provider =
+          WeatherProvider(classifier: _StubClassifier(shouldThrow: true));
 
       await provider.refresh();
 

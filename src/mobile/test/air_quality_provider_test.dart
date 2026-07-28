@@ -183,7 +183,8 @@ void main() {
   // Cache). Die TTL-Boundary-Logik selbst (4:55 vs 5:00 vs 5:01) wird in
   // Group 8 ohne Refresh-Trigger getestet (Fresh-Cache-Pfad → race-free).
   // ==================================================================
-  group('init() mit stale Cache (>5min TTL)', () {    test(
+  group('init() mit stale Cache (>5min TTL)', () {
+    test(
         'laedt Forecast trotz stale Timestamp (Background-Refresh wird getriggert)',
         () async {
       final staleTs = DateTime.now()
@@ -209,8 +210,8 @@ void main() {
       expect(provider.lastUpdated, isNotNull,
           reason: 'lastUpdated aus Cache-Timestamp restauriert');
       expect(
-        provider.lastUpdated!.isBefore(
-            DateTime.now().subtract(const Duration(minutes: 9))),
+        provider.lastUpdated!
+            .isBefore(DateTime.now().subtract(const Duration(minutes: 9))),
         isTrue,
         reason:
             'Cache-Timestamp war um ~10min versetzt, lastUpdated reflektiert das',

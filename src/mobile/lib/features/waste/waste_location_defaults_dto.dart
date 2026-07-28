@@ -133,6 +133,5 @@ class BBoxDto {
   }
 
   /// Repr für Tests + Logs.
-  String get asRange =>
-      'lat[$minLat..$maxLat),lng[$minLng..$maxLng)';
+  String get asRange => 'lat[$minLat..$maxLat),lng[$minLng..$maxLng)';
 }
