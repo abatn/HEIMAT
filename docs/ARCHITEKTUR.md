@@ -226,6 +226,8 @@ Fehlerfall (Backend offline):
 | `GET` | `/api/air-quality/current` | — | AirQualityService | api.open-meteo.com (CAMS) |
 | `GET` | `/api/air-quality/forecast` | — | AirQualityService | api.open-meteo.com (CAMS) |
 | `GET` | `/api/air-quality/status` | — | — | — |
+| `GET` | `/api/waste/calendar` | Zod (lat, lng, weeks, street, houseNr) | WasteService | BSR/AWB/SRH iCal, Mil-München mirror |
+| `GET` | `/api/waste/status` | — | — | — |
 | `GET` | `/mini/*` | CSP-Header | Static Files | — |
 | `GET` | `/docs` | — | Swagger UI | — |
 | `GET` | `/docs.json` | — | Swagger Spec | — |
@@ -459,6 +461,27 @@ Git Push → main
 
 ---
 
+### 6.3 Abfallkalender URL-Discovery (Phase B-2.3)
+
+> **⚠️ WICHTIG: Berlin (BSR) iCal Deprecation**
+> Die BSR hat ihren öffentlichen statischen `.ics`-Placeholder abgeschaltet (HTTP 404) und durch eine REST JSON-API (`https://umnewforms.bsr.de/p/de.bsr.adressen.app/abfuhrEvents?addrKey=<schedule-id>&dateFrom=<iso>&dateTo=<iso>`) ersetzt. Diese API erfordert einen proprietären `AddrKey` (Adress-Hash), der nicht trivial aus Geodaten ableitbar ist.
+> *Status:* Berlin ist derzeit ungelöst. Ein dezidierter BSR-JSON-Client + AddrKey-Resolver wird in **Phase B-2.4** benötigt (Standard-iCal-Parser greift nicht).
+
+**Gültige URL-Konfigurationen (Produktion):**
+
+| Stadt | Primary | Fallback | Status |
+|-------|---------|----------|--------|
+| **München (AWB)** | `https://raw.githubusercontent.com/mil-muenchen/muenchen-abfallkalender/main/muenchen.ics` (Community-Spiegel) | nur via `ABFALL_AWB_FALLBACK_URL` env-var | ✅ GitHub-MIT; CC-BY 4.0 (AWB Daten-Aggregat) |
+| **Hamburg (SRH)** | `ABFALL_SRH_PRIMARY_URL` (env-var-only) | `ABFALL_SRH_FALLBACK_URL` (env-var-only) | ⚠️ Keine öffentliche URL bekannt — Operator-Pflicht |
+| **Berlin (BSR)** | `ABFALL_BSR_PRIMARY_URL` (env-var-only) | `ABFALL_BSR_FALLBACK_URL` (env-var-only) | ❌ Static-iCal 404 — JSON-REST-Adapter in B-2.4 |
+
+**Deployment-Owner-Action (Phase B-2.3):**
+- München: Default-URL in `wasteService.ts` ist bereits Community-Mirror — kein Render-env-var nötig für Live-Gang.
+- Hamburg: operator-discovered URL per `ABFALL_SRH_PRIMARY_URL` setzen, sonst 422 'address_required' als Best-Effort.
+- Berlin: BSR-JSON-Adapter (AddrKey reverse-geocode → JSON-Parse → iCal-Converter) implementieren in Phase B-2.4.
+
+---
+
 ## 7. Externe APIs & Lizenzen
 
 | API | Zweck | Lizenz | Auth |
@@ -505,6 +528,7 @@ Git Push → main
 | Mini-Program-Container | 4 | 2026-07-27 | `92ec307` |
 | Wetter (DWD/Open-Meteo) | 4→Apps | 2026-07-27 | `0d75f1f` 429-Retry |
 | Luftqualität (CAMS Copernicus) | 4→Apps | 2026-07-27 | `5c69ea6` Phase B |
+| Abfallkalender (BSR/AWB/SRH) | 4→Apps (ab B-3 native) | 2026-07-27 | `e0a4f61` Phase B-3 (Mobile-UI) |
 | Demo-KUDOS (fund-local) | 2 | 2026-07-26 | — |
 | CI/CD (3 Workflows) | — | 2026-07-27 | `246ece3` withOpacity-Fix |
 
@@ -512,7 +536,6 @@ Git Push → main
 
 | Feature | Phase | Grund |
 |---------|-------|-------|
-| Abfallkalender | B | Nicht priorisiert |
 | E-Ladestationen | C | Nicht priorisiert |
 | Parken | C | Nicht priorisiert |
 | Futai Chat | D | Wartet auf React Native Web-Build |
@@ -538,5 +561,8 @@ Git Push → main
 | `4fcb0ac` | 2026-07-27 | Fix: dart format indentation |
 | `bd04e2b` | 2026-07-27 | **Fix: Dashboard-Navigation** (onNavigateTab-Callback) |
 | `5c69ea6` | 2026-07-27 | **Phase B: Luftqualität** (airQualityService + air.html + airQualityRoute) |
+| `4b91019` | 2026-07-27 | **Phase B-2: Abfallkalender Backend** (wasteService + routes + city-resolver + iCal-Parser + 24h-Cache) |
+| `e0a4f61` | 2026-07-27 | **Phase B-3: Abfallkalender Mobile-UI** (WasteProvider + WasteScreen + ServiceRegistry) |
+| `528bf63` | 2026-07-27 | **Fix: Waste Express-5 req.query Coerce** (parseFloat/parseInt in handler) |
 | `9e42a30` | 2026-07-27 | **Phase B: Wetter-Mini-Programm** (weatherService + weather.html) |
 | `92ec307` | 2026-07-27 | **Phase A: Mini-Program-Container** (10 Programme + Apps-Tab) |
