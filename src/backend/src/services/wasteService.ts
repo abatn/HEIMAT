@@ -117,8 +117,10 @@ function buildCityRoster(): Record<WasteCityKey, CityFetchUrls> {
       attribution: 'Berliner Stadtreinigung (BSR) — CC-BY 4.0',
     },
     muenchen: {
-      primary: process.env.ABFALL_AWB_PRIMARY_URL || 'https://www.awb-muenchen.de/fileadmin/awb-redakteur/dokumente/abfallkalender.ics?strasse={street}&hausnr={houseNr}',
-      fallback: process.env.ABFALL_AWB_FALLBACK_URL || 'https://raw.githubusercontent.com/mil-muenchen/muenchen-abfallkalender/main/muenchen.ics',
+      // Phase B-2.3: AWB-iCal-Endpoint ist 404 (live-curl-delete-verified). Community-mirror (mil-muenchen/muenchen-abfallkalender) als PRIMARY.
+      // Licensing: mil-muenchen/muenchen-abfallkalender-Repo ist GitHub-MIT; Daten-Aggregat ist AWB-data. AGPL-defensiv-strategy: kommentiert dokumentiert.
+      primary: process.env.ABFALL_AWB_PRIMARY_URL || 'https://raw.githubusercontent.com/mil-muenchen/muenchen-abfallkalender/main/muenchen.ics',
+      fallback: process.env.ABFALL_AWB_FALLBACK_URL,
       addressRequired: true,
       attribution: 'Abfallwirtschaftsbetrieb München (AWB) — CC-BY 4.0',
     },
