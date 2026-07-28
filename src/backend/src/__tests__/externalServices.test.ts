@@ -49,6 +49,12 @@ describe('ExternalServiceRegistry', () => {
       expect(r.openMeteoUrl).toBe('https://api.open-meteo.com/v1');
       expect(r.brightSkyBase).toBe('https://api.brightsky.dev');
     });
+
+    it('verwendet Open-Meteo-Air-Quality-Default (separate subdomain)', () => {
+      const r = new ExternalServiceRegistry({});
+      expect(r.openAirQualityUrl).toBe('https://air-quality-api.open-meteo.com/v1');
+    });
+  });
   });
 
   describe('Group 2: env-var Override', () => {
@@ -84,6 +90,13 @@ describe('ExternalServiceRegistry', () => {
         HEIMAT_USER_AGENT: 'CustomApp/2.0 (https://example.com)',
       });
       expect(r.userAgent).toBe('CustomApp/2.0 (https://example.com)');
+    });
+
+    it('OPEN_AIR_QUALITY_URL-Override mit trailing-slash-strip', () => {
+      const r = new ExternalServiceRegistry({
+        OPEN_AIR_QUALITY_URL: 'http://internal-aq.test.local/',
+      });
+      expect(r.openAirQualityUrl).toBe('http://internal-aq.test.local');
     });
 
     // Code-Reviewer NEEDS-FIX #1: Render-Actions koennen env-string 'undefined'/'null' setzen.

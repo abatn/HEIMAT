@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import { externalServices } from '../config/externalServices';
 import axios from 'axios';
 
 // ---------------------------------------------------------------------------
@@ -53,8 +54,11 @@ function getAqiInfo(aqi: number | null): { level: string; color: string } {
 }
 
 export class AirQualityService {
-  private readonly baseUrl = 'https://air-quality-api.open-meteo.com/v1';
-  private readonly userAgent = 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
+  // Phase X.3a: URLs aus externalServices-Registry (env-var-driven + defaults).
+  // 1:1 mirror-pattern zu mobility + weather + evCharging.
+  private readonly baseUrl = externalServices.openAirQualityUrl;
+  private readonly userAgent = externalServices.userAgent;
+  private readonly nominatimUrl = externalServices.nominatimUrl;
   private readonly cache = new Map<string, { data: AirQualityData; at: number }>();
   private readonly cacheTtlMs = 5 * 60 * 1000; // 5 Minuten
 
@@ -187,7 +191,7 @@ export class AirQualityService {
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
       const response = await axios.get(
-        'https://nominatim.openstreetmap.org/reverse',
+        `${this.nominatimUrl}/reverse`,
         {
           params: { lat, lon: lng, format: 'json', zoom: 10, 'accept-language': 'de' },
           headers: { 'User-Agent': this.userAgent },

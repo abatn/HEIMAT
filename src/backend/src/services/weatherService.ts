@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import { externalServices } from '../config/externalServices';
 import axios, { AxiosInstance } from 'axios';
 
 // ---------------------------------------------------------------------------
@@ -113,7 +114,9 @@ function wmoToIcon(code: number): string {
 // — bewährte Resilienz gegen Single-Vendor-Ausfälle, keine Mock-Daten, kein
 // Cloud-AI. Real-DWD-Daten via zwei verschiedenen Vendor-IP-Ranges.
 // -------------------------------------------------------------------------
-const BRIGHTSKY_BASE = 'https://api.brightsky.dev';
+// Module-level BRIGHTSKY_BASE entfernt (Phase X.3a): ersetzt durch
+// `private readonly brightSkyBase = externalServices.brightSkyBase` in der
+// WeatherService-Classe (Single Source of Truth via Config-Registry).
 
 // Bright Sky Condition-Strings (8 Buckets, dokumentiert unter
 // https://api.brightsky.dev/) → WMO Weather Code (Industrie-Standard).
@@ -130,8 +133,11 @@ const BRIGHTSKY_CONDITION_TO_WMO: Record<string, number> = {
 };
 
 export class WeatherService {
-  private readonly baseUrl = 'https://api.open-meteo.com/v1';
-  private readonly userAgent = 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
+  // Phase X.3a: URLs aus externalServices-Registry (env-var-driven + defaults).
+  private readonly baseUrl = externalServices.openMeteoUrl;
+  private readonly brightSkyBase = externalServices.brightSkyBase;
+  private readonly userAgent = externalServices.userAgent;
+  private readonly nominatimUrl = externalServices.nominatimUrl;
   private readonly cache = new Map<string, { data: WeatherData; at: number }>();
   private readonly cacheTtlMs = 5 * 60 * 1000; // 5 Minuten
 
@@ -350,12 +356,12 @@ export class WeatherService {
     const nextWeekStr = nextWeek.toISOString().split('T')[0];
 
     const [currRes, forecastRes] = await Promise.all([
-      this.http.get(`${BRIGHTSKY_BASE}/current_weather`, {
+      this.http.get(`${this.brightSkyBase}/current_weather`, {
         params: { lat, lon: lng },
         headers: { 'User-Agent': this.userAgent },
         timeout: 15000,
       }),
-      this.http.get(`${BRIGHTSKY_BASE}/weather`, {
+      this.http.get(`${this.brightSkyBase}/weather`, {
         params: { lat, lon: lng, date: todayStr, last_date: nextWeekStr },
         headers: { 'User-Agent': this.userAgent },
         timeout: 20000,
@@ -555,7 +561,7 @@ export class WeatherService {
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
       const response = await this.http.get(
-        'https://nominatim.openstreetmap.org/reverse',
+        `${this.nominatimUrl}/reverse`,
         {
           params: { lat, lon: lng, format: 'json', zoom: 10, 'accept-language': 'de' },
           headers: { 'User-Agent': this.userAgent },

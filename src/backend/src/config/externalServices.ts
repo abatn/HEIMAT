@@ -34,6 +34,7 @@ export interface ExternalServiceEnv {
   OVERPASS_MIRRORS?: string;
   // --- Weather ---
   OPEN_METEO_URL?: string;
+  OPEN_AIR_QUALITY_URL?: string;
   BRIGHTSKY_BASE_URL?: string;
   // --- Allgemein ---
   HEIMAT_USER_AGENT?: string;
@@ -58,6 +59,9 @@ export class ExternalServiceRegistry {
 
   /** Open-Meteo Base-URL (DWD-Wetterdaten via ICON-Modell). */
   public readonly openMeteoUrl: string;
+
+  /** Open-Meteo Air Quality Base-URL (CAMS Copernicus, eigene Subdomain). */
+  public readonly openAirQualityUrl: string;
 
   /** Bright Sky Base-URL (DWD-Wetterdaten, 2. Mirror/Fallback). */
   public readonly brightSkyBase: string;
@@ -84,6 +88,7 @@ export class ExternalServiceRegistry {
     const nominatimRaw = normalizeEnvValue(env.NOMINATIM_URL);
     const osrmRaw = normalizeEnvValue(env.OSRM_URL);
     const openMeteoRaw = normalizeEnvValue(env.OPEN_METEO_URL);
+    const openAirQualityRaw = normalizeEnvValue(env.OPEN_AIR_QUALITY_URL);
     const brightSkyRaw = normalizeEnvValue(env.BRIGHTSKY_BASE_URL);
     const userAgentRaw = normalizeEnvValue(env.HEIMAT_USER_AGENT);
     const overpassRaw = normalizeEnvValue(env.OVERPASS_MIRRORS);
@@ -101,6 +106,10 @@ export class ExternalServiceRegistry {
 
     this.openMeteoUrl = stripTrailingSlash(
       openMeteoRaw || 'https://api.open-meteo.com/v1'
+    );
+
+    this.openAirQualityUrl = stripTrailingSlash(
+      openAirQualityRaw || 'https://air-quality-api.open-meteo.com/v1'
     );
 
     this.brightSkyBase = stripTrailingSlash(
@@ -133,6 +142,7 @@ export class ExternalServiceRegistry {
     osrmUrl: string;
     overpassMirrorCount: number;
     openMeteoUrl: string;
+    openAirQualityUrl: string;
     brightSkyBase: string;
     envOverridesActive: string[];
   } {
@@ -141,6 +151,7 @@ export class ExternalServiceRegistry {
     if (process.env.OSRM_URL) activeOverrides.push('OSRM_URL');
     if (process.env.OVERPASS_MIRRORS) activeOverrides.push('OVERPASS_MIRRORS');
     if (process.env.OPEN_METEO_URL) activeOverrides.push('OPEN_METEO_URL');
+    if (process.env.OPEN_AIR_QUALITY_URL) activeOverrides.push('OPEN_AIR_QUALITY_URL');
     if (process.env.BRIGHTSKY_BASE_URL) activeOverrides.push('BRIGHTSKY_BASE_URL');
     if (process.env.HEIMAT_USER_AGENT) activeOverrides.push('HEIMAT_USER_AGENT');
     return {
@@ -149,6 +160,7 @@ export class ExternalServiceRegistry {
       osrmUrl: this.osrmUrl,
       overpassMirrorCount: this.overpassMirrors.length,
       openMeteoUrl: this.openMeteoUrl,
+      openAirQualityUrl: this.openAirQualityUrl,
       brightSkyBase: this.brightSkyBase,
       envOverridesActive: activeOverrides,
     };

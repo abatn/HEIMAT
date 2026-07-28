@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { externalServices } from '../config/externalServices';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 
@@ -37,13 +38,11 @@ interface CacheEntry {
 }
 
 export class EvChargingService {
-  private readonly userAgent = 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
-
-  private readonly overpassMirrors = [
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-  ];
+  // Phase X.3a: 1:1 mirror-pattern aus mobilityService.ts.
+  // Vorher 3x duplizierte overpassMirror-Liste + userAgent (mobilityX +
+  // evCharging + weather) wird SINGLE-SOURCE via Config-Registry.
+  private readonly userAgent = externalServices.userAgent;
+  private readonly overpassMirrors = externalServices.overpassMirrors;
 
   private cache = new Map<string, CacheEntry>();
   private readonly cacheTtlMs = 24 * 60 * 60 * 1000; // 24 Stunden
