@@ -69,6 +69,35 @@ describe('ExternalServiceRegistry', () => {
       const r = new ExternalServiceRegistry({});
       expect(r.talerBankBase).toBe('https://bank.demo.taler.net');
     });
+
+    // ─ Phase X.4b: Abfallkalender Per-City URL Defaults ─
+    it('verwendet Abfall-Berlin-BSR-Primary-Default', () => {
+      const r = new ExternalServiceRegistry({});
+      expect(r.abfallBerlinPrimaryUrl).toBe(
+        'https://www.bsr.de/abfuhrkalender-ical?strasse={street}&hausnr={houseNr}',
+      );
+    });
+
+    it('verwendet Abfall-Berlin-BSR-Fallback-Default (opendata-Bahn-mirror)', () => {
+      const r = new ExternalServiceRegistry({});
+      expect(r.abfallBerlinFallbackUrl).toBe(
+        'https://opendata.bahn.de/web/opendata/bsr-mirror/abfallkalender.ics?stadtteil={street}&hausnr={houseNr}',
+      );
+    });
+
+    it('verwendet Abfall-Muenchen-AWB-Primary-Default (community-mirror)', () => {
+      const r = new ExternalServiceRegistry({});
+      expect(r.abfallMuenchenPrimaryUrl).toBe(
+        'https://raw.githubusercontent.com/mil-muenchen/muenchen-abfallkalender/main/muenchen.ics',
+      );
+    });
+
+    it('verwendet Abfall-Hamburg-SRH-Primary-Default', () => {
+      const r = new ExternalServiceRegistry({});
+      expect(r.abfallHamburgPrimaryUrl).toBe(
+        'https://www.stadtreinigung-hamburg.de/icity/export.php?street={street}&houseNr={houseNr}',
+      );
+    });
   });
 
   describe('Group 2: env-var Override + NEEDS-FIX Mitigations', () => {
@@ -205,6 +234,41 @@ describe('ExternalServiceRegistry', () => {
         () => new ExternalServiceRegistry({ TALER_BANK_BASE_URL: '/' })
       ).toThrow(/empty/);
     });
+
+    // ─ Phase X.4b: Abfallkalender env-overrides ─
+    it('ABFALL_BSR_PRIMARY_URL-Override mit trailing-slash-strip', () => {
+      const r = new ExternalServiceRegistry({
+        ABFALL_BSR_PRIMARY_URL: 'https://bsr-internal.test/ical',
+      });
+      expect(r.abfallBerlinPrimaryUrl).toBe('https://bsr-internal.test/ical');
+    });
+
+    it('ABFALL_BSR_FALLBACK_URL-Override mit trailing-slash-strip', () => {
+      const r = new ExternalServiceRegistry({
+        ABFALL_BSR_FALLBACK_URL: 'https://mirror-bsr.internal.test/',
+      });
+      expect(r.abfallBerlinFallbackUrl).toBe('https://mirror-bsr.internal.test');
+    });
+
+    it('ABFALL_AWB_PRIMARY_URL-Override mit trailing-slash-strip', () => {
+      const r = new ExternalServiceRegistry({
+        ABFALL_AWB_PRIMARY_URL: 'https://awb-internal.test/ical/',
+      });
+      expect(r.abfallMuenchenPrimaryUrl).toBe('https://awb-internal.test/ical');
+    });
+
+    it('ABFALL_SRH_PRIMARY_URL-Override mit trailing-slash-strip', () => {
+      const r = new ExternalServiceRegistry({
+        ABFALL_SRH_PRIMARY_URL: 'https://srh-internal.test/icity/',
+      });
+      expect(r.abfallHamburgPrimaryUrl).toBe('https://srh-internal.test/icity');
+    });
+
+    it('fail-fast: ABFALL_BSR_PRIMARY_URL="ftp://x" wirft Error (scheme-check)', () => {
+      expect(
+        () => new ExternalServiceRegistry({ ABFALL_BSR_PRIMARY_URL: 'ftp://x.test' })
+      ).toThrow(/(non-http|scheme)/);
+    });
   });
 
   describe('Group 3: Mirror-Listen-Parsing (comma-separated)', () => {
@@ -262,6 +326,10 @@ describe('ExternalServiceRegistry', () => {
       expect(desc).toHaveProperty('brightSkyBase');
       expect(desc).toHaveProperty('talerExchangeBase');
       expect(desc).toHaveProperty('talerBankBase');
+      expect(desc).toHaveProperty('abfallBerlinPrimaryUrl');
+      expect(desc).toHaveProperty('abfallBerlinFallbackUrl');
+      expect(desc).toHaveProperty('abfallMuenchenPrimaryUrl');
+      expect(desc).toHaveProperty('abfallHamburgPrimaryUrl');
       expect(desc).toHaveProperty('envOverridesActive');
       expect(desc.overpassMirrorCount).toBe(3);
       expect(desc.envOverridesActive).toEqual([]); // kein override im test

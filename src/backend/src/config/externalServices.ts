@@ -40,6 +40,13 @@ export interface ExternalServiceEnv {
   // --- Taler (Phase X.4a) ---
   TALER_EXCHANGE_BASE_URL?: string;
   TALER_BANK_BASE_URL?: string;
+  // --- Abfallkalender (Phase X.4b) ---
+  ABFALL_BSR_PRIMARY_URL?: string;
+  ABFALL_BSR_FALLBACK_URL?: string;
+  ABFALL_AWB_PRIMARY_URL?: string;
+  // ABFALL_AWB_FALLBACK_URL?: string; — env-only (Phase B-2.3 AGPL-defensiv: kein commit-fähiger default)
+  // ABFALL_SRH_FALLBACK_URL?: string; — env-only (Phase B-2.1 NEEDS-FIX #2 AGPL-defensiv)
+  ABFALL_SRH_PRIMARY_URL?: string;
   // --- Allgemein ---
   HEIMAT_USER_AGENT?: string;
 }
@@ -78,6 +85,18 @@ export class ExternalServiceRegistry {
 
   /** GNU Taler Demo-Bank Base-URL (Web-UI fuer Bank-Wire-Transfer zum Exchange). */
   public readonly talerBankBase: string;
+
+  /** Abfallkalender Berlin BSR Primary iCal-Endpoint. */
+  public readonly abfallBerlinPrimaryUrl: string;
+
+  /** Abfallkalender Berlin BSR Fallback iCal-Endpoint (opendata-mirror). */
+  public readonly abfallBerlinFallbackUrl: string;
+
+  /** Abfallkalender München AWB Primary iCal-Endpoint (community-mirror). */
+  public readonly abfallMuenchenPrimaryUrl: string;
+
+  /** Abfallkalender Hamburg SRH Primary iCal-Endpoint (HTML-form-export). */
+  public readonly abfallHamburgPrimaryUrl: string;
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
     // VALIDATE-URL-HELPER (Phase X.3b — NEEDS-FIX #2 resolution):
@@ -140,6 +159,10 @@ export class ExternalServiceRegistry {
     const transitousRaw = normalizeEnvValue(env.TRANSITOUS_BASE_URL);
     const talerExchangeRaw = normalizeEnvValue(env.TALER_EXCHANGE_BASE_URL);
     const talerBankRaw = normalizeEnvValue(env.TALER_BANK_BASE_URL);
+    const abfallBerlinPrimaryRaw = normalizeEnvValue(env.ABFALL_BSR_PRIMARY_URL);
+    const abfallBerlinFallbackRaw = normalizeEnvValue(env.ABFALL_BSR_FALLBACK_URL);
+    const abfallMuenchenPrimaryRaw = normalizeEnvValue(env.ABFALL_AWB_PRIMARY_URL);
+    const abfallHamburgPrimaryRaw = normalizeEnvValue(env.ABFALL_SRH_PRIMARY_URL);
     const userAgentRaw = normalizeEnvValue(env.HEIMAT_USER_AGENT);
     const overpassRaw = normalizeEnvValue(env.OVERPASS_MIRRORS);
 
@@ -176,6 +199,30 @@ export class ExternalServiceRegistry {
 
     this.talerBankBase = validateUrl(
       talerBankRaw, 'TALER_BANK_BASE_URL', 'https://bank.demo.taler.net'
+    );
+
+    this.abfallBerlinPrimaryUrl = validateUrl(
+      abfallBerlinPrimaryRaw,
+      'ABFALL_BSR_PRIMARY_URL',
+      'https://www.bsr.de/abfuhrkalender-ical?strasse={street}&hausnr={houseNr}',
+    );
+
+    this.abfallBerlinFallbackUrl = validateUrl(
+      abfallBerlinFallbackRaw,
+      'ABFALL_BSR_FALLBACK_URL',
+      'https://opendata.bahn.de/web/opendata/bsr-mirror/abfallkalender.ics?stadtteil={street}&hausnr={houseNr}',
+    );
+
+    this.abfallMuenchenPrimaryUrl = validateUrl(
+      abfallMuenchenPrimaryRaw,
+      'ABFALL_AWB_PRIMARY_URL',
+      'https://raw.githubusercontent.com/mil-muenchen/muenchen-abfallkalender/main/muenchen.ics',
+    );
+
+    this.abfallHamburgPrimaryUrl = validateUrl(
+      abfallHamburgPrimaryRaw,
+      'ABFALL_SRH_PRIMARY_URL',
+      'https://www.stadtreinigung-hamburg.de/icity/export.php?street={street}&houseNr={houseNr}',
     );
 
     // Mirror-Liste: comma-separated env-var oder 3-Default-Mirrors.
@@ -222,6 +269,10 @@ export class ExternalServiceRegistry {
     brightSkyBase: string;
     talerExchangeBase: string;
     talerBankBase: string;
+    abfallBerlinPrimaryUrl: string;
+    abfallBerlinFallbackUrl: string;
+    abfallMuenchenPrimaryUrl: string;
+    abfallHamburgPrimaryUrl: string;
     envOverridesActive: string[];
   } {
     const activeOverrides: string[] = [];
@@ -234,6 +285,10 @@ export class ExternalServiceRegistry {
     if (process.env.BRIGHTSKY_BASE_URL) activeOverrides.push('BRIGHTSKY_BASE_URL');
     if (process.env.TALER_EXCHANGE_BASE_URL) activeOverrides.push('TALER_EXCHANGE_BASE_URL');
     if (process.env.TALER_BANK_BASE_URL) activeOverrides.push('TALER_BANK_BASE_URL');
+    if (process.env.ABFALL_BSR_PRIMARY_URL) activeOverrides.push('ABFALL_BSR_PRIMARY_URL');
+    if (process.env.ABFALL_BSR_FALLBACK_URL) activeOverrides.push('ABFALL_BSR_FALLBACK_URL');
+    if (process.env.ABFALL_AWB_PRIMARY_URL) activeOverrides.push('ABFALL_AWB_PRIMARY_URL');
+    if (process.env.ABFALL_SRH_PRIMARY_URL) activeOverrides.push('ABFALL_SRH_PRIMARY_URL');
     if (process.env.HEIMAT_USER_AGENT) activeOverrides.push('HEIMAT_USER_AGENT');
     return {
       userAgent: this.userAgent,
@@ -246,6 +301,10 @@ export class ExternalServiceRegistry {
       brightSkyBase: this.brightSkyBase,
       talerExchangeBase: this.talerExchangeBase,
       talerBankBase: this.talerBankBase,
+      abfallBerlinPrimaryUrl: this.abfallBerlinPrimaryUrl,
+      abfallBerlinFallbackUrl: this.abfallBerlinFallbackUrl,
+      abfallMuenchenPrimaryUrl: this.abfallMuenchenPrimaryUrl,
+      abfallHamburgPrimaryUrl: this.abfallHamburgPrimaryUrl,
       envOverridesActive: activeOverrides,
     };
   }

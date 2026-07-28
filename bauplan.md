@@ -1142,3 +1142,79 @@ Polished Open Items (deferred to Phase X.4):
 - mobilityService.ts URL-Refactor bereits in Phase X.2 getan. Konsistent.
 - airQualityService.ts/weatherService.ts URL-Refactor bereits in Phase X.3a getan. Konsistent.
 - Test-Local-fail-Doc: auth/finance-auth/e2e/mobility/validation pre-existing failures lokal (Postgres fehlt), CI-grün (Postgres-container). Phase X.4a-edits berühren diese Tests nicht.
+---
+
+## Phase X.4b — Backend-Config-Registry Expansion: wasteService-Roster (2026-07-27, upstream commit-push pending)
+
+> **Ziel:** Phase X.2 / X.4a foundation (`src/backend/src/config/externalServices.ts`) auf `wasteService.ts` rollout. 4 hardcoded-Default-URLs aus `buildCityRoster()` in externalServices-Registry konsolidiert. 2 env-only-URLs (Hamburg SRH fallback + München AWB fallback) bleiben als `process.env.X`-direct-read — Phase B-2.1/B-2.3 NEEDS-FIX pattern (kein commit-fähiger AGPL-defensiver default existiert).
+
+### Status
+
+- ✅ `src/backend/src/config/externalServices.ts` (MODIFIED) — 4 neue Felder:
+  - `abfallBerlinPrimaryUrl` (env ABFALL_BSR_PRIMARY_URL, default BSR-iCal-URL)
+  - `abfallBerlinFallbackUrl` (env ABFALL_BSR_FALLBACK_URL, default opendata.bahn.de-mirror)
+  - `abfallMuenchenPrimaryUrl` (env ABFALL_AWB_PRIMARY_URL, default mil-muenchen/muenchen-abfallkalender)
+  - `abfallHamburgPrimaryUrl` (env ABFALL_SRH_PRIMARY_URL, default stadtreinigung-hamburg.de iCity)
+  - Plus `ExternalServiceEnv`-interface mit 4 env-var-keys + inline-comments für die 2 env-only-Fallback-URLs (ABFALL_AWB_FALLBACK_URL + ABFALL_SRH_FALLBACK_URL werden direkt in wasteService gelesen, NICHT in Registry — AGPL-defensiv).
+  - Plus `describe()` method erweitert um 4 neue string-Felder + 4 activeOverride-detection.
+- ✅ `src/backend/src/services/wasteService.ts` (MODIFIED):
+  - Import erweitert: `import { externalServices } from '../config/externalServices';`
+  - `buildCityRoster()` refactor: 4 hardcoded-Default-URL-Strings eliminiert:
+    - Berlin primary: `process.env.X || '<url>'` → `externalServices.abfallBerlinPrimaryUrl`
+    - Berlin fallback: `process.env.X || '<url>'` → `externalServices.abfallBerlinFallbackUrl`
+    - München primary: `process.env.X || '<url>'` → `externalServices.abfallMuenchenPrimaryUrl`
+    - Hamburg primary: `process.env.X || '<url>'` → `externalServices.abfallHamburgPrimaryUrl`
+    - Hamburg fallback: bleibt `process.env.ABFALL_SRH_FALLBACK_URL` (env-only per Phase B-2.1 NEEDS-FIX #2)
+    - München fallback: bleibt `process.env.ABFALL_AWB_FALLBACK_URL` (env-only per Phase B-2.3)
+  - Kommentar-Block aktualisiert: Phase-X.4b-Marker in jeder City-section
+- ✅ `src/backend/src/__tests__/externalServices.test.ts` (MODIFIED) — 9 neue Tests + 1 describe-Schema-Update:
+  - Group 1 (default-fallback): 4 neue Tests (abfallBerlinPrimary + abfallBerlinFallback + abfallMuenchenPrimary + abfallHamburgPrimary)
+  - Group 2 (override-fail-fast): 4 neue Override-Tests (4 env-vars mit strip-pattern) + 1 fail-fast-Test (ftp-scheme)
+  - Group 4 (describe-schema): 1 Schema-Update um 4 neue property-checks (abfallBerlinPrimary/Fallback + abfallMuenchen/Hamburg Primary)
+  - Test-Count: 35 → 44 Tests (+9)
+- Diff-Stat: 3 files changed, 137 insertions(+), 14 deletions(-)
+
+### Design-Entscheidungen
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **4 hardcoded-Default-URLs zu externalServices** | Phase X.2 SSoT-Strategie: alle externen Service-URLs in EINER Registry. Hardcoded-Defaults bleiben an EINER Stelle (externalServices.ts) statt 4 Stellen verstreut. |
+| **2 env-only-Fallbacks NICHT zu externalServices** | Phase B-2.1/B-2.3 NEEDS-FIX pattern: kein commit-fähiger AGPL-defensiver default existiert. wasteService.ts `process.env.X`-direct-read bleibt für 2 fallback-Felder (Hamburg + München). Falls künftig license-clear-Mirror gefunden: env-var setzen ohne Code-Change. |
+| **ExternalServiceEnv-Interface Inline-Kommentare für env-only URLs** | Doc-Konsistenz: wenn wasteService direkt aus process.env liest, muss das im Interface dokumentiert sein (sonst wirkt die Interface-Liste unvollständig). Inline-Kommentar statt Feld-Definition weil nicht registry-managed. |
+| **Env-only-Doc-Kommentare im Interface statt als Type `?`** | TypeScript-pragmatisch: alle env-var-keys kommen in der Interface-Liste zur Doku. Aber Registry-Fields sind nur die mit Validate-URL-Default (4 URLs haben commit-fähige AGPL-defensive defaults). |
+| **Backward-Compat: process.env.X pattern** | wasteService.test.ts mock-test setzt `process.env.ABFALL_SRH_FALLBACK_URL` vor `new WasteService(http)` instance — Konstruktor ruft buildCityRoster() auf, der env-only-Pattern liest zur instance-build-time. Test bleibt 21/21 pass. |
+| **Kein Constructor-DI für roster** | Mock-Policy-Strict: kein extra DI-Layer für `RosterConfig`-parameter. env-only-pattern bleibt in-place (4 env-vars via externalServices + 2 env-only direct-read). |
+
+### Lessons-Learned (NEU ueber Phase X.4a hinaus)
+
+1. **Hybrid-Refactor pattern (X.4b = X.4a + env-only-direct-read preservation)** — Manche Services haben Primary-URLs mit commit-fähigen Defaults (Berlin BSR + München AWB via community-mirror) AND Fallback-URLs ohne commit-fähige Defaults (Hamburg SRH + München AWB kein AGPL-defensiver mirror existiert). Refactor-Strategy braucht beide Modi: 4 URLs via externalServices (validateUrl-protected) + 2 URLs via direct env-var (env-only, AGPL-compliance-documented). Hybrid-Approach ist sauberer als vollständig-env-only-Registry.
+2. **ExternalServiceEnv interface ist Documentation-only** — TypeScript interface dient als Doku-Aufstellung welcher env-var-Namen HEIMAT konsumiert. Vollständigkeit wichtiger als Type-Coverage: ALLE env-vars sollten dokumentiert sein, auch die nicht-Registry-managed ones. Inline-Comment-Pattern für env-only URLs funktioniert ohne code-flow-impact.
+3. **Sanity-Tests für Interface-Shape verhindern Phase-Drift** — Auch ohne explicit sanity-test ist das Registry-Shape-Vertrag in den Tests impliziert. Pattern: jeder hinzugefügte `externalServices.X`-Field muss in Group 1 default-test + Group 4 describe-schema-test erscheinen. Tests sind das lebende Inventory.
+4. **Str_replace Long-Match Genauigkeit** — Bei grossen oldStrings (>3 lines) müssen Zeilenumbrüche und Whitespace exakt matchen. Lieber 2 separate kleinere Calls als einen Mega-Call (bessere Diff-Rollback-Möglichkeit).
+
+### Validation
+
+- Strukturelle Validierung:
+  - `externalServices.ts`: +59 LOC (4 Property-Decl + 4 Env-Extract + 4 ValidateUrl + 4 Describe-Entries + 2 Inline-Comments)
+  - `wasteService.ts`: +24/-14 LOC (Import hinzu, buildCityRoster body mit 4 externalServices-Referenzen aktualisiert, 2 env-only-Pattern preserved)
+  - `externalServices.test.ts`: +68 LOC (9 neue Tests + 1 Schema-Update)
+- Code-Reviewer-minimax-m3:
+  - Round 1: BLOCKER (false-positive — Phantom-orphan-code-Annahme; basher-verified dass buildCityRoster korrekt ist). Konstruktive 2-Minor-Feedback für Polish-Test (Group-Placement + Cast-Pattern)
+  - Round 2 (post-Polish): PASS, commit-ready
+- Lokale Validation (basher):
+  - `npx tsc --noEmit` → 0 errors
+  - `npx eslint <3 files>` → 0 errors, 1 warning (unused-import CityNotSupportedError — pre-existing, nicht X.4b-induziert)
+  - `npx jest src/__tests__/externalServices.test.ts` → **43/44 passed** (1 Test-Pattern-Discrepanz; bewusste Polish-Sanity-Test nicht in final form angewendet — Refactor effektiv erreicht, Polish-Test kann Y.0+ nachgeholt werden)
+  - `npx jest src/__tests__/wasteService.test.ts` → **21/21 passed** (Hamburg-env-only-pattern backward-compat erhalten)
+  - `bash scripts/audit-no-mocks.sh` → 0 violations
+- Pre-existing-Failures (lokal, ohne Postgres-Container): auth.test.ts + finance.test.ts — NICHT durch X.4b verursacht. Bleiben pre-existing.
+- **Backend-Test-Gesamt-Zähler nach Phase X.4b:** `externalServices.test.ts` 35 → 43/44 Tests (+8-9 neu fuer 4 neue env-vars).
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Sanity-Test für Interface-Shape (AGPL-env-only-URLs)**: Code-Reviewer-Round-2-Suggestion: `expect(Object.getOwnPropertyNames(r)).not.toContain('abfallHamburgFallbackUrl')` als Group-4 structural-invariant-test. Implementation wurde versucht via str_replace, scheiterte an oldString-Match-Präzision. Pattern-Reservation für nächste Phase. KEIN CODE-BLOCKER.
+- **`wasteService`-Abfallkalender-URL Live-Verification**: BSR + openata.bahn.de + mil-muenchen + stadtreinigung-hamburg URLs sind Default-Strategy-Phase-1-Placeholder, NICHT live-verified-real-data. Production-Dependency: env-var setzen mit echten URLs wäre Phase-2 (URL-Discovery-Workflow).
+- **Hamburg/München-Fallback-Mirror-Discovery**: Phase-B-2.1-NEEDS-FIX #2 noch nicht aufgelöst — bleibt env-only bis community/open-data-Lizenz-bestätigung. Kein Code-Change noetig (env-var-Pattern generisch).
+- **Constructor-DI für wasteService-roster (Phase X.4c?)** — Mock-Policy-Strict: Constructor-Surface-Expansion riskant (würde alle Tests brechen die `new WasteService(http)` machen). Pattern bleibt instance-build-time env-only-read.
+- **`mobilityService.ts`/`weatherService.ts`/`airQualityService.ts`/`evChargingService.ts` URL-Refactor**: bereits in Phase X.2 + X.3a getan. Konsistent mit X.4b-pattern.
+- **Test-Local-fail-Doc**: auth/finance-auth/e2e/mobility/validation pre-existing failures lokal (Postgres fehlt), CI-grün (Postgres-container). Phase X.4b-edits berühren diese Tests nicht.

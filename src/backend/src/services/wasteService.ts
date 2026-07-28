@@ -34,6 +34,7 @@ import type { AxiosInstance } from 'axios';
 import { logger } from '../utils/logger';
 import { CITY_BOUNDS, resolveCity, CityNotSupportedError, type WasteCityKey, type CityBounds } from './wasteCityResolver';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
+import { externalServices } from '../config/externalServices';
 
 // ------------------------------------------------------------------
 // Public-Types
@@ -111,29 +112,24 @@ interface CityFetchUrls {
 function buildCityRoster(): Record<WasteCityKey, CityFetchUrls> {
   return {
     berlin: {
-      primary: process.env.ABFALL_BSR_PRIMARY_URL || 'https://www.bsr.de/abfuhrkalender-ical?strasse={street}&hausnr={houseNr}',
-      fallback: process.env.ABFALL_BSR_FALLBACK_URL || 'https://opendata.bahn.de/web/opendata/bsr-mirror/abfallkalender.ics?stadtteil={street}&hausnr={houseNr}',
+      // Phase X.4b: hardcoded default URLs aus Phase B-2 in externalServices-Registry konsolidiert.
+      primary: externalServices.abfallBerlinPrimaryUrl,
+      fallback: externalServices.abfallBerlinFallbackUrl,
       addressRequired: false, // Berlin liefert city-wide default falls keine address
       attribution: 'Berliner Stadtreinigung (BSR) — CC-BY 4.0',
     },
     muenchen: {
-      // Phase B-2.3: AWB-iCal-Endpoint ist 404 (live-curl-delete-verified). Community-mirror (mil-muenchen/muenchen-abfallkalender) als PRIMARY.
-      // Licensing: mil-muenchen/muenchen-abfallkalender-Repo ist GitHub-MIT; Daten-Aggregat ist AWB-data. AGPL-defensiv-strategy: kommentiert dokumentiert.
-      primary: process.env.ABFALL_AWB_PRIMARY_URL || 'https://raw.githubusercontent.com/mil-muenchen/muenchen-abfallkalender/main/muenchen.ics',
+      // Phase X.4b: Primary-URL aus externalServices-Registry. Fallback bleibt env-only
+      // (Phase B-2.3: kein commit-fähiger AGPL-defensiver fallback-URL).
+      primary: externalServices.abfallMuenchenPrimaryUrl,
       fallback: process.env.ABFALL_AWB_FALLBACK_URL,
       addressRequired: true,
       attribution: 'Abfallwirtschaftsbetrieb München (AWB) — CC-BY 4.0',
     },
     hamburg: {
-      primary: process.env.ABFALL_SRH_PRIMARY_URL || 'https://www.stadtreinigung-hamburg.de/icity/export.php?street={street}&houseNr={houseNr}',
-      // Phase B-2.1 NEEDS-FIX #2: env-var-only, kein default-URL.
-      // Garantiert AGPL-compliance: kein hit-von-unverified-mirror im
-      // production-default. Deployment-Owner koennen ihn via env-var
-      // ABFALL_SRH_FALLBACK_URL konfigurieren (verified community-mirror
-      // ODER transparenz.hamburg.de-export nach dessen License-Positiv-
-      // Befund). HACS waste_schedule plugin benutzt seit Jahren einen
-      // Python-Loader fuer SRH HTML-form — die iCal-Rohurl bleibt
-      // nicht-oefentlich bis Hamburg Open-Data publishen.
+      // Phase X.4b: Primary-URL aus externalServices-Registry. Fallback bleibt env-only
+      // (Phase B-2.1 NEEDS-FIX #2: AGPL-defensiv, kein default im production-code).
+      primary: externalServices.abfallHamburgPrimaryUrl,
       fallback: process.env.ABFALL_SRH_FALLBACK_URL,
       addressRequired: true,
       attribution: 'Stadtreinigung Hamburg (SRH) — CC-BY 4.0',
