@@ -57,13 +57,20 @@ wasteRouter.get(
   '/calendar',
   validate(calendarQuerySchema, 'query'),
   asyncHandler(async (req: Request, res: Response) => {
-    const { lat, lng, weeks, street, houseNr } = req.query as unknown as {
-      lat: number;
-      lng: number;
-      weeks: number;
-      street?: string;
-      houseNr?: string;
-    };
+    // Phase B-2.2 fix: validate() middleware does Object.assign(req.query, data)
+    // after schema.parse(req[source]). In Express 5, req.query is a lazy URL-
+    // getter — Object.assign mutates a transient object that is discarded on
+    // next read, so handler-side `req.query.lat` re-parses URL strings.
+    // The TS cast `as unknown as { lat: number }` only lies to the compiler;
+    // runtime value is still `'52.52'`. Result: resolveCity threw TypeError
+    // and route returned 502 instead of 200. Mirror the proven
+    // /api/weather/* parseFloat-at-handler boundary pattern so wasteService
+    // reliably receives numbers. Service stays strict (typeof === 'number').
+    const lat = parseFloat(req.query.lat as string);
+    const lng = parseFloat(req.query.lng as string);
+    const weeks = req.query.weeks ? parseInt(req.query.weeks as string, 10) : 4;
+    const street = req.query.street as string | undefined;
+    const houseNr = req.query.houseNr as string | undefined;
 
     try {
       const data = await wasteService.getWasteCalendar(lat, lng, weeks, street, houseNr);

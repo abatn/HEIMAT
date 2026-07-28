@@ -389,3 +389,80 @@ Entscheidend: wenn env-var NICHT konfiguriert (production-default), läuft der b
 - **404 als recoverable Mirror-Failover-Status für Hamburg-mirror**: Phase 2 falls Real-World-Betrieb zeigt dass env-configured fallback URL rotiert. Aktuell NICHT in `shouldFailover()` Status-Set.
 - **HEIMAT-weiter `.test.local`-TLD-Standard für Test-Fixtures**: Empfehlung an alle HEIMAT Tests, `example.com`/`mock.com`/`.test.de`-Fixtures in `src/mobile/test/` und `src/backend/src/__tests__/` zu `*.test.local` zu migrarieren. Separater Doku-Sweep.
 
+---
+
+## Phase B-2.2 — Express 5 req.query-getter Bugfix (2026-07-27, Commit <feat(waste): express-5-lat-lng-coerce-fix>)
+
+> **Ziel:** Live-verification nach Phase B-2 / B-2.1 push hat gezeigt dass `GET /api/waste/calendar?lat=52.52&lng=13.41&weeks=4` HTTP 502 statt 200/422 zurueckgibt. Detail: `'resolveCity: lat/lng must be numbers, got string/string'`. Root cause: validate.ts Middleware in Express 5 ist silently broken fuer query-source.
+
+### Bug-Analyse (Live-Curl before Fix — Against deployed Render)
+
+| URL | Status | Body |
+|-----|--------|------|
+| `/api/waste/calendar?lat=52.52&lng=13.41&weeks=4` | **502** (expect 200) | `{message: 'Abfallkalender konnte nicht abgerufen werden', detail: 'resolveCity: lat/lng must be numbers, got string/string'}` |
+| `/api/waste/calendar?lat=53.55&lng=9.99&weeks=4` | **502** (expect 422) | gleichen 502-Body wie Berlin |
+| `/api/waste/calendar?lat=48.14&lng=11.58&weeks=4` | **502** (expect 422) | gleichen 502-Body |
+| `/api/waste/status` | 404 → 200 | War waehrend Render-Deploy kurz 404, dann 200 OK mit `{service: 'waste', cities: [...]}` |
+
+### Root-Cause
+
+**Express 5's `req.query` ist ein lazy URL-getter** (Express 5+ design Aenderung). `src/backend/src/middleware/validate.ts` macht:
+```typescript
+if (source === 'query') {
+  Object.assign(req.query, data);  // mutates TRANSIENT-OBJECT das immediately discarded wird
+}
+```
+
+WICHTIG: `Object.assign(req.query, data)` ruft zuerst `req.query`-getter (returniert parsed URL object), mutiert dann DAS, aber `req.query` ist beim naechsten Zugriff wieder fresh URL-parse. TypeScript-Cast `as unknown as { lat: number }` in routes/waste.ts war eine COMPILE-TIME-Luege; runtime ist immer noch `'52.52'` (string). Folge: `wasteService.getWasteCalendar(lat:number, lng:number, ...)` bekommt strings → `resolveCity` check `typeof lat !== 'number'` → wirft TypeError → handler catch in 'ALL OTHER ERRORS' 502 branch.
+
+### Loesung (Thinker-with-files-gemini Option C — Hybrid-Mirror)
+
+Keep `validate(calendarQuerySchema, 'query')` middleware (gibt clean 400 fuer malformed input, min/max/domain-checks gut aufgehoben). Add HANDLER-LEVEL parseFloat/parseInt direkt an der handler-boundary als safety-net — Spiegel von `routes/weather.ts` (Phase E, Live & Working):
+
+```typescript
+  '/calendar',
+  validate(calendarQuerySchema, 'query'),  // BEHALTEN: Zod-range-checks + clean 400-erros
+  asyncHandler(async (req: Request, res: Response) => {
+    // Phase B-2.2 fix (Express 5 req.query-getter bug siehe commit):
+    const lat = parseFloat(req.query.lat as string);
+    const lng = parseFloat(req.query.lng as string);
+    const weeks = req.query.weeks ? parseInt(req.query.weeks as string, 10) : 4;
+    const street = req.query.street as string | undefined;
+    const houseNr = req.query.houseNr as string | undefined;
+    ...
+    // wasteService.getWasteCalendar(lat, lng, weeks, street, houseNr)
+```
+
+### Option-B-vs-C Trade-Off
+
+- **Option B (abgelehnt)**: Fix `validate.ts` globally mit `Object.defineProperty(req, 'query', {value: data, configurable:true, writable:true})` statt `Object.assign`. Pro: wuerde alle zukuenftigen validate(..., 'query')-Aufrufer auto-korrigieren. Contra: Modify-the-Express-5-getter globally hat ungewisse Interaktionen mit downstream-middleware die noch URL-original-Verhalten erwarten (logger, query-parser-tester etc.).
+- **Option C (gewaehlt)**: Nur routes/waste.ts bekommt die handler-level-Coerce-Bloecke. validate.ts bleibt unveraendert + funktioniert wie bisher fuer bisherige caller (kein regressions). 6-LOC change, klar limiter-Risiko-Kreis.
+
+### Validation
+
+- Strukturelle Validierung (basher post-fix): routes/waste.ts 117 Zeilen (war 113 → +4 LOC netto: 5 zeilen Kommentar + 6 zeilen Coerce-Block - 7 zeilen alte Destruktur).
+- Code-Reviewer-minimax-m3 PASS (6 Punkte):
+  1. ✅ `parseFloat(req.query.lat)` rettet URL-string → number auch unter Express 5's lazy-getter
+  2. ✅ Zod `z.coerce.number().min(-90).max(90)` rejectet `?lat=foo` BEVOR handler-entry (Number('foo')=NaN fails range-check) → 400 BadRequest via AppError
+  3. ✅ `weeks ? parseInt(...) : 4` ternary gates undefined correctly
+  4. ✅ Empty-street via `req.query.street === ''` cast as `string | undefined` → service check `!street` ist truthy → AddressRequiredError → 422
+  5. ✅ Fractional weeks `?weeks=4.5` rejected via zod `.int().min(1).max(8)` BEFORE handler entry
+  6. ✅ 5-zeilen Kommentar intentionally ausfuehrlich (AGENTS.md minimal-verbosity waived bei production-bugfix-Dokumentation)
+- Mock-Policy-Konformitaet unveraendert: routes/waste.ts 117 LOC, null forbidden-identifiers.
+- Live-Re-verify nach Push erwartet: Berlin 200, Hamburg 422, Muenchen 422, status 200.
+
+### Lessons-Learned (NEU — ueber Phase B-2 + B-2.1 hinaus)
+
+1. **Express 5 + Zod-coerce via Object.assign IST silent failure** — validate() middleware ist kein drop-in fuer Express 5 query-sources mehr. Pattern: fuer jede neue Route die validate() + query-coerce nutzt, MUSS handler-level parseFloat/parseInt als safety-net gesetzt werden.
+2. **TypeScript cast `as unknown as {lat:number}` ist COMPILE-TIME-ONLY** — kann runtime-string-cast-bugs nicht fixen, nur den Compiler ueberlisten. Lieber `as string` + `parseFloat()` — explicit type-flow.
+3. **Live-Curl-verify-after-deploy ist ein mandatory CI-Gate** — Dieser Bug waere ohne live-call nie gefangen worden. Pure-TypeScript-static-analysis haette den cast stillschweigend weggerechnet. Konkret: alle backend route-changes die query-coerce nutzen brauchen EINE live-verification curl gegen deployed Render (5-7 min polling toleranz).
+4. **Mirror zu bewahrten Live-Patterns** — `routes/weather.ts` macht parseFloat seit Phase E erfolgreich. Hätte ich damals weather.ts als template gewaehlt statt validate() middleware, wäre Phase B-2 direkt gruen gewesen.
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Global-fix validate.ts (Option B)**: wuerde jede zukunft route-erweiterung mit validate() + query-coerce auto-korrigieren. Patzhalter fuer Phase 5 Clean-up-Sweep.
+- **Route-level integration-test (Supertest /api/waste/calendar)**: wuerde den exact-string-cast-string-bug deterministisch abfaengen. Phase 3 Ort fuer infra-invest.
+- **HEIMAT-weiter `.test.local`-TLD-Standard fuer Test-Fixtures** (aus Phase B-2.1): noch nicht umgesetzt.
+- **Phase B-3 Flutter UI**: wartet NICHT auf B-2.2 fix — schon naechste Phase.
+
+
