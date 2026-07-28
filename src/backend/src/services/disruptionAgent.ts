@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { errorMessage } from '../utils/error';
+import { externalServices } from '../config/externalServices';
 
 export interface Disruption {
   affected_stops: string[];
@@ -68,7 +69,7 @@ function parseAlert(text: string): Disruption | null {
 
 export async function getDisruptionsFromTransitous(): Promise<string[]> {
   try {
-    const response = await fetch('https://api.transitous.org/api/v1/alerts', {
+    const response = await fetch(`${externalServices.transitousBase}/alerts`, {
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) return [];

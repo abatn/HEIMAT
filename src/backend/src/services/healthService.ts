@@ -2,6 +2,7 @@ import { query, queryOne } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import axios, { AxiosError } from 'axios';
+import { externalServices } from '../config/externalServices';
 
 interface Doctor {
   id: string;
@@ -42,12 +43,8 @@ interface Appointment {
 }
 
 export class HealthService {
-  private readonly userAgent = 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
-  private readonly overpassMirrors = [
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-  ];
+  private readonly userAgent = externalServices.userAgent;
+  private readonly overpassMirrors = externalServices.overpassMirrors;
 
   private classifySpecialty(tags: Record<string, string> = {}): string {
     const specialty =
@@ -147,7 +144,7 @@ export class HealthService {
     // 2. Wenn Location angegeben: Geocoding → Overpass nearby (OSM-Praxen)
     if (location && location.trim()) {
       try {
-        const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&countrycodes=de`;
+        const geoUrl = `${externalServices.nominatimUrl}/search?q=${encodeURIComponent(location)}&format=json&limit=1&countrycodes=de`;
         const geoResp = await axios.get(geoUrl, {
           headers: { 'User-Agent': this.userAgent },
           timeout: 10000,
