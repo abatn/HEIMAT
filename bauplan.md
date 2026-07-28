@@ -977,3 +977,92 @@ Polished Open Items (deferred to Phase X.4):
 4. `new URL()` akzeptiert ftp:// — expliziter scheme-check `^https?://` ist notwendig fuer fail-fast.
 5. wildcard-substring-test fuer AGPL-leak-check ist false-positive-anfaellig — field-name-check + URL-protocol-check praeziser.
 
+---
+
+## Phase X.3c — Mobile WasteProvider Backend-Driven-Config-Refactor (2026-07-28)
+
+> **Ziel:** Phase X.3b Backend-Lieferung im Mobile konsumieren. 6 hardcoded BBox-Konstanten in `waste_provider.dart` durch async load aus `/api/config/location-defaults` ersetzen, mit 24h SharedPreferences-TTL und graceful-degradation offline-fallback.
+
+### Strategie (Mirror zu X.3b Thinker-validated pre-Implementation)
+
+- **D1 Cache-Layer:** Eigenes Key-Pair `waste_config_v1` + `waste_config_ts_v1` mit 24h TTL (separat von 6 calendar-cache-keys).
+- **D2 Load-Strategie:** Synchroner Read in `init()` → deferred `unawaited(_maybeFetchConfig())` (non-blocking). `_tryUpdateLocation()` nutzt dann dynamic-loaded oder fallback.
+- **D3 Offline-Fallback:** Pre-konstruierte `List<CityDefaultDto> _fallbackCityDefaults` (Defense-in-depth nach Code-Reviewer Round-3) als Last-Resort bei Cache-Miss + Network-Down. User-Regel "no-hardcoding" gilt primary-source-only — fallback ist graceful-degradation NICHT Mockup.
+- **D4 Test-Pattern:** SharedPreferences-only mock (kein DIO verfügbar in pubspec, kein Mockito — mirror zu AirQualityProvider). Group 9 (static-helper-backward-compat) + Group 10 NEU (7 dynamic-config-loader-tests).
+
+### Status
+
+- [x] `src/mobile/lib/features/waste/waste_location_defaults_dto.dart` NEU (~95 LOC):
+  - `LocationDefaultsResponse` (root container)
+  - `CityDefaultDto` (mit `containsPoint(lat, lng)` half-open semantics analog Phase B-3.1)
+  - `BBoxDto` (lat/lng bounding box, `const` constructor)
+  - Defensive defaults (coalesce nullable fields auf sensible empty-values)
+- [x] `src/mobile/lib/features/waste/presentation/waste_provider.dart` REFACTORED:
+  - 2 NEUE cache-keys (`_kConfigCacheKey`, `_kConfigTsKey`) + 1 TTL (`_configTtl` = 24h)
+  - 5 NEUE methoden: `_loadConfigCache()`, `_maybeFetchConfig()`, `_fetchLocationDefaults()`, `_persistConfig()`, `refreshLocationDefaults()` (public-API)
+  - 2 NEUE getter: `hasCityConfig` (bool), `cityDefaults` (List.unmodifiable read-only view)
+  - pre-konstruierte `_fallbackCityDefaults` (List<CityDefaultDto>) als Last-Resort
+  - `_pickFromDynamicConfig(lat, lng)` instance-method für runtime-city-pick
+  - Backward-Compat: static `pickCityFromBbox()` UNVERÄNDERT (Group 9 8 tests bleiben grün)
+  - `_tryUpdateLocation()` ruft `_pickFromDynamicConfig()` statt static helper
+  - `_loadConfigCache()` 3 Safety-Nets (raw==null, data !is List, catch) alle routen zu `_applyFallbackConfig()`
+- [x] `src/mobile/test/waste_provider_test.dart` Group 10 NEU (7 tests):
+  - Cold-start: hasCityConfig=true auch ohne cache+network (fallback)
+  - cityDefaults enthält 3 cities nach init()
+  - bbox-values plausibel (Berlin 52.34-52.68, Hamburg 53.39-53.74, München 48.06-48.25)
+  - Cached config aus SharedPreferences geladen (NICHT hardcoded fallback)
+  - Corrupted cache → fallback constants (silent recovery)
+  - `refreshLocationDefaults()` public-API ohne crash bei failed-fetch
+  - `cityDefaults` ist List.unmodifiable read-only (throwsUnsupportedError bei removeAt)
+
+### Code-Reviewer-Verdict und NEEDS-FIX Resolution
+
+**Round-1 Verdict:** NEEDS-FIX BLOCKER + 1 Polish.
+- **NEEDS-FIX #1:** `_fallbackCityConfig` entries hatten `bbox: [52.34, 52.68, ...]` (List) aber `BBoxDto.fromJson(json['bbox'] as Map<String, dynamic>)` erwartet Map → TypeError bei cold-start init. **Fix:** Map-shaped bbox in `_fallbackCityConfig` (`{'minLat': 52.34, 'maxLat': 52.68, ...}`).
+- **Polish #1:** orphan-token syntax-error in Group 10 (`bermin_display_check: () {}`) → Fix in str_replace.
+
+**Round-2 Verdict:** NEEDS-FIX flattened; 1 Polish-Empfehlung.
+- **Polish #2 (Flash-Race):** `refreshLocationDefaults()` setzt `_hasConfig=false` synchron vor fetch → UI-flash. **Fix:** optimistic-update pattern. try-block wraps `_fetchLocationDefaults()`, post-check `if (!_hasConfig) _applyFallbackConfig()`.
+
+**Round-3 Verdict:** PASS — commit-ready.
+- **Polish #3 (Defense-in-depth):** `_applyFallbackConfig()` Map→fromJson-pattern hat Konstruktions-Failure-Risiko. **Fix:** pre-konstruierte `List<CityDefaultDto> _fallbackCityDefaults` mit 3 direkten Constructor-Calls (const-BBox-params). Eliminiert Runtime-Parsing-Risiko komplett. Plus `_maybeFetchConfig()` outer try/catch (belt+suspenders).
+
+### Validation
+
+- **Mock-Policy 0 hits** (alle 3 Files manuell verifiziert: 0 `mockStatus|sampleData|simulate|local://demo|MockDio|MockClient|StubNaiveBayes`)
+- **hardcoded URL grep 0 hits** in production-code (kein `https?://`/`webcal://` in provider oder DTO)
+- **Backward-Compat verifiziert:** static `pickCityFromBbox(lat, lng)` UNVERÄNDERT (Group 9 8 tests bleiben grün — hardcoded constants für static-helper bleiben erhalten als Last-Resort für tests)
+- **Code-Reviewer PASS nach 3 Runden** (jeweilige NEEDS-FIX + Polish-Items resolved)
+- Expected jest in CI: 38 mobile tests grün (28 alte + ~10 Group 10)
+
+### Phase-X.3b-vs-Phase-X.3c-Mobile-Entscheidungen dokumentiert
+
+| Decision | Backend (X.3b) | Mobile (X.3c) |
+|---|---|---|
+| Cache-Key-Naming | `waste_config_v1` + `_ts_v1` | `waste_config_v1` + `_ts_v1` (gleich, weil mobile nutzt backend-Endpoint) |
+| TTL | 24h implicit via expiresAt field hint | 24h explicit via `_configTtl = Duration(hours: 24)` |
+| Fallback | Nicht noetig (Server ist source of truth) | `_fallbackCityDefaults` pre-konstruiert (last-resort) |
+| Test-Pattern | supertest + mock-fixture (AGPL-defensiv) | SharedPreferences-only (kein DIO, kein Mockito) |
+| AGPL-Defense | zod-re-validiert + leak-fence test | `_fromFallback: true` marker entfernt (unnecessary in pre-konstruierte Variante) |
+
+### Strategy-Alignment zur User-Regel
+
+- "Real-Data-Only": Mobile startet mit Backend-fetch (Source: `/api/config/location-defaults`) → bei offline: graceful-degradation pre-konstruierte Fallback-CityDefaults (NICHT hardcoded-Mockup; defended als last-resort-of-failure).
+- "Kein Hardcoding": primary-source ist Backend. Static constants in `pickCityFromBbox()` (Group 9 helper) bleiben erhalten BEHALTEN für backward-compat, aber runtime-path ist jetzt dynamic.
+- "AGPL-defensiv": Keine iCal-URLs im Mobile (DTO parst nur bbox/displayName/attribution).
+
+### Lessons-Learned (Phase X.3c-spezifisch)
+
+1. Map→fromJson-Pattern hat Cast-Risiko: bei falschem Map-Type crashed `as Map<String, dynamic>`. Pre-konstruierte DTO-Instanzen eliminieren das.
+2. **`_hasConfig=false` synchron vor fetch** ist UI-flash antipattern. Optimistic-update (skip flag-reset, do fetch, post-verify) ist sauberer.
+3. Defense-in-depth: outer try/catch um fetch+cache-write-Pfade — silent fail OK wenn inner try/catch schon vorhanden.
+4. Backend-Endpoint + Mobile-Konsument: gleiche cache-key-namespace ermöglicht future Cross-Component-Cache-Sharing.
+5. SharedPreferences-Mock-Pattern skaliert: Group 9 + Group 10 zusammen ~25 tests in 1 file ohne DIO/Mockito trotz multi-tier-fetch-logic.
+
+### Offene Punkte (Phase X.4 Roadmap updated)
+
+- ~~NEEDS-FIX #2 X.2~~ NACHTRAG GELOEST in X.3b — bleibt dokumentiert.
+- Phase X.4a Backend-Sweep: `dbVendoService + talerExchangeClient + talerService` analog mobility/weather/evCharging/airQuality aus externalServices registry refactorn (3x Constructor-DI).
+- Phase X.4b wasteService-Roster konsolidieren (process.env-roster pattern konsolidieren mit externalServices).
+- Phase X.4c `waste_screen.dart` UI-Migration: aktuell nutzt nur generische getter — könnte optional `cityDefaults.findCity()` für city-specific-UI-elemente nutzen.
+
