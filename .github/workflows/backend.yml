@@ -4,10 +4,14 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/**'
+      - 'scripts/**'
       - 'src/backend/**'
   pull_request:
     branches: [main]
     paths:
+      - '.github/workflows/**'
+      - 'scripts/**'
       - 'src/backend/**'
 
 permissions:
@@ -34,6 +38,8 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
+      - name: Install ripgrep
+        run: sudo apt-get install -y --no-install-recommends ripgrep
       - name: Mock-Policy-Audit
         working-directory: ${{ github.workspace }}
         run: bash scripts/audit-no-mocks.sh
