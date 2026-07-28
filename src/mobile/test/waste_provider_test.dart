@@ -213,7 +213,7 @@ void main() {
 
   // ------------------------------- Group 6 -------------------------------
   group('Group 6: TTL Boundary (24h strict > test)', () {
-    test('init() mit EXAKT 24h altem cache → isStale=false (strict > TTL)',
+    test('init() mit 23h59m altem cache → isStale=false (strict > TTL)',
         () async {
       final fakeData = <String, dynamic>{
         'status': 'ok',
@@ -229,13 +229,14 @@ void main() {
       SharedPreferences.setMockInitialValues({
         'waste_data_v1': jsonEncode(fakeData),
         'waste_ts_v1': DateTime.now()
-            .subtract(const Duration(hours: 24))
+            .subtract(const Duration(hours: 23, minutes: 59))
             .millisecondsSinceEpoch,
       });
       final p4 = WasteProvider();
       await p4.init();
       expect(p4.hasData, isTrue);
-      expect(p4.isStale, isFalse);
+      expect(p4.isStale, isFalse,
+          reason: 'Bei 23h59m ist diff < 24h (TTL) → Strict `>` ergibt false');
     });
 
     test('init() mit 24h+1min altem cache → isStale=true', () async {

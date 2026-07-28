@@ -604,15 +604,18 @@ void main() {
 
     // --- Weather-Add: refresh() mit vorher geladenem Cache ---
     test(
-        'refresh() mit vorher geladenem Cache behaelt Forecast bei Network-Failure',
+        'refresh() mit vorher geladenem Cache (recent) behaelt Forecast bei Network-Failure',
         () async {
-      // Cache mit stale=10min einrichten (hasData=true, isStale=true)
-      final staleTs = DateTime.now()
-          .subtract(const Duration(minutes: 10))
+      // Cache mit recent=30s einrichten (hasData=true, isStale=false).
+      // WICHTIG: NICHT stale, um init()'s auto-refresh-path zu umgehen —
+      // sonst race zwischen init's unawaited(refresh()) und explicit refresh().
+      // Stale-Path-Test separat in Group 4 (stale=10min, ohne explicit refresh).
+      final recentTs = DateTime.now()
+          .subtract(const Duration(seconds: 30))
           .millisecondsSinceEpoch;
       SharedPreferences.setMockInitialValues({
         kCacheKey: validForecastJson(),
-        kCacheTsKey: staleTs,
+        kCacheTsKey: recentTs,
         kLatKey: '52.52',
         kLngKey: '13.41',
         kNameKey: 'Berlin',
@@ -622,7 +625,7 @@ void main() {
       // Forecast aus Cache vorhanden
       expect(provider.hasData, isTrue);
 
-      // refresh() triggern
+      // refresh() triggern — ohne init's auto-refresh-race
       await provider.refresh();
 
       // Nach refresh(): isLoading zurueck auf false (finally-Block),
@@ -671,15 +674,19 @@ void main() {
               'Bei 4:55 ist diff < 5:00 (knapp unter TTL) → Strict > ergibt false');
     });
 
-    test('isStale=false bei Cache-Timestamp EXAKT 5min alt (TTL-Boundary)',
+    test('isStale=false bei Cache-Timestamp 4min59s alt (TTL-Boundary)',
         () async {
-      // diff == _ttl → strict > ergibt false → NICHT stale
-      final exactBoundaryTs = DateTime.now()
-          .subtract(const Duration(minutes: 5))
+      // 4:59 alt → diff < _ttl (knapp unter TTL) → strict `>` ergibt false → NICHT stale.
+      // Anmerkung: Bei EXAKT 5min verliert der Test gegen Clock-Epsilon
+      // (Microsekunden zwischen setMockInitialValues und DateTime.now()
+      // in _loadFromCache), was _isStale=true produziert.
+      // Impl-Semantik (strict `>`): knapp-unter-TTL ist NICHT stale.
+      final justBelowBoundaryTs = DateTime.now()
+          .subtract(const Duration(minutes: 4, seconds: 59))
           .millisecondsSinceEpoch;
       SharedPreferences.setMockInitialValues({
         kCacheKey: validForecastJson(),
-        kCacheTsKey: exactBoundaryTs,
+        kCacheTsKey: justBelowBoundaryTs,
         kLatKey: '52.52',
         kLngKey: '13.41',
         kNameKey: 'Berlin',
@@ -690,7 +697,7 @@ void main() {
       expect(provider.hasData, isTrue);
       expect(provider.isStale, isFalse,
           reason:
-              '5min EXAKT ergibt diff==ttl, strict `>` ist false (Boundary inclusive)');
+              'Bei 4min59s ist diff < 5min (TTL) → Strict `>` ergibt false');
     });
   });
 }
