@@ -1262,3 +1262,34 @@ Polished Open Items (deferred to Phase X.4):
 - **Test-Magic-Numbers** (52.5200/13.4050 in airQuality/e2e/evCharging/health/mobility Tests): Test-Fixtures, nicht Production-Code. `bboxCenter`-Helper retroaktiv wäre separater Sweep.
 
 ---
+
+---
+
+## Phase X.4d — wasteService.ts userAgent-Konsistenz (2026-07-28)
+
+> **Ziel:** Letzte hardcoded URL-Literal in wasteService.ts eliminiert. `private readonly userAgent = 'HEIMAT-App/1.0 (...)'` → `externalServices.userAgent`. Import existierte bereits aus Phase X.4b.
+
+### Status
+
+- ✅ `src/backend/src/services/wasteService.ts` (MODIFIED, 1 LOC): `private readonly userAgent = externalServices.userAgent`
+
+### Validation
+
+- `npx tsc --noEmit` → 0 errors ✓
+- `npx eslint src/services/wasteService.ts` → 0 errors, 1 pre-existing warning (unused import CityNotSupportedError — nicht X.4d) ✓
+- `npx jest src/__tests__/wasteService.test.ts` → 21/21 passed ✓
+- `bash scripts/audit-no-mocks.sh` → 0 violations ✓
+
+### Phase X.4 Gesamt-Bilanz (X.4a + X.4b + X.4c + X.4d)
+
+| Service | URLs eliminiert | Phase |
+|---|---|---|
+| dbVendoService.ts | 1 (transitousBase) | X.4a |
+| talerExchangeClient.ts | 1 (exchangeBase) | X.4a |
+| talerService.ts | 4 (bank.demo.taler.net literals) | X.4a |
+| wasteService.ts | 4 City-URLs + 1 userAgent | X.4b + X.4d |
+| healthService.ts | 3 (userAgent + overpassMirrors + nominatimUrl) | X.4c |
+| disruptionAgent.ts | 1 (transitousBase alerts) | X.4c |
+| **Gesamt** | **15 hardcoded URL-Literals → externalServices-Registry** | |
+
+---
