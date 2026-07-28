@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/services/location_service.dart';
 import '../waste_dto.dart';
 
 /// WasteProvider — Backend-Anbindung für Abfallkalender (Phase B-3).
@@ -34,6 +35,54 @@ class WasteProvider extends ChangeNotifier {
   static const String _kHouseNrKey = 'waste_houseNr_v1';
   static const String _kWeeksKey = 'waste_weeks_v1';
   static const Duration _ttl = Duration(hours: 24);
+
+  // ------------------------------------------------------------------
+  // Phase B-3.1: Bbox-basierter City-Picker (Auto-City-Detection)
+  // ------------------------------------------------------------------
+  // 3 Staedte via Bounding-Box. Half-open intervalle [latMin, latMax) x
+  // [lngMin, lngMax). Bei bbox-miss Fallback auf Berlin (kein address_required).
+  // Werte spiegeln grob die Stadtgrenzen + Metro-Region. Siehe AGENTS.md
+  // 'AI-Architektur' Phase C-D als long-term Roadmap (intelligenter AutoPicker).
+  static const double _berlinLatMin = 52.34;
+  static const double _berlinLatMax = 52.68;
+  static const double _berlinLngMin = 13.10;
+  static const double _berlinLngMax = 13.77;
+
+  static const double _hamburgLatMin = 53.39;
+  static const double _hamburgLatMax = 53.74;
+  static const double _hamburgLngMin = 9.73;
+  static const double _hamburgLngMax = 10.32;
+
+  static const double _muenchenLatMin = 48.06;
+  static const double _muenchenLatMax = 48.25;
+  static const double _muenchenLngMin = 11.36;
+  static const double _muenchenLngMax = 11.73;
+
+  /// Phase B-3.1 statischer Helper: bbox → city-key.
+  /// Public für Testbarkeit und etwaige zukünftige UI-Hints.
+  /// Half-open semantics: lat in [min, max), lng in [min, max).
+  /// Bbox-miss → 'berlin' (default Fallback, address_required=false).
+  static String pickCityFromBbox(double lat, double lng) {
+    if (lat >= _berlinLatMin &&
+        lat < _berlinLatMax &&
+        lng >= _berlinLngMin &&
+        lng < _berlinLngMax) {
+      return 'berlin';
+    }
+    if (lat >= _hamburgLatMin &&
+        lat < _hamburgLatMax &&
+        lng >= _hamburgLngMin &&
+        lng < _hamburgLngMax) {
+      return 'hamburg';
+    }
+    if (lat >= _muenchenLatMin &&
+        lat < _muenchenLatMax &&
+        lng >= _muenchenLngMin &&
+        lng < _muenchenLngMax) {
+      return 'muenchen';
+    }
+    return 'berlin'; // Fallback
+  }
 
   // ------------------------------------------------------------------
   // State
@@ -72,13 +121,42 @@ class WasteProvider extends ChangeNotifier {
   int get weeks => _weeks;
 
   // ------------------------------------------------------------------
-  // init — Lade Cache + Auto-Refresh bei stale oder leer
+  // init — Lade Cache + Auto-Refresh bei stale oder leer + LocationService
   // ------------------------------------------------------------------
   Future<void> init() async {
     await _loadFromCache();
     notifyListeners();
     if (!hasData || _isStale) {
       unawaited(refresh());
+    }
+    // Phase B-3.1: LocationService-Integration nach initial-cache-load.
+    // best-effort: 3s timeout, fail-silent to Berlin default.
+    // Reihenfolge nach initial-refresh: erst City aus Location picken (ggf.
+    // weckt refresh erneut auf wenn sich die city geaendert hat).
+    unawaited(_tryUpdateLocation());
+  }
+
+  /// Phase B-3.1: LocationService-Integration (mirror zu AirQualityProvider).
+  /// Best-effort: 3s timeout, on failure bleibt Berlin-default.
+  /// Erkennt Hamburg/München via bbox → refreshes triggern dann
+  /// 422 AddressRequiredError → Bottom-Sheet-Dialog im Screen.
+  Future<void> _tryUpdateLocation() async {
+    try {
+      final pos = await LocationService.getCurrentLocation().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => null,
+      );
+      if (pos != null) {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+        // Phase B-3.1: bbox-basierter Auto-City-Picker
+        _city = WasteProvider.pickCityFromBbox(_lat, _lng);
+        unawaited(_persistAddress());
+        notifyListeners();
+        unawaited(refresh());
+      }
+    } catch (_) {
+      // silently ignore — Berlin-Fallback bleibt aktiv
     }
   }
 
