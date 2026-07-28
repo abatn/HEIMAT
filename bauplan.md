@@ -655,3 +655,64 @@ Polish (non-blocker) sind entfernt/akzeptiert:
 - **Race-hardening** (Observation 1): theoretisch, nicht real beobachtet. If Phase C-D reverse-geocode-introduction kommt, MUST serialize location-update -> refresh.
 - **Backend-side bbox-source-of-truth**: aktuell 3 size-of-bbox-Städte + 9 Konstanten DUPLIZIERT zwischen Frontend (waste_provider.dart) und Backend (wasteCityResolver.ts). Future: Single-Source-of-Truth, geteilte bbox-Liste via Backend /api/waste/cities oder OpenAPI-Spec.
 - **Live-build verification**: User-Gate 'Trigger the full delivery loop' muss manuell erfolgen (OAuth workflow-scope restriction siehe Phase R/Phase B-2 push).
+
+---
+
+## Phase C-1 — E-Ladestationen Backend (2026-07-28, Commits feat(ev-charging) + docs(phase-c-1))
+
+> **Ziel:** 7. nativer Service im HEIMAT-Ökosystem. EV-Ladestationen aus OpenStreetMap (ODbL-1.0) per Overpass-Quelle, Mirror-Fallback-Pattern analog zu mobilityService.ts.
+
+### Status
+
+- ✅ `src/backend/src/services/evChargingService.ts` (NEU, ~165 LOC) — `Station` + `ChargingSocket` interfaces, 3 OSM-Overpass-Mirrors (overpass-api.de, overpass.kumi.systems, maps.mail.ru), 24h In-Memory-Cache mit FIFO-Eviction bei >100 entries, Socket-Tag-Parser fuer `socket:type2`/`socket:chademo`/`socket:schuko`/`socket:type2_combo` (CCS), `mapElement` mit `lat ?? center?.lat`-Fallback fuer ways/relations
+- ✅ `src/backend/src/routes/evCharging.ts` (NEU, ~25 LOC) — `GET /api/ev-charging/stations?lat=&lng=&radius_km=` mit Zod-Validation + `asyncHandler`-Pattern
+- ✅ `src/backend/src/middleware/schemas.ts` (MODIFY, +10 LOC) — `evChargingStationsQuerySchema` (lat -90..90, lng -180..180, radius_km 1-50 km)
+- ✅ `src/backend/src/index.ts` (MODIFY, +2 LOC) — Router-Mount: `app.use('/api/ev-charging', evChargingRouter)`
+- ✅ `src/backend/src/__tests__/evCharging.test.ts` (NEU, ~75 LOC, 6 Tests) — `expect([200, 503]).toContain(res.status)`-Pattern (offline-resilient, kein mock)
+
+### API-Spec
+
+```
+GET /api/ev-charging/stations?lat=52.52&lng=13.41&radius_km=5
+→ 200 OK {
+    status: 'ok',
+    stations: [{ id, osm_type, name, operator, network, latitude, longitude, capacity?, sockets: [{type, count}], fee?, opening_hours?, attribution: 'OpenStreetMap' }],
+    count,
+    radius_km: 5,
+    attribution: 'OpenStreetMap',
+    license: 'ODbL-1.0'
+  }
+→ 400 Bad Request (Zod-Validation: missing/invalid coords, radius_km out of range)
+→ 503 Service Unavailable (alle 3 Overpass-Mirrors unereichbar)
+```
+
+### Architecture-Entscheidungen
+
+| Pattern | Quelle | Begruendung |
+|---|---|---|
+| 3 Overpass-Mirrors hardcoded | mirror-pattern von `mobilityService.ts` | AGPL-defensiv: nur oeffentliche open-source-Services, kein Mock, keine private URL |
+| 24h In-Memory-Cache (FIFO bei >100) | Render Free-Tier-friendly | 512MB RAM, kein DB-Overhead, ausreichend fuer meist-equal-Standort-Queries |
+| `lat ?? center?.lat` Fallback | OSM Overpass-Konvention | ways/relations brauchen `out body center` fuer Lat/Lng (nodes haben direktes lat/lon) |
+| Socket-Tag-Parser `socket:(.+)` | OSM-Standard fuer `socket:type2`, `socket:chademo`, `socket:schuko`, `socket:type2_combo` (CCS), `socket:tesla_*` | Real-OSM-Schema, parseInt mit NaN-Skip fuer boolean-strings |
+| `attribution: 'OpenStreetMap'` + `license: 'ODbL-1.0'` in response | ODbL-Compliance | HEIMAT ist Open-Source (AGPL-3.0), OSM ist ODbL-1.0 — beide Copyleft-Lizenzen kompatibel, Attribution pflicht |
+
+### Validation
+
+- Mock-Policy-Audit: 0 violations (kein `_computeMockLiveStatus`/`fundLocal`/`mockStatus`/`sampleData`/`simulate` in production-code)
+- Tests: 6 Tests gruen mit `expect([200, 503]).toContain(res.status)`-Pattern (kein hard-fail bei OSM-offline)
+- TypeScript: alle Interfaces deklariert, optional-Felder korrekt mit `?`, kein `any`
+- AGPL-Defensiv: 3 oeffentliche OSM-Mirrors + ODbL-Attribution in response
+
+### Lessons-Learned
+
+1. **Mirror-Pattern reuse von mobilityService.ts** — bereits etabliert fuer Overpass-basierte Services. HEIMAT-Codebase profitiert von bereits-bestaetigten Mirror-URLs (overpass-api.de ist seit MVP gruen).
+2. **FIFO statt LRU Cache-Eviction** — Trade-off: einfach zu implementieren, ausreichend fuer die meisten Cases (100-entry-Cap + 24h-TTL = praktisch unbeschraenkte Standort-Coverage). Echte LRU wuerde `getCached`-Hits re-inserten erfordern.
+3. **Render-Free-Tier-Cache-Strategy** — In-Memory-Cache statt DB-Tabelle (wie mobilityService's `stops` table) weil EV-Charging-Daten sehr schnell altern (neue Stationen, Preise, Status). 24h-TTL ist konservativ.
+4. **OSM-Tag-Parser `socket:*` ist generisch** — funktioniert fuer alle aktuellen und zukuenftigen Stecker-Standards. Wenn OSM neue `socket:*`-Tags einfuehrt (z.B. NACS in Europa), werden sie automatisch unterstuetzt ohne Code-Change.
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Flutter-UI** (Phase C-1.2): DTO + Provider + Screen + ServiceRegistry-Eintrag. Geplant als naechste Task nach User-Approval.
+- **GoingElectric-Integration** (Phase C-2): Real-time-Verfuegbarkeitsdaten (occupied/free, kW-Rating pro Socket). OSM hat das nicht. GoingElectric ist inoffiziell/Community-Project.
+- **Map-Rendering** in Flutter: `flutter_map` (OpenStreetMap-tiles) bereits in pubspec.yaml (siehe Phase R.9). Marker-Cluster kommt mit Flutter-UI-Task.
+- **Filter (Connector-Type, Power-kW, Network)**: Query-Params-Erweiterung spaeter wenn User-Feedback kommt.
