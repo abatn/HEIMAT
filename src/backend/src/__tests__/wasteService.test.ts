@@ -23,13 +23,20 @@ import { resolveCity, CityNotSupportedError, CITY_BOUNDS } from '../services/was
 import { parseIcsCalendar } from '../lib/icalParser';
 
 // HEIMAT-Konform (User-Regel: keine Hardkodierung):
-// Berlin-Test-Koordinaten werden vom CITY_BOUNDS-Konstant-Wert abgeleitet.
-// Phase X.3b hatte CITY_BOUNDS als Single-Source-of-Truth exportiert,
-// daher NUR basierend auf existierenden Daten ableiten, NICHT als Magic-Number.
-const berlinBounds = CITY_BOUNDS.find((b) => b.city === 'berlin');
-if (!berlinBounds) throw new Error('wasteService.test.ts: CITY_BOUNDS berlin nicht definiert — Single Source of Truth kaputt');
-const BERLIN_TEST_LAT = (berlinBounds.minLat + berlinBounds.maxLat) / 2;
-const BERLIN_TEST_LNG = (berlinBounds.minLng + berlinBounds.maxLng) / 2;
+// Test-Koordinaten werden vom CITY_BOUNDS-Konstant-Wert abgeleitet
+// (Phase X.3b Single-Source-of-Truth). Wenn CITY_BOUNDS sich
+// zukuenftig aendert, passen sich ALLE Tests automatisch an.
+function _boundsCenter(cityBounds: typeof CITY_BOUNDS, cityName: 'berlin' | 'hamburg' | 'muenchen'): { lat: number; lng: number } {
+  const found = cityBounds.find((b) => b.city === cityName);
+  if (!found) throw new Error(`wasteService.test.ts: CITY_BOUNDS ${cityName} nicht definiert — Single Source of Truth kaputt`);
+  return {
+    lat: (found.minLat + found.maxLat) / 2,
+    lng: (found.minLng + found.maxLng) / 2,
+  };
+}
+const BERLIN_TEST = _boundsCenter(CITY_BOUNDS, 'berlin');
+const HAMBURG_TEST = _boundsCenter(CITY_BOUNDS, 'hamburg');
+const MUENCHEN_TEST = _boundsCenter(CITY_BOUNDS, 'muenchen');
 
 // -----------------------------------------------------------------
 // Test-Fixtures: realistische iCal payloads für BSR/AWB/SRH styles
@@ -146,20 +153,20 @@ beforeEach(() => {
 // -----------------------------------------------------------------
 
 describe('wasteCityResolver — Bounding-Box-Mapping', () => {
-  it('Berlin (52.52, 13.41) → berlin', () => {
-    const b = resolveCity(52.52, 13.41);
+  it('Berlin (BERLIN_TEST.lat, BERLIN_TEST.lng) → berlin', () => {
+    const b = resolveCity(BERLIN_TEST.lat, BERLIN_TEST.lng);
     expect(b.city).toBe('berlin');
     expect(b.displayName).toBe('Berlin');
   });
 
-  it('Hamburg (53.55, 9.99) → hamburg', () => {
-    const b = resolveCity(53.55, 9.99);
+  it('Hamburg (HAMBURG_TEST.lat, HAMBURG_TEST.lng) → hamburg', () => {
+    const b = resolveCity(HAMBURG_TEST.lat, HAMBURG_TEST.lng);
     expect(b.city).toBe('hamburg');
     expect(b.displayName).toBe('Hamburg');
   });
 
-  it('München (48.14, 11.58) → muenchen', () => {
-    const b = resolveCity(48.14, 11.58);
+  it('München (MUENCHEN_TEST.lat, MUENCHEN_TEST.lng) → muenchen', () => {
+    const b = resolveCity(MUENCHEN_TEST.lat, MUENCHEN_TEST.lng);
     expect(b.city).toBe('muenchen');
     expect(b.displayName).toBe('München');
   });
@@ -237,7 +244,7 @@ describe('WasteService — Mirror-Fetch', () => {
       { match: (u) => u.includes('bsr.de') || u.includes('abfuhrkalender-ical'), response: { data: BERLIN_ICS_OK } },
     ]);
 
-    const data = await service.getWasteCalendar(52.52, 13.41, 4);
+    const data = await service.getWasteCalendar(BERLIN_TEST.lat, BERLIN_TEST.lng, 4);
 
     expect(data.status).toBe('ok');
     expect(data.city).toBe('berlin');
@@ -253,7 +260,7 @@ describe('WasteService — Mirror-Fetch', () => {
       { match: (u) => u.includes('opendata.bahn.de') || u.includes('bsr-mirror'), response: { data: BERLIN_ICS_OK } },
     ]);
 
-    const data = await service.getWasteCalendar(52.52, 13.41, 4);
+    const data = await service.getWasteCalendar(BERLIN_TEST.lat, BERLIN_TEST.lng, 4);
 
     expect(data.status).toBe('ok');
     expect(data.events.length).toBeGreaterThan(0);
@@ -270,7 +277,7 @@ describe('WasteService — Mirror-Fetch', () => {
     // Derived Berlin-Koordinaten aus CITY_BOUNDS statt Magic-Number 52.52/13.41
     // (Phase X.3b Single-Source-of-Truth; alte 999.999 coords wuerden
     // CityNotSupportedError werfen BEVOR HTTP aufgerufen wird).
-    await expect(service.getWasteCalendar(BERLIN_TEST_LAT, BERLIN_TEST_LNG, 4)).rejects.toThrow();
+    await expect(service.getWasteCalendar(BERLIN_TEST.lat, BERLIN_TEST.lng, 4)).rejects.toThrow();
     expect(mockHttp.get).toHaveBeenCalledTimes(1); // ONLY primary, NO fallback attempted
   });
 
@@ -279,7 +286,7 @@ describe('WasteService — Mirror-Fetch', () => {
     mockHttp.get.mockImplementation(() => { called = true; return Promise.resolve({ data: HAMBURG_ICS_OK }); });
 
     await expect(
-      service.getWasteCalendar(53.55, 9.99, 4 /* ohne street/houseNr */),
+      service.getWasteCalendar(HAMBURG_TEST.lat, HAMBURG_TEST.lng, 4 /* ohne street/houseNr */),
     ).rejects.toThrow(AddressRequiredError);
     expect(called).toBe(false);
   });
@@ -292,7 +299,7 @@ describe('WasteService — Mirror-Fetch', () => {
 
     let caught: unknown;
     try {
-      await service.getWasteCalendar(52.52, 13.41, 4);
+      await service.getWasteCalendar(BERLIN_TEST.lat, BERLIN_TEST.lng, 4);
     } catch (e) { caught = e; }
     expect(caught).toBeDefined();
     const msg = caught instanceof Error ? caught.message : String(caught);
@@ -315,7 +322,7 @@ describe('WasteService — Mirror-Fetch', () => {
       { match: (u) => u.includes('srh-fallback.test.local'), response: { data: HAMBURG_ICS_OK } },
     ]);
 
-    const data = await tempService.getWasteCalendar(53.55, 9.99, 4, 'Beispielstraße', '1');
+    const data = await tempService.getWasteCalendar(HAMBURG_TEST.lat, HAMBURG_TEST.lng, 4, 'Beispielstraße', '1');
 
     expect(data.status).toBe('ok');
     expect(data.source).toContain('srh-fallback.test.local'); // fallback URL wurde tatsaechlich angesprochen
@@ -335,7 +342,7 @@ describe('WasteService — Mirror-Fetch', () => {
       { match: (u) => u.includes('srh-fallback.test.local'), response: mkAxiosErr(500) },
     ]);
 
-    const data = await tempService.getWasteCalendar(53.55, 9.99, 4, 'Beispielstraße', '1');
+    const data = await tempService.getWasteCalendar(HAMBURG_TEST.lat, HAMBURG_TEST.lng, 4, 'Beispielstraße', '1');
 
     expect(data.status).toBe('ok');
     expect(data.source).toContain('stadtreinigung-hamburg'); // primary URL hat geliefert
@@ -355,11 +362,11 @@ describe('WasteService — Cache + Weeks-Filter', () => {
       { match: (u) => u.includes('bsr.de') || u.includes('abfuhrkalender-ical'), response: { data: BERLIN_ICS_OK } },
     ]);
 
-    const data1 = await service.getWasteCalendar(52.52, 13.41, 4);
+    const data1 = await service.getWasteCalendar(BERLIN_TEST.lat, BERLIN_TEST.lng, 4);
     expect(data1.cached).toBe(false);
     const callsAfterFirst = mockHttp.get.mock.calls.length;
 
-    const data2 = await service.getWasteCalendar(52.52, 13.41, 4);
+    const data2 = await service.getWasteCalendar(BERLIN_TEST.lat, BERLIN_TEST.lng, 4);
     expect(data2.cached).toBe(true);
     expect(mockHttp.get).toHaveBeenCalledTimes(callsAfterFirst); // KEIN extra call
   });
@@ -371,7 +378,7 @@ describe('WasteService — Cache + Weeks-Filter', () => {
       { match: (u) => u.includes('bsr.de'), response: { data: BERLIN_ICS_OK } },
     ]);
 
-    const data = await service.getWasteCalendar(52.52, 13.41, 1);
+    const data = await service.getWasteCalendar(BERLIN_TEST.lat, BERLIN_TEST.lng, 1);
 
     const now = Date.now();
     const cutoff = now + 7 * 24 * 60 * 60 * 1000;
@@ -384,7 +391,7 @@ describe('WasteService — Cache + Weeks-Filter', () => {
       { match: (u) => u.includes('bsr.de'), response: { data: BERLIN_ICS_OK } },
     ]);
 
-    const data = await service.getWasteCalendar(52.52, 13.41, 8);
+    const data = await service.getWasteCalendar(BERLIN_TEST.lat, BERLIN_TEST.lng, 8);
     const sorted = [...data.events].sort((a, b) => a.start.localeCompare(b.start));
     expect(data.events.map((e) => e.start)).toEqual(sorted.map((e) => e.start));
   });
