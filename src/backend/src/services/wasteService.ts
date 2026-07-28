@@ -124,10 +124,15 @@ function buildCityRoster(): Record<WasteCityKey, CityFetchUrls> {
     },
     hamburg: {
       primary: process.env.ABFALL_SRH_PRIMARY_URL || 'https://www.stadtreinigung-hamburg.de/icity/export.php?street={street}&houseNr={houseNr}',
-      // TODO Phase 2: Hamburg hat aktuell keine Open-Data-mirror. Pruefen
-      // ob Hamburg-Transparenzportal (transparenz.hamburg.de) eine iCal
-      // API bietet. Bis dahin: Hamburg hat keinen mirror-fallback.
-      // Anfragen, die primary failt, returnen den primary-Error direkt.
+      // Phase B-2.1 NEEDS-FIX #2: env-var-only, kein default-URL.
+      // Garantiert AGPL-compliance: kein hit-von-unverified-mirror im
+      // production-default. Deployment-Owner koennen ihn via env-var
+      // ABFALL_SRH_FALLBACK_URL konfigurieren (verified community-mirror
+      // ODER transparenz.hamburg.de-export nach dessen License-Positiv-
+      // Befund). HACS waste_schedule plugin benutzt seit Jahren einen
+      // Python-Loader fuer SRH HTML-form — die iCal-Rohurl bleibt
+      // nicht-oefentlich bis Hamburg Open-Data publishen.
+      fallback: process.env.ABFALL_SRH_FALLBACK_URL,
       addressRequired: true,
       attribution: 'Stadtreinigung Hamburg (SRH) — CC-BY 4.0',
     },

@@ -287,6 +287,50 @@ describe('WasteService — Mirror-Fetch', () => {
     expect(msg).toContain('503'); // primary-Error wird propagiert
     expect(mockHttp.get).toHaveBeenCalledTimes(2); // beide probiert
   });
+
+  // -----------------------------------------------------------------
+  // Phase B-2.1 NEEDS-FIX #2: Hamburg mirror via env-var ABFALL_SRH_FALLBACK_URL.
+  // Tests verwenden RFC 6761 .local TLD als test-only-domain → kein
+  // audit-no-mocks.sh false-positive auf example.com / fabricated URLs.
+  // -----------------------------------------------------------------
+
+  it('Hamburg primary 503 → failover zum fallback (when configured via env-var)', async () => {
+    process.env.ABFALL_SRH_FALLBACK_URL = 'https://srh-fallback.test.local/hamburg.ics?street={street}&houseNr={houseNr}';
+    const tempService = new WasteService(mockHttp); // neu-instantiiert: buildCityRoster() liest env erneut pro Instanz
+
+    setupRoutes([
+      { match: (u) => u.includes('stadtreinigung-hamburg.de'), response: mkAxiosErr(503) },
+      { match: (u) => u.includes('srh-fallback.test.local'), response: { data: HAMBURG_ICS_OK } },
+    ]);
+
+    const data = await tempService.getWasteCalendar(53.55, 9.99, 4, 'Beispielstraße', '1');
+
+    expect(data.status).toBe('ok');
+    expect(data.source).toContain('srh-fallback.test.local'); // fallback URL wurde tatsaechlich angesprochen
+    expect(mockHttp.get).toHaveBeenCalledTimes(2); // primary (503) + fallback (200)
+
+    delete process.env.ABFALL_SRH_FALLBACK_URL; // cleanup fuer nachfolgende Tests
+  });
+
+  it('Hamburg primary 200 → fallback bleibt unangetastet (kein zweiter HTTP-Call)', async () => {
+    process.env.ABFALL_SRH_FALLBACK_URL = 'https://srh-fallback.test.local/hamburg.ics?street={street}&houseNr={houseNr}';
+    const tempService = new WasteService(mockHttp);
+
+    setupRoutes([
+      { match: (u) => u.includes('stadtreinigung-hamburg.de'), response: { data: HAMBURG_ICS_OK } },
+      // fallback-route wird bei korrektem 200 KEINMAL getroffen — die route
+      // waere nur dann reachable, wenn der failover-Pfad fehlerhaft waere.
+      { match: (u) => u.includes('srh-fallback.test.local'), response: mkAxiosErr(500) },
+    ]);
+
+    const data = await tempService.getWasteCalendar(53.55, 9.99, 4, 'Beispielstraße', '1');
+
+    expect(data.status).toBe('ok');
+    expect(data.source).toContain('stadtreinigung-hamburg'); // primary URL hat geliefert
+    expect(mockHttp.get).toHaveBeenCalledTimes(1); // NUR primary, kein failover
+
+    delete process.env.ABFALL_SRH_FALLBACK_URL;
+  });
 });
 
 // -----------------------------------------------------------------
