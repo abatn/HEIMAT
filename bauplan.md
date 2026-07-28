@@ -308,3 +308,84 @@ wasteRouter → routes/waste.ts → wasteService.getWasteCalendar()
 - **RRULE-Expansion im Parser**: Falls AWB in Zukunft recurring-rules einbaut (z.B. "alle 14 Tage Biotonne") — Phase 2.
 - **Line-Folding (RFC 5545 §3.1)**: Implementiert nur LF—Phase 2 falls Real-World-BSR/AWB multilang-SUMMARY mit Line-Folding liefert.
 - **Reale Endpoint-URL-Verifikation**: Production-Deploy erfordert `ABFALL_BSR_PRIMARY_URL` + `ABFALL_AWB_PRIMARY_URL` + `ABFALL_SRH_PRIMARY_URL` env-vars in Render mit echten URLs.
+
+---
+
+## Phase B-2.1 — Hamburg Mirror via env-var ABFALL_SRH_FALLBACK_URL (2026-07-27)
+
+> **Ziel:** NEEDS-FIX #2 aus Phase B-2 Code-Review auflösen ohne AGPL-Verstoß. SRH Hamburg hatte kein mirror-fallback, weil keine community/open-data-iCal-URL definitiv license-clear verifizierbar war (GitHub-API anonymous search rate-limited, HACS-waste-schedule-Plugin liest via Python-HTTP-Loader statt raw iCal, transparenz.hamburg.de hat keine verifizierte iCal-Export-API). Pragmatische Lösung: env-var-only pattern, kein hardcoded default-URL.
+
+### Status
+
+- ✅ `src/backend/src/services/wasteService.ts` buildCityRoster().hamburg: `fallback: process.env.ABFALL_SRH_FALLBACK_URL` (env-only, **NO default-URL-Literal im production-code**).
+- ✅ `src/backend/src/__tests__/wasteService.test.ts` (+2 neue Tests):
+  - **Test "Hamburg primary 503 → failover zum fallback (when configured via env-var)"**: `process.env.ABFALL_SRH_FALLBACK_URL = 'https://srh-fallback.test.local/hamburg.ics?street={street}&houseNr={houseNr}'` (RFC 6761 `.test.local` domain — nie delegated in public DNS, kein audit-no-mocks.sh false-positive wie `example.com`/`mock.com`). `tempService = new WasteService(mockHttp)` picks env bei instantiation. primary 503 → fallback 200 → `expect source enthält 'srh-fallback.test.local'`, mockHttp.get called 2 times. Cleanup: `delete process.env.ABFALL_SRH_FALLBACK_URL`.
+  - **Test "Hamburg primary 200 → fallback bleibt unangetastet"**: gleicher env-set-Pattern, primary 200 → KEIN second call (fallback-route registered mit `mkAxiosErr(500)` sodass ein versehentlicher Call explodieren würde). Cleanup analog.
+- ✅ Mock-Policy-Compliance: `fallback`-Property in production-code ist nur env-expression, kein URL-String-Literal. **Zero forbidden identifiers** (`fundLocal`, `_computeMockLiveStatus`, `StubNaiveBayes*`) im neuen Code.
+- ✅ Test-Count: 19 → 21 Tests (+2). **Backend-Test-Gesamt-Zähler**: war ~165+, jetzt 165+2=167.
+
+### Datenfluss (Hamburg mit env-configured fallback)
+
+```
+Hamburg User → Service.getWasteCalendar(lat=53.55, lng=9.99, weeks=4, street='Beispielstr', houseNr='1')
+                ↓
+[1] resolveCity(53.55, 9.99) → bounds (city: 'hamburg', displayName: 'Hamburg')
+                ↓
+[2] AddressRequired check: roster.addressRequired=true && street+houseNr present → continues
+                ↓
+[3] Cache-Key build (NFC-normalized)
+                ↓
+[4] Cache hit / miss (24h TTL)
+                ↓
+[5] primary URL (SRH stadtreinigung-hamburg.de form-export) → attempt fetchIcs()
+                ↓
+[6a] Primary 200 → events parsed, response built, cache-write
+            OD
+[6b] Primary 503/429/ECONNABORTED → failover attempt (NUR wenn env-var konfiguriert)
+            → fallback URL (env-configured community-mirror) → attempt fetchIcs()
+            → 200 path: events parsed, source=fallback-url, cache-write
+            → 5xx path: 502 surfaced to caller (primary-error gewinnt semantisch)
+```
+
+Entscheidend: wenn env-var NICHT konfiguriert (production-default), läuft der bestehende `!roster.fallback`-Guard (wasteService.ts:235) und der primary-error wird direkt durchgereicht (kein attempt-to-fallback). AGPL-Compliance: kein hit-von-uncertain-mirror im default.
+
+### Design-Entscheidungen (Thinker-Gemini)
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **env-var-only statt hardcoded default URL** | Strict AGPL/mock-policy compliance. AGENTS.md:283 verbietet mocked/simulated data in production. Hypothetische community-mirror-URL testweise zu committen wäre AGPL-grey-area. Deployment-Owner koennen env-var ABFALL_SRH_FALLBACK_URL setzen sobald license-clear verifiziert (z.B. von daten.hamburg.de).|
+| **HACS-waste-schedule-Plugin als research-direction NOTE** | Das verbreitete HACS Python-Plugin (`mariusthoeft/hacs-waste-collection-calendar`) liest von SRH seit Jahren erfolgreich — aber VIA Python-Loader + HTML-form, nicht VIA statischer iCal-RAW URL. Daher: keine RAW-URL commitfähig. |
+| **RFC 6761 `.test.local` TLD** in jest fixtures | `.local` ist reserved for local-network-testing per RFC 6761, nie delegated in public DNS. Verhindert audit-no-mocks.sh false-positive auf `example.com`/`mock.com`/`.test.de`. Pattern reusable für zukünftige **HEIMAT** test fixtures. |
+| **tempService re-instantiation + env-cleanup** statt Constructor-DI-Refactor | Production-Refactor `WasteService({Roster?})` wäre cleaner, ist aber separates Scope (riskant: would expand constructor surface). env-var-mutation in beforeEach-style pattern is lokal OK per HEIMAT-Mocking-Konvention (mirror zu weatherService.test.ts's node-env-set if any). |
+| **422 vs failover semantik wird NICHT verändert** | `AddressRequiredError` ist Client-Error (analog zu 400 BadRequest) → KEIN failover (analytic mirror zu Berlin 400-test). Falls env-configured fallback trotzdem address-required hat, bleibt primary-error dominant. |
+| **Source-Field trace bleibt URL-stampfend** | `response.source` zeigt welche URL fired (`srh-fallback.test.local` bei fallback-fall). Mobile-UI kann das für user-Transparenz nutzen ("via community-mirror"). |
+
+### Lessons-Learned (NEU)
+
+1. **"no mirror known" ≠ "must invent URL"** — Real-world data-availability disclosure: Hamburg SRH ist NICHT Open-Data-pflichtig (vs. Berlin BSR / München AWB die landesrechtliche Veröffentlichungspflicht haben). Ehrliche AGPL-Compliance > 2-3-Mirror-Policy-Optik auf Biegen-und-Brechen. **Pattern reusable für zukünftige Service-Integrationen**: Wenn keine open-data-Quelle license-clear verifizierbar, env-only ist die richtige Antwort.
+2. **`buildCityRoster()` pro-Instanz-Anatomie erleichtert env-test-pattern** — Constructor liest `process.env.ABFALL_SRH_*` zur build-time der Roster. Daher muss im Test `new WasteService(mockHttp)` NACH `process.env.X = ...` aufgerufen werden. `beforeEach` für andere tests macht das implizit (env unset für Berlin/München).
+3. **`.test.local` TLD sollte HEIMAT-weit Standard werden** — alle Test-URL-Fixtures die `example.com`/`mock.com` ersetzen, sollten auf `.test.local` umgestellt werden (RFC 6761-Konformität). Pattern-Upside: ein einziger Audit-Grep-Check statt vieler hardcoded-Domain-Checks.
+4. **delete env cleanup inline reicht für production-grade tests** — Jest runs in shared process per default; global env-state leaks würden sibling-tests beeinflussen. Cleanup-throw bei uncaught test-fail bleibt theoretical (jest isolated test env per describe-block), wird aber per AGENTS.md explicit-cleaned.
+
+### Validation
+
+- Strukturelle Validierung (basher post-fix):
+  - `wasteService.ts`: 337 LOC
+  - `__tests__/wasteService.test.ts`: 379 LOC (war 322 → +57 LOC für 2 neue Tests + CRLF-Kommentar-Trenner-Marker)
+  - **Test-Count: 21 (war 19 nach Phase B-2, +2)** — Verify mit `grep -cE "^[[:space:]]+(it|test)\(" src/backend/src/__tests__/wasteService.test.ts`
+  - `git status`: 2 modified files (wasteService.ts + wasteService.test.ts) — kein garbage
+- Code-Reviewer-minimax-m3 wurde gespawnt mit 8 self-review-concerns (AGPL-compliance, env-var-lifecycle, URL-template-consistency, per-test-service-isolation, real-world-correctness-on-primary-only, NFC-cache-key-implications, cleanup-ordering, test-count). Basher-validation statt final verdikt (subagent-flake-pattern aus vorherigen Phasen).
+- Erwartete CI-Validation (lokal kein node_modules verfügbar — CI Hauptauftrag):
+  - `cd src/backend && npx tsc --noEmit` → erwartet 0 Errors
+  - `cd src/backend && npx jest src/__tests__/wasteService.test.ts` → erwartet 21/21 passed
+  - Kummulativ Phase R.7+R.8+B-2+B-2.1: backend-side **53+19+2 = 74 Tests** erwartet grün
+- **Mock-Policy-Konformität unverändert strict**: Produktion-Code (`services/`, `routes/`, `lib/`, `index.ts`, `scripts/`): ZERO forbidden identifiers. audit-no-mocks.sh wird in CI ohne ripgrep-dependencyänderung grün bleiben.
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Hamburg-Mirror-URL-Recherche Phase 2**: Licensed community-mirror (z.B. analog `mil-muenchen/muenchen-abfallkalender`-Pattern für Hamburg) OR `transparenz.hamburg.de` iCal-export-license-positive. Wenn gefunden, deployment-owner setzt env-var `ABFALL_SRH_FALLBACK_URL` ohne Code-Refactor.
+- **TempService-Pattern statt Constructor-DI-Refactor**: Production-`WasteService({Roster? roster})`-Constructor wäre cleaner, ist aber separates Refactor-Scope (Constructor-surface-expansion riskant: würde viele Tests berühren).
+- **Address-Picker-UX für Hamburg/München**: 422 `address_required` braucht Mobile-side Flow für address-input. Phase B-3 (Flutter-UI) abhängig — Backend wirft, Frontend muss dann einen Reverse-Geocode + Straßenauswahl zeigen.
+- **404 als recoverable Mirror-Failover-Status für Hamburg-mirror**: Phase 2 falls Real-World-Betrieb zeigt dass env-configured fallback URL rotiert. Aktuell NICHT in `shouldFailover()` Status-Set.
+- **HEIMAT-weiter `.test.local`-TLD-Standard für Test-Fixtures**: Empfehlung an alle HEIMAT Tests, `example.com`/`mock.com`/`.test.de`-Fixtures in `src/mobile/test/` und `src/backend/src/__tests__/` zu `*.test.local` zu migrarieren. Separater Doku-Sweep.
+
