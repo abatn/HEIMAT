@@ -167,6 +167,24 @@ class ComingSoonScreen extends StatelessWidget {
               ],
             ),
           ),
+          // PhaseX.1 Footer: explizit sichtbare User-Regel, dass kein
+          // IFrame/WebView in HEIMAT verwendet wird — alle Mini-Programme
+          // werden nativ in Flutter implementiert. Test:
+          // test/coming_soon_screen_test.dart -> 'zeigt User-Regel-Footer'.
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              'User-Regel: KEIN IFrame, kein WebView \u2014 '
+              'Mini-Programme werden nativ in HEIMAT implementiert.',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+                fontStyle: FontStyle.italic,
+                height: 1.3,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ],
       ),
     );
