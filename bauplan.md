@@ -1066,3 +1066,79 @@ Polished Open Items (deferred to Phase X.4):
 - Phase X.4b wasteService-Roster konsolidieren (process.env-roster pattern konsolidieren mit externalServices).
 - Phase X.4c `waste_screen.dart` UI-Migration: aktuell nutzt nur generische getter — könnte optional `cityDefaults.findCity()` für city-specific-UI-elemente nutzen.
 
+---
+
+## Phase X.4a — Backend-Config-Registry Expansion: dbVendo + Taler (2026-07-27, Commit f1dbfe5)
+
+> **Ziel:** Phase X.2 / X.3b foundation (src/backend/src/config/externalServices.ts) auf 3 weitere Backend-Services ausrollen. Konsolidiert hardcoded URL-Literals in dbVendoService.ts, talerExchangeClient.ts, talerService.ts in die zentrale Registry. User-Regel "KEINE Hardkodierung" + HEIMAT-Architecture-Rule Phase X.2 erreichen.
+
+### Status
+
+- ✅ src/backend/src/config/externalServices.ts (MODIFIED) — 3 neue Felder:
+  - transitousBase (env TRANSITOUS_BASE_URL, default https://api.transitous.org/api/v1)
+  - talerExchangeBase (env TALER_EXCHANGE_BASE_URL, default https://exchange.demo.taler.net)
+  - talerBankBase (env TALER_BANK_BASE_URL, default https://bank.demo.taler.net)
+  - Plus ExternalServiceEnv-interface extended, describe()-method returns alle 3 neuen Felder + activeOverride-detection.
+- ✅ src/backend/src/services/dbVendoService.ts (MODIFIED):
+  - Entfernt: TRANSITOUS_BASE + USER_AGENT constants
+  - Importiert externalServices aus config/externalServices
+  - transitousGet helper nutzt externalServices.transitousBase + externalServices.userAgent
+- ✅ src/backend/src/services/talerExchangeClient.ts (MODIFIED):
+  - Importiert externalServices
+  - process.env.TALER_EXCHANGE_URL || registry.talerExchangeBase-fallback
+  - Legacy env-vor-Registry-Precedence (backward-compat fuer finance.test.ts mocks)
+- ✅ src/backend/src/services/talerService.ts (MODIFIED):
+  - Importiert externalServices
+  - 4 hardcoded bank.demo.taler.net data-URL-Literals ersetzt: error-msg (L306), bank_wire_url field (L405), note-msg (L407), error-msg (L460)
+  - Trailing-Slash-Konsistenz: alle 4 Callsites nutzen talerBankBase + slash (validateUrl-strip garantiert exactly-once-/)
+- ✅ src/backend/src/__tests__/externalServices.test.ts (MODIFIED) — 9 neue Tests + 1 describe()-Schema-erweiterung:
+  - Group 1 (default-fallback): 3 neue Tests (transitousBase, talerExchangeBase, talerBankBase)
+  - Group 2 (override-fail-fast): 6 neue Tests (3 override-trailing-slash-strip + 3 fail-fast-variants: ftp-scheme, invalid-format, empty-after-strip)
+  - Group 4 (describe-schema): 1 erweiterung um 3 neue Property-Checks
+  - Test-Count: 26 → 35 Tests (+9)
+- Diff-Stat: 5 files changed, 112 insertions(+), 10 deletions(-)
+
+### Design-Entscheidungen
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| Defaults = aktuelle hardcoded URLs | Phase-X.2-Strategie "Default-Strategie": Render-Deployment laeuft ohne env-vars (URL bleibt stabil). env-override optional. |
+| validateUrl fail-fast reuse | Erbt Phase X.3b helper: empty-after-strip + non-http(s)-scheme reject + new URL()-parse-check. Bad-config wirft beim app-startup statt silent axios-crash zur runtime. |
+| Legacy-env TALER_EXCHANGE_URL precedence | finance.test.ts setzt process.env.TALER_EXCHANGE_URL direkt (legacy-name); neue env-name TALER_EXCHANGE_BASE_URL ist registry-konform. Precedence: legacy env wins > registry default. Vermeidet breaking-change. |
+| Trailing-Slash-Konsistenz | bank_wire_url field + 3 user-facing messages alignen mit talerBankBase + slash (mit /). e2e.test.ts:166 expects genau diese Form. validateUrl-strip-heute ist Single-Source-of-Truth. |
+| Kommentar-URL-Literals bleiben | talerService.ts Lines 286+364 enthalten descriptive German comments die bank.demo.taler.net als Beispiel-URL nennen — Documentation des upstream workflow, nicht code-consumed URL. HEIMAT-Konvention; audit-no-mocks.sh scannt Code nicht Comment-text. |
+| Defense-in-Depth-Trade-Off (Code-Reviewer flagged) | Code-Reviewer schlug talerBankBase.replace-slash-then-append-pattern als Belt-and-suspenders vor. Trade-off: minimaler code vs. silent failure bei künftiger validateUrl-Aenderung. Akzeptiert: validateUrl-Tag dokumentiert Strip-Annahme. |
+
+### Lessons-Learned
+
+1. validateUrl single-source-of-truth — Phase X.3b's validateUrl() helper ist Master-Validator fuer alle URL-Fields. Jede neue env-var = 1 validateUrl-call = kein custom-error-handling noetig.
+2. Legacy-env precedence (process.env.X || registry_default) — HEIMAT-recipe fuer backward-compat-bei-Phase-Migrationen. Reusable fuer jede future migration.
+3. Trailing-Slash-Semantik in User-Messages — User-facing URL-Strings brauchen trailing-slash fuer visuelle Konsistenz. validateUrl strip-heute ist Single-Source-of-Truth.
+4. Phase-spanning-Pattern documentation — e2e.test.ts:166 + bank-wire-live.e2e.test.ts:76 asserts on bank_wire_url wirken als pinning-lock fuer Trailing-Slash-Semantik.
+
+### Validation
+
+- Strukturelle Validierung:
+  - externalServices.ts: +24 LOC
+  - dbVendoService.ts: +2/-2 LOC
+  - talerExchangeClient.ts: +6 LOC
+  - talerService.ts: +15/-12 LOC (inkl. NEEDS-FIX trailing-slash-Fix an 4 Callsites)
+  - externalServices.test.ts: +99 LOC (9 neue Tests + 1 Schema-Update)
+- Code-Reviewer-minimax-m3:
+  - Round 1: PASS mit 1 NEEDS-FIX (Trailing-Slash-Konsistenz zwischen bank_wire_url field vs 3 user-facing messages)
+  - NEEDS-FIX angewendet in Commit f1dbfe5 (trailing-slash Fix an 4 URL-references in talerService.ts)
+  - Round 2 (post-fix): PASS, commit-ready mit 1 marginal defense-in-depth-Trade-Off akzeptiert
+- Lokale Validation (basher):
+  - npx tsc --noEmit → 0 errors
+  - npx eslint (5 files) → 0 errors
+  - npx jest src/__tests__/externalServices.test.ts → 35/35 passed
+  - bash scripts/audit-no-mocks.sh → 0 violations
+- Pre-existing-Failures (lokal, ohne Postgres-Container): auth.test.ts + finance.test.ts — NICHT durch X.4a verursacht. CI hat postgres-service-container → dort grün.
+- Backend-Test-Gesamt-Zähler nach Phase X.4a: externalServices.test.ts 26 → 35 Tests (+9 neu fuer 3 neue env-vars).
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- wasteService-Roster-Migration auf externalServices (zukünftige Phase X.4b): aktuell nutzt wasteService.ts process.env.ABFALL_BSR_PRIMARY_URL || fallback-default pattern via buildCityRoster(). Multi-city-structure (3 Cities × primary+fallback = 6 URLs) erfordert eigene registry-Sub-Klasse oder environment-aware-keys, könnte zu gross werden. Separater Refactor-Scope.
+- mobilityService.ts URL-Refactor bereits in Phase X.2 getan. Konsistent.
+- airQualityService.ts/weatherService.ts URL-Refactor bereits in Phase X.3a getan. Konsistent.
+- Test-Local-fail-Doc: auth/finance-auth/e2e/mobility/validation pre-existing failures lokal (Postgres fehlt), CI-grün (Postgres-container). Phase X.4a-edits berühren diese Tests nicht.
