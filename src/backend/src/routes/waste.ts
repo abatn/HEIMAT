@@ -1,0 +1,137 @@
+// ---------------------------------------------------------------------------
+// route/waste.ts — Express-Routes für Abfallkalender Phase B-2
+//
+// Mirror-Pattern zu weather.ts + airQuality.ts:
+//   - GET /api/waste/calendar  (Haupt-API: lat/lng + optional street/houseNr)
+//   - GET /api/waste/status    (Health-Info: cities, attribution, cache)
+//
+// Validierung via Zod (mirror zu validate.ts):
+//   - lat/lng als floats
+//   - weeks als int(1-8)
+//   - street/houseNr als optional strings (für Berlin: optional, Hamburg/MUC: required → 422)
+//
+// HTTP-Status-Codes:
+//   - 200 OK bei Cache-Hit oder upstream-success
+//   - 400 BadRequest bei malformed lat/lng
+//   - 422 UnprocessableEntity bei Hamburg/München ohne street+houseNr
+//   - 502 BadGateway bei upstream-fail (alle mirrors dead)
+// ---------------------------------------------------------------------------
+
+import { Router, Request, Response, NextFunction } from 'express';
+import axios from 'axios';
+import { z } from 'zod';
+import { WasteService, AddressRequiredError } from '../services/wasteService';
+import { CityNotSupportedError } from '../services/wasteCityResolver';
+import { AppError } from '../middleware/errorHandler';
+import { validate } from '../middleware/validate';
+import { logger } from '../utils/logger';
+
+export const wasteRouter = Router();
+
+// Default-singleton: production runtime verwendet das echte axios-Preset.
+// Tests in __tests__/wasteService.test.ts koennten WasteService mit eigenem
+// mock-http instantiieren — aber für ROUTE-Tests sind wir hier nicht da
+// (route-Validierung wird via SuperTest in einem Phase-2-Skipped gemacht).
+const wasteService = new WasteService(axios);
+
+const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) =>
+  (req: Request, res: Response, next: NextFunction) => { Promise.resolve(fn(req, res, next)).catch(next); };
+
+// ------------------------------------------------------------------
+// Zod-Schemas
+// ------------------------------------------------------------------
+
+const calendarQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  weeks: z.coerce.number().int().min(1).max(8).optional().default(4),
+  street: z.string().min(1).max(200).optional(),
+  houseNr: z.string().min(1).max(20).optional(),
+});
+
+// ------------------------------------------------------------------
+// GET /api/waste/calendar
+// ------------------------------------------------------------------
+
+wasteRouter.get(
+  '/calendar',
+  validate(calendarQuerySchema, 'query'),
+  asyncHandler(async (req: Request, res: Response) => {
+    const { lat, lng, weeks, street, houseNr } = req.query as unknown as {
+      lat: number;
+      lng: number;
+      weeks: number;
+      street?: string;
+      houseNr?: string;
+    };
+
+    try {
+      const data = await wasteService.getWasteCalendar(lat, lng, weeks, street, houseNr);
+      res.json({
+        status: data.status,
+        city: data.city,
+        displayName: data.displayName,
+        weeks: data.weeks,
+        events: data.events,
+        source: data.source,
+        attribution: wasteService.getAttribution(data.city),
+        fetchedAt: data.fetchedAt,
+        cached: data.cached,
+      });
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err instanceof AddressRequiredError) {
+        logger.warn(`Waste calendar: 422 address_required for ${err.displayName}`);
+        res.status(422).json({
+          status: 'error',
+          code: err.code,
+          message: err.message,
+          city: err.city,
+          displayName: err.displayName,
+        });
+        return;
+      }
+      if (err instanceof CityNotSupportedError) {
+        res.status(400).json({
+          status: 'error',
+          code: err.code,
+          message: err.message,
+          supportedCities: ['Berlin', 'Hamburg', 'München'],
+        });
+        return;
+      }
+      // ALL OTHER ERRORS: 502 BadGateway (upstream failure both mirrors)
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.error(`Waste calendar fetch failed: ${errMsg}`);
+      res.status(502).json({
+        status: 'error',
+        message: 'Abfallkalender konnte nicht abgerufen werden',
+        detail: errMsg,
+      });
+    }
+  }),
+);
+
+// ------------------------------------------------------------------
+// GET /api/waste/status
+// ------------------------------------------------------------------
+
+wasteRouter.get('/status', asyncHandler(async (_req: Request, res: Response) => {
+  const status = wasteService.getStatus();
+  res.json({
+    status: 'ok',
+    service: 'waste',
+    version: '1.0',
+    cities: status.cities,
+    cacheEntries: status.cacheEntries,
+    attribution:
+      'Kommunale Open-Data-Quellen (BSR Berlin, SRH Hamburg, AWB München) — CC-BY 4.0',
+  });
+}));
+
+// ------------------------------------------------------------------
+// Attribution zentral via wasteService.getAttribution(city) — siehe
+// service-rosters unten (CC-BY license pro Stadt, Mock-Policy-konform).
+// Keine separate Helper-Map hier, weil das die Mock-Policy duplizieren
+// wuerde (kein Mock, echte Daten, Single Source of Truth im Service).
+// ------------------------------------------------------------------
