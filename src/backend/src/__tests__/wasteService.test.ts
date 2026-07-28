@@ -19,8 +19,17 @@
 
 import type { AxiosInstance } from 'axios';
 import { WasteService, AddressRequiredError } from '../services/wasteService';
-import { resolveCity, CityNotSupportedError } from '../services/wasteCityResolver';
+import { resolveCity, CityNotSupportedError, CITY_BOUNDS } from '../services/wasteCityResolver';
 import { parseIcsCalendar } from '../lib/icalParser';
+
+// HEIMAT-Konform (User-Regel: keine Hardkodierung):
+// Berlin-Test-Koordinaten werden vom CITY_BOUNDS-Konstant-Wert abgeleitet.
+// Phase X.3b hatte CITY_BOUNDS als Single-Source-of-Truth exportiert,
+// daher NUR basierend auf existierenden Daten ableiten, NICHT als Magic-Number.
+const berlinBounds = CITY_BOUNDS.find((b) => b.city === 'berlin');
+if (!berlinBounds) throw new Error('wasteService.test.ts: CITY_BOUNDS berlin nicht definiert — Single Source of Truth kaputt');
+const BERLIN_TEST_LAT = (berlinBounds.minLat + berlinBounds.maxLat) / 2;
+const BERLIN_TEST_LNG = (berlinBounds.minLng + berlinBounds.maxLng) / 2;
 
 // -----------------------------------------------------------------
 // Test-Fixtures: realistische iCal payloads für BSR/AWB/SRH styles
@@ -258,7 +267,10 @@ describe('WasteService — Mirror-Fetch', () => {
       { match: (u) => u.includes('opendata.bahn.de'), response: { data: BERLIN_ICS_OK } }, // never called
     ]);
 
-    await expect(service.getWasteCalendar(999, 999, 4)).rejects.toThrow();
+    // Derived Berlin-Koordinaten aus CITY_BOUNDS statt Magic-Number 52.52/13.41
+    // (Phase X.3b Single-Source-of-Truth; alte 999.999 coords wuerden
+    // CityNotSupportedError werfen BEVOR HTTP aufgerufen wird).
+    await expect(service.getWasteCalendar(BERLIN_TEST_LAT, BERLIN_TEST_LNG, 4)).rejects.toThrow();
     expect(mockHttp.get).toHaveBeenCalledTimes(1); // ONLY primary, NO fallback attempted
   });
 

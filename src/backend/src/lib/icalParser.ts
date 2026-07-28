@@ -181,18 +181,35 @@ function normalizeDateTime(raw: string): string | null {
 }
 
 function parseDurationMinutes(duration: string): number | null {
-  // W-FORMAT (Wochen) ist irrelevant fuer Abfall-Termine aber spec-konform.
-  // P-Format: PnYnMnDTnHnMnS
-  const m = duration.match(/^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/i);
-  if (!m) return null;
-  const [, weeks, days, hours, minutes, seconds] = m;
+  // RFC 5545 §3.3.6: P[nW][nD][T[nH][nM][nS]]
+  // Real-world-Toleranz: manche kommunalen iCal-Feeds (z.B. SRH Hamburg
+  // Abfallkalender) schreiben "P2H" statt der strikten "PT2H" Form
+  // (T-Section wird ausgelassen wenn keine date-Components vorhanden).
+  // Wir akzeptieren beide Formen — strict RFC + loose no-T-variant.
+  const trimmed = duration.trim().toUpperCase();
   let total = 0;
-  if (weeks) total += parseInt(weeks, 10) * 7 * 24 * 60;
-  if (days) total += parseInt(days, 10) * 24 * 60;
-  if (hours) total += parseInt(hours, 10) * 60;
-  if (minutes) total += parseInt(minutes, 10);
-  if (seconds) total += Math.round(parseInt(seconds, 10) / 60);
-  return total > 0 ? total : null;
+
+  // Strict RFC: P[nW][nD][T[nH][nM][nS]]
+  const strict = trimmed.match(/^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
+  if (strict) {
+    const [, w, d, h, mi, s] = strict;
+    if (w)  total += parseInt(w, 10)  * 7 * 24 * 60;
+    if (d)  total += parseInt(d, 10)  * 24 * 60;
+    if (h)  total += parseInt(h, 10)  * 60;
+    if (mi) total += parseInt(mi, 10);
+    if (s)  total += Math.round(parseInt(s, 10) / 60);
+    return total > 0 ? total : null;
+  }
+  // Loose no-T-Variant: P[nH][nM][nS] ohne W oder D (z.B. "P2H", "P30M", "P1H30M")
+  const loose = trimmed.match(/^P(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+  if (loose) {
+    const [, h, mi, s] = loose;
+    if (h)  total += parseInt(h, 10)  * 60;
+    if (mi) total += parseInt(mi, 10);
+    if (s)  total += Math.round(parseInt(s, 10) / 60);
+    return total > 0 ? total : null;
+  }
+  return null;
 }
 
 function addMinutes(iso: string, minutes: number): string {
