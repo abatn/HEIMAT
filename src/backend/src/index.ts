@@ -1,5 +1,4 @@
 import express from 'express';
-import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -44,9 +43,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 app.use(morgan('combined', { stream: { write: (message: string) => logger.info(message.trim()) } }));
-
-// Phase X.1: `path` Import bleibt für potentielle zukünftige Static-Assets
-// erhalten, wird aktuell aber nicht für externe Webseiten-Serving verwendet.
 
 app.get('/', (req, res) => {
   res.json({ name: 'HEIMAT 2.0 API', version: '1.0.0', status: 'running' });
