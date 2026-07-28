@@ -19,16 +19,15 @@
 
 import type { AxiosInstance } from 'axios';
 import { WasteService, AddressRequiredError } from '../services/wasteService';
-import { resolveCity, CityNotSupportedError, CITY_BOUNDS } from '../services/wasteCityResolver';
+import { resolveCity, CityNotSupportedError, CITY_BOUNDS, type WasteCityKey } from '../services/wasteCityResolver';
 import { parseIcsCalendar } from '../lib/icalParser';
 
 // HEIMAT-Konform (User-Regel: keine Hardkodierung):
 // Test-Koordinaten werden vom CITY_BOUNDS-Konstant-Wert abgeleitet
 // (Phase X.3b Single-Source-of-Truth). Wenn CITY_BOUNDS sich
 // zukuenftig aendert, passen sich ALLE Tests automatisch an.
-function _boundsCenter(cityBounds: typeof CITY_BOUNDS, cityName: 'berlin' | 'hamburg' | 'muenchen'): { lat: number; lng: number } {
-  const found = cityBounds.find((b) => b.city === cityName);
-  if (!found) throw new Error(`wasteService.test.ts: CITY_BOUNDS ${cityName} nicht definiert — Single Source of Truth kaputt`);
+function bboxCenter(cityBounds: typeof CITY_BOUNDS, cityName: WasteCityKey): { lat: number; lng: number } {
+  const found = cityBounds.find((b) => b.city === cityName)!;
   return {
     lat: (found.minLat + found.maxLat) / 2,
     lng: (found.minLng + found.maxLng) / 2,
