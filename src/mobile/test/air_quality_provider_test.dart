@@ -183,8 +183,7 @@ void main() {
   // Cache). Die TTL-Boundary-Logik selbst (4:55 vs 5:00 vs 5:01) wird in
   // Group 8 ohne Refresh-Trigger getestet (Fresh-Cache-Pfad → race-free).
   // ==================================================================
-  group('init() mit stale Cache (>5min TTL)', () {
-    test(
+  group('init() mit stale Cache (>5min TTL)', () {    test(
         'laedt Forecast trotz stale Timestamp (Background-Refresh wird getriggert)',
         () async {
       final staleTs = DateTime.now()
@@ -261,13 +260,17 @@ void main() {
 
       await provider.init();
 
-      expect(provider.lat, 52.52, reason: 'Berlin-Fallback wenn kein lat im Cache');
-      expect(provider.lng, 13.41, reason: 'Berlin-Fallback wenn kein lng im Cache');
+      expect(provider.lat, 52.52,
+          reason: 'Berlin-Fallback wenn kein lat im Cache');
+      expect(provider.lng, 13.41,
+          reason: 'Berlin-Fallback wenn kein lng im Cache');
       expect(provider.locationName, 'Berlin',
-          reason: 'locationName aus Konstruktor-Default wenn kein name im Cache');
+          reason:
+              'locationName aus Konstruktor-Default wenn kein name im Cache');
     });
 
-    test('Last-Cached-Name wird uebernommen wenn nur name-Key fehlt, lat/lng da',
+    test(
+        'Last-Cached-Name wird uebernommen wenn nur name-Key fehlt, lat/lng da',
         () async {
       final now = DateTime.now();
       SharedPreferences.setMockInitialValues({

@@ -376,8 +376,7 @@ void main() {
   // sein wenn refresh's _sentiment = null reset schneller ist). Wir
   // assertieren NICHT hart auf sentiment-Wert in der stale-Pfad.
   // ==================================================================
-  group('init() mit stale Cache (>5min TTL)', () {
-    test(
+  group('init() mit stale Cache (>5min TTL)', () {    test(
         'laedt Forecast trotz stale Timestamp (Background-Refresh wird getriggert)',
         () async {
       final staleTs = DateTime.now()
@@ -411,7 +410,8 @@ void main() {
     // werden wenn Network verfuegbar (race). Wir testen NUR dass init() nicht
     // crashst und forecast-cache geladen wurde. Die genauen alerts-Werte
     // sind race-prone (kann von refresh ueberschrieben werden in Network-CI).
-    test('stale Forecast mit alerts-Cache: init() crashst nicht', () async {
+    test('stale Forecast mit alerts-Cache: init() crashst nicht',
+        () async {
       final staleTs = DateTime.now()
           .subtract(const Duration(minutes: 10))
           .millisecondsSinceEpoch;
@@ -506,10 +506,13 @@ void main() {
 
       await provider.init();
 
-      expect(provider.lat, 52.52, reason: 'Berlin-Fallback wenn kein lat im Cache');
-      expect(provider.lng, 13.41, reason: 'Berlin-Fallback wenn kein lng im Cache');
+      expect(provider.lat, 52.52,
+          reason: 'Berlin-Fallback wenn kein lat im Cache');
+      expect(provider.lng, 13.41,
+          reason: 'Berlin-Fallback wenn kein lng im Cache');
       expect(provider.locationName, 'Berlin',
-          reason: 'locationName aus Konstruktor-Default wenn kein name im Cache');
+          reason:
+              'locationName aus Konstruktor-Default wenn kein name im Cache');
     });
 
     test('Last-Cached-Name wird uebernommen wenn nur name-Key fehlt', () async {
