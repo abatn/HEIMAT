@@ -144,3 +144,58 @@ AirQualityScreen → AirQualityProvider → /api/air-quality/forecast?lat=&lng=
 - Widget-Tests für AqiRingCard/HourlyAQIStrip/PollutantDetailCard — erfordern Bildschirm-Auflösung in CI. Optional.
 - WeatherProvider-Test als Mirror-Pattern — wäre analog aber ist eigenständiger Scope.
 - Success-Pfad von `refresh()` testbar nur via Production-Code-Refactor (DI für `apiGet`). Bewusst nicht umgesetzt.
+
+---
+
+## Phase R.10 — WeatherProvider Tests (2026-07-27)
+
+> **Ziel:** Cache/State-Logik des WeatherProvider gegen Regressionen absichern. Mirror-Pattern zu Phase R.9 (AirQualityProvider-Test) mit Weather-spezifischen Erweiterungen: 6 cache keys (statt 5), Constructor-Injection für `LocalSentimentClassifier`, Alerts-Sub-System, parallele unawaited-Tasks (`init` → `refresh`+location; `_loadFromCache` → `_restoreSentiment`).
+
+### Status
+
+- ✅ `test/weather_provider_test.dart` (NEU, **688 Zeilen, 34 Tests, 8 Gruppen**):
+  - **Group 1 — Initial State (12 Tests):** 9 AQ-Defaults + `sentiment` isNull + `alerts` isEmpty + `hasAlerts` isFalse.
+  - **Group 2 — init() mit leerem Cache (4 Tests):** init() komplettiert ohne Exception; korrektes `notifyListeners`-Verhalten; alerts=[]/sentiment=null nach Microtask-Wait.
+  - **Group 3 — init() mit frischem Cache (5 Tests):** Forecast-Restore; lat/lng/locationName (inkl. Umlaut-Test "Hamburg"); **separate Alerts-Restore** aus `kAlertsKey`; Sentiment-Restore via Microtask-Wait (Race-Safety für `unawaited(_restoreSentimentFromCache)`).
+  - **Group 4 — init() mit stale Cache (2 Tests, RACE-SAFE):** Forecast wird trotz stale Timestamp geladen; assertiert NUR stabile Properties (`hasData`, `lastUpdated` aus Cache, 9-min-Sanity-Check) wegen `unawaited(refresh())` Race. Alerts-Test: entfernt harte `hasLength(1)` Assertion wegen refresh-Race.
+  - **Group 5 — Korrupter Cache (3 Tests):** ungültiges JSON + JSON ohne forecast-Schlüssel + **separat** korrupter alerts-Cache (innerer try/catch in `_loadFromCache` schluckt das).
+  - **Group 6 — Partial Cache (3 Tests):** Berlin-Defaults wenn lat/lng/name-Keys fehlen + alerts-Key fehlt → forecast geladen, alerts leer.
+  - **Group 7 — refresh() Error-Handling (3 Tests):** kein unhandled throw bei leerem Cache; **Classifier-Crash** via DI-Stub `_StubClassifier(shouldThrow: true)` (deterministisch unabhängig von Network-State); Cache-Forecast bleibt bei Network-Failure (graceful degradation).
+  - **Group 8 — TTL-Boundary (2 Tests, RACE-FREE):** isStale=false bei 4min55s alt (knapp unter TTL); isStale=false bei EXAKT 5min alt (Boundary inclusive durch strict `>`).
+
+### Design-Entscheidungen (Gemini-Analyse)
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **`_StubClassifier implements LocalSentimentClassifier`** als Test-only DI-Stub | `_classifier` Field ist bereits Constructor-Injectable in `weather_provider.dart:63` — keine Production-Refactor nötig. Mirror-Pattern zu `_StubFinance` in `app_smoke_test.dart:22` (HEIMAT-Standard für Test-Stubs). |
+| **`shouldThrow: true` Parameter im Stub** | Deterministischer Test-Path für try/catch in refresh(). Dart's async Funktion wirft synchron in async-Body → wird vom inneren try/catch gefangen → Provider lebt stabil. |
+| **6 cache keys (vs 5 in AirQuality)** | `_kAlertsKey` zusätzlich (Phase E Forecast-Spec: Alert-Sub-System mit eigenem Cache-Key für Cold-Start-Banner ohne Network-Roundtrip). Tests spiegeln alle 6 Keys. |
+| **`Future<void>.delayed(Duration.zero)` für Sentiment-Restore** | `_restoreSentimentFromCache` ist `unawaited(...)` in `_loadFromCache`. Microtask-Wait ist ausreichend weil `_StubClassifier.classify` async ohne inner `await` ist → resolve in 1 Microtask-Hop. |
+| **2 race-safety Fixes gegenüber Initial-Draft** | (1) Group 4 stale-alerts: harte `hasLength(1)` Assertion entfernt weil init's `unawaited(refresh())` alerts via apiGet überschreiben kann. (2) Group 7 sentiment-reset: racy "Network-Failure-Path"-Test entfernt weil in Network-success-CI `provider.error==null` → Assertion schlägt fehl. Ersetzt durch Classifier-Stub-Throw-Path (deterministisch). |
+| **Kein `pumpAndSettle()`** | Per AGENTS.md: Tests hängen sonst in infinite-Animation-Loops fest. |
+| **Kein Mockito, nur DI-Stub + SharedPreferences-Mock** | `SharedPreferences.setMockInitialValues({})` in JEDEM setUp() (Mirror zu auth_provider_test.dart + air_quality_provider_test.dart). |
+| **Keine Mock-Policy-Verstöße** | Test-File in `src/mobile/test/` (audit-no-mocks.sh SCAN_PATHS ausgeschlossen). Keine `fundLocal`, `_computeMockLiveStatus`, `StubNaiveBayesClassifier/StubNaiveBayes` oder `local://demo` References außerhalb von `///` doc-comments (welche exempt sind per COMMENT_REGEX). |
+
+### Lessons-Learned (über Phase R.9 hinaus)
+
+1. **Constructor-DI nutzen wenn vorhanden** — `WeatherProvider({LocalSentimentClassifier? classifier})` ist bereits ein DI-Hook für TFLite-Swap (Phase 1 nach AI-Implementierungsplan). Tests können diese Schnittstelle ohne Production-Refactor nutzen. AirQuality hatte diesen Hook NICHT — daher strengere Constraints.
+2. **`_restoreSentimentFromCache` Race-Pattern** — Production-Code-Pattern `unawaited(_X())` in einer ohnehin-async Methode zusätzlich zu `unawaited(...)` im caller (init → _loadFromCache → restore) entkoppelt die Reihenfolge noch weiter. Tests müssen vorsichtig sein: vor dem S酒吧 den Sentiment zu assertieren kann in 3 States enden (null, partial, voll restored).
+3. **Microtask-Wait vs. echte Future-Delay** — `Future<void>.delayed(Duration.zero)` ist nur 1 Microtask-Hop. Für Multi-Step await-Chains (classifier.classify → setState → notifyListeners) reicht das meistens. Für Network-IO braucht man `Future.delayed(Duration(milliseconds: 100))` oder mehr.
+4. **Race-Prone-Tests identifizieren** — `expect(provider.error, isNotNull)` ist in network-CI racy (apiGet kann in production-CI erfolgreich sein). Solche Tests entweder auf Network-State explizit machen (mit DI für apiGet) oder ganz droppen. Production-Code-Refactor für apiGet-DI wäre die nachhaltige Lösung.
+
+### Validation
+
+- `bash scripts/audit-no-mocks.sh` → 0 violations (grep-b bestätigt: keine forbidden identifiers außerhalb von doc-comments, keine forbidden literals)
+- Strukturelle Validierung (basher post-fix): 688 LOC, 34 Tests, 8 Gruppen, 67 expect() Assertions, 1 `_StubClassifier`-Klasse (DI-Stub)
+- Erwartete CI-Validation (lokal kein Flutter SDK installiert):
+  - `dart format lib/ test/` → muss unter CI-Format laufen
+  - `flutter test test/weather_provider_test.dart` → erwartet 34/34 grün
+  - `flutter analyze --no-fatal-infos` → erwartet 0 issues
+- **Gesamt-Test-Zähler nach Phase R.10: Mobile 67 (10 AQ-DTO + 23 AQ-Provider + 34 Weather-Provider) Tests erwartet grün — bestätigt sich mit CI-Run**
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Success-Pfad von `refresh()`**: Wegen fehlender apiGet-DI nicht deterministisch testbar. Bewusst nicht umgesetzt. Production-Code-Refactor (Constructor: `WeatherProvider({HttpClient? http, ApiClient? apiClient})`) würde volle Coverage ermöglichen — getrennt scopen.
+- **Alerts-Endpoint-Failure-Isolation**: Forecast success + alerts failure als eigener Test-Pfad erfordert apiGet-DI. Aktuell werden alle Alerts-Fehler-Pfade durch try/catch in `refresh()` silently gehandhabt.
+- **Sentiment-Classifier echte Impl**: Phase 1 nach AI-Implementierungsplan (`TfliteSentimentClassifier`). Tests müssen dann erweitert werden um Real-Behavior + Stub-Behavior kontrastieren zu können.
+- **Cross-Service-Insight Extensions** (`isRainingNow`, `isRainingSoon`): Pure DTO-Extensions — gehören in `weather_dto_test.dart` (separater Scope, nicht hier).
