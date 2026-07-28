@@ -225,6 +225,7 @@ class MiniProgramProvider extends ChangeNotifier {
         'gesundheit'
       ],
       supportsLiveStatus: true,
+      useNative: true, // Phase B: Luftqualität ist nativ (2026-07-27)
     ),
     const MiniProgram(
       id: 'mobility',

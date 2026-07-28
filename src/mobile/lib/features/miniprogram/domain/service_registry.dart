@@ -1,4 +1,5 @@
 import '../../weather/weather_screen.dart';
+import '../../air_quality/air_quality_screen.dart';
 import 'service_definition.dart';
 
 /// ServiceRegistry — Singleton-Verzeichnis aller HEIMAT-Services.
@@ -9,7 +10,8 @@ import 'service_definition.dart';
 ///
 /// **Status pro Service:**
 /// - ✅ `weather` → Native Flutter (Phase E Pilot)
-/// - ⏳ air, mobility, finance, health, futai, events, jobs, waste, hotels, buergeramt → IFrame-Fallback
+/// - ✅ `air` → Native Flutter (Luftqualität — Phase B, 2026-07-27)
+/// - ⏳ mobility, finance, health, futai, events, jobs, waste, hotels, buergeramt → IFrame-Fallback
 ///
 /// **Erweiterung:** Für jeden neuen Service einfach einen Eintrag in
 /// [_definitions] ergänzen. Tap-Routing via NativeMiniProgramScreen.
@@ -21,8 +23,8 @@ class ServiceRegistry {
   final Map<String, ServiceDefinition> _definitions =
       <String, ServiceDefinition>{};
 
-  /// Initialisierung — Wetter wird als erstes nativen Service registriert.
-  /// Lazy-Loading: das weather.dart File wird hier importiert, aber das
+  /// Initialisierung — native Services registrieren.
+  /// Lazy-Loading: die Screen-Imports werden hier gemacht, aber das
   /// eigentliche Widget wird nur bei Tap gebaut.
   void initialize() {
     _definitions.addAll({
@@ -31,6 +33,12 @@ class ServiceRegistry {
         name: 'Wetter',
         fallbackUrl: 'https://heimat-backend.onrender.com/mini/weather.html',
         nativeBuilder: (_) => const WeatherScreen(),
+      ),
+      'air': ServiceDefinition(
+        id: 'air',
+        name: 'Luftqualität',
+        fallbackUrl: 'https://heimat-backend.onrender.com/mini/air.html',
+        nativeBuilder: (_) => const AirQualityScreen(),
       ),
       // Alle anderen Services bleiben vorerst im IFrame-Fallback-Modus.
       // Die fallbackUrl wird im bestehenden MiniProgramProvider gepflegt.

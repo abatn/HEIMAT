@@ -20,6 +20,7 @@ import 'features/miniprogram/presentation/miniprogram_provider.dart';
 import 'features/miniprogram/presentation/launchpad_screen.dart';
 import 'features/miniprogram/domain/service_registry.dart';
 import 'features/weather/weather_provider.dart';
+import 'features/air_quality/air_quality_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +57,9 @@ class HeimatApp extends StatelessWidget {
               ),
               ChangeNotifierProvider(
                 create: (_) => WeatherProvider()..init(),
+              ),
+              ChangeNotifierProvider(
+                create: (_) => AirQualityProvider()..init(),
               ),
             ],
             child: MaterialApp(

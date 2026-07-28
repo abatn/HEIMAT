@@ -52,9 +52,9 @@ jest.mock('../config/database', () => ({
 import { pool } from '../config/database';
 import {
   run,
-  resolveSchemaPath,
   redactConnectionSecrets,
 } from '../scripts/migrate';
+import { resolveSchemaPath } from '../scripts/_schema-path';
 
 // Typisierte Zugriffe auf die gemockten Funktionen
 const mockExistsSync = fs.existsSync as jest.Mock;

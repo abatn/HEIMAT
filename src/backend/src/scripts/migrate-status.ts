@@ -23,12 +23,10 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import { errorMessage } from '../utils/error';
-
-const SCHEMA_RELATIVE_PATH = path.join('..', 'database', 'schema.sql');
+import { resolveSchemaPath } from './_schema-path';
 
 // Postgres reserved words die wir beim Parsing ignorieren müssen
 const SQL_RESERVED_WORDS = new Set([
@@ -52,10 +50,6 @@ export const ALLOWED_EXTRA_TABLES: ReadonlySet<string> = new Set<string>([
 // =============================================================================
 // Pure Functions (testable ohne pg/db)
 // =============================================================================
-
-export function resolveSchemaPath(): string {
-  return path.join(__dirname, SCHEMA_RELATIVE_PATH);
-}
 
 export interface SchemaSnapshot {
   tables: Map<string, ReadonlySet<string>>;
@@ -317,12 +311,15 @@ export async function run(
     readFileSync?: (path: string, encoding: string) => string;
     /** Output-Stream (default: process.stdout.write) */
     output?: (text: string) => void;
+    /** Wenn 'json', formatReportJSON verwenden statt text (CLI --json) */
+    format?: 'text' | 'json';
   } = {},
 ): Promise<RunResult> {
   const checkExists = options.existsSync ?? fs.existsSync;
   const readFile = options.readFileSync ??
     ((p: string, enc: string) => fs.readFileSync(p, enc as BufferEncoding));
   const dbPool = options.poolOverride ?? pool;
+  const useJson = options.format === 'json';
   const writeOutput = options.output ?? ((t: string) => {
     // eslint-disable-next-line no-console
     console.log(t);
@@ -366,7 +363,7 @@ export async function run(
   }
 
   const report = computeDrift(expected, actual);
-  writeOutput(formatReport(report));
+  writeOutput(useJson ? formatReportJSON(report) : formatReport(report));
 
   try {
     if (dbPool.end) await dbPool.end();
@@ -379,9 +376,21 @@ export async function run(
     : { kind: 'drift', report };
 }
 
+/**
+ * JSON-Format des Drift-Reports (für CI-Consumer / Render preDeploy-Healthcheck).
+ */
+export function formatReportJSON(report: DriftReport): string {
+  return JSON.stringify(report, null, 2);
+}
+
 // Nur automatisch ausführen wenn als Script direkt aufgerufen (nicht beim Import)
 if (require.main === module) {
-  void run().then((result) => {
+  const useJson = process.argv.includes('--json');
+  void run({ format: useJson ? 'json' : 'text' }).then((result) => {
+    if (useJson && result.kind === 'script_error') {
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify({ status: 'script_error', reason: result.reason }, null, 2));
+    }
     if (result.kind === 'ok') {
       process.exit(0);
     } else if (result.kind === 'drift') {

@@ -28,16 +28,10 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
 import { errorMessage } from '../utils/error';
-
-const SCHEMA_RELATIVE_PATH = path.join('..', 'database', 'schema.sql');
-
-export function resolveSchemaPath(): string {
-  return path.join(__dirname, SCHEMA_RELATIVE_PATH);
-}
+import { resolveSchemaPath } from './_schema-path';
 
 /**
  * Redactet Postgres-Connection-Strings der Form `://user:pass@host` zu

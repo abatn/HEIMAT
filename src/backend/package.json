@@ -18,7 +18,8 @@
     "test:db:stop": "bash scripts/setup-test-db.sh --stop",
     "migrate": "node dist/scripts/migrate.js",
     "migrate:dev": "ts-node src/scripts/migrate.ts",
-    "migrate:status": "ts-node src/scripts/migrate-status.ts"
+    "migrate:status": "ts-node src/scripts/migrate-status.ts",
+    "migrate:status:json": "ts-node src/scripts/migrate-status.ts --json"
   },
   "dependencies": {
     "@types/swagger-jsdoc": "^6.0.4",

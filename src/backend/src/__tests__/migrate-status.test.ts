@@ -56,15 +56,16 @@ jest.mock('../config/database', () => ({
 import { pool } from '../config/database';
 import {
   run,
-  resolveSchemaPath,
   parseExpectedSchema,
   computeDrift,
   formatReport,
+  formatReportJSON,
   queryCurrentSchema,
   ALLOWED_EXTRA_TABLES,
   type SchemaSnapshot,
   type DriftReport,
 } from '../scripts/migrate-status';
+import { resolveSchemaPath } from '../scripts/_schema-path';
 
 const mockExistsSync = fs.existsSync as jest.Mock;
 const mockReadFileSync = fs.readFileSync as jest.Mock;
@@ -327,6 +328,42 @@ describe('migrate-status.ts — Schema-Drift-Check', () => {
       expect(out).toContain('users.display_name');
       expect(out).toContain('legacy_temp_table');
       expect(out).toContain('npm run migrate:dev');
+    });
+
+    it('json-Format enthält alle Report-Felder', () => {
+      const report: DriftReport = {
+        status: 'drift',
+        missingTables: ['stops'],
+        missingColumns: [{ table: 'users', column: 'email' }],
+        extraTables: ['legacy_temp'],
+        checkedAt: '2026-07-27T00:00:00.000Z',
+        expectedTableCount: 10,
+        actualTableCount: 12,
+      };
+      const json = JSON.parse(formatReportJSON(report));
+      expect(json.status).toBe('drift');
+      expect(json.missingTables).toEqual(['stops']);
+      expect(json.missingColumns).toEqual([{ table: 'users', column: 'email' }]);
+      expect(json.extraTables).toEqual(['legacy_temp']);
+      expect(json.expectedTableCount).toBe(10);
+      expect(json.actualTableCount).toBe(12);
+      expect(json.checkedAt).toBe('2026-07-27T00:00:00.000Z');
+    });
+
+    it('json-Format ok-status', () => {
+      const report: DriftReport = {
+        status: 'ok',
+        missingTables: [],
+        missingColumns: [],
+        extraTables: [],
+        checkedAt: '2026-07-27T00:00:00.000Z',
+        expectedTableCount: 16,
+        actualTableCount: 16,
+      };
+      const json = JSON.parse(formatReportJSON(report));
+      expect(json.status).toBe('ok');
+      expect(json.missingTables).toEqual([]);
+      expect(json.expectedTableCount).toBe(16);
     });
 
     it('drift-Status mit nur missing_tables (keine columns)', () => {
