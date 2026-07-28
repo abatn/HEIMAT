@@ -32,7 +32,7 @@
 
 import type { AxiosInstance } from 'axios';
 import { logger } from '../utils/logger';
-import { resolveCity, CityNotSupportedError, type WasteCityKey, type CityBounds } from './wasteCityResolver';
+import { CITY_BOUNDS, resolveCity, CityNotSupportedError, type WasteCityKey, type CityBounds } from './wasteCityResolver';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 
 // ------------------------------------------------------------------
@@ -271,6 +271,52 @@ export class WasteService {
    */
   getAttribution(city: WasteCityKey): string {
     return this.roster[city].attribution;
+  }
+
+  /**
+   * Phase X.3b: GET /api/config/location-defaults endpoint-Backend.
+   *
+   * Liefert die BBox + addressRequired + Attribution pro Stadt dynamisch
+   * an Mobile (vorher hardcoded in waste_provider.dart). Elimiiniert
+   * hardcoded bboxes aus Mobile und konsolidiert hier.
+   *
+   * AGPL-defensiv: KEIN iCal-URL (primaryUrl) im Response. Mobile kann
+   * nicht die BSR/SRH/AWB-Endpoints direkt hitten, sondern muss via
+   * unser /api/waste/calendar-Backend-Wrapper gehen.
+   *
+   * version: Bumped bei breaking changes (e.g. neue Stadt hinzu).
+   * expiresAt: ISO-8601 timestamp 24h from now (Mobile cache-TTL).
+   */
+  getLocationDefaults(): {
+    version: string;
+    expiresAt: string;
+    cities: Array<{
+      name: WasteCityKey;
+      displayName: string;
+      bbox: { minLat: number; maxLat: number; minLng: number; maxLng: number };
+      addressRequired: boolean;
+      attribution: string;
+    }>;
+  } {
+    return {
+      version: '1.0',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      cities: CITY_BOUNDS.map((bounds) => {
+        const roster = this.roster[bounds.city];
+        return {
+          name: bounds.city,
+          displayName: bounds.displayName,
+          bbox: {
+            minLat: bounds.minLat,
+            maxLat: bounds.maxLat,
+            minLng: bounds.minLng,
+            maxLng: bounds.maxLng,
+          },
+          addressRequired: roster.addressRequired,
+          attribution: roster.attribution,
+        };
+      }),
+    };
   }
 
   // --------------------------------------------------------------

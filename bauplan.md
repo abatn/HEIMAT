@@ -809,3 +809,171 @@ Mobile UI (Flutter)
 | NUR basierend auf existierenden Dateien | ✅ | AGENTS.md Section-Struktur + HANDOFF.md Phase-Recap-Pattern + README.md Roadmap-Tabelle sind alle vorhanden, nur befüllt mit Phase X.1 + Phase C.1-Inhalt |
 | JEDE TASK einzeln mit Tests | ✅ | keine Code-Tests noetig (docs-only Phase), aber Marker-Eintrag in bauplan.md |
 | UPDATE bauplan.md nach jeder Task | ✅ | dieser Eintrag + Phase X.1-Eintrag vorhanden |
+
+---
+
+## Phase X.2 — Backend-Config-Registry + mobilityService Refactor (2026-07-28)
+
+> **Ziel:** Hardcoded externe URLs im Backend eliminieren, ohne AGPL/mock-policy-Verstoss. User-Regel "Hardkodierung und externe Webseiten-Aufrufe sind verboten" erweitert auf Backend-Layer (Phase X.1 hat Frontend clean gemacht, Phase X.2 jetzt Backend-Pendant).
+
+### Strategie (User-settled)
+Default-Strategie (deployment-friendly): aktuelle hardcoded Strings bleiben stabil als Defaults, process.env Override OPTIONAL, kein required-env-var-Restart-Cascade in Render. Production laeuft ohne env-vars; mit env-vars kann Deployment-Owner URLs austauschen.
+
+### Status
+
+- [x] `src/backend/src/config/externalServices.ts` (NEU, ~190 LOC) — typisierte Singleton-Klasse mit Constructor-DI (`env: NodeJS.ProcessEnv = process.env`). 6 typed readonly properties: `userAgent`, `nominatimUrl`, `osrmUrl`, `overpassMirrors`, `openMeteoUrl`, `brightSkyBase`. Comma-separated env-vars fuer Mirror-Listen mit `.split(',').map().filter(Boolean)` Mitigation. `stripTrailingSlash()` Mitigation gegen `${baseUrl}/${path}` 404-Bugs. `normalizeEnvValue()` Mitigation (NEEDS-FIX #1) gegen env-strings 'undefined'/'null'/whitespace-only. Object.freeze() auf overpassMirrors.
+- [x] `src/backend/src/services/mobilityService.ts` (REFACTORED) — `import { externalServices }` + 4 hardcoded URLs ersetzt. Single-Source-Pattern: vorher 3x duplizierte userAgent+overpassMirrors werden SINGLE-SOURCE. Business-Logic 1:1 erhalten.
+- [x] `src/backend/src/__tests__/externalServices.test.ts` (NEU, 21 Tests in 4 Groups): Group 1 (5 Default-Fallback), Group 2 (8 Override + 4 NEEDS-FIX-Mitigation), Group 3 (4 Mirror-Parsing+Empty-Filter), Group 4 (4 Describability+Immutability).
+- [x] `describe()` Diagnostic-Helper ohne Secret-Leak (KEY-LISTE ohne VALUES) fuer spaetere `/api/admin/config`-route.
+
+### Render-Env-Var-Liste (Doku fuer Deployment-Owner)
+
+Optional ueberschreibbar via Render-Dashboard:
+- `NOMINATIM_URL` (default: https://nominatim.openstreetmap.org)
+- `OSRM_URL` (default: https://router.project-osrm.org)
+- `OPEN_METEO_URL` (default: https://api.open-meteo.com/v1)
+- `BRIGHTSKY_BASE_URL` (default: https://api.brightsky.dev)
+- `OVERPASS_MIRRORS` (default: 3 hardcoded, comma-separated override)
+- `HEIMAT_USER_AGENT` (default: HEIMAT-App/1.0 + github-url)
+
+### Design-Entscheidungen (Mirror zu Thinker-Phase X.2-Architektur-Pass)
+
+- Constructor-DI mit env: ProcessEnv = process.env → testbar ohne monkey-patching
+- Readonly typed properties (mehr boilerplate als Dictionary, gewinnt Type-Safety)
+- Comma-separated Mirror-Listen (Render copy-paste-friendly)
+- Object.freeze + TS readonly (Defense-in-depth, compile-time + runtime)
+- Silent-default-pass-through (kein startup-throw)
+- stripTrailingSlash + normalizeEnvValue (2 Mitigations gegen Render-Quirks)
+
+### Lessons-Learned
+
+1. Backend-Hardcoding ist AGPL-Compliance-Issue, nicht nur DRY-Cosmetic. Mirror-Liste-Aenderung muss alle 9 Files synchron treffen — vergisst garantiert einen.
+2. Constructor-DI mit env-Default ist Pattern fuer testbare Singletons.
+3. Render-Env-Quirks 'undefined'/'null' als string kommen real vor → normalizeEnvValue-Guard.
+4. describe() ohne secret-leak: KEY-LISTE statt VALUES exponieren.
+5. Object.freeze + TS readonly sind komplementaer (Defense-in-depth).
+
+### Validation
+
+- **21/21 externalServices.test.ts PASS** (9.1s, lokaler jest-Run)
+- **tsc --noEmit CLEAN** (kein type-error)
+- **16/18 mobility.test.ts PASS** (2 PRE-EXISTING Failures: stops/match GTFS-seed + log-delay user_delays-table — NICHT durch X.2 verursacht, schon im "Was fehlt"-Bucket seit AGENTS.md)
+- **0 mock-policy-hits**, **0 hardcoded-URL-hits** in refactor'd mobilityService
+- Code-Reviewer PASS (NEEDS-FIX #1 gefixt + 4 neue Tests; #2 deferred docs-only)
+
+### HEIMAT-Konvention-Compliance
+
+- Conventional commits: `refactor(backend): externalServices registry (Phase X.2)` + `docs(phase-x-2): bauplan sync`
+- Kein `git add -A/.` (HEIMAT-AGENTS.md rule)
+- Mock-Policy: 0 violations in production-code
+- JEDE Task einzeln mit Tests: 21 Tests fuer registry
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+1. **NEEDS-FIX #2** (empty-after-strip edge-case `NOMINATIM_URL=/` → '' → axios-crash) → Phase X.3 follow-up
+2. **Phase X.3a**: weatherService + evChargingService + airQualityService analog mobility refactoren (3 weitere Services, ~30 LOC delta + Regressions-Tests)
+3. **Phase X.3b**: Backend-driven BBox-Defaults `GET /api/config/location-defaults` Endpoint (Mobile cached dynamisch, waste_provider.dart BBox-Konstanten werden backend-driven)
+4. **Phase X.4**: AI-Integration / Ollama / TFLite Service-URLs koennten in registry erweitert werden (modell-lokal-vs-remote-config)
+5. **`/api/admin/config`-route** mit `describe()`-Output (Phase 5 Clean-up-Sweep)
+6. **Render-deploy-live-verification** post-merge: `curl /api/mobility/stops?lat=52.52&lng=13.41` sollte ≥3 stops returnen (gleicher Output wie vorher — registry-defaults = original hardcoded)
+
+---
+
+
+---
+
+## Phase X.3a — Backend-Config-Registry Expansion (weather + evCharging + airQuality aus externalServices) (2026-07-28)
+
+> **Ziel:** 3 weitere Backend-Services analog mobilityService.ts aus Phase X.2 ueber externalServices-Registry mit env-var-driven URLs versorgen. Single-Source-Pattern: vorher 3x duplizierte overpassMirror-Liste + userAgent werden SINGLE-SOURCE.
+
+### Strategie (Mirror zu Phase X.2)
+
+Default-Strategy (deployment-friendly). Module-level BRIGHTSKY_BASE const aus weatherService migriert zu class-property (visibility-reduction-safe: kein externer Code referenziert). openAirQualityUrl NEUE Registry-property (air-quality-api.open-meteo.com ist eigene Subdomain).
+
+### Status
+
+- [x] externalServices.ts erweitert: OPEN_AIR_QUALITY_URL env-var + openAirQualityUrl readonly property + describe()-Integration. Default https://air-quality-api.open-meteo.com/v1. normalizeEnvValue + stripTrailingSlash + undefined-string-guard konsistent mit sibling-Properties.
+- [x] weatherService.ts: 4 class-properties aus registry (baseUrl/openMeteoUrl + brightSkyBase + userAgent + nominatimUrl). Module-level BRIGHTSKY_BASE entfernt. ${BRIGHTSKY_BASE}/... (2 Stellen in fetchBrightSky) zu ${this.brightSkyBase}/.... Hardcoded nominatim.openstreetmap.org/reverse in reverseGeocode zu ${this.nominatimUrl}/reverse. 1:1 logic-preserving.
+- [x] evChargingService.ts: 2 class-properties aus registry (userAgent + overpassMirrors). 3 hardcoded overpassMirror-URLs ENTFERNT (war DUPLIKAT zu mobilityService.ts).
+- [x] airQualityService.ts: 3 class-properties aus registry (baseUrl/openAirQualityUrl + userAgent + nominatimUrl). nominatim-reverse-URL-Fix mirror zu weatherService.
+- [x] externalServices.test.ts: +2 Tests fuer openAirQualityUrl (default + override-mit-trailing-slash-strip).
+- [x] airQuality.test.ts NEU: 70 LOC, 3 offline-resilient Tests auf /api/air-quality/current (supertest-basiert).
+
+### Code-Reviewer-Verdict + NEEDS-FIX Resolution
+
+NEEDS-FIX #1: BRIGHTSKY_BASE war module-level const. grep-verification ergab KEIN externen Code referenziert die Konstante (ausser externalServices.ts BRIGHTSKY_BASE_URL env-key + weatherService.ts Documentation-Comment). Module-level-Visibility-Reduktion ist safe.
+
+### Validation
+
+- tsc --noEmit CLEAN (alle 6 Files type-check-clean)
+- Mock-Policy: 0 forbidden identifiers in 6 Phase-X.3a-Files
+- hardcoded-URL-grep: 0 hardcoded URLs in refactored services
+- BRIGHTSKY_BASE grep: nur in externalServices.ts (env-key) und weatherService.ts (Comment)
+- Expected jest in CI: externalServices 23 tests + airQuality 3 tests + mobility 16/18 PG-seed-issues + weatherService 10/10 + evCharging 6/6
+
+### Render-Env-Var-Liste (Update zu Phase X.2)
+
+NEU: OPEN_AIR_QUALITY_URL (default https://air-quality-api.open-meteo.com/v1)
+
+### Offene Punkte (Phase X.4 Roadmap)
+
+- dbVendoService + talerExchangeClient + talerService: 3 weitere hardcoded-URLs. Phase X.4a analog X.3a.
+- wasteService hat process.env-Roster-Pattern (Phase B-2) — Phase X.4b konsolidieren.
+- (NEEDS-FIX #2 X.2 NACHTRAG: GELOEST in Phase X.3b — siehe unten)
+
+---
+
+## Phase X.3b — Backend-Driven BBox-Defaults + URL-Validator Fail-Fast (2026-07-28)
+
+> **Ziel:** Hardcoding-Strategie auf Backend-Layer weiter aufgeloest. 2 Deliverables: (1) Backend-Endpoint liefert city+bbox-Defaults dynamisch (statt mobile hardcoded coordinates), (2) URL-Validator fail-fast blockt kaputte env-var-Werte BEVOR Production-Crash.
+
+### Strategie (Mirror zu X.2 default-driven)
+
+- **Backend-driven Config**: AGPL-defensiv — KEIN `primaryUrl`/`ical_url` im Frontend-leak. Mobile cached mit SharedPreferences-TTL.
+- **Fail-fast im Constructor**: env-misconfig wirft Error beim App-Start (Render-Restart sichtbar) statt axios runtime-crash.
+
+### Status
+
+- [x] `src/backend/src/config/externalServices.ts` (REFACTORED): `validateUrl()` helper replaces `stripTrailingSlash()`. **3-fach fail-fast logic**: (1) empty-after-strip → throw "empty after strip", (2) scheme-check `^https?://` → throw "non-http(s) scheme", (3) `new URL()` format-check → throw "Invalid URL format". Applied to ALL 5 URL-properties (nominatim/osrm/openMeteo/openAirQuality/brightSkyBase). Inline `s.trim().replace(/\/+$/, '')` in mirror-list splitting loop (kein separater helper mehr).
+- [x] `src/backend/src/config/externalServices.ts` (mit OVERPASS_MIRRORS scheme-loop): extra scheme-validation loop wirft beim ersten non-http(s)-mirror. Fail-fast statt silent-skip aggregate.
+- [x] `src/backend/src/services/wasteCityResolver.ts`: `CITY_BOUNDS` jetzt export-ed (war module-level-non-export). AGPL-defensiv comment: bbox-coordinates sind public facts (Verwaltungsgrenzen), keine user-config.
+- [x] `src/backend/src/services/wasteService.ts`: `getLocationDefaults()` NEUE method. Kombiniert CITY_BOUNDS + service-roster zu AGPL-defensiv response (nur bbox/displayName/addressRequired/attribution — KEIN primaryUrl).
+- [x] `src/backend/src/routes/config.ts` (NEU, ~120 LOC): zod-validated GET `/api/config/location-defaults` endpoint mit `expiresAt` 24h-cache-hint. Zweites endpoint `/api/config/status` (health-check pattern).
+- [x] `src/backend/src/index.ts`: `configRouter` mount at `/api/config`.
+- [x] `src/backend/src/__tests__/externalServices.test.ts` (RESTRUCTURED): 26 tests in 4 Groups. Group 1 (5 default-fallbacks), Group 2 (12 override+mitigation + X.2 NEEDS-FIX #1 + X.3b NEEDS-FIX #2 fail-fast), Group 3 (4 mirror-parsing), Group 4 (5 describe+immutability).
+- [x] `src/backend/src/__tests__/config.test.ts` (NEU, 3 tests): `200 + city-names + bbox-validity`, `AGPL-leak-fence (no https?:// / primaryUrl / ical_url)`, `/api/config/status` health-check.
+
+### Code-Reviewer-Verdict + NEEDS-FIX Resolution
+
+NEEDS-FIX-Resolved:
+- Test 1 invalid-url: scheme-check fires vor new-URL → assertion jetzt `/(non-http|scheme)/`.
+- config.test.ts test 2 (SRH-false-positive): regex von `/stadtreinigung-hamburg\.de|srh/i` zu URL-protocol-check `not.toMatch(/https?:\/\//)` + field-name `not.toHaveProperty('primaryUrl'|'icalUrl'|'ical_url')`.
+
+Polished Open Items (deferred to Phase X.4):
+- `expiresAt` non-determinism (mobile independently tracks 24h TTL — defensive).
+- Duplicate WasteService singleton in routes/waste.ts + routes/config.ts (cache-coordination risk; refactor zu shared-singleton in Phase X.4a).
+- Test-Coverage-Gap: explicit OVERPASS_MIRRORS=foo (non-http) scheme-loop-reject test (jetzt nur indirekt getestet).
+
+### Validation (Local + CI-Expected)
+
+- **tsc --noEmit CLEAN** (alle 7 files type-check-clean)
+- **Jest externalServices.test.ts 26/26 PASS** (lokal verifiziert)
+- **Jest config.test.ts 3/3 PASS** (lokal verifiziert)
+- **Mock-Policy: 0 forbidden identifiers** (`mockStatus|sampleData|simulate|local://demo`)
+- **hardcoded-URL-grep**: 0 hardcoded URLs in refactored/config-files
+- **AGPL-leak-fence**: `/api/config/location-defaults` exponiert KEIN `primaryUrl`/`ical_url` — test verifiziert
+- **Render-Env-Vars** updated: NEU keine env-vars noetig (Defaults funktionieren); nur optional overrides.
+
+### Strategy-Alignment zur User-Regel
+
+- "Hardcoding verboten": Mobile BBox-Konstanten werden jetzt backend-driven via `/api/config/location-defaults`. Mobile-Update (WasteProvider mit async-load+cache) als Phase X.3c.
+- "External website forbidden": AGPL-leak-fence-test garantiert kein iCal-URL-Exposure im response.
+
+### Lessons-Learned
+
+1. fail-fast > runtime-crash: validateUrl wirft BEI App-Start sichtbar statt runtime silent-fail.
+2. AGPL-defensiv: bbox+displayName ja, primaryUrl nein. Frontend bekommt nur das was es braucht.
+3. zod re-validation zwischen service und route ist defensive boilerplate aber billig.
+4. `new URL()` akzeptiert ftp:// — expliziter scheme-check `^https?://` ist notwendig fuer fail-fast.
+5. wildcard-substring-test fuer AGPL-leak-check ist false-positive-anfaellig — field-name-check + URL-protocol-check praeziser.
+

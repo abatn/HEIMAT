@@ -35,7 +35,15 @@ export interface CityBounds {
   maxLng: number;
 }
 
-const CITY_BOUNDS: CityBounds[] = [
+/**
+ * Single Source of Truth: Bounding-Box-Koordinaten pro Stadt.
+ *
+ * Phase X.3b: Jetzt `export`-ed (vorher private const). Grund: routes/config.ts
+ * braucht die BBox-Daten um sie an Mobile zu liefern via
+ * GET /api/config/location-defaults. AGPL-defensiv: diese Koordinaten sind
+ * public facts (Verwaltungsgrenzen), keine user-config.
+ */
+export const CITY_BOUNDS: CityBounds[] = [
   { city: 'berlin',   displayName: 'Berlin',   minLat: 52.34, maxLat: 52.68, minLng: 13.10, maxLng: 13.77 },
   { city: 'hamburg',  displayName: 'Hamburg',  minLat: 53.39, maxLat: 53.74, minLng:  9.73, maxLng: 10.32 },
   { city: 'muenchen', displayName: 'München',  minLat: 48.06, maxLat: 48.25, minLng: 11.36, maxLng: 11.73 },

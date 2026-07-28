@@ -67,9 +67,43 @@ export class ExternalServiceRegistry {
   public readonly brightSkyBase: string;
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
-    // Helper: trailing-slash-strip. Verhindert `${baseUrl}/x` + `suffix` =
-    // `baseUrl//x` (404 oder SSL-Fehler in manchen Proxies).
-    const stripTrailingSlash = (url: string): string => url.replace(/\/+$/, '');
+    // VALIDATE-URL-HELPER (Phase X.3b — NEEDS-FIX #2 resolution):
+    // Fail-Fast on app-start wenn env-var zu kaputter URL wird:
+    //   - empty after trailing-slash-strip (z.B. NOMINATIM_URL='/')
+    //   - malformed format (z.B. 'invalid-url' scheitert an new URL())
+    //   - non-http(s)-scheme (z.B. 'ftp://...' wird explizit abgelehnt)
+    // Wirft detaillierten Error mit env-var-name für debugging. Render
+    // startup-haenger ist explizit besser als silent axios-crash zur runtime.
+    const validateUrl = (rawValue: string | undefined, envVar: string, fallback: string): string => {
+      const stripped = (rawValue ?? fallback).replace(/\/+$/, '');
+      if (!stripped) {
+        throw new Error(
+          `ExternalServiceRegistry: env-var ${envVar} resolves to empty string ` +
+          `(set to '/' or whitespace-only). Falling back to default not possible — fail-fast.`
+        );
+      }
+      // Scheme-Check (Phase X.3b Code-Reviewer NEEDS-FIX #1):
+      // REJECT ftp://, file://, gopher://, etc. → nur http oder https erlaubt.
+      // `new URL(stripped)` würde ftp:// sonst als 'gültig' akzeptieren, aber
+      // axios kann ftp nicht handhaben. User-Spirit: "externe Webseiten-Aufrufe
+      // verboten" → http/https-only ist die korrekte Restriction.
+      if (!/^https?:\/\//.test(stripped)) {
+        throw new Error(
+          `ExternalServiceRegistry: env-var ${envVar} has non-http(s) scheme: '${stripped}'. ` +
+          `Only http:// or https:// URLs are accepted.`
+        );
+      }
+      try {
+        // Backup-validate URL-parseable (catch garbage like 'invalid-url').
+        new URL(stripped);
+      } catch {
+        throw new Error(
+          `ExternalServiceRegistry: env-var ${envVar} has invalid URL format: '${stripped}'. ` +
+          `Expected http:// or https:// + host + optional path.`
+        );
+      }
+      return stripped;
+    };
 
     // Mitigation (Code-Reviewer Phase X.2 NEEDS-FIX #1):
     // Guard gegen env-Strings "undefined" oder "null" (Render-Action-Bug
@@ -96,37 +130,50 @@ export class ExternalServiceRegistry {
     this.userAgent =
       userAgentRaw || 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
 
-    this.nominatimUrl = stripTrailingSlash(
-      nominatimRaw || 'https://nominatim.openstreetmap.org'
+    this.nominatimUrl = validateUrl(
+      nominatimRaw, 'NOMINATIM_URL', 'https://nominatim.openstreetmap.org'
     );
 
-    this.osrmUrl = stripTrailingSlash(
-      osrmRaw || 'https://router.project-osrm.org'
+    this.osrmUrl = validateUrl(
+      osrmRaw, 'OSRM_URL', 'https://router.project-osrm.org'
     );
 
-    this.openMeteoUrl = stripTrailingSlash(
-      openMeteoRaw || 'https://api.open-meteo.com/v1'
+    this.openMeteoUrl = validateUrl(
+      openMeteoRaw, 'OPEN_METEO_URL', 'https://api.open-meteo.com/v1'
     );
 
-    this.openAirQualityUrl = stripTrailingSlash(
-      openAirQualityRaw || 'https://air-quality-api.open-meteo.com/v1'
+    this.openAirQualityUrl = validateUrl(
+      openAirQualityRaw, 'OPEN_AIR_QUALITY_URL', 'https://air-quality-api.open-meteo.com/v1'
     );
 
-    this.brightSkyBase = stripTrailingSlash(
-      brightSkyRaw || 'https://api.brightsky.dev'
+    this.brightSkyBase = validateUrl(
+      brightSkyRaw, 'BRIGHTSKY_BASE_URL', 'https://api.brightsky.dev'
     );
 
     // Mirror-Liste: comma-separated env-var oder 3-Default-Mirrors.
     // .filter(Boolean) schuetzt vor OVERPASS_MIRRORS="" → [''] Crash.
+    // Inline `replace(/\/+$/, '')` statt stripTrailingSlash-Helper (Phase X.3b
+    // Refactor: helper entfernt nach validateUrl-Einfuehrung; mirror-list
+    // ist die einzige Stelle an der wir noch trailing-slash-strip machen).
     const mirrorsFromEnv = overpassRaw
       ? overpassRaw.split(',')
-          .map(s => stripTrailingSlash(s.trim()))
+          .map(s => s.trim().replace(/\/+$/, ''))
           .filter((s): s is string => s.length > 0)
       : [
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
           'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
         ];
+    // Phase X.3b scheme-check: alle mirror-URLs muessen http(s) sein.
+    // ACHTUNG: dieser fasst die ganze Liste — wenn EINE mirror-URL kaputt
+    // ist, wirft der ganze constructor (fail-fast cascade).
+    for (const mirror of mirrorsFromEnv) {
+      if (!/^https?:\/\//.test(mirror)) {
+        throw new Error(
+          `ExternalServiceRegistry: OVERPASS_MIRRORS contains non-http(s) URL: '${mirror}'.`
+        );
+      }
+    }
     this.overpassMirrors = Object.freeze(mirrorsFromEnv);
   }
 

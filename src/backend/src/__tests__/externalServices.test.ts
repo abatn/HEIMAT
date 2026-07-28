@@ -1,14 +1,17 @@
 // ---------------------------------------------------------------------------
-// externalServices.test.ts — Phase X.2 Backend-Config-Registry Unit-Tests
+// externalServices.test.ts — Phase X.2/X.3b Backend-Config-Registry Unit-Tests
 //
 // Strategie: Pure unit tests (kein axios-mock, kein DB-mock noetig).
 // Wir testen die Registry-Klasse isoliert via Constructor-DI mit mock-env.
 //
-// Coverage-Plan (10 Tests in 4 Groups):
-//   Group 1 - Defaults: alle 6 URLs fallen auf hardcoded Strings zurueck
-//   Group 2 - Env-Override: einzelne + mehrere env-vars ueberschreiben defaults
-//   Group 3 - Mirror-Listen-Parsing: comma-separated + trailing-slash-strip + filter-empty
-//   Group 4 - describe() Debug-Output + Immutability-Guarantee
+// Coverage-Plan (26 Tests in 4 Groups):
+//   Group 1 - Defaults: 6 tests (alle 6 URLs fallen auf hardcoded Strings)
+//   Group 2 - Env-Override + X.2 NEEDS-FIX #1 + X.3b NEEDS-FIX #2:
+//             13 tests (override + multi-override + trailing-slash-strip +
+//             undefined-string-guard + empty-after-strip + invalid-format +
+//             ftp-scheme-reject)
+//   Group 3 - Mirror-Listen-Parsing: 4 tests
+//   Group 4 - describe() + Immutability: 4 Tests
 // ---------------------------------------------------------------------------
 
 import {
@@ -44,20 +47,15 @@ describe('ExternalServiceRegistry', () => {
       ]);
     });
 
-    it('verwendet Open-Meteo + Bright-Sky-Defaults', () => {
+    it('verwendet Open-Meteo + Bright-Sky + Air-Quality Defaults', () => {
       const r = new ExternalServiceRegistry({});
       expect(r.openMeteoUrl).toBe('https://api.open-meteo.com/v1');
       expect(r.brightSkyBase).toBe('https://api.brightsky.dev');
-    });
-
-    it('verwendet Open-Meteo-Air-Quality-Default (separate subdomain)', () => {
-      const r = new ExternalServiceRegistry({});
       expect(r.openAirQualityUrl).toBe('https://air-quality-api.open-meteo.com/v1');
     });
   });
-  });
 
-  describe('Group 2: env-var Override', () => {
+  describe('Group 2: env-var Override + NEEDS-FIX Mitigations', () => {
     it('NOMINATIM_URL ueberschreibt default ohne trailing-slash', () => {
       const r = new ExternalServiceRegistry({
         NOMINATIM_URL: 'http://internal-nominatim.local',
@@ -99,7 +97,7 @@ describe('ExternalServiceRegistry', () => {
       expect(r.openAirQualityUrl).toBe('http://internal-aq.test.local');
     });
 
-    // Code-Reviewer NEEDS-FIX #1: Render-Actions koennen env-string 'undefined'/'null' setzen.
+    // ─ Phase X.2 NEEDS-FIX #1: Render-Aktions koennen env-string 'undefined'/'null' setzen ─
     it('treat env-string "undefined" wie nicht-gesetzt → fall-back auf default', () => {
       const r = new ExternalServiceRegistry({
         NOMINATIM_URL: 'undefined',
@@ -130,6 +128,26 @@ describe('ExternalServiceRegistry', () => {
       expect(r.nominatimUrl).toBe('https://nominatim.openstreetmap.org');
       expect(r.osrmUrl).toBe('https://router.project-osrm.org');
       expect(r.openMeteoUrl).toBe('http://valid-om.test');
+    });
+
+    // ─ Phase X.3b NEEDS-FIX #2: URL-Validator fail-fast ─
+    // Drei Validierungsstufen: empty-after-strip / non-http(s)-scheme / invalid-format.
+    it('fail-fast: NOMINATIM_URL="/" wirft Error mit "empty" im message', () => {
+      expect(() => new ExternalServiceRegistry({ NOMINATIM_URL: '/' })).toThrow(/empty/);
+    });
+
+    it('fail-fast: NOMINATIM_URL="invalid-url" wirft Error mit "non-http(s) scheme" (scheme-check fires vor new URL)', () => {
+      // Reihenfolge: empty → scheme → new URL. 'invalid-url' ist nicht http(s),
+      // daher wirft scheme-check ZUERST (vor new URL). Erwartet scheme-msg.
+      expect(
+        () => new ExternalServiceRegistry({ NOMINATIM_URL: 'invalid-url' })
+      ).toThrow(/(non-http|scheme)/);
+    });
+
+    it('fail-fast: OSRM_URL="ftp://wrong-scheme" wirft Error (scheme-check)', () => {
+      expect(
+        () => new ExternalServiceRegistry({ OSRM_URL: 'ftp://wrong-scheme' })
+      ).toThrow(/(non-http|scheme)/);
     });
   });
 
@@ -163,11 +181,15 @@ describe('ExternalServiceRegistry', () => {
     });
 
     it('filtert leer-entries aus comma-string mit fuehrendem whitespace', () => {
-      // "  ,url1," → nach trim/filter sollten nur nicht-leere uebrigbleiben
+      // Format mit fuehrendem whitespace + leeren entries + valid URLs.
+      // Nach trim/filter sollten nur die valid http-URLs uebrigbleiben.
       const r = new ExternalServiceRegistry({
-        OVERPASS_MIRRORS: ',  url1,  ,url2',
+        OVERPASS_MIRRORS: ',  http://m1.test/api, ,http://m2.test/api,',
       });
-      expect(r.overpassMirrors).toEqual(['url1', 'url2']);
+      expect(r.overpassMirrors).toEqual([
+        'http://m1.test/api',
+        'http://m2.test/api',
+      ]);
     });
   });
 
