@@ -350,4 +350,62 @@ void main() {
       expect(provider.isLoading, isFalse);
     });
   });
+
+  // ------------------------------- Group 9 -------------------------------
+  // Phase B-3.1 — Bbox-basierter Auto-City-Picker (Static helper).
+  //
+  // Statischer Helper `pickCityFromBbox(lat, lng)` → 'berlin' | 'hamburg' |
+  // 'muenchen'. Half-open semantics [min, max) an allen 4 Edges.
+  // Bbox-miss → 'berlin' Fallback (kein address_required, sodass User
+  // Berlin-default-event-list sieht statt einer 422-Dialog zu muessen).
+  //
+  // Diese Tests testen die pure Funktion ohne instance-state und ohne
+  // Backend-Mock. Statischer Zugriff via `WasteProvider.pickCityFromBbox`
+  // (Class-Level, public).
+  group('Group 9: pickCityFromBbox (Phase B-3.1 Bbox-Auto-Picker)', () {
+    test('Berlin Mitte (52.52, 13.41) → berlin', () {
+      expect(WasteProvider.pickCityFromBbox(52.52, 13.41), 'berlin');
+    });
+
+    test('Hamburg Mitte (53.55, 9.99) → hamburg', () {
+      expect(WasteProvider.pickCityFromBbox(53.55, 9.99), 'hamburg');
+    });
+
+    test('Muenchen Mitte (48.14, 11.58) → muenchen', () {
+      expect(WasteProvider.pickCityFromBbox(48.14, 11.58), 'muenchen');
+    });
+
+    test('Berlin lower-bound inclusive (52.34, 13.10) → berlin', () {
+      // Half-open semantics: [] inclusive am lower-bound.
+      expect(WasteProvider.pickCityFromBbox(52.34, 13.10), 'berlin');
+    });
+
+    test(
+        'Hamburg upper-bound edge just-inside (53.73, 10.31) → hamburg',
+        () {
+      // < 53.74 && < 10.31 → still inside.
+      expect(WasteProvider.pickCityFromBbox(53.73, 10.31), 'hamburg');
+    });
+
+    test(
+        'Berlin upper-bound edge just-outside (52.68, 13.41) → berlin (Fallback)',
+        () {
+      // lat=52.68 ist upper-bound exclusive → outside Berlin bbox.
+      expect(WasteProvider.pickCityFromBbox(52.68, 13.41), 'berlin');
+    });
+
+    test(
+        'Out-of-bbox Koeln (50.94, 6.96) → berlin (Fallback)',
+        () {
+      // Weder Berlin/Hamburg/Muenchen bbox-match.
+      expect(WasteProvider.pickCityFromBbox(50.94, 6.96), 'berlin');
+    });
+
+    test(
+        'Muenchen upper-bound edge just-outside (48.25, 11.73) → berlin (Fallback)',
+        () {
+      // lat=48.25 upper-bound exclusive → outside Muenchen bbox.
+      expect(WasteProvider.pickCityFromBbox(48.25, 11.73), 'berlin');
+    });
+  });
 }
