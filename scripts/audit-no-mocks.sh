@@ -91,10 +91,15 @@ COMMENT_REGEX='^[[:space:]]*(#|//|/\*|\*|<!--)'
 # Pre-flight validation
 # -----------------------------------------------------------------------------
 
-if ! command -v rg >/dev/null 2>&1; then
-    echo "ERROR: ripgrep (rg) is required for audit-no-mocks.sh" >&2
+# Detect available scanner — prefer ripgrep (rg) for performance, fall back
+# to GNU grep if rg is not installed. CI environments (ubuntu-latest) without
+# rg pre-installed will silently fall back; build continues with WARN.
+if command -v rg >/dev/null 2>&1; then
+    SCAN_TOOL="rg"
+else
+    echo "WARN: ripgrep (rg) not found; falling back to GNU grep (slower)" >&2
     echo "  Install: apt install ripgrep / brew install ripgrep" >&2
-    exit 2
+    SCAN_TOOL="grep"
 fi
 
 for p in "${SCAN_PATHS[@]}"; do
@@ -123,9 +128,23 @@ scan_one_pattern() {
     local PATTERN="$1"
     local HITS
 
-    HITS=$(rg --no-heading --line-number --color=never \
-        "${RG_GLOB_ARGS[@]}" \
-        "$PATTERN" "${SCAN_PATHS[@]}" 2>/dev/null || true)
+    if [[ "$SCAN_TOOL" == "rg" ]]; then
+        HITS=$(rg --no-heading --line-number --color=never \
+            "${RG_GLOB_ARGS[@]}" \
+            "$PATTERN" "${SCAN_PATHS[@]}" 2>/dev/null || true)
+    else
+        # GNU grep fallback — translates our rg ALLOWED_GLOBS to grep equivalents.
+        # Note: best-effort subset of the rg glob set (full rg --glob is not 1:1).
+        # Excludes: build/node_modules/.git dirs + .iml/.min.js/.min.dart files +
+        # AGENTS.md/knowledge.md/CLAUDE.md (policy-files in repo root/.claude/).
+        # Other rg-specific exclusions (e.g. .opencode/skills/*.md) are skipped
+        # in the fallback path to keep the patch minimal-invasive.
+        HITS=$(grep -rEn \
+            --exclude-dir=build --exclude-dir=node_modules --exclude-dir=.git \
+            --exclude='*.iml' --exclude='*.min.js' --exclude='*.min.dart' \
+            --exclude=AGENTS.md --exclude=knowledge.md --exclude=CLAUDE.md \
+            "$PATTERN" "${SCAN_PATHS[@]}" 2>/dev/null || true)
+    fi
 
     if [[ -z "$HITS" ]]; then
         return
