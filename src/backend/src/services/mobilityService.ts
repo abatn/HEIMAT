@@ -1,4 +1,5 @@
 import { query, queryOne } from '../config/database';
+import { externalServices } from '../config/externalServices';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import axios, { AxiosError } from 'axios';
@@ -16,9 +17,12 @@ interface OverpassElement {
 }
 
 export class MobilityService {
-  private readonly nominatimUrl = 'https://nominatim.openstreetmap.org';
-  private readonly osrmUrl = 'https://router.project-osrm.org';
-  private readonly userAgent = 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
+  // Phase X.2: URLs aus externalServices-Registry (env-var-driven + defaults).
+  // Vorher: hardcoded class-properties (siehe Git-Historie).
+  private readonly nominatimUrl = externalServices.nominatimUrl;
+  private readonly osrmUrl = externalServices.osrmUrl;
+  private readonly userAgent = externalServices.userAgent;
+  private readonly overpassMirrors = externalServices.overpassMirrors;
   private readonly cacheTtlHours = 168; // 7 Tage
 
   private classifyStop(tags: Record<string, string> = {}): string {
@@ -28,12 +32,6 @@ export class MobilityService {
     if (tags.light_rail === 'yes' || tags.train === 'yes') return 'train';
     return 'bus';
   }
-
-  private readonly overpassMirrors = [
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-  ];
 
   private async fetchFromOverpass(lat: number, lng: number, radiusMeters: number): Promise<OverpassElement[]> {
     const r = Math.min(radiusMeters, 10000);
