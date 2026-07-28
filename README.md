@@ -52,6 +52,12 @@ HEIMAT 2.0 ist eine datenschutzkonforme, kostenfreie Super App für den deutsche
 - Terminbuchung mit verfügbarer Zeitplanung
 - Keine TI-Anbindung, keine Patientendaten
 
+### Mini-Programme (Apps-Tab)
+- **10 Mini-Programme** registriert: Wetter, Luftqualität, Abfallkalender, Mobilität, Finanzen, Gesundheit, Veranstaltungen, Job-Suche, Hotels, Bürgeramt
+- **Status (Phase X.1, 2026-07-28):** 3 nativ (Wetter, Luftqualität, Abfallkalender) + 7 in Vorbereitung (Coming Soon)
+- 100% native Flutter-Implementierung — kein IFrame, kein WebView, keine externe Webseiten-Einbettung
+- Tap auf ein Mini-Programm öffnet den entsprechenden nativen Bildschirm oder einen ehrlichen "Coming Soon"-Platzhalter falls noch nicht implementiert
+
 ---
 
 ## Projektstruktur
@@ -161,6 +167,8 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | **AI-Home Dashboard** | ✅ **Live** | **Personalisierter Startseiten-Tab mit Tageszeit-basierten Vorschlägen + Greeting-Card + Nearby-Stops** |
 | **Phase Q: Quality-Pass (AuthLock)** | ✅ **Live** | **AuthGate extrahiert in `lib/core/auth/auth_gate.dart` mit required `authenticated` Parameter; 11 neue authlock-regression-Tests (5 auth_gate + 6 auth_integration mit FakeAuthProvider Stub-Vererbungs-Pattern). Eliminiert Production-Test-Drift.** |
 | CI-Fix-Runde 2 | ✅ **Grün** | `withOpacity` (Flutter 3.24.5), `unnecessary_non_null_assertion` entfernt, Conditional Imports korrigiert |
+| **Phase C-1: E-Ladestationen Backend** | ✅ **Live (2026-07-28)** | **`GET /api/ev-charging/stations?lat=&lng=&radius_km=` aus OpenStreetMap Overpass; 3 Mirror-Fallbacks; 24h In-Memory-Cache; ODbL-Attribution; 6 Tests** |
+| **Phase X.1: IFrame-Elimination** | ✅ **Live (2026-07-28)** | **Alle Mini-Programme nativ via `ServiceRegistry.nativeBuilder`; KEIN WebView, kein `dart:html`; `+16` neue Tests (12 service_registry + 4 coming_soon_screen); Total: ~193 Tests** |
 
 ## 🚀 HEIMAT Expansion — Neue Services
 
@@ -169,10 +177,10 @@ HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, abe
 | Service | Datenquelle | Status | AI |
 |---------|------------|--------|-----|
 | 💬 Chat (Futai) | github.com/abatn/futai | ✅ Mini-Program-Container fertig (Commit 92ec307) | Ollama KI-Twin |
-| 🌤️ Wetter | DWD (Deutscher Wetterdienst) | ✅ Phase B deployed (Commit 9e42a30) | Unwetter-Früherkennung |
-| 🌬️ Luftqualität | Umweltbundesamt (UBA) | ⏳ Phase B | Gesundheitsempfehlung |
-| 🗑️ Abfallkalender | Kommunale Open Data | ⏳ Phase B | Sortier-Tipps |
-| 🔌 E-Ladestationen | OpenStreetMap | ⏳ Phase C | Routenplanung |
+| 🌤️ Wetter | DWD (Deutscher Wetterdienst) | ✅ Native (Phase B + Phase X.1) | Unwetter-Früherkennung |
+| 🌬️ Luftqualität | Umweltbundesamt (UBA) | ✅ Native (Phase B + Phase X.1) | Gesundheitsempfehlung |
+| 🗑️ Abfallkalender | Kommunale Open Data | ✅ Native (Phase B-3 + Phase X.1) | Sortier-Tipps |
+| 🔌 E-Ladestationen | OpenStreetMap | ✅ Backend (Phase C-1); Frontend Phase C-1.2 geplant | Routenplanung |
 | 💼 Job-Suche | BA Bundesagentur | ⏳ Phase D | Job-Matching |
 | 📰 Veranstaltungen | Wikidata + OSM | ⏳ Phase D | Empfehlung |
 | 🏨 Hotels | OpenStreetMap | ⏳ Phase E | Reise-Budget |

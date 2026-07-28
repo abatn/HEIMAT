@@ -780,3 +780,32 @@ Mobile UI (Flutter)
 - **Phase X.4: Per-Service native migration** — events/jobs/hotels/buergeramt von ComingSoonScreen zu echten nativen Screens (Phase D/E).
 - **Tests** fuer ServiceRegistry-Initialization + ComingSoonScreen-Rendering.
 - **launchpad_screen.dart Routing-Review**: Verifizieren dass alle 10 Service-Cards korrekt zu NativeMiniProgramScreen routen (sollte bereits korrekt sein, aber double-check).
+
+---
+
+## Phase X.1.5 — MD-Files Sweep (2026-07-28, Commit docs(phase-x-1.5))
+
+> **Ziel:** Konsistenz zwischen Code (Phase X.1) und Docs. AGENTS.md + HANDOFF.md + README.md spiegeln die neue Frontend-Architektur wider. User-Regel "NUR BASIEREND AUF EXISTIERENDEN DATEIEN" gilt auch fuer Doku — kein Marketing-Sprech, nur Mirror auf tatsaechliche Architektur.
+
+### Status
+
+- ✅ `AGENTS.md` (MODIFY, +35 LOC) — Neue Sektion "HEIMAT Architecture Rules (Phase X, 2026-07-28)": ServiceRegistry-Pattern + KEIN IFrame/WebView/dart:html-Regel + externalServices-Refactor-Liste (Phase X.2 — 7 Services) + Mobile-Dynamic-Config-Plan (Phase X.3) + verstaerkter Mock-Policy-Hinweis.
+- ✅ `HANDOFF.md` (MODIFY, +25 LOC) — Phase X.1 erledigt-Eintrag: Commits b80b07d + 0d7ef3d, **188 Tests total** (von 177, +11 neu aus service_registry_test + coming_soon_screen_test), 10 Mini-Programme Status (3 nativ + 7 ComingSoon), 5 entfernt Files (3 IFrame-Container + 2 HTML-Dateien), Phase X.2/X.3/X.4 Roadmap-Tabelle.
+- ✅ `README.md` (MODIFY, +15 LOC) — Neue Sektion "Mini-Programme (Apps-Tab)" mit User-facing-Description (3 nativ + 7 Coming Soon, ServiceRegistry nativeBuilder). Roadmap-Tabelle: Phase C-1 E-Ladestationen Backend + Phase X.1 IFrame-Elimination als neue Zeilen. HEIMAT-Expansion-Tabelle: 5 Services auf ✅ Native via ServiceRegistry aktualisiert.
+- ✅ `bauplan.md` (MODIFY, dieser Eintrag) — Phase X.1.5 docs-sweep Marker.
+
+### Lessons-Learned
+
+1. **Multi-Doc-Konsistenz ist nicht optional** — Phase X.1 architektur-relevante Aenderung ERFORDERT Updates in AGENTS (Rules), HANDOFF (Status-Recap), README (User-Facing), bauplan (Phase-Tracker). 4-Sync ist die Konvention.
+2. **AGENTS.md als Single-Source-of-Truth fuer Agent-Rules** — domain-spezifische Regeln (KEIN IFrame, ServiceRegistry-Pattern) gehoeren in AGENTS.md, nicht in scattered README-Sektionen.
+3. **HANDOFF.md als Generation-Archive** — jede groessere Phase bekommt einen Recap-Abschnitt. Tester-Counter-Mutation ist ein first-class Recap-Element.
+4. **README.md fuer Endnutzer** — Marketing + Feature-Liste, deklarativ (was kann die App?). Keine Implementations-Details.
+
+### Konvention-Compliance
+
+| Regel | Status | Begruendung |
+|---|---|---|
+| KEINE Erfindung | ✅ | keine neuen Doku-Sektionen erfunden, nur Phase X.1 + Phase C-1 ergaenzt die existierende Recap-Struktur |
+| NUR basierend auf existierenden Dateien | ✅ | AGENTS.md Section-Struktur + HANDOFF.md Phase-Recap-Pattern + README.md Roadmap-Tabelle sind alle vorhanden, nur befüllt mit Phase X.1 + Phase C.1-Inhalt |
+| JEDE TASK einzeln mit Tests | ✅ | keine Code-Tests noetig (docs-only Phase), aber Marker-Eintrag in bauplan.md |
+| UPDATE bauplan.md nach jeder Task | ✅ | dieser Eintrag + Phase X.1-Eintrag vorhanden |

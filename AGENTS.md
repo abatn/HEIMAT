@@ -228,6 +228,42 @@ Integration via **Mini-Program-Container (WebView)** — weil HEIMAT = Flutter �
 **A: Mini-Program-Container (2-3d) ✅ Live (Commit 92ec307, 2026-07-27)** — Fundament mit 10 Mini-Programmen und WebView-Framework.
 B: Wetter (✅ deployed) + Luft/Abfall (3-5d rest) → C: Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20 Tage
 
+## HEIMAT Architecture Rules (Phase X, 2026-07-28, Commit b80b07d + 0d7ef3d)
+
+### Mobile Architecture — ServiceRegistry + nativeBuilder (Phase X.1)
+
+**Rule:** KEIN IFrame, KEIN WebView, KEIN `dart:html` im Mobile-Frontend. Externe Webseiten-Einbettung ist verboten (User-Regel: "Hardkodierung und externe Webseiten-Aufrufe sind verboten", project-prompt.md Phase H).
+
+1. **ServiceRegistry-Pattern** — Singleton in `src/mobile/lib/features/miniprogram/domain/service_registry.dart` routet alle 10 Mini-Programme (weather, air, waste, mobility, finance, health, events, jobs, hotels, buergeramt) via `nativeBuilder`. Tap auf Mini-Program → `NativeMiniProgramScreen._body` lookup't in Registry → entweder echtes Native-Widget (z.B. `WeatherScreen`) oder `ComingSoonScreen` als ehrlicher Placeholder.
+2. **NativeMiniProgramScreen** — Einziger Routing-Punkt in `src/mobile/lib/features/miniprogram/presentation/native_mini_program_screen.dart`. KEIN IFrame-Fallback mehr. Defensive "Service unbekannt"-Fallback existiert als letzte Verteidigung.
+3. **ComingSoonScreen** — Ehrlicher Status-Placeholder fuer nicht-migrierte Services. Zeigt "Coming Soon"-Badge + User-Regel-Footer ("HEIMAT vermeidet externe Webseiten-Einbettung per User-Regel"). KEIN Mock, KEINE Simulation.
+4. **Sentinel-URLs** in `miniProgramProvider.dart`: alle 10 URLs sind `native://registry/<id>` (kein HTTP-Request, nur Registry-Lookup).
+
+### Backend Centralized Config (Phase X.2 — planned)
+
+**Rule:** Hardcoded URLs in Backend-Services sind verboten (User-Regel "NUR BASIEREND AUF EXISTIERENDEN DATEIEN" + "KEINE Erfindung"). Ab Phase X.2 muessen alle externen Service-URLs via `src/backend/src/config/externalServices.ts` (typisierte Config-Singleton) aus env-vars geladen werden.
+
+**Refactor-Liste (hardcoded URLs in Backend-Services):**
+- `mobilityService.ts` (3 Overpass-Mirrors + Nominatim + OSRM)
+- `weatherService.ts` (Open-Meteo + Bright Sky)
+- `airQualityService.ts` (Open-Meteo CAMS)
+- `wasteService.ts` (BSR/SRH/AWB iCal URLs)
+- `dbVendoService.ts` (transitous.org)
+- `talerExchangeClient.ts` (Taler Exchange + Bank)
+- `evChargingService.ts` (3 Overpass-Mirrors)
+
+**Pattern:** `private readonly xUrl = 'https://...'` wird zu `externalServices.overpass.xUrl` (oder vergleichbar). AGPL-defensiv: Defaults aus existierendem Code migriert, ueberschreibbar via env-var auf Render.
+
+### Mobile Dynamic Config (Phase X.3 — planned)
+
+**Rule:** Hardcoded BBox-Konstanten in Mobile-Providern sind verboten. Ab Phase X.3 muss `waste_provider.dart` BBox-Konstanten via `GET /api/config/location-defaults` Backend-Endpoint konsumieren (gecached in SharedPreferences). Bei Hinzufuegung einer neuen Stadt: nur Backend-Update, kein Mobile-Rebuild noetig.
+
+### Mock-Policy (verstaerkt nach Phase R)
+
+audit-no-mocks.sh enforced in Backend + Flutter CI (Commit 82047ad). Verboten: `_computeMockLiveStatus`, `fundLocal`, `mockStatus`, `sampleData`, `simulate`, `local://demo`, `StubNaiveBayes*`. Erlaubt: ehrliches Placeholder wie `ComingSoonScreen` (zeigt realen Status, kein Fake-Content).
+
+---
+
 ## Additional instruction files
 
 - `.claude/CLAUDE.md` – detailed Claude-specific instructions (same rules, more verbose)

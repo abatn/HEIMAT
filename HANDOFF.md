@@ -64,6 +64,44 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - `src/mobile/lib/` — Flutter App
 - `src/ml-service/` — Python FastAPI ML-Service
 
+### ✅ Phase X.1 — IFrame-Elimination (2026-07-28, Commits b80b07d + 0d7ef3d)
+**Status:** Live. Frontend komplett ohne externe Webseiten-Einbettung. 10 Mini-Programme (3 native + 7 Coming Soon) via ServiceRegistry.nativeBuilder gerendert. KEIN IFrame, KEIN WebView, KEIN `dart:html`.
+
+**Commits:**
+- `b80b07d` feat(miniprogram) — 11 files (5 modified + 4 deleted + 1 new), Phase X.1 Haupt-Refactor
+- `0d7ef3d` fix(phase-x-1) — 2 new test files + index.ts cleanup (path-Import entfernt)
+
+**Was funktioniert:**
+- 10 Mini-Programme: `weather`, `air`, `waste` = echte Native-Screens; `mobility`, `finance`, `health`, `events`, `jobs`, `hotels`, `buergeramt` = `ComingSoonScreen`-Pattern (ehrlicher Placeholder)
+- **+16 neue Tests** (Phase R-Q-Backend ~177 + Phase X.1: 12 in service_registry_test.dart + 4 in coming_soon_screen_test.dart)
+- `MiniProgram.url`: Sentinel-URLs `native://registry/<id>` (kein HTTP-Request, nur Registry-Lookup)
+- `index.ts`: `/mini`-Static-Serving entfernt (`express.static(miniDir, ...)` weg)
+
+**Was entfernt wurde (5 Files):**
+- `src/mobile/lib/features/miniprogram/presentation/miniprogram_container.dart` (war IFrame-Web-Container)
+- `src/mobile/lib/features/miniprogram/presentation/miniprogram_container_stub.dart` (Stub-Container)
+- `src/mobile/lib/features/miniprogram/presentation/miniprogram_container_web.dart` (war `dart:html` IFrameElement)
+- `src/backend/public/miniprograms/air.html` (Dead IFrame-Code seit Phase B nativer Air-Quality)
+- `src/backend/public/miniprograms/weather.html` (Dead IFrame-Code seit Phase E nativem Wetter)
+
+### ✅ Phase X.1.5 — MD-Files-Sweep (2026-07-28, Commit 9eed3a0 + Amend)
+**Status:** Live. Konsistenz zwischen Code (Phase X.1) und Docs. AGENTS.md + HANDOFF.md + README.md + bauplan.md spiegeln die neue Frontend-Architektur wider.
+
+**Was aktualisiert wurde:**
+- AGENTS.md (+35 LOC) — Neue Sektion "HEIMAT Architecture Rules (Phase X)": ServiceRegistry-Pattern, KEIN IFrame/WebView/dart:html-Regel, Phase-X.2-Refactor-Liste (7 Backend-Services mit hardcoded URLs), Phase-X.3-Mobile-Dynamic-Config-Plan, verstaerkter Mock-Policy-Hinweis.
+- HANDOFF.md (dieser Eintrag) — Phase-X.1-Recap mit Commit-SHAs, +16-Tests-Delta, 10-Mini-Programme-Status, 5-entfernte-Files.
+- README.md (+15 LOC) — Neue Sektion "Mini-Programme (Apps-Tab)", Roadmap-Tabelle mit Phase C-1 + Phase X.1, HEIMAT-Expansion-Tabelle mit 5 Services auf Native.
+- bauplan.md (+50 LOC, "Phase X.1.5" Sektion) — docs-sweep Marker mit Status, Lessons-Learned, Konvention-Compliance.
+
+### Phase X.2 + X.3 + X.4 Roadmap
+| Task | Ziel | Status |
+|---|---|---|
+| Phase X.2 Backend-Config-Registry | `src/backend/src/config/externalServices.ts` als typisierte Singleton-Config, 9 Backend-Services refactoren | ⏳ next |
+| Phase X.3 Backend-driven BBox-Defaults | `GET /api/config/location-defaults` Endpoint, waste_provider.dart konsumiert statt 9 hardcoded Konstanten | ⏳ after X.2 |
+| Phase X.4 Per-Service Native Migration | 7 ComingSoonScreen-Services zu echten Native-Screens (events, jobs, hotels, buergeramt, mobility, finance, health) | ⏳ after X.3 |
+
+---
+
 ## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
 
 ### Neue Services (10+)
