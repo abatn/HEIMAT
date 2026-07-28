@@ -198,10 +198,13 @@ class MiniProgramProvider extends ChangeNotifier {
   // ------------------------------------------------------------------
 
   static final List<MiniProgram> _defaultPrograms = [
+    // Phase X.1 (2026-07-28, Eliminierung IFrame-Einbettung):
+    // url-Feld bleibt für Backwards-Compat, wird aber NICHT mehr fuer
+    // IFrame-Loading verwendet. ServiceRegistry routet zu nativeBuilder.
     const MiniProgram(
       id: 'weather',
       name: 'Wetter',
-      url: 'https://heimat-backend.onrender.com/mini/weather.html',
+      url: 'native://registry/weather',
       iconPath: 'weather',
       description: 'Aktuelle Wetterdaten & 7-Tage-Vorhersage — DWD Open Data.',
       category: 'Alltag',
@@ -212,7 +215,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'air',
       name: 'Luftqualität',
-      url: 'https://heimat-backend.onrender.com/mini/air.html',
+      url: 'native://registry/air',
       iconPath: 'air',
       description: 'Feinstaub- und Ozonwerte — CAMS Copernicus via Open-Meteo.',
       category: 'Alltag',
@@ -230,7 +233,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'mobility',
       name: 'Mobilität',
-      url: 'https://heimat-backend.onrender.com',
+      url: 'native://registry/mobility',
       iconPath: 'mobility',
       description: 'Haltestellen & Abfahrten in deiner Nähe.',
       category: 'Mobilität',
@@ -240,7 +243,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'finance',
       name: 'Finanzen',
-      url: 'https://heimat-backend.onrender.com',
+      url: 'native://registry/finance',
       iconPath: 'finance',
       description: 'Taler-Wallet & P2P-Überweisungen.',
       category: 'Alltag',
@@ -250,7 +253,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'health',
       name: 'Gesundheit',
-      url: 'https://heimat-backend.onrender.com',
+      url: 'native://registry/health',
       iconPath: 'health',
       description: 'Ärzte-Suche & Online-Terminbuchung.',
       category: 'Alltag',
@@ -260,7 +263,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'events',
       name: 'Veranstaltungen',
-      url: 'https://www.wikidata.org',
+      url: 'native://registry/events',
       iconPath: 'events',
       description: 'Events & Aktivitäten aus Wikidata & OpenStreetMap.',
       category: 'Kultur',
@@ -269,7 +272,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'jobs',
       name: 'Job-Suche',
-      url: 'https://www.arbeitsagentur.de',
+      url: 'native://registry/jobs',
       iconPath: 'work',
       description: 'Stellenangebote der Bundesagentur für Arbeit.',
       category: 'Karriere',
@@ -278,7 +281,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'waste',
       name: 'Abfallkalender',
-      url: 'https://opendata.de',
+      url: 'native://registry/waste',
       iconPath: 'delete',
       description: 'Abfuhrtermine & Sortier-Tipps.',
       category: 'Alltag',
@@ -289,7 +292,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'hotels',
       name: 'Hotels',
-      url: 'https://www.openstreetmap.org',
+      url: 'native://registry/hotels',
       iconPath: 'hotel',
       description: 'Unterkünfte aus OpenStreetMap & Wikidata.',
       category: 'Reise',
@@ -298,7 +301,7 @@ class MiniProgramProvider extends ChangeNotifier {
     const MiniProgram(
       id: 'buergeramt',
       name: 'Bürgeramt',
-      url: 'https://service.berlin.de',
+      url: 'native://registry/buergeramt',
       iconPath: 'domain',
       description: 'Termine & Services deiner lokalen Bürgerämter.',
       category: 'Behörden',

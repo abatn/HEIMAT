@@ -45,6 +45,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 app.use(morgan('combined', { stream: { write: (message: string) => logger.info(message.trim()) } }));
 
+// Phase X.1: `path` Import bleibt für potentielle zukünftige Static-Assets
+// erhalten, wird aktuell aber nicht für externe Webseiten-Serving verwendet.
+
 app.get('/', (req, res) => {
   res.json({ name: 'HEIMAT 2.0 API', version: '1.0.0', status: 'running' });
 });
@@ -61,19 +64,10 @@ app.use('/api/air-quality', airQualityRouter);
 app.use('/api/waste', wasteRouter);
 app.use('/api/ev-charging', evChargingRouter);
 
-// Statische Dateien ausliefern (Mini-Programme, Favicon, etc.)
-const miniDir = path.join(__dirname, '../public/miniprograms');
-app.use('/mini', express.static(miniDir, {
-  setHeaders: (res) => {
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    res.setHeader('Content-Security-Policy',
-      "default-src 'self'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data:; " +
-      "script-src 'self' 'unsafe-inline'; " +
-      "connect-src 'self';");
-  },
-}));
+// Statische Dateien ausliefern (Favicon, etc.)
+// Phase X.1 (2026-07-28): /mini-Static-Serving entfernt — IFrame-Einbettung
+// externer Webseiten ist per User-Regel verboten. Alle Mini-Programme werden
+// nativ in Flutter gerendert (ServiceRegistry + ComingSoonScreen-Pattern).
 
 // Swagger API-Dokumentation
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

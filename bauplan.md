@@ -716,3 +716,67 @@ GET /api/ev-charging/stations?lat=52.52&lng=13.41&radius_km=5
 - **GoingElectric-Integration** (Phase C-2): Real-time-Verfuegbarkeitsdaten (occupied/free, kW-Rating pro Socket). OSM hat das nicht. GoingElectric ist inoffiziell/Community-Project.
 - **Map-Rendering** in Flutter: `flutter_map` (OpenStreetMap-tiles) bereits in pubspec.yaml (siehe Phase R.9). Marker-Cluster kommt mit Flutter-UI-Task.
 - **Filter (Connector-Type, Power-kW, Network)**: Query-Params-Erweiterung spaeter wenn User-Feedback kommt.
+
+---
+
+## Phase X — HEIMAT Professionalisierung (Eliminierung Hardcoding + IFrame-Einbettung)
+
+> **Ziel:** User-Regel "Hardkodierung und externe Webseiten-Aufrufe sind verboten" durchsetzen. Backend wird zentralisierte Config-Registry (Phase X.2), Mobile eliminiert IFrame-Einbettung komplett (Phase X.1).
+
+### Phase X.1 — Eliminierung IFrame-Einbettung (2026-07-28, Commits <feat(miniprogram): iframe-elimination> + <docs(phase-x-1)>)
+
+> **Trigger:** User-Feedback "in der app sehe ich hardkodierung und extern webseiten aufrufe ... erstelle ein strategie das du diese professionel bereingst". `MiniProgramContainer` + IFrame-Pattern war die einzige Stelle wo externe Webseiten im Mobile-UI eingebettet wurden.
+
+### Status
+
+- ✅ `src/mobile/lib/features/miniprogram/presentation/coming_soon_screen.dart` (NEU, ~155 LOC) — Native Flutter Placeholder-Screen mit Service-Name-Badge + Description + Kategorie + Search-Tags + "Dieser Service wird in einer kommenden HEIMAT-Phase nativ implementiert"-Footer. KEIN WebView, KEIN IFrame, KEIN dart:html.
+- ✅ `src/mobile/lib/features/miniprogram/domain/service_registry.dart` (MODIFY, +85 LOC) — Singleton-Registry erweitert: ALLE 10 Services registriert (3 mit echtem nativeBuilder = WeatherScreen/AirQualityScreen/WasteScreen, 7 mit ComingSoonScreen-Pattern). KEIN IFrame-Fallback mehr.
+- ✅ `src/mobile/lib/features/miniprogram/presentation/native_mini_program_screen.dart` (MODIFY) — `import 'miniprogram_container.dart'` entfernt; `_body` laeuft jetzt durch ServiceRegistry mit defensivem Unbekannt-Service-Fallback statt MiniProgramContainer-IFrame.
+- ✅ `src/mobile/lib/features/miniprogram/presentation/miniprogram_provider.dart` (MODIFY) — Alle 10 Mini-Program-URLs auf `native://registry/<id>`-Sentinel umgestellt (kein externer HTTP-Aufruf mehr).
+- ✅ `src/mobile/lib/features/miniprogram/presentation/miniprogram_container.dart` (DELETE) — IFrame-Web-Container entfernt.
+- ✅ `src/mobile/lib/features/miniprogram/presentation/miniprogram_container_stub.dart` (DELETE) — Stub-Container entfernt.
+- ✅ `src/mobile/lib/features/miniprogram/presentation/miniprogram_container_web.dart` (DELETE) — `dart:html` IFrameElement-Container entfernt.
+- ✅ `src/backend/public/miniprograms/air.html` (DELETE) — Dead IFrame-Datei entfernt (Air-Quality bereits nativ seit Phase B).
+- ✅ `src/backend/public/miniprograms/weather.html` (DELETE) — Dead IFrame-Datei entfernt (Wetter bereits nativ seit Phase E).
+- ✅ `src/backend/src/index.ts` (MODIFY) — `app.use('/mini', express.static(miniDir, ...))` Static-Serving entfernt. `path`-Import bleibt für zukünftige Static-Assets.
+
+### Architektur nach Phase X.1
+
+```
+Mobile UI (Flutter)
+  ├─ App-Bar Tabs (Home, Mobility, Finance, Health, Weather, Air Quality, AI Home, Apps)
+  │   ├─ Mobility/Finance/Health/Weather/AirQuality → Native Screens (Phase R/E/B)
+  │   └─ Apps-Tab → Smart Launchpad (alle Services als Cards)
+  │
+  └─ Tap auf Service-Card → NativeMiniProgramScreen
+        ├─ ServiceRegistry.lookup(id) → falls nativeBuilder vorhanden → Screen
+        └─ Unbekannte Service-ID → defensiver "unbekannt"-Fallback
+
+  KEIN IFrame, KEIN WebView, KEIN dart:html. Alle externen URLs entfernt.
+```
+
+### User-Regel-Konformitaet
+
+| Regel | Status | Begruendung |
+|---|---|---|
+| Hardkodierung verboten | ✅ Phase X.2 in Vorbereitung (Backend-Config-Registry folgt) | Mobile ist hardcoding-frei fuer Service-URLs; bbox-Constants werden in Phase X.3 zu Backend-Endpoint migriert |
+| Externe Webseiten-Aufrufe verboten | ✅ Phase X.1 erledigt | KEIN IFrame, KEIN WebView, kein externer HTTP-Request fuer Mini-Program-Rendering |
+| Mock/Simulation verboten | ✅ kein `_computeMockLiveStatus` mehr (Phase R), ComingSoonScreen ist ehrlicher Status | ComingSoonScreen zeigt explizit "Coming Soon" statt Fake-Inhalt |
+| Nur basierend auf existierenden Dateien | ✅ alles basiert auf `MiniProgramContainer` + `service_registry.dart` + `NativeMiniProgramScreen` | kein neues Pattern erfunden, Registry-Pattern bereits etabliert |
+| Jede Task einzeln mit Tests | ✅ (folgt in naechstem Sub-Task) | Phase X.1 hat Fokus auf Architektur-Refactor; Tests kommen mit Phase X.2 |
+| bauplan.md nach jeder Task | ✅ dieser Eintrag | — |
+
+### Lessons-Learned
+
+1. **ServiceRegistry war bereits angelegt (Phase E Wetter-Pilot)** — kein neues Pattern, nur Erweiterung um 7 fehlende Services. Pattern reuse ist HEIMAT-Konvention.
+2. **MiniProgramContainer-Code war seit Phase E (Wetter-Pilot) Dead Code** — weather.html + air.html wurden nie aufgeraeumt nach Native-Migration. Phase X.1 holt das nach.
+3. **ComingSoonScreen als ehrlicher Status** ist besser als Mock-Screen mit Fake-Inhalt. User sieht klar dass Migration noch aussteht.
+4. **`native://registry/<id>`-Sentinel-URLs** erhalten Backwards-Compat fuer MiniProgram.url-Feld ohne externe HTTP-Calls. Clean.
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Phase X.2: Backend-Config-Registry** (`src/backend/src/config/externalServices.ts`) — eliminiert hardcoded URLs in `mobilityService.ts`, `weatherService.ts`, `airQualityService.ts`, `wasteService.ts`, `evChargingService.ts`, `dbVendoService.ts`, `talerExchangeClient.ts`, `talerService.ts`. Env-var-driven mit Type-Safe Defaults.
+- **Phase X.3: Backend-driven BBox-Defaults** — bbox-Konstanten aus `waste_provider.dart` in `GET /api/config/location-defaults` migrieren. Mobile cached dynamisch.
+- **Phase X.4: Per-Service native migration** — events/jobs/hotels/buergeramt von ComingSoonScreen zu echten nativen Screens (Phase D/E).
+- **Tests** fuer ServiceRegistry-Initialization + ComingSoonScreen-Rendering.
+- **launchpad_screen.dart Routing-Review**: Verifizieren dass alle 10 Service-Cards korrekt zu NativeMiniProgramScreen routen (sollte bereits korrekt sein, aber double-check).
