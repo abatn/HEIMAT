@@ -55,9 +55,23 @@ class _OsmTileHttpClient implements HttpClient {
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) {
+  Future<HttpClientRequest> openUrl(String method, Uri uri) async {
     throw const _OsmTileFetchDisabled();
   }
+
+  // flutter_map's NetworkTileProvider uses dio which calls HttpClient.close()
+  // during widget tree teardown. Without this override, noSuchMethod would
+  // throw _OsmTileFetchDisabled and break the test even after a successful
+  // tile-fetch drain.
+  @override
+  void close({bool force = false}) {}
+
+  // For any other HttpClient surface (setters, getters, methods), do nothing.
+  // Production code uses a real HttpClient; this stub is scoped to test-only
+  // network sandboxing and widget-tree teardown. Returning null avoids the
+  // test-framework catching a thrown exception as a test failure.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
 }
 
 class _OsmTileFetchDisabled implements Exception {
