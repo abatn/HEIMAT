@@ -465,4 +465,126 @@ Keep `validate(calendarQuerySchema, 'query')` middleware (gibt clean 400 fuer ma
 - **HEIMAT-weiter `.test.local`-TLD-Standard fuer Test-Fixtures** (aus Phase B-2.1): noch nicht umgesetzt.
 - **Phase B-3 Flutter UI**: wartet NICHT auf B-2.2 fix — schon naechste Phase.
 
+---
+
+## Phase B-3 — Abfallkalender Flutter-UI (3. nativer Service) (2026-07-27, Commit feat(waste): abfallkalender-mobile-ui + test(waste): 38-Tests + docs(phase-b-3))
+
+> **Ziel:** Backend Phase B-2 / B-2.2 Abfallkalender-Service ist shipped + verifiziert (Hamburg 422 + München 422 positiv-control bestätigt). User-Gate "Backend ... BEFORE any Flutter UI work" ist erfuellt. Flutter-UI als 3. nativer Service nach weather + air.
+
+### Status
+
+- ✅ `src/mobile/lib/features/waste/waste_dto.dart` (NEU, 78 LOC) — `WasteCalendarResponse` + `WasteCalendarEvent` mirror zu `air_quality_dto.dart` factory-pattern. Null-tolerant via `as String? ?? ''` defaults.
+- ✅ `src/mobile/lib/features/waste/presentation/waste_provider.dart` (NEU, 202 LOC) — 24h-TTL mirror zu Backend `cacheTtlMs = 24*60*60*1000`. 6 Cache-Keys (`_kCacheKey` + `_kCacheTsKey` + `_kCityKey` + `_kStreetKey` + `_kHouseNrKey` + `_kWeeksKey`). `updateAddress(city,street,houseNr)` + `setWeeks(weeks)` für BottomSheet-Dialog-Recovery + Persist-Pattern. Berlin-Defaults 52.52/13.41.
+- ✅ `src/mobile/lib/features/waste/waste_screen.dart` (NEU, 374 LOC) — `WasteScreen` mit `RefreshIndicator` + `SkeletonLoader` + `EmptyState` mirror zu `air_quality_screen.dart`. `AddressRequiredError` (HTTP 422) oeffnet BottomSheet Dialog via `didChangeDependencies()` (race-safe, einmal pro false→true Transition, kein build()-re-run-loop).
+- ✅ `src/mobile/lib/features/waste/widgets/waste_widgets.dart` (NEU, 182 LOC) — `WasteEventCard` mit Müllart-Farb-Coding (restmuell rot, bio grün, papier blau, gelbe-tonne gelb, sperrmüll lila) + Datums-Karte links (Tag + Monat-Name) + Summary + Category-Badge + Location.
+- ✅ `src/mobile/test/waste_dto_test.dart` (NEU, 10 Tests in 2 Groups) — Mirror zu `air_quality_dto_test.dart`. 4 Tests fuer WasteCalendarEvent (full/partial-DURATION/empty-summary/malformed-leeres-Objekt) + 6 Tests fuer WasteCalendarResponse (Berlin-pos-control/AddressRequiredError-payload/empty-events/cached-flag/weeks-coercion/missing-attribution-fallback).
+- ✅ `src/mobile/test/waste_provider_test.dart` (NEU, 28 Tests in 8 Groups) — Mirror zu `weather_provider_test.dart`:
+  - **Group 1 (Initial State, 9 Tests):** Berlin-Defaults + alle 9 state-properties (lat/lng/city/street/houseNr/weeks/isLoading/error/calendar).
+  - **Group 2 (init empty cache, 3 Tests):** komplettiert ohne Exception + notifyListeners + auto-refresh-Trigger.
+  - **Group 3 (setWeeks Codepath, 4 Tests):** invalid (0/9) → no-op; same value → no refresh-Trigger.
+  - **Group 4 (updateAddress, 3 Tests):** deterministisch-sync-state-asserts (city/street/houseNr gesetzt BEVOR refresh feuert); kein microtask-delay-Hack.
+  - **Group 5 (Cache write/read Paths, 3 Tests):** Persist-JSON-via-SharedPreferences-setMockInitialValues-pattern + corrupted-cache silent-fallback + fresh-cache `isStale=false`.
+  - **Group 6 (TTL Boundary, 2 Tests, RACE-SAFE Phase R.9 lesson):** EXAKT 24h via strict `>` → `isStale=false`; 24h+1min → `isStale=true`. Strict-Pattern mirror zu weather_provider_test.dart Group 8.
+  - **Group 7 (refresh Error-Handling, 2 Tests):** kein unhandled Exception geworfen + cache-preservation bei network-failure (calendar-Reference bleibt gleich nach refresh-fail).
+  - **Group 8 (refresh AddressRequiredError-State, 2 Tests):** addressRequired bleibt false ohne backend-mock + isLoading=false nach refresh()-finally.
+- ✅ `src/mobile/lib/features/miniprogram/domain/service_registry.dart` (MODIFIED) — `waste` ServiceDefinition mit `nativeBuilder: (_) => const WasteScreen()`. Pattern-mirror zu air + weather.
+- ✅ `src/mobile/lib/main.dart` (MODIFIED) — `WasteProvider` als 4. nativer Provider mit `ChangeNotifierProvider(create: (_) => WasteProvider()..init())`.
+- ✅ `src/mobile/lib/features/miniprogram/presentation/miniprogram_provider.dart` (MODIFIED) — `waste` Program-Eintrag: `supportsLiveStatus: true` + `useNative: true` (Phase B-3 mirror zu air).
+
+### Datenfluss
+
+```
+WasteScreen (Apps-Tab → tap 'Abfallkalender')
+    ↓
+WasteProvider.refresh() (PostFrameCallback initState)
+    ↓
+apiGet('/api/waste/calendar?lat=52.52&lng=13.41&weeks=4&street=&houseNr=')
+    ↓
+[Backend Phase B-2 route via Phase B-2.2 parseFloat-fix]
+    ↓ resolveCity → Berlin (52.52/13.41 — keine address required)
+    ↓ cache-key NFC-normalisiert: 'berlin|default|default|4'
+    ↓ primary fetch (BSR iCal) — Berlin default URL returns 404 placeholder
+    ↓ 502 to client: caller catches und setzt _error (Mobile graceful fallback)
+    ↓
+WasteProvider._calendar set OR _error set
+    ↓
+WasteScreen rendert event-list OR EmptyState + "Erneut versuchen"
+```
+
+426-Pfad in Phase B-3.1-follow-up (wenn Hamburg/München gewaehlt):
+```
+User setzt city='hamburg' (Phase 3+ via LocationService reverse-geocode)
+↓
+WasteProvider.refresh() → apiGet(...&street=&houseNr=)
+↓
+[Backend] city=hamburg, addressRequired=true
+↓
+Backend wirft AddressRequiredError → HTTP 422 + code=ADDRESS_REQUIRED
+↓
+apiGet throwt → _addressRequired=true + _error='Adresse benötigt' + _errorCode='ADDRESS_REQUIRED'
+↓
+WasteScreen.didChangeDependencies() liest `context.read<WasteProvider>()` → addressRequired-toggle
+↓
+_showAddressDialog → BottomSheet mit Street/HausNr Inputs + 'Speichern & Neu laden'
+↓
+User tippt 'Speichern' → updateAddress(city='hamburg', street='X', houseNr='Y')
+↓
+WasteProvider.refresh() → apiGet(...&street=X&houseNr=Y) → 200 OK mit events[]
+↓
+WasteScreen rendert EventListe für Hamburg
+```
+
+### Design-Entscheidungen (Mirror zu air_quality + weather R.9/R.10 lessons)
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **24h TTL** statt 5min (Weather/AirQuality) | Backend Phase B-2 hat 24h cache (Abfuhr-Schedules ändern sich nicht stündlich). Mobile-Tier-2 hält 24h-Rohdaten, NFC-Normalisierung im Backend cache-key (Server-of-Truth). |
+| **6 Cache-Keys** für Mobile-Tier-2 | `_kCacheKey` (JSON) + `_kCacheTsKey` (TTL-epoch-ms) + `_kCityKey` + `_kStreetKey` + `_kHouseNrKey` + `_kWeeksKey`. Backend hat zusätzlichen source-key intern; Mobile braucht ihn nicht. |
+| **BottomSheet Dialog** für 422 statt SnackBar oder Inline | BottomSheet ist mobil-nativ + modal + Reverse-Geocoding-flow-friendly. User tippt Adresse, BottomSheet dismissed via Navigator.pop, refresh feuert sync-state-update. Mirror zu Material-3 Spec. |
+| **`didChangeDependencies()`** für Dialog-Trigger (nicht build()) | Flutter-Code-Reviewer-Fix: build() wird mehrere Male gerufen, würde Dialog endlos offnen. didChangeDependencies ist Lifecycle-Phase die nur 1× pro State-Changes läuft. **Re-Open-Loop-Bug Fix**. |
+| **Race-Safety Tests (R.9 + R.10 lessons)** | (1) TTL-Boundary strict `isFalse` statt `anyOf` (kein unawaited(refresh())-race in init-with-fresh-cache path). (2) updateAddress-test ist sync ohne microtask-delay (state-asserts auf city/street/houseNr BEVOR refresh feuert). |
+| **Berlin Defaults 52.52/13.41** ohne Live-Geo | Phase B-3 minimum-viable: User sehen Berlin sofort ohne GPS-Prompt. Phase B-3.1 follow-up: LocationService-Integration analog air_quality_provider für auto-User-Position. |
+| **Category-Farben** (restmuell rot/bio grün/papier blau/gelb/sperrmüll lila) | Mirror zu BSR/AWB Müll-App Color-Coding. KEIN mockup: Standard-DE-Mülltrennung-Farben. |
+| **Mock-Policy-Strict** | Kein `fundLocal`, `_computeMockLiveStatus`, `StubNaiveBayes*`, `local://demo` in production-code. Tests nutzen nur SharedPreferences + state-asserts (kein Mockito). |
+
+### 4 NEEDS-FIX aus Code-Reviewer (alle resolved)
+
+Code-Reviewer-minimax-m3 Verdict: **NEEDS-FIX 4 + polish 3**. Alle 4 Blocker via str_replace angewendet + basher-verifiziert:
+1. **`_showAddressDialog` re-open-loop-risk** (waste_screen.dart): addPostFrameCallback aus build() entfernt → didChangeDependencies()-override mit `_addressDialogShown`-guard. Beseitigt infinite-dialog-loop wenn User durch tap-outside dismissed.
+2. **Header-comment code-mismatch** (waste_provider.dart): Kommentar-Block oben ersetzt: 6-Key-list ersetzt die veraltete 7-Key-list mit `_kSourceKey`-Mention.
+3. **TTL-Boundary test `anyOf`** (waste_provider_test.dart Group 6 Test 1): `anyOf(isFalse, isTrue)` → strict `isFalse` (Phase R.9 lesson: TTL-Boundary deterministic ohne Race-Safe-Sloppiness).
+4. **`Future<void>.delayed(Duration.zero)` microtask-hack** (waste_provider_test.dart Group 4 Test 1+3): race-unsafe microtask-delay entfernt → sync-state-asserts auf city/street/houseNr deterministisch.
+
+Polish (non-blocker) sind entfernt/akzeptiert:
+- Build()-side-effects: durch Fix 1 (didChangeDependencies) aufgelöst
+- `_calendar!.city.isNotEmpty`-defensive-default: bereits in code (`_calendar!.city.isNotEmpty ? _calendar!.city : _city`)
+- `setWeeks`-early-exit-guard: bereits in code (`if (_weeks == weeks) return;`)
+
+### Lessons-Learned (NEU ueber Phase R.9 + R.10 + Phase Q)
+
+1. **`build()` ist KEIN State-Side-Effect-Hook** — addPostFrameCallback in build() ruft sich endlos auf. Lifecycle-Phasen (`didChangeDependencies` / Consumer-Selector) sind die richtigen Hooks für Modal-Dialog-Trigger. **HEIMAT-Konvention**: user-driven UI-triggers (Dialog, Toast, Navigation) IMMER in didChangeDependencies ODER via Consumer-Selector mit Selector-Boolean, NIE in build().
+2. **Deterministic state-asserts > microtask-delay-Hack** — `await Future<void>.delayed(Duration.zero)` ist umgebungs-abhängig (CI vs. local). Stattdessen: synchron-state-properties testen die der Caller garantiert BEVOR async-path startet.
+3. **TTL-Boundary strict `>` nicht `>=`** macht Tests deterministisch. weather_provider_test.dart + waste_provider_test.dart haben gleichen Strict-Pattern für Cross-Service-Konsistenz.
+4. **Backend-Cache-Key (NFC) ist nicht Mobile-Cache-Key** — Backend normalisiert 'Straße'/'Strasse'/üä auf einen Key. Mobile benutzt raw string; semantisch-gleiche adressen koennen 2 cache-entries haben, OK weil (a) server-side-merge same URL → same response, (b) perf-impact irrelevant fuer löt-anzahl-user.
+
+### Validation
+
+- Strukturelle Validierung (basher post-fix): 6 new files + 3 modifications, brace-balance 6/6 (waste_dto 6/6, waste_provider 24/24, waste_screen 32/32, waste_widgets 9/9 — alle balanced). Mock-Policy 0 violations outside doc-comments. Total 1359 LOC.
+- Code-Reviewer-minimax-m3 Verdikt: NEEDS-FIX 4 + polish 3. Alle 4 NEEDS-FIX korrekt angewendet.
+- Validation (lokal kein Flutter SDK installiert — CI Hauptauftrag):
+  - `src/mobile/flutter/bin/dart format lib/ test/` → erwartet 0 (HEIMAT-format convention gefolgt, `withOpacity` statt `withValues`)
+  - `src/mobile/flutter/bin/flutter analyze --no-fatal-infos` → erwartet 0 issues (kein pumpAndSettle(), kein async-misuse)
+  - `src/mobile/flutter/bin/flutter test` → erwartet `10 (DTO) + 28 (Provider) = 38` Mobile-Tests grün
+  - `src/mobile/flutter/bin/flutter test test/waste_dto_test.dart test/waste_provider_test.dart` → erwartet 38/38 passed
+- **Test-Gesamt-Zaehler (Mobile)**: war 33 (10 AQ-DTO + 23 AQ-Provider) nach Phase R.9; +34 Weather-Provider nach R.10 → 67; jetzt +10 Waste-DTO + 28 Waste-Provider = **105 Mobile-Tests** (ALLE grün erwartet auf CI-gate flutter.yml).
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Berlin URL-Discovery** (pointiert von Phase B-2.2 docs): Backend-Phase-B-2 parseFloat-Bug ist gefixt + verifiziert (Hamburg 422 + München 422 positiv-control bestätigt), ABER Berlin-primary-URL default `https://www.bsr.de/abfuhrkalender-ical?strasse=&hausnr=` ist placeholder → BSR returns 404 → Mobile-UI rendert EmptyState. Render-deploy-owner muss `ABFALL_BSR_PRIMARY_URL` env-var setzen mit real-BSR-form-export-URL für production-positive-control (siehe suggest_followups Option A).
+- **LocationService-Integration** für auto-City-Picker (Hamburg/München vs. Berlin) ohne manuelles address-prompt. Phase B-3.1 follow-up: air_quality_provider-pattern reverse-geocode + bbox-resolution.
+- **Widget-Tests fuer WasteScreen / WasteEventCard / AddressDialog** — erfordert Bildschirm-Auflösung in CI. Optional. Würde race-safe-patterns der provider-tests spiegeln.
+- **On-Device Sustainability-Classifier** (welche Abfallart gehört in welche Tonne) — Phase 4 nach AI-Implementierungsplan (TFLite local-classifier).
+- **42-City-Roster-Erweiterung** (Hamburg + München zeigen placeholder-URLs für primary; Phase B-2 docs liefern TODO für Munich-mirrors, Hamburg-mirror ist Phase B-2.1 env-only).
+
+
 
