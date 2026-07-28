@@ -33,9 +33,9 @@ function bboxCenter(cityBounds: typeof CITY_BOUNDS, cityName: WasteCityKey): { l
     lng: (found.minLng + found.maxLng) / 2,
   };
 }
-const BERLIN_TEST = _boundsCenter(CITY_BOUNDS, 'berlin');
-const HAMBURG_TEST = _boundsCenter(CITY_BOUNDS, 'hamburg');
-const MUENCHEN_TEST = _boundsCenter(CITY_BOUNDS, 'muenchen');
+const BERLIN_TEST = bboxCenter(CITY_BOUNDS, 'berlin');
+const HAMBURG_TEST = bboxCenter(CITY_BOUNDS, 'hamburg');
+const MUENCHEN_TEST = bboxCenter(CITY_BOUNDS, 'muenchen');
 
 // -----------------------------------------------------------------
 // Test-Fixtures: realistische iCal payloads für BSR/AWB/SRH styles
