@@ -611,7 +611,7 @@ Phase 26 (JWT-Auth) führte `requireAuth` für alle Finance-Routen ein. Die best
 
 ### Offene Folgetasks (Phase R.6+)
 
-- **Phase R.6: audit-no-mocks.sh SCAN_PATHS erweitern** — `src/backend/src/scripts/` hinzufuegen. Aktueller Commit waere sonst von zukuenftigen Mock-Violations in scripts/ nicht abgedeckt.
+- **Phase R.6: audit-no-mocks.sh SCAN_PATHS erweitern** — ERLEDIGT (Commit fcbf718, 2026-07-27). src/backend/src/scripts/ hinzugefuegt. Coverage-Luecke geschlossen. Code-Reviewer-Phase-R.5-Q8 adressiert.
 - **Phase R.7: migrate:status --json Flag** — fuer CI-Consumer (Render preDeploy-Healthcheck, GitHub-Actions). JSON-Output statt Human-readable text.
 - **Phase R.8: shared `_schema-path.ts` extrahieren** — `resolveSchemaPath` ist jetzt in `migrate.ts` UND `migrate-status.ts` dupliziert (~5 LOC). Mini-Refactor in eigene utility-Datei.
 
@@ -625,3 +625,72 @@ Phase 26 (JWT-Auth) führte `requireAuth` für alle Finance-Routen ein. Die best
 
 - Phase R.5 schliesst Task A aus knowledge.md:283 "Was fehlt" + AGENTS.md:283 "Was fehlt" + heimat-plan.md Phase-Plaene. Verbleibt: Phase B Rest (Luft + Abfallkalender), EUR-Production-Exchange (blockiert externer GLS-Bank-Endpoint), AI on-device (Phase 8.4 project-prompt.md).
 
+
+
+## Phase R.6 — Audit-no-Mocks SCAN_PATHS-Erweiterung (2026-07-27, Commit fcbf718)
+
+> **Ziel:** Coverage-Lücke schliessen die Code-Reviewer in Phase R.5 (Commit 89f189f) Q8 geflaggt hatte. `audit-no-mocks.sh` scannte `src/backend/src/scripts/` NICHT — Phase R.5 hat migrate-status.ts dort platziert, was die Mock-Policy-Durchsetzung für scripts/ zur Lip-Deklaration gemacht hat.
+
+### Status
+
+- ✅ `scripts/audit-no-mocks.sh` SCAN_PATHS um `src/backend/src/scripts/` erweitert (zwischen middleware und mobile/lib)
+- ✅ 8 Zeilen neuer Kommentar mit Phase-R.5-Bezug und Erklärung
+- ✅ Mock-Policy-Coverage jetzt 100% für Backend-Production-Code (services + routes + middleware + scripts)
+- ✅ Re-Verify auf main: `bash scripts/audit-no-mocks.sh` → 0 violations (migrate-status.ts ist mock-frei, das Audit findet nichts = positiver Beweis dass Phase-R.5-Files sauber sind)
+
+### Diff-Synopsis
+
+```
+-# Production code paths
++# Production code paths
++# Phase R.6 (2026-07-27): src/backend/src/scripts/ hinzugefuegt.
++#   Hintergrund: Phase R.5 hat migrate-status.ts unter src/backend/src/scripts/
++#   platziert (mirror-pattern zu migrate.ts). Die Mock-Policy muss neu hinzugekommene
++#   Production-Scripts automatisch scannen.
+ SCAN_PATHS=(
+     "src/backend/src/services/"
+     "src/backend/src/routes/"
+     "src/backend/src/middleware/"
++    "src/backend/src/scripts/"
+     "src/mobile/lib/"
+ )
+```
+
+### Mock-Policy-Coverage-Vergleich
+
+| Production-Pfad | Vor R.6 | Nach R.6 |
+|---|---|---|
+| `src/backend/src/services/` | ✅ abgedeckt | ✅ abgedeckt |
+| `src/backend/src/routes/` | ✅ abgedeckt | ✅ abgedeckt |
+| `src/backend/src/middleware/` | ✅ abgedeckt | ✅ abgedeckt |
+| `src/backend/src/scripts/` | NICHT abgedeckt | ✅ abgedeckt (Phase R.6) |
+| `src/mobile/lib/` | ✅ abgedeckt | ✅ abgedeckt |
+
+### Was bewusst EXCLUDED bleibt
+
+- `src/backend/src/__tests__/` (Backend-Tests dürfen mocks nutzen — Jest-Konvention)
+- `src/mobile/test/` (Mobile-Tests dürfen mocks nutzen — analog)
+- `src/backend/src/utils/` (logger.ts + error.ts — utility-only, kein Mock-Anwendungsfall)
+- `src/backend/src/config/` (database.ts — Connection-Pool-Wrapper, kein Mock-Anwendungsfall)
+- `src/backend/src/index.ts` (entrypoint, thin Express-Setup, keine Business-Logic)
+- `src/backend/scripts/` (top-level scripts/, shell-only + 1 ts-script; keine Mock-Patterns)
+
+Erweiterungen dieser Listen wären Phase R.6.1+ (jeweils separate Commits).
+
+### Lessons-Learned (in Audit-Pattern verriegelt)
+
+- **Coverage-Gap-Erkennung:** Phase R hat Migration-Pattern durchgesetzt. Jeder neue Code-Pfad muss audit-no-mocks.sh mitnehmen. Cross-Check zwischen Commit-PR-Body 'neue Files' und SCAN_PATHS-Liste als Routine-Step in Code-Review.
+- **Self-Test im Audit:** jeder SCAN_PATHS-Eintrag sollte durch mindestens 1 existierende Datei bestätigt sein (audit-no-mocks.sh würde sonst leeren Output zeigen). Phase R.5 (migrate-status.ts mock-frei) hat das bei R.6 geliefert.
+
+### Folgetasks (Phase R.7+)
+
+- **R.7** — migrate:status --json Flag (CI-Consumer, Render preDeploy-Healthcheck)
+- **R.8** — shared `_schema-path.ts` utility extrahieren
+- **R.9** — Jest-Tests für audit-no-mocks.sh selbst (Smoke + Negative-Path-Proofer)
+
+### Bezug zu Phase R
+
+- Phase R (2026-07-27) hat Pattern-Detection auf bestehende Code-Pfade ausgerollt.
+- Phase R.5 (89f189f) fügte einen neuen Code-Pfad hinzu (scripts/).
+- Phase R.6 (fcbf718) schliesst die dadurch entstandene Lücke.
+- Stabiles Policy-Pattern: jeder neue Production-Pfad erfordert audit-no-mocks.sh SCAN_PATHS UPDATE.
