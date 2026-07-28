@@ -145,6 +145,16 @@ export const talerPurseActionBodySchema = z.object({
 );
 
 // ---------------------------------------------------------------------------
+// E-Ladestationen (Phase C-1)
+// ---------------------------------------------------------------------------
+
+export const evChargingStationsQuerySchema = z.object({
+  lat: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= -90 && parseFloat(v) <= 90, 'Invalid latitude'),
+  lng: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= -180 && parseFloat(v) <= 180, 'Invalid longitude'),
+  radius_km: z.string().optional().refine(v => !v || (!isNaN(parseFloat(v)) && parseFloat(v) > 0 && parseFloat(v) <= 50), 'Radius must be 1-50 km'),
+});
+
+// ---------------------------------------------------------------------------
 // Admin
 // ---------------------------------------------------------------------------
 
