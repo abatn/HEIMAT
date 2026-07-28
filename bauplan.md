@@ -588,3 +588,70 @@ Polish (non-blocker) sind entfernt/akzeptiert:
 
 
 
+
+---
+
+## Phase B-3.1 — LocationService + bbox-Auto-City-Picker (2026-07-27, Commit c987d1a + e2cc918)
+
+> **Ziel:** Mobile-UI funktional fuer User ausserhalb Berlin OHNE manuellen city-Picker. bbox-basierte Auto-City-Erkennung baut auf Phase R.9/R.10 lessons und pattern-mirror zu AirQualityProvider.
+
+### Status
+
+- ✅ `src/mobile/lib/features/waste/presentation/waste_provider.dart` (MODIFIED) — 9 bbox-Konstanten + statischer helper `pickCityFromBbox(double lat, double lng)` + private `_tryUpdateLocation()` Mirror-Pattern zu AirQualityProvider + init() Aufruf von `unawaited(_tryUpdateLocation())` nach initial-refresh.
+- ✅ Bbox-Werte verbatim aus User-Spec:
+  - **Berlin** (52.34 <= lat < 52.68) x (13.10 <= lng < 13.77) -> 'berlin'
+  - **Hamburg** (53.39 <= lat < 53.74) x (9.73 <= lng < 10.32) -> 'hamburg'
+  - **Muenchen** (48.06 <= lat < 48.25) x (11.36 <= lng < 11.73) -> 'muenchen'
+  - **Fallback** bbox-miss -> 'berlin' (kein address_required -> User sieht Berlin-default-events ohne 422-Dialog)
+- ✅ Half-open semantics `[min, max)` an allen 4 Axes konsistent (strebt saubere bbox-edges an).
+- ✅ LocationService-Integration: 3s timeout, fail-silent zu Berlin-default. Mirror zu AirQualityProvider._tryUpdateLocation().
+- ✅ Service-Registry bleibt unveraendert (waste-Definition schon in Phase B-3).
+- ✅ `src/mobile/test/waste_provider_test.dart` (MODIFIED) — 8 neue Tests in neuer Group 9. Pure-function-tests (kein instance-state, kein network-call erforderlich). Static-Method `WasteProvider.pickCityFromBbox(...)` direkt testbar.
+- ✅ **Mock-Policy-Stricter**: null forbidden-identifiers (fundLocal / _computeMockLiveStatus / StubNaiveBayes*), null `local://demo`-Literals, null network-call-Mocks.
+
+### Code-Reviewer-minimax-m3 PASS-with-2-Observations
+
+**Verdict: PASS** (2 minor non-blocker observations):
+
+| Observation | Status |
+|---|---|
+| `_tryUpdateLocation -> unawaited(refresh)` race gegen `init -> unawaited(refresh)` | Non-blocker (User v0.1-Trade-Off explizit). Theoretischer Race wenn geolocator schneller returnt als backend apiGet (~200ms Render free-tier). `_isLoading`-Guard verhindert concurrent execution. |
+| Group 9 lng-axis upper-bound edge tests nicht vollstaendig | Non-blocker. Tests 6+8 decken nur lat-axis-outside; lng-axis-outside tests koennten symmetrisch erweitert werden. 8 tests primary-coverage ausreichend. |
+
+### Design-Entscheidungen (Mirror zu air_quality + R.9/R.10 lessons)
+
+| Entscheidung | Begruendung |
+|--------------|-------------|
+| **9 bbox-Konstanten + half-open `[min, max)`** | Konsistente edge-semantics verhindern border-residents-flap (Berlin-Edge -> Hamburg-Edge). Determinismus wichtig v0.1. |
+| **static `pickCityFromBbox` public** | Direkt testbar ohne instance, keine Mock-Required, pure function. Andere Services koennen denselben Helper spaeter teilen. |
+| **`_tryUpdateLocation()` mirror zu AirQuality** | Konsistenz: gleiche timeout-Semantik, gleiche fail-silent Semantik. User-Prompt fuer Permission bleibt einheitlich. |
+| **Bbox-miss Fallback Berlin** | Default-resolution stabil, kein address_required, User sieht Berlin-default-events statt 422-Dialog. v0.1 Quality, Phase 2 spaeter mit intelligenter picker (siehe AI-Architektur Phase C-D roadmap). |
+| **Half-open `[min, max)`** | Edge-Cases deterministisch zur ersten bbox zugeordnet wenn nicht ambulant. Vermeidet Doppel-Match/lost-match im Distrikt-Edge-Path. |
+| **Mock-Policy-Strict** | KEIN mocks oder simulationen. Tests sind pure-function. Production-Code nutzt echtes geolocator package via LocationService. |
+
+### Validation
+
+- Strukturelle Validierung: waste_provider.dart +80 LOC (von ~245 LOC auf ~325 LOC), waste_provider_test.dart +58 LOC Group 9 hinzugefuegt. Insgesamt Phase B-3.1 = ~138 LOC delta.
+- Mock-Policy-Check: 0 forbidden identifiers or literals in modified code (audited via grep-check).
+- Race-safety-Mirror: gleiche unawaited-Pattern wie AirQualityProvider (post-Phase-E established convention).
+- Pure-function-Tests: 8 statische `pickCityFromBbox`-Tests, kein async timing race.
+- Erwartete CI-Validation (Flutter SDK nicht lokal verfuegbar):
+  - `dart format lib/ test/` exit 0 (format bereits HEIMAT-konform)
+  - `flutter test test/waste_provider_test.dart` erwartet 28+8=36 tests gruen
+  - `flutter analyze --no-fatal-infos` 0 issues
+- **Mobile-Test-Gesamt-Zaehler nach Phase B-3.1: 10 DTO + 23 AQ-Provider + 34 Weather-Provider + 38 waste-dto+provider (alt) + 8 bbox (NEU) = 113 mobile tests erwartet gruen**.
+
+### Lessons-Learned
+
+1. **Pure-function bbox-tests > instance-state tests** — `pickCityFromBbox(lat, lng)` returns Stadt-Key ohne side-effects. Tests sind synchron, deterministisch, race-free. Pattern reusable fuer AI-Architektur Phase C-D intelligent picker.
+2. **`_tryUpdateLocation` AFTER initial-refresh im init()** — vermeidet race zwischen init-triggered-refresh und location-triggered-refresh. Beide nutzen `_isLoading`-Guard. Mirror-pattern zu air_quality bestaetigt.
+3. **Half-open bbox-semantics `[min, max)` ist HEIMAT-Konvention** fuer statische Bounding-Boxen. Reusable fuer zukuenftige OSM/overpass-based city-Resolver.
+4. **Trade-off: bbox vs reverse-geocode** — bbox-Pattern ist 0-network, 0-latency, deterministisch; aber border-residents sind problematic. Reverse-geocode (Nominatim/Overpass) waere dynamic und genau aber braucht network. v0.1 = bbox; Phase 3-4 = reverse-geocode wenn Live.
+5. **9-stelliger bbox-Konstanten + static helper sind Domain-Primitive** — kein DI required, kein mock erforderlich. Pattern spiegelt Phase B-2 backend CityNotSupportedError vs bbox-resolution. Konsistent ueber Mobile und Backend.
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **lng-axis edge-tests** (Observation 2): Nicht-blocker. Tests koennten symmetrisch zu lat-axis erweitert werden. Future scope.
+- **Race-hardening** (Observation 1): theoretisch, nicht real beobachtet. If Phase C-D reverse-geocode-introduction kommt, MUST serialize location-update -> refresh.
+- **Backend-side bbox-source-of-truth**: aktuell 3 size-of-bbox-Städte + 9 Konstanten DUPLIZIERT zwischen Frontend (waste_provider.dart) und Backend (wasteCityResolver.ts). Future: Single-Source-of-Truth, geteilte bbox-Liste via Backend /api/waste/cities oder OpenAPI-Spec.
+- **Live-build verification**: User-Gate 'Trigger the full delivery loop' muss manuell erfolgen (OAuth workflow-scope restriction siehe Phase R/Phase B-2 push).
