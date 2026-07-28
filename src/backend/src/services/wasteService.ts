@@ -144,7 +144,7 @@ function buildCityRoster(): Record<WasteCityKey, CityFetchUrls> {
 export class WasteService {
   private readonly cache = new Map<string, { data: WasteCalendarResponse; at: number }>();
   private readonly cacheTtlMs = 24 * 60 * 60 * 1000; // 24 Stunden
-  private readonly userAgent = 'HEIMAT-App/1.0 (https://github.com/abatn/HEIMAT)';
+  private readonly userAgent = externalServices.userAgent;
   private readonly roster = buildCityRoster();
 
   // Constructor-DI (mirror weatherService.ts post-Phase-E)
