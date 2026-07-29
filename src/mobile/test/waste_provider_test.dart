@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heimat_app/features/waste/presentation/waste_provider.dart';
 import 'package:heimat_app/features/waste/waste_dto.dart';
+import 'package:heimat_app/features/waste/waste_location_defaults_dto.dart';
 
 void main() {
   // -----------------------------------------------------------------
@@ -24,7 +25,7 @@ void main() {
   });
 
   // ------------------------------- Group 1 -------------------------------
-  group('Group 1: Initial State (Berlin-Defaults)', () {
+  group('Group 1: Initial State (kein hardcoded Standort)', () {
     test('isLoading ist initial false', () {
       expect(provider.isLoading, isFalse);
     });
@@ -42,13 +43,13 @@ void main() {
       expect(provider.calendar, isNull);
     });
 
-    test('lat/lng Berlin-Defaults', () {
-      expect(provider.lat, 52.52);
-      expect(provider.lng, 13.41);
+    test('lat/lng Defaults = 0/0 (kein hardcoded Berlin)', () {
+      expect(provider.lat, 0);
+      expect(provider.lng, 0);
     });
 
-    test('city/street/houseNr initial (Berlin/empty)', () {
-      expect(provider.city, 'berlin');
+    test('city/street/houseNr initial (unknown/empty)', () {
+      expect(provider.city, 'unknown');
       expect(provider.street, '');
       expect(provider.houseNr, '');
     });
@@ -329,97 +330,129 @@ void main() {
   });
 
   // ------------------------------- Group 9 -------------------------------
-  // Phase B-3.1 — Bbox-basierter Auto-City-Picker (Static helper).
-  //
-  // Backward-Compat: Diese statische Funktion muss identisches
-  // Verhalten weiter zeigen (siehe Folder-Naming `_x3c_static_helper_legacy`).
-  // Der **neue** runtime-Pfad in Phase X.3c ist `_pickFromDynamicConfig()`
-  // (instance-method, nutzt dynamic _cityDefaults).
-  group('Group 9: pickCityFromBbox (Phase B-3.1 Bbox-Auto-Picker, static)', () {
+  // Phase X.5c — pickCityFromBbox nutzt dynamische cityDefaults (keine hardcoded
+  // BBox-Konstanten mehr). Als Fallback bei fehlendem cityDefaults → 'unknown'.
+  group('Group 9: pickCityFromBbox (Phase X.5c dynamic cityDefaults, static)',
+      () {
+    final testDefaults = <CityDefaultDto>[
+      CityDefaultDto(
+        name: 'berlin',
+        displayName: 'Berlin',
+        bbox: const BBoxDto(
+            minLat: 52.34, maxLat: 52.68, minLng: 13.10, maxLng: 13.77),
+        addressRequired: false,
+        attribution: 'BSR — CC-BY 4.0',
+      ),
+      CityDefaultDto(
+        name: 'hamburg',
+        displayName: 'Hamburg',
+        bbox: const BBoxDto(
+            minLat: 53.39, maxLat: 53.74, minLng: 9.73, maxLng: 10.32),
+        addressRequired: true,
+        attribution: 'SRH — CC-BY 4.0',
+      ),
+      CityDefaultDto(
+        name: 'muenchen',
+        displayName: 'München',
+        bbox: const BBoxDto(
+            minLat: 48.06, maxLat: 48.25, minLng: 11.36, maxLng: 11.73),
+        addressRequired: true,
+        attribution: 'AWB — CC-BY 4.0',
+      ),
+    ];
+
     test('Berlin Mitte (52.52, 13.41) → berlin', () {
-      expect(WasteProvider.pickCityFromBbox(52.52, 13.41), 'berlin');
+      expect(
+          WasteProvider.pickCityFromBbox(52.52, 13.41,
+              cityDefaults: testDefaults),
+          'berlin');
     });
 
     test('Hamburg Mitte (53.55, 9.99) → hamburg', () {
-      expect(WasteProvider.pickCityFromBbox(53.55, 9.99), 'hamburg');
+      expect(
+          WasteProvider.pickCityFromBbox(53.55, 9.99,
+              cityDefaults: testDefaults),
+          'hamburg');
     });
 
     test('Muenchen Mitte (48.14, 11.58) → muenchen', () {
-      expect(WasteProvider.pickCityFromBbox(48.14, 11.58), 'muenchen');
+      expect(
+          WasteProvider.pickCityFromBbox(48.14, 11.58,
+              cityDefaults: testDefaults),
+          'muenchen');
     });
 
     test('Berlin lower-bound inclusive (52.34, 13.10) → berlin', () {
-      expect(WasteProvider.pickCityFromBbox(52.34, 13.10), 'berlin');
+      expect(
+          WasteProvider.pickCityFromBbox(52.34, 13.10,
+              cityDefaults: testDefaults),
+          'berlin');
     });
 
     test('Hamburg upper-bound edge just-inside (53.73, 10.31) → hamburg', () {
-      expect(WasteProvider.pickCityFromBbox(53.73, 10.31), 'hamburg');
+      expect(
+          WasteProvider.pickCityFromBbox(53.73, 10.31,
+              cityDefaults: testDefaults),
+          'hamburg');
     });
 
     test(
-        'Berlin upper-bound edge just-outside (52.68, 13.41) → berlin (Fallback)',
+        'Berlin upper-bound edge just-outside (52.68, 13.41) → unknown (Fallback)',
         () {
-      expect(WasteProvider.pickCityFromBbox(52.68, 13.41), 'berlin');
+      expect(
+          WasteProvider.pickCityFromBbox(52.68, 13.41,
+              cityDefaults: testDefaults),
+          'unknown');
     });
 
-    test('Out-of-bbox Koeln (50.94, 6.96) → berlin (Fallback)', () {
-      expect(WasteProvider.pickCityFromBbox(50.94, 6.96), 'berlin');
+    test('Out-of-bbox Koeln (50.94, 6.96) → unknown (Fallback)', () {
+      expect(
+          WasteProvider.pickCityFromBbox(50.94, 6.96,
+              cityDefaults: testDefaults),
+          'unknown');
     });
 
     test(
-        'Muenchen upper-bound edge just-outside (48.25, 11.73) → berlin (Fallback)',
+        'Muenchen upper-bound edge just-outside (48.25, 11.73) → unknown (Fallback)',
         () {
-      expect(WasteProvider.pickCityFromBbox(48.25, 11.73), 'berlin');
+      expect(
+          WasteProvider.pickCityFromBbox(48.25, 11.73,
+              cityDefaults: testDefaults),
+          'unknown');
+    });
+
+    test('Ohne cityDefaults → unknown (kein hardcoded Fallback)', () {
+      expect(
+        WasteProvider.pickCityFromBbox(52.52, 13.41),
+        'unknown',
+        reason: 'Kein cityDefaults übergeben → Fallback unknown',
+      );
     });
   });
 
   // ------------------------------- Group 10 ------------------------------
-  // **Phase X.3c NEW — Backend-Driven BBox-Defaults.**
+  // **Phase X.5c — Backend-Driven Location-Defaults (KEIN hardcoded Fallback).**
   //
-  // Strategie (Mirror zum Backend Phase X.3b):
+  // Strategie:
   // - Source-of-Truth: GET /api/config/location-defaults (response via apiGet)
   // - Cache-Layer: SharedPreferences `waste_config_v1` (JSON) + `waste_config_ts_v1` (ms)
   //   mit 24h TTL (analog zu calendar-cache)
-  // - Fallback-Layer: `_fallbackCityConfig` private constants (Last-Resort bei
-  //   Cache-Empty + Network-Down). User-Regel "kein Hardcoding" gilt für
-  //   primary-source — fallback ist graceful-degradation, nicht Mockup.
-  //
-  // Test-Scope: cache-state-contract (kein HTTP-Mocking weil pubspec kein
-  // dio hat + Phase-B-3 established kein-Mockito-policy).
-  group('Group 10: LocationDefaults (Phase X.3c dynamic config-loader)', () {
-    test('hasCityConfig ist true nach init() (fallback oder cache oder fetch)',
+  // - KEIN Hardcoded-Fallback mehr — bei Cache-Empty + Network-Down bleibt
+  //   hasCityConfig=false und _cityDefaults leer.
+  group('Group 10: LocationDefaults (Phase X.5c keine Fallback-Konstanten)',
+      () {
+    test('hasCityConfig ist false nach init() wenn kein Cache und kein Network',
         () async {
-      // Cold start: kein cache, network-down → fallback aktiv
       expect(provider.hasCityConfig, isFalse);
       await provider.init();
-      expect(provider.hasCityConfig, isTrue,
-          reason:
-              'Fallback-Konstanten sind auch "config available" (graceful-degradation)');
+      // Ohne Cache + ohne Network → hasCityConfig bleibt false
+      expect(provider.hasCityConfig, isFalse);
     });
 
-    test('cityDefaults enthält 3 cities nach init() (fallback oder cache)',
-        () async {
+    test('cityDefaults ist leer nach init() wenn kein Cache', () async {
       await provider.init();
-      expect(provider.cityDefaults.length, 3,
-          reason: 'Berlin + Hamburg + München expected');
-      expect(provider.cityDefaults.map((c) => c.name).toSet(),
-          {'berlin', 'hamburg', 'muenchen'});
-    });
-
-    test(
-        'cityDefaults enthält plausible BBox-Werte nach init() (fallback-source)',
-        () async {
-      await provider.init();
-      final berlin =
-          provider.cityDefaults.firstWhere((c) => c.name == 'berlin');
-      expect(berlin.bbox.minLat, 52.34);
-      expect(berlin.bbox.maxLat, 52.68);
-      expect(berlin.bbox.minLng, 13.10);
-      expect(berlin.bbox.maxLng, 13.77);
-      expect(berlin.addressRequired, isFalse);
-      final hamburg =
-          provider.cityDefaults.firstWhere((c) => c.name == 'hamburg');
-      expect(hamburg.addressRequired, isTrue);
+      expect(provider.cityDefaults, isEmpty,
+          reason: 'Kein hardcoded Fallback — cityDefaults bleibt leer');
     });
 
     test('Gecachte location-defaults werden aus SharedPreferences geladen',
@@ -448,35 +481,34 @@ void main() {
       expect(pCached.cityDefaults.first.name, 'berlin');
       expect(pCached.cityDefaults.first.bbox.minLat, 51.99,
           reason:
-              'Dynamic-config aus Cache verwendet, NICHT Hardcoded-Fallback');
+              'Dynamic-config aus Cache verwendet, KEIN hardcoded Fallback');
     });
 
-    test('Corrupted config-cache → fallback-Konstanten', () async {
+    test('Corrupted config-cache → hasCityConfig=false, cityDefaults=[]',
+        () async {
       SharedPreferences.setMockInitialValues({
         'waste_config_v1': '{not-json{',
         'waste_config_ts_v1': DateTime.now().millisecondsSinceEpoch,
       });
       final pCorrupt = WasteProvider();
       await pCorrupt.init();
-      expect(pCorrupt.hasCityConfig, isTrue);
-      expect(pCorrupt.cityDefaults.length, 3,
-          reason: 'Corrupted cache → fallback mit 3 cities');
-      expect(pCorrupt.cityDefaults.map((c) => c.name).toSet(),
-          {'berlin', 'hamburg', 'muenchen'});
+      expect(pCorrupt.hasCityConfig, isFalse,
+          reason: 'Corrupted cache → kein Fallback, hasCityConfig=false');
+      expect(pCorrupt.cityDefaults, isEmpty,
+          reason: 'Corrupted cache → cityDefaults bleibt leer');
     });
 
-    test('refreshLocationDefaults() public-API: failed-fetch hält Fallback',
+    test(
+        'refreshLocationDefaults() public-API: failed-fetch hat keinen Fallback mehr',
         () async {
-      // Erwartung: refresh-locationDefaults triggert fetch, fetch failed
-      // (kein Backend) → fallback bleibt aktiv, kein error-State.
       await provider.init();
-      final beforeFallback = provider.cityDefaults.length;
+      final before = provider.cityDefaults.length;
       await provider.refreshLocationDefaults();
-      expect(provider.hasCityConfig, isTrue,
-          reason: 'hasCityConfig bleibt true (fallback oder cached)');
-      expect(
-          provider.cityDefaults.length, beforeFallback > 0 ? beforeFallback : 3,
-          reason: 'Failed-fetch behält letzten Stand (fallback oder cache)');
+      expect(provider.hasCityConfig, isFalse,
+          reason: 'hasCityConfig bleibt false (kein hardcoded Fallback mehr)');
+      expect(provider.cityDefaults.length, before,
+          reason:
+              'Failed-fetch behält _cityDefaults-Referenz (leer oder leer)');
     });
 
     test('Group-10-cityDefaults ist read-only (List.unmodifiable)', () async {

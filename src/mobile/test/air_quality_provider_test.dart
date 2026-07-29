@@ -65,9 +65,9 @@ void main() {
   });
 
   // ==================================================================
-  // Group 1: Initial State (Konstruktor-Defaults)
+  // Group 1: Initial State (Konstruktor-Defaults — KEIN hardcoded Berlin)
   // ==================================================================
-  group('Initial state — Konstruktor-Defaults (Berlin-Fallback)', () {
+  group('Initial state — Konstruktor-Defaults (kein hardcoded Standort)', () {
     test('hasData ist false vor jeglichem Daten-Load', () {
       expect(provider.hasData, isFalse);
     });
@@ -92,16 +92,16 @@ void main() {
       expect(provider.isStale, isFalse);
     });
 
-    test('locationName defaulted auf "Berlin"', () {
-      expect(provider.locationName, 'Berlin');
+    test('locationName defaulted auf "" (kein hardcoded Stadname)', () {
+      expect(provider.locationName, '');
     });
 
-    test('lat defaulted auf 52.52 (Berlin-Koordinate)', () {
-      expect(provider.lat, 52.52);
+    test('lat defaulted auf 0 (kein hardcoded Berlin-Koordinate)', () {
+      expect(provider.lat, 0);
     });
 
-    test('lng defaulted auf 13.41 (Berlin-Koordinate)', () {
-      expect(provider.lng, 13.41);
+    test('lng defaulted auf 0 (kein hardcoded Berlin-Koordinate)', () {
+      expect(provider.lng, 0);
     });
   });
 
@@ -248,10 +248,11 @@ void main() {
   });
 
   // ==================================================================
-  // Group 6: init() mit partiellem Cache (Default-Fallbacks)
+  // Group 6: init() mit partiellem Cache (kein hardcoded Fallback)
   // ==================================================================
-  group('init() mit partiellem Cache (Berlin-Defaults bei fehlenden Keys)', () {
-    test('behaelt Berlin-Defaults wenn lat/lng-Keys fehlen', () async {
+  group('init() mit partiellem Cache (kein Berlin-Fallback bei fehlenden Keys)',
+      () {
+    test('lat/lng bleiben 0 wenn lat/lng-Keys fehlen', () async {
       final now = DateTime.now();
       SharedPreferences.setMockInitialValues({
         kCacheKey: validForecastJson(),
@@ -261,17 +262,16 @@ void main() {
 
       await provider.init();
 
-      expect(provider.lat, 52.52,
-          reason: 'Berlin-Fallback wenn kein lat im Cache');
-      expect(provider.lng, 13.41,
-          reason: 'Berlin-Fallback wenn kein lng im Cache');
-      expect(provider.locationName, 'Berlin',
-          reason:
-              'locationName aus Konstruktor-Default wenn kein name im Cache');
+      expect(provider.lat, 0,
+          reason: '0 (kein hardcoded Fallback) wenn kein lat im Cache');
+      expect(provider.lng, 0,
+          reason: '0 (kein hardcoded Fallback) wenn kein lng im Cache');
+      expect(provider.locationName, '',
+          reason: 'locationName ist leer wenn kein name im Cache');
     });
 
     test(
-        'Last-Cached-Name wird uebernommen wenn nur name-Key fehlt, lat/lng da',
+        'Last-Cached lat/lng wird uebernommen wenn Cache-Keys vorhanden, name-Key fehlt',
         () async {
       final now = DateTime.now();
       SharedPreferences.setMockInitialValues({
@@ -286,8 +286,8 @@ void main() {
 
       expect(provider.lat, 48.0);
       expect(provider.lng, 11.0);
-      expect(provider.locationName, 'Berlin',
-          reason: 'locationName bleibt Default wenn name-Key fehlt');
+      expect(provider.locationName, '',
+          reason: 'locationName bleibt leer wenn name-Key fehlt');
     });
   });
 

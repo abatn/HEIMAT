@@ -1293,3 +1293,44 @@ Polished Open Items (deferred to Phase X.4):
 | **Gesamt** | **15 hardcoded URL-Literals → externalServices-Registry** | |
 
 ---
+---
+
+## Phase X.5 — Hardcoding-Removal Sweep: Berlin Koordinaten eliminiert (2026-07-28)
+
+> **Ziel:** Alle hartkodierten Berlin-Koordinaten im Production-Code durch dynamische Werte ersetzen (LocationService, Backend-Config-Registry, Query-Parameter). 7 Files, 242 insertions, 252 deletions.
+
+### Status
+
+| Task | File(s) | Was geändert | LOC Delta |
+|------|---------|-------------|-----------|
+| **X.5a** | `air_quality_provider.dart` + test | `_lat=52.52/13.41/'Berlin'` → `0/0/''` + Guard in `refresh()` (location noch nicht bestimmt → kein API-Call). Tests Group 1 + 6 Expectations-update | +14/-0 |
+| **X.5b** | `mobility_screen.dart` | 3× `LatLng(52.5200,13.4050)` entfernt. Map rendert nur mit Location → Loading-State bei `_startLocation==null`. `_initLocation()` null-safe guarded. | +27/-8 |
+| **X.5c** | `waste_provider.dart` + test | 12 BBox-Konstanten + `_fallbackCityDefaults` + `_applyFallbackConfig()` entfernt. `_lat=52.52→0`, `_city='berlin'→'unknown'`. `pickCityFromBbox()` neuer `cityDefaults`-Parameter, Fallback `'unknown'`. Groups 1/9/10 Tests updated. | +20/-137 |
+| **X.5d** | `dbVendoService.ts` | `healthCheck()`: optionale `lat/lng/label` Parameter. (0,0)-Guard → generische "no location provided" Response. Berlin `52.515,13.395`/`52.525,13.405` entfernt. | +18/-8 |
+| **X.5e** | `admin.ts` | `/db-vendo-status` + `/db-vendo-selftest` erfordern Query-Parameter (400 bei Missing). 4 hardcoded Berlin-Koordinaten entfernt. | +36/-0 |
+| **Gesamt** | **7 Files** | **242 insertions, 252 deletions** | **-10 LOC netto** |
+
+### Design-Entscheidungen
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **Location guard statt Berlin-Fallback** | User-Regel "kein Hardcoding". Wenn LocationService keine Koordinaten liefern kann → kein API-Call (statt default Berlin). Nutzer sieht Error-State/Loading statt falscher Daten. |
+| **Map rendert nur mit Location** | FlutterMap `initialCenter` braucht gültige Koordinaten — statt Berlin-Default wird Loading-State gezeigt bis Location geladen. GPS-Button funktioniert als Retry-Workflow. |
+| **`pickCityFromBbox()` optionaler `cityDefaults`-Parameter** | Backward-Compat erhalten (Tests injecten DTOs). Fallback 'unknown' statt 'berlin' — kein stillschweigendes Berlin mehr. |
+| **Admin-Endpoints mit Query-Param-Pflicht** | Admin-Debug-Routen waren die einzigen mit hardcoded Test-Koordinaten. Admins können per `?lat=&lng=` beliebige Koordinaten übergeben. |
+| **healthCheck() optionale Parameter** | Aufrufer ohne Parameter (Singletons) kriegen generische "OK" Response. admin.ts übergibt dynamische Koordinaten. |
+
+### Validation
+
+- `cd src/backend && npx tsc --noEmit` → 0 Errors ✓
+- `cd src/backend && npx eslint src/routes/admin.ts src/services/dbVendoService.ts` → clean (1 pre-existing warning) ✓
+- `cd src/mobile && $DART format lib/ ...` → 5 files formatted, exit 0 ✓
+- `bash scripts/audit-no-mocks.sh` → 0 violations ✓
+- Backend CI: tsc OK ✓
+- Flutter CI (erwartet): dart format → dart analyze → flutter test muss 10+28+8=46 Tests (air_quality_provider + waste_provider) validieren
+
+### Offene Punkte
+
+- **flutter test nicht lokal validiert** — Flutter SDK nicht auf diesem Rechner installiert. CI muss die Test-Änderungen (Group 1/6/9/10 Expectations) validieren.
+- **Test-Datei-Drift in other providers** — weather_provider_test.dart + finance_provider_test.dart haben keine hardcoded Koordinaten-Assertions mehr, aber sollten in Zukunft auf new-defaults-Konsistenz geprüft werden.
+- **Route-level integration-test** für admin.ts Endpoints (erfordern jetzt query-params). Phase 5 Clean-up für Test-Coverage.

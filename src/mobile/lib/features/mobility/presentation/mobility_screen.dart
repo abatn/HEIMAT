@@ -31,7 +31,7 @@ class _MobilityScreenState extends State<MobilityScreen> {
   @override
   void initState() {
     super.initState();
-    _startLocation = const LatLng(52.5200, 13.4050);
+    // _startLocation bleibt null bis LocationService liefert
     _initLocation();
   }
 
@@ -39,14 +39,16 @@ class _MobilityScreenState extends State<MobilityScreen> {
     LatLng? location = await LocationService.getCurrentLocation();
     if (mounted) {
       setState(() {
-        _startLocation = location ?? const LatLng(52.5200, 13.4050);
+        _startLocation = location;
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<MobilityProvider>().loadNearbyStops(
-              _startLocation!.latitude,
-              _startLocation!.longitude,
-            );
-      });
+      if (_startLocation != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<MobilityProvider>().loadNearbyStops(
+                _startLocation!.latitude,
+                _startLocation!.longitude,
+              );
+        });
+      }
     }
   }
 
@@ -234,15 +236,26 @@ class _MobilityScreenState extends State<MobilityScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Map
+          // Map (nur rendern wenn Standort bekannt)
           if (!_showSearch)
             Consumer<MobilityProvider>(
               builder: (context, provider, _) {
+                if (_startLocation == null) {
+                  return const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 12),
+                        Text('Standort wird ermittelt...'),
+                      ],
+                    ),
+                  );
+                }
                 return FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    initialCenter:
-                        _startLocation ?? const LatLng(52.5200, 13.4050),
+                    initialCenter: _startLocation!,
                     initialZoom: 13.0,
                   ),
                   children: [

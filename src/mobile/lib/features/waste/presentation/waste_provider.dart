@@ -7,36 +7,27 @@ import '../../../core/services/location_service.dart';
 import '../waste_dto.dart';
 import '../waste_location_defaults_dto.dart';
 
-/// WasteProvider — Backend-Anbindung für Abfallkalender (Phase B-3 + X.3c).
+/// WasteProvider — Backend-Anbindung für Abfallkalender (Phase B-3 + X.5c).
 ///
-/// **Phase X.3c Refactor (Backend-Driven BBox-Defaults):**
-/// - 6 hardcoded BBox-Konstanten (Berlin/Hamburg/München) sind NICHT mehr
-///   hardcoded im Provider-runtime-Path. Sie werden via
-///   `GET /api/config/location-defaults` vom Backend geladen
-///   (Phase X.3b `routes/config.ts` + `services/wasteService.ts`).
-/// - 24h SharedPreferences-TTL für die geladene Config (analog zu
-///   calendar-cache).
-/// - Bei Cache-Miss + Network-Down: Fallback auf private
-///   `_fallbackCityDefaults` (pre-konstruiert, kein Runtime-Parsing).
+/// **Phase X.5c: KEINE hardcoded BBox-Defaults mehr.**
+/// - Location-Defaults werden via `GET /api/config/location-defaults` vom
+///   Backend geladen (Phase X.3b) + SharedPreferences-Cache (24h TTL).
+/// - Bei Cache-Miss + Network-Down: KEIN Fallback — `hasCityConfig=false`.
+/// - `pickCityFromBbox()` ist nur Backward-Compat (Tests); runtime nutzt
+///   `_pickFromDynamicConfig()` mit dynamisch geladenen `_cityDefaults`.
 ///
-/// **Architektur (Mirror zu AirQualityProvider):**
+/// **Architektur (Mirror zu AirQualityProvider, Phase X.5a):**
 /// - Online: ruft /api/waste/calendar?lat=&lng=&weeks=&street=&houseNr=
-/// - Online: ruft /api/config/location-defaults für BBox-Defaults (X.3c).
+/// - Online: ruft /api/config/location-defaults für BBox-Defaults.
 /// - Cache-Tier 1 (Memory): _calendar für sofortiges Tab-Switching
 /// - Cache-Tier 2 (SharedPreferences): JSON + Timestamp persistent
-/// - Location-Tier: Berlin 52.52/13.41 Default (kein Live-Geo until Phase 3+)
-/// - 422 AddressRequiredError: Wenn Backend Hamburg/München ohne Adresse meldet,
-///   Provider setzt addressRequired=true und Screen zeigt Bottom-Sheet Dialog.
+/// - Location: dynamisch via LocationService (kein hardcoded Default).
+/// - 422 AddressRequiredError: Wenn Backend Hamburg/München ohne Adresse meldet.
 ///
-/// **Cache-Keys (8 nach Phase X.3c):** 6 calendar keys + 2 location-defaults keys.
+/// **Cache-Keys (8):** 6 calendar keys + 2 location-defaults keys.
 ///   - `_kCacheKey` (full response JSON), `_kCacheTsKey` (last-updated epoch ms)
 ///   - `_kCityKey`, `_kStreetKey`, `_kHouseNrKey`, `_kWeeksKey`
 ///   - `_kConfigCacheKey` (location defaults JSON), `_kConfigTsKey`
-///
-/// **Static `pickCityFromBbox()` Backward-Compat:**
-/// - Existierender statischer Helper bleibt für Group-9-Pass-Tests erhalten.
-/// - Default-Verhalten: nutzt hardcoded constants als Last-Resort.
-/// - Runtime city-pick nutzt `_pickFromDynamicConfig()` mit dynamic config.
 class WasteProvider extends ChangeNotifier {
   // ------------------------------------------------------------------
   // Cache-Keys + TTL
@@ -56,110 +47,25 @@ class WasteProvider extends ChangeNotifier {
   static const Duration _configTtl = Duration(hours: 24);
 
   // ------------------------------------------------------------------
-  // Phase X.3c: Hardcoded Offline-Fallback (Last-Known-Good, LAST RESORT)
+  // Phase B-3.1: statischer Helper bbox → city-key (Backward-Compat).
+  // Nutzt NUR dynamisch geladene _cityDefaults — kein hardcoded Berlin.
+  // Falls kein City die Bbox matcht → 'unknown' (kein Berlin-Default).
   //
-  // Diese Konstanten werden NUR verwendet wenn:
-  //   1. SharedPreferences-Cache leer (nie zuvor geladen)
-  //   2. Network-Down (Live-Fetch fail)
-  //
-  // NICHT primary-source-of-truth. Primary ist
-  // /api/config/location-defaults (Backend, Phase X.3b). User-Regel
-  // "kein Hardcoding" ist hier NICHT verletzt: das sind graceful-
-  // degradation-Values für total-outage-Konditionen, keine
-  // mockup/simulation.
-  //
-  // **Defense-in-depth:**
-  // Pre-konstruierte `List<CityDefaultDto>` statt Map-then-fromJson-Pattern.
-  // Eliminiert Runtime-Parsing-Risiko komplett (kein cast-failure-Pfad).
-  // Phase X.3c Polish #3 nach Code-Reviewer-Round #2.
-  // ------------------------------------------------------------------
-  static final List<CityDefaultDto> _fallbackCityDefaults = <CityDefaultDto>[
-    CityDefaultDto(
-      name: 'berlin',
-      displayName: 'Berlin',
-      bbox: const BBoxDto(
-        minLat: 52.34,
-        maxLat: 52.68,
-        minLng: 13.10,
-        maxLng: 13.77,
-      ),
-      addressRequired: false,
-      attribution: 'BSR — CC-BY 4.0',
-    ),
-    CityDefaultDto(
-      name: 'hamburg',
-      displayName: 'Hamburg',
-      bbox: const BBoxDto(
-        minLat: 53.39,
-        maxLat: 53.74,
-        minLng: 9.73,
-        maxLng: 10.32,
-      ),
-      addressRequired: true,
-      attribution: 'SRH — CC-BY 4.0',
-    ),
-    CityDefaultDto(
-      name: 'muenchen',
-      displayName: 'München',
-      bbox: const BBoxDto(
-        minLat: 48.06,
-        maxLat: 48.25,
-        minLng: 11.36,
-        maxLng: 11.73,
-      ),
-      addressRequired: true,
-      attribution: 'AWB — CC-BY 4.0',
-    ),
-  ];
-
-  // ------------------------------------------------------------------
-  // Phase B-3.1: Hardcoded BBox-Konstanten für `static String pickCityFromBbox`
-  // Backward-Compat (Group 9 tests). NICHT für runtime-pick verwendet —
-  // runtime nutzt `_cityDefaults` (dynamisch geladen) per
-  // `_tryUpdateLocation()`.
-  static const double _berlinLatMin = 52.34;
-  static const double _berlinLatMax = 52.68;
-  static const double _berlinLngMin = 13.10;
-  static const double _berlinLngMax = 13.77;
-
-  static const double _hamburgLatMin = 53.39;
-  static const double _hamburgLatMax = 53.74;
-  static const double _hamburgLngMin = 9.73;
-  static const double _hamburgLngMax = 10.32;
-
-  static const double _muenchenLatMin = 48.06;
-  static const double _muenchenLatMax = 48.25;
-  static const double _muenchenLngMin = 11.36;
-  static const double _muenchenLngMax = 11.73;
-
   /// Phase B-3.1 statischer Helper: bbox → city-key (Backward-Compat).
-  /// Diese Funktion nutzt die hardcoded constants — sie ist isoliert für
-  /// Tests (Group 9) und ist KEIN runtime-pathway. Für runtime-city-pick
-  /// siehe `_pickFromDynamicConfig()` welches die dynamisch geladenen
-  /// `_cityDefaults` konsumiert.
+  /// Nutzt force-injected cityDefaults (kein hardcoded BBox-Konstanten).
+  /// Für runtime-city-pick siehe `_pickFromDynamicConfig()`.
   ///
   /// Half-open semantics: lat in [min, max), lng in [min, max).
-  /// Bbox-miss → 'berlin' (default Fallback, address_required=false).
-  static String pickCityFromBbox(double lat, double lng) {
-    if (lat >= _berlinLatMin &&
-        lat < _berlinLatMax &&
-        lng >= _berlinLngMin &&
-        lng < _berlinLngMax) {
-      return 'berlin';
+  /// Bbox-miss → 'unknown' (kein hardcoded Berlin-Fallback mehr).
+  static String pickCityFromBbox(double lat, double lng,
+      {List<CityDefaultDto>? cityDefaults}) {
+    final cities = cityDefaults;
+    if (cities != null && cities.isNotEmpty) {
+      for (final c in cities) {
+        if (c.containsPoint(lat, lng)) return c.name;
+      }
     }
-    if (lat >= _hamburgLatMin &&
-        lat < _hamburgLatMax &&
-        lng >= _hamburgLngMin &&
-        lng < _hamburgLngMax) {
-      return 'hamburg';
-    }
-    if (lat >= _muenchenLatMin &&
-        lat < _muenchenLatMax &&
-        lng >= _muenchenLngMin &&
-        lng < _muenchenLngMax) {
-      return 'muenchen';
-    }
-    return 'berlin'; // Fallback
+    return 'unknown'; // keinn hardcoded Fallback
   }
 
   // ------------------------------------------------------------------
@@ -173,10 +79,10 @@ class WasteProvider extends ChangeNotifier {
   // Phase X.3c: geladene Location-Defaults (dynamisch statt hardcoded)
   List<CityDefaultDto> _cityDefaults = <CityDefaultDto>[];
 
-  // Defaults: Berlin (52.52/13.41).
-  double _lat = 52.52;
-  double _lng = 13.41;
-  String _city = 'berlin';
+  // Defaults: unbekannt (0/0) — LocationService liefert echte Koordinaten
+  double _lat = 0;
+  double _lng = 0;
+  String _city = 'unknown';
   String _street = '';
   String _houseNr = '';
   int _weeks = 4;
@@ -251,23 +157,19 @@ class WasteProvider extends ChangeNotifier {
         unawaited(refresh());
       }
     } catch (_) {
-      // silently ignore — Berlin-Fallback bleibt aktiv
+      // silently ignore — kein Fallback (Location nicht verfügbar)
     }
   }
 
   /// Phase X.3c: dynamic city-pick via geladene _cityDefaults.
-  /// Fallback-Reihenfolge:
-  ///   1. dynamic config wenn geladen → erste city die (lat, lng) enthaelt
-  ///   2. sonst: `pickCityFromBbox` (hardcoded als Last-Resort)
-  ///   3. sonst: 'berlin' (Default)
+  /// Fallback: 'unknown' (kein hardcoded Berlin).
   String _pickFromDynamicConfig(double lat, double lng) {
     if (_cityDefaults.isNotEmpty) {
       for (final c in _cityDefaults) {
         if (c.containsPoint(lat, lng)) return c.name;
       }
     }
-    // Last-resort fallback zur hardcoded static picker (Group 9 spec).
-    return pickCityFromBbox(lat, lng);
+    return 'unknown'; // kein hardcoded Fallback
   }
 
   /// Setter: User gibt seine Adresse ein → re-trigger refresh.
@@ -347,13 +249,13 @@ class WasteProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kConfigCacheKey);
       if (raw == null) {
-        _applyFallbackConfig();
+        _hasConfig = false;
         return;
       }
 
       final data = jsonDecode(raw);
       if (data is! List) {
-        _applyFallbackConfig();
+        _hasConfig = false;
         return;
       }
 
@@ -365,21 +267,13 @@ class WasteProvider extends ChangeNotifier {
       if (_cityDefaults.isNotEmpty) {
         _hasConfig = true;
       } else {
-        _applyFallbackConfig();
+        _hasConfig = false;
       }
     } catch (_) {
-      // Cache corrupted → fallback-Konstanten (defense-in-depth: kein throw)
-      _applyFallbackConfig();
+      // Cache corrupted → _cityDefaults zurücksetzen (kein hardcoded Fallback)
+      _cityDefaults = <CityDefaultDto>[];
+      _hasConfig = false;
     }
-  }
-
-  /// Wendet die pre-konstruierten `_fallbackCityDefaults` als Last-Resort an.
-  /// Defense-in-depth (Phase X.3c Polish #3): direct-assign ohne
-  /// Map→fromJson-Pattern → kein Runtime-Cast-Failure-Risiko.
-  void _applyFallbackConfig() {
-    _cityDefaults = _fallbackCityDefaults;
-    _hasConfig = true;
-    notifyListeners();
   }
 
   /// Deferred fetch: nur wenn cache fehlt ODER cache stale (>24h TTL).
@@ -454,11 +348,9 @@ class WasteProvider extends ChangeNotifier {
     try {
       await _fetchLocationDefaults();
     } catch (_) {
-      // network-failure: silent, fallback bleibt aktiv
+      // network-failure: silent, kein Fallback
     }
-    if (!_hasConfig) {
-      _applyFallbackConfig();
-    }
+    // Kein Fallback — _hasConfig bleibt false wenn fetch+network fehlschlagen
   }
 
   // ------------------------------------------------------------------

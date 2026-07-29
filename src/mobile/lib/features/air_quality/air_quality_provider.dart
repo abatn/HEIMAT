@@ -31,10 +31,10 @@ class AirQualityProvider extends ChangeNotifier {
   String? _error;
   AirQualityForecastResponse? _forecast;
 
-  // Default: Berlin (wird in init() ggf. überschrieben)
-  double _lat = 52.52;
-  double _lng = 13.41;
-  String _locationName = 'Berlin';
+  // Kein hardcoded Default — "nicht bestimmt" bis LocationService liefert
+  double _lat = 0;
+  double _lng = 0;
+  String _locationName = '';
   DateTime? _lastUpdated;
   bool _isStale = false;
 
@@ -84,7 +84,7 @@ class AirQualityProvider extends ChangeNotifier {
         await refresh();
       }
     } catch (_) {
-      // silently ignore — Berlin-Fallback
+      // silently ignore — kein Fallback (Location nicht verfügbar → kein API-Call)
     }
   }
 
@@ -97,6 +97,10 @@ class AirQualityProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
+      if (_lat == 0 && _lng == 0) {
+        _error = 'Standort konnte nicht ermittelt werden';
+        return;
+      }
       final data =
           await apiGet('/api/air-quality/forecast?lat=$_lat&lng=$_lng');
       if (data['status'] != 'ok') {

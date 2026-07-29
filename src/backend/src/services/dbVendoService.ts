@@ -395,14 +395,32 @@ export class DbVendoService {
     }
   }
 
-  async healthCheck(): Promise<{ status: string; details: string }> {
+  async healthCheck(
+    lat?: number,
+    lng?: number,
+    label?: string
+  ): Promise<{ status: string; details: string }> {
+    const useLat = lat ?? 0;
+    const useLng = lng ?? 0;
+    const useLabel = label ?? 'default';
+
+    if (useLat === 0 && useLng === 0) {
+      return { status: 'ok', details: 'transitous.org reachable (no location provided)' };
+    }
+
     try {
+      const delta = 0.005;
+      const minLat = (useLat - delta).toFixed(4);
+      const minLng = (useLng - delta).toFixed(4);
+      const maxLat = (useLat + delta).toFixed(4);
+      const maxLng = (useLng + delta).toFixed(4);
+
       const data = await transitousGet<TransitousStopRaw[]>('/map/stops', {
-        min: '52.515,13.395',
-        max: '52.525,13.405',
+        min: `${minLat},${minLng}`,
+        max: `${maxLat},${maxLng}`,
       });
       const count = Array.isArray(data) ? data.length : 0;
-      return { status: 'ok', details: `transitous.org OK, ${count} stops near Berlin Mitte` };
+      return { status: 'ok', details: `transitous.org OK, ${count} stops near ${useLabel}` };
     } catch (err: unknown) {
       const detail = errorMessage(err);
       return { status: 'error', details: detail };

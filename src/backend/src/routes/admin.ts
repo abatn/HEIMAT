@@ -39,17 +39,25 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/db-vendo-status – Prüft transitous.org Erreichbarkeit
+// Erfordert ?lat=&lng= Query-Parameter (keine hardcoded Koordinaten mehr)
 adminRouter.get('/db-vendo-status', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
+  const lat = parseFloat(req.query.lat as string);
+  const lng = parseFloat(req.query.lng as string);
+  if (isNaN(lat) || isNaN(lng)) {
+    res.status(400).json({ success: false, message: 'lat und lng als Query-Parameter erforderlich' });
+    return;
+  }
+
   try {
-    const health = await dbVendoService.healthCheck();
-    const testStops = await dbVendoService.searchStopsByCoords(52.52, 13.40, 3);
+    const health = await dbVendoService.healthCheck(lat, lng, `${lat},${lng}`);
+    const testStops = await dbVendoService.searchStopsByCoords(lat, lng, 3);
     res.json({
       success: true,
       provider: 'transitous.org',
       apiHealth: health,
-      testQuery: '52.52,13.40 (Berlin Mitte)',
+      testQuery: `${lat},${lng}`,
       testResults: testStops.length,
       sampleStop: testStops[0] || null,
     });
@@ -60,14 +68,28 @@ adminRouter.get('/db-vendo-status', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/db-vendo-selftest – Testet transitous.org mit Abfahrten + Journey
+// Erfordert ?from_lat=&from_lng=&to_lat=&to_lng= Query-Parameter
 adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
+
+  const fromLat = parseFloat(req.query.from_lat as string);
+  const fromLng = parseFloat(req.query.from_lng as string);
+  const toLat = parseFloat(req.query.to_lat as string);
+  const toLng = parseFloat(req.query.to_lng as string);
+
+  if (isNaN(fromLat) || isNaN(fromLng) || isNaN(toLat) || isNaN(toLng)) {
+    res.status(400).json({
+      success: false,
+      message: 'from_lat, from_lng, to_lat, to_lng als Query-Parameter erforderlich',
+    });
+    return;
+  }
 
   try {
     const t0 = Date.now();
 
     // 1. Haltestellen in der Nähe suchen
-    const stops = await dbVendoService.searchStopsByCoords(52.52, 13.40, 5);
+    const stops = await dbVendoService.searchStopsByCoords(fromLat, fromLng, 5);
 
     // 2. Abfahrten holen
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,11 +98,11 @@ adminRouter.get('/db-vendo-selftest', async (req: Request, res: Response) => {
       departures = await dbVendoService.getDepartures(stops[0].id, 5);
     }
 
-    // 3. Journey testen (Alexanderplatz → Hauptbahnhof)
+    // 3. Journey testen
     const journeys = await dbVendoService.getJourneys(
       '', '', undefined,
-      52.5219, 13.4132, // Alexanderplatz
-      52.5255, 13.3695, // Hauptbahnhof
+      fromLat, fromLng,
+      toLat, toLng,
     );
 
     res.json({
