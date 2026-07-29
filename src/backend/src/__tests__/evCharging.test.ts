@@ -3,6 +3,9 @@ import app from '../index';
 
 describe('E-Ladestationen API', () => {
   describe('GET /api/ev-charging/stations', () => {
+    // Timeout 120s weil 3 Overpass-Mirrors mit je 25s Axios-Timeout sequentiell
+    // probiert werden (75s worst-case). In CI ohne Overpass-Zugriff muessen alle
+    // 3 fehlschlagen bevor der Service 503 retourniert (den der Test erwartet).
     it('should return live stations or 503 if OpenStreetMap unreachable', async () => {
       const res = await request(app)
         .get('/api/ev-charging/stations?lat=52.5200&lng=13.4050&radius_km=5');
@@ -25,7 +28,7 @@ describe('E-Ladestationen API', () => {
           expect(Array.isArray(station.sockets)).toBe(true);
         }
       }
-    }, 60000);
+    }, 120000);
 
     it('should accept default radius when radius_km is omitted', async () => {
       const res = await request(app)
@@ -35,7 +38,7 @@ describe('E-Ladestationen API', () => {
       if (res.status === 200) {
         expect(res.body).toHaveProperty('radius_km', 5);
       }
-    }, 60000);
+    }, 120000);
 
     it('should return error without coordinates', async () => {
       const res = await request(app).get('/api/ev-charging/stations');
