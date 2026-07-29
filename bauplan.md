@@ -1563,15 +1563,17 @@ Phase AI-5 (TFLite) — parallel zu AI-1..AI-4
 
 | Phase | Timer | Abhängig von | Enthaltene Services |
 |-------|-------|-------------|-------------------|
-| AI-1 | ~2h | Keine | Ollama Backend + Chat-Endpoint |
-| AI-2 | ~3h | AI-1 | Flutter Chat UI |
-| AI-3 | ~2h | AI-1 | **Bestehend:** Wetter, Luft, Abfall, Dashboard |
-| AI-3a | ~3h | AI-1 | **NEU aus heimat-plan.md:** Job-Matching, Event-Empfehlung, Hotel-Budget, Bürgeramt-Termine |
-| AI-4 | ~3h | AI-1 + AI-2 + AI-3 | Cross-Service AI Assistant |
-| AI-5 | ~5h | Keine (parallel) | TFLite / Vosk / Coqui on-device |
-| **Gesamt** | **~18h** | | (+3h für AI-3a neue Services) |
+| Phase | Timer | Abhängig von | Enthaltene Services | Status |
+|-------|-------|-------------|-------------------|--------|
+| AI-1 | ~2h | Keine | Ollama Backend + Chat-Endpoint | ✅ LIVE |
+| AI-2 | ~3h | AI-1 | Flutter Chat UI | ✅ LIVE |
+| AI-3 | ~2h | AI-1 | **Bestehend:** Wetter, Luft, Abfall, Dashboard | ✅ LIVE |
+| AI-3a | ~3h | AI-1 | **NEU aus heimat-plan.md:** Job-Matching, Event-Empfehlung, Hotel-Budget, Bürgeramt-Termine | ⏳ Offen |
+| AI-4 | ~3h | AI-1 + AI-2 + AI-3 | Cross-Service AI Assistant | ✅ LIVE |
+| AI-5 | ~5h | Keine (parallel) | TFLite / Vosk / Coqui on-device | ⏳ Offen |
+| **Gesamt** | **~18h** | | (+3h für AI-3a neue Services) | **4/6 ✅** |
 
-> **Stand 2026-07-28:** Phase AI-1 **✅ LIVE auf main** (Commit `a7cdbf6`). ollamaService.ts + POST /api/ai/chat + GET /api/ai/status + 7 Tests. Nächste: Phase AI-2 (Flutter Chat UI) oder AI-3 (Service Prompts).
+> **Stand 2026-07-28:** Phase AI-1 **✅** (`a7cdbf6`), AI-2 **✅** (`14672aa`), AI-3 **✅** (`bf9b8ca`), AI-4 **✅** (`fe2d570`) — **alle 4 Phasen LIVE auf main**. ollamaService.ts + AiChatScreen UI + promptService.ts (Wetter/Luft/Abfall) + chatWithContext() Cross-Service. 7+8+10+4=29 neue Tests. Nächste: AI-5 (On-Device TFLite) oder AI-3a (Job/Events/Hotels/Bürgeramt Prompts).
 
 **Anmerkung:** 💬 Futai Chat (KI-Twin + Emotionen + Gedächtnis) ist ein separates Projekt (github.com/abatn/futai) und in diesen Timern nicht enthalten. Die Integration als Mini-Program in HEIMAT ist separat in Phase D geplant (~5h).
 
