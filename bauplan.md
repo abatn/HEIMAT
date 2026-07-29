@@ -1381,3 +1381,182 @@ Polished Open Items (deferred to Phase X.4):
 - **WasteScreen Location-Integration** — Analog Health: LocationService einbinden statt Berlin-Defaults (52.52/13.41). Phase X.5c hat BBox-Hardcoding entfernt, aber init-State ist noch Berlin.
 
 ---
+
+## Phase AI — AI-Integration: Ollama Backend + Natürlichsprachliche Services (2026-07-28)
+
+> **Basierend auf:** AI-Strategy.md, AI-Architektur.md, AI-Implementierungsplan.md, heimat-plan.md
+> **Lokale Ollama-Instanz:** `llama3.1:8b` (General) + `qwen2.5-coder:7b` (Code/Tools) auf `localhost:11434`
+> **Ziel:** On-Device AI für alle HEIMAT-Services — keine Cloud-APIs, keine Kosten, keine Datenabflüsse.
+
+### Übersicht: AI-Strategie pro Service
+
+| Service | AI-Feature | Modell | Typ | Timer |
+|---------|-----------|--------|-----|-------|
+| **Alle** | **Universal AI Chat Assistant** | `qwen2.5-coder:7b` oder `llama3.1:8b` | Backend Ollama-Proxy | ~5h |
+| **Wetter** | Natürlichsprachliche Wetteransage | `llama3.1:8b` | Prompt-Template | ~1h |
+| **Luftqualität** | Persönliche Gesundheitsempfehlung | `llama3.1:8b` | Prompt-Template | ~1h |
+| **Abfallkalender** | Sortier-Tipps & Erinnerungen | `llama3.1:8b` | Prompt-Template | ~1h |
+| **E-Ladestationen** | Routenvorschlag mit Ladestopps | `qwen2.5-coder:7b` | Backend Routing + Prompt | ~2h |
+| **Dashboard** | Persönliche Tageszeit-Assistent | `llama3.1:8b` | Prompt-Template | ~1h |
+| **Gesundheit** | Termin-Empfehlungen (Recommender) | LightGBM/Surprise (lokal) | TFLite-Modell | ~3h |
+| **Finanzen** | Ausgabenkategorisierung (spaCy) | TFLite on-device | TFLite-Modell | ~3h |
+
+---
+
+### Phase AI-1: Backend Ollama Service + Chat Endpoint (~2h)
+
+> **Ziel:** Backend-Endpoint `/api/ai/chat` der Ollama anspricht. Grundlage für alle AI-Features.
+
+| Schritt | Datei | Beschreibung |
+|---------|-------|-------------|
+| 1.1 | `src/backend/src/services/ollamaService.ts` (NEU) | Axios-Client gegen `http://localhost:11434/api/chat`. POST mit `{model, messages, stream}`, SSE-Support. Method `chat(model, systemPrompt, userMessages) : AsyncIterable<string>` |
+| 1.2 | `src/backend/src/routes/ai.ts` (MODIFIED) | `POST /api/ai/chat` → ollamaService.chat(). `GET /api/ai/status` → checkt ob Ollama läuft (HTTP 200/503). |
+| 1.3 | `src/backend/src/middleware/schemas.ts` (MODIFIED) | Zod-Schema: `{model: enum['qwen2.5-coder:7b','llama3.1:8b'], messages: array, systemPrompt?: string}` |
+| 1.4 | `src/backend/src/__tests__/ollamaService.test.ts` (NEU) | 3 Tests: (1) Constructor ok, (2) `chat()` fallback-msg bei Connection-Refused, (3) URL-Config aus externalServices. **Kein Mockito** — echte HTTP-Errors reichen. |
+| 1.5 | `bauplan.md` | Phase AI-1 abgeschlossen markieren |
+
+**Abhängigkeiten:** Keine — eigenständiger Service.
+
+**Modell-Strategie:**
+- `qwen2.5-coder:7b` für schnelle, tool-basierte Antworten (Default)
+- `llama3.1:8b` für qualitativ hochwertige, längere Texte (optional)
+- Fallback: Eingebauter "Ollama nicht erreichbar"-Text (kein Mock, kein Cache)
+
+**API-Design:**
+```
+POST /api/ai/chat
+{
+  "model": "qwen2.5-coder:7b",
+  "systemPrompt": "Du bist ein deutscher Assistent...",
+  "messages": [
+    {"role": "user", "content": "Wie ist das Wetter in Berlin?"}
+  ]
+}
+→ Response (SSE-Stream): { "token": "Heute..." } oder JSON: { "response": "..." }
+```
+
+---
+
+### Phase AI-2: Flutter AI Chat Screen (~3h)
+
+> **Ziel:** Nativer Chat-Screen im Apps-Tab. 4. nativer Service nach weather/air/waste.
+
+| Schritt | Datei | Beschreibung |
+|---------|-------|-------------|
+| 2.1 | `lib/features/ai_chat/ai_chat_dto.dart` (NEU) | ChatMessage (role, content, timestamp), ChatResponse (response, model, tokens) |
+| 2.2 | `lib/features/ai_chat/presentation/ai_chat_provider.dart` (NEU) | sendMessage(), loading-state, message-history, clear(), available-models |
+| 2.3 | `lib/features/ai_chat/presentation/ai_chat_screen.dart` (NEU) | Chat-Bubble-UI (wie WhatsApp), Input-Feld, Model-Switcher, Clear-Button |
+| 2.4 | `lib/features/miniprogram/domain/service_registry.dart` (MOD) | `ai_chat` Eintrag mit `nativeBuilder: (_) => const AiChatScreen()` |
+| 2.5 | `lib/features/miniprogram/presentation/miniprogram_provider.dart` (MOD) | `ai_chat` MiniProgram (useNative: true, icon: chat, category: Alltag) |
+| 2.6 | `lib/main.dart` (MOD) | `AiChatProvider` registrieren |
+| 2.7 | `test/ai_chat_dto_test.dart` (NEU) | 8 Tests: ChatMessage.fromJson, missing fields, null safety |
+
+**System-Prompt (zentral):**
+```
+Du bist HEIMAT AI, ein hilfreicher Assistent für die HEIMAT Super App.
+Du kennst folgende Services:
+- Wetter (DWD Open Data: Temperatur, Regen, Sonne, Wind)
+- Luftqualität (CAMS: AQI, PM2.5, PM10, Ozon)
+- Abfallkalender (Berlin/Hamburg/München Abfuhrtermine)
+- E-Ladestationen (OSM: Standorte, Stecker-Typen, Öffnungszeiten)
+- Mobilität (ÖPNV Haltestellen, Routen, Abfahrten)
+- Gesundheit (Ärztesuche, Terminbuchung)
+
+Antworte auf Deutsch, freundlich und präzise.
+Wenn du eine Frage zu einem Service nicht beantworten kannst,
+sage ehrlich "Das kann ich leider nicht beantworten".
+```
+
+---
+
+### Phase AI-3: Service-Prompts für natürliche Antworten (~2h)
+
+> **Ziel:** Jeder Service bekommt einen spezifischen Prompt, der seine Daten natürlichsprachlich erklärt.
+
+| Service | Prompt-Template | UX |
+|---------|----------------|-----|
+| **Wetter** | "Erkläre das Wetter in {location}: {temp}°C, {condition}. Max {temp_max}°C, Wind {wind} km/h. Gib einen kurzen Tipp (Jacke/Regenschirm/etc)." | 1-Zeilen-Wetteransage unter CurrentWeatherHero |
+| **Luftqualität** | "Der AQI ist {value} ({level}). PM2.5={pm25}, PM10={pm10}. Sollte ich heute Sport machen? Ja/Nein + Begründung." | Health-Badge unter AQI-Ring |
+| **Abfallkalender** | "Nächste Abfuhr: {event.summary} am {event.date}. Sortier-Tipp: {category}-Tonne → {tip}" | Tooltip bei Event-Tap |
+| **Dashboard** | "Es ist {timeOfDay}, {weekend?}. Empfehlung: Schau auf {service} — {reason}" | Personalisierte AI-Karte im Dashboard |
+
+**Implementierung:**
+- `src/backend/src/services/promptService.ts` (NEU) — Template-Engine mit `{placeholder}` → Service-Daten
+- `GET /api/ai/service-prompt?service=weather&lat=52.52&lng=13.41` → gibt Prompt-Result zurück
+- Flutter ruft Prompt auf und zeigt Ergebnis als Tooltip/Badge/Annotation
+- **Kein Caching** (Prompts sind billig, <1s auf `qwen2.5-coder:7b`)
+
+---
+
+### Phase AI-4: Cross-Service AI Assistant (~3h)
+
+> **Ziel:** Der AI Chat versteht ALLE Services und kann quervernetzen.
+
+| Query | Verarbeitung |
+|-------|-------------|
+| "Morgen 10 Uhr Arzttermin in Berlin, wie ist das Wetter?" | Prompt + Wetter-Daten → kombinierte Antwort |
+| "Ich will nach Hamburg fahren — Lade-Stopps unterwegs?" | Route + EV-Stations → optimierte Antwort |
+| "Was muss ich nächste Woche entsorgen?" | Abfall-Daten + Wetter → "Am Mittwoch ist Restmüll, aber es regnet — stell die Tonne unter." |
+
+**Backend-Änderungen:**
+- `POST /api/ai/chat` erweitert um optionales `services: {weather, waste, ...}`-Objekt
+- Backend injectiert Service-Daten in System-Prompt (z.B. Wetterdaten + Abfalldaten)
+- Ollama kriegt einen reichen Kontext statt nur User-Prompt
+
+---
+
+### Phase AI-5: On-Device TFLite + Future AI (~5h)
+
+> **Ziel:** AI-Implementierungsplan Phase 1 (On-Device TFLite, Vosk, Coqui). Leichtgewichtig via TFLite Flutter-Package.
+
+| Schritt | Beschreibung | Tool | Timer |
+|---------|-------------|------|-------|
+| 5.1 | Stimmungsklassifikation on-device | TFLite `llama3.1:8b` quantisiert (Q4) | ~2h |
+| 5.2 | Vosk Speech-to-Text (deutsch) | Vosk Modell `vosk-model-small-de-0.15` | ~1h |
+| 5.3 | Coqui TTS (Vorlesen) | Coqui TTS `tts_models/de/thorsten/tacotron2-DDC` | ~1h |
+| 5.4 | LightGBM für Verspätungs-/Budget-Vorhersage | LightGBM on-device via TFLite | ~1h |
+
+**Hinweis:** Ollama ersetzt die meisten Phase-1-Features. TFLite ist nur nötig für:
+- **Offline-Betrieb** (kein Backend erreichbar)
+- **Low-Latency** (<100ms für Klassifikation)
+- **Sensitive Daten** (nie das Gerät verlassen)
+
+---
+
+### Abhängigkeitsgraph
+
+```
+Phase AI-1 (Ollama Backend)
+    │
+    ├──→ Phase AI-2 (Flutter Chat UI)
+    │         │
+    │         └──→ Phase AI-4 (Cross-Service Queries)
+    │
+    └──→ Phase AI-3 (Service Prompts)
+              │
+              └──→ Phase AI-4 (Cross-Service)
+    
+Phase AI-5 (TFLite) — parallel zu AI-1..AI-4
+```
+
+### Timer-Gesamt
+
+| Phase | Timer | Abhängig von |
+|-------|-------|-------------|
+| AI-1 | ~2h | Keine |
+| AI-2 | ~3h | AI-1 |
+| AI-3 | ~2h | AI-1 |
+| AI-4 | ~3h | AI-1 + AI-2 + AI-3 |
+| AI-5 | ~5h | Keine (parallel) |
+| **Gesamt** | **~15h** | |
+
+### Prinzipien
+
+1. **Keine Cloud-AI**, kein OpenAI, keine externen APIs — nur lokales Ollama
+2. **Privacy-by-Design** — Ollama läuft auf dem HEIMAT-Backend-Server, keine Daten an Dritte
+3. **Keine Mocks/Simulationen** — Wenn Ollama offline ist, liefert der Service einen ehrlichen "nicht verfügbar"-Text
+4. **Inkrementell** — Jede Phase ist einzeln deploybar und testbar
+5. **Kein Mockito** — Tests nutzen echte HTTP-Errors oder Constructor-DI für Error-Pfade
+6. **`qwen2.5-coder:7b` als Default** — Schneller, tools-fähig, 7.6B Parameter
+
+---
