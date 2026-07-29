@@ -1,11 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { getDashboardContext, getPersonalizedContext } from '../services/aiHomeService';
 import { ollamaService } from '../services/ollamaService';
+import { promptService, type ServiceName } from '../services/promptService';
 
 export const aiRouter = Router();
 
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) =>
   (req: Request, res: Response, next: NextFunction) => { Promise.resolve(fn(req, res, next)).catch(next); };
+
+const VALID_SERVICES = new Set<string>(['weather', 'air', 'waste']);
 
 // ---------------------------------------------------------------------------
 // AI Home Dashboard — kontextualisierte Daten für die Startseite
@@ -95,4 +98,63 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
 aiRouter.get('/status', asyncHandler(async (req: Request, res: Response) => {
   const status = await ollamaService.status();
   res.json(status);
+}));
+
+// ---------------------------------------------------------------------------
+// AI Service Prompt — GET /api/ai/service-prompt?service=weather&lat=&lng=
+//
+// Generiert natürliche deutsche Erklärungen für HEIMAT-Services:
+//   /api/ai/service-prompt?service=weather&lat=52.52&lng=13.41
+//   /api/ai/service-prompt?service=air&lat=52.52&lng=13.41
+//   /api/ai/service-prompt?service=waste&lat=52.52&lng=13.41&street=&houseNr=
+//
+// Response: { service, text, data?, fetchedAt }
+// Fallback: Bei Service-Fehler wird null geliefert + error-Text.
+// KEIN Ollama-Call — Template-basierte Generierung (<50ms).
+// ---------------------------------------------------------------------------
+
+aiRouter.get('/service-prompt', asyncHandler(async (req: Request, res: Response) => {
+  const service = req.query.service as string;
+  const latStr = req.query.lat as string;
+  const lngStr = req.query.lng as string;
+  const street = req.query.street as string | undefined;
+  const houseNr = req.query.houseNr as string | undefined;
+
+  if (!service || !VALID_SERVICES.has(service)) {
+    res.status(400).json({
+      status: 'error',
+      error: `Ungültiger Service. Erlaubt: ${Array.from(VALID_SERVICES).join(', ')}`,
+    });
+    return;
+  }
+
+  const lat = parseFloat(latStr);
+  const lng = parseFloat(lngStr);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    res.status(400).json({
+      status: 'error',
+      error: 'lat und lng sind erforderlich und müssen Zahlen sein',
+    });
+    return;
+  }
+
+  try {
+    const result = await promptService.getPrompt(
+      service as ServiceName,
+      lat,
+      lng,
+      { street, houseNr },
+    );
+    res.json({
+      status: 'ok',
+      ...result,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(502).json({
+      status: 'error',
+      error: `Prompt für ${service} fehlgeschlagen: ${msg}`,
+    });
+  }
 }));

@@ -1,0 +1,269 @@
+// ---------------------------------------------------------------------------
+// promptService.ts — Phase AI-3 Service-Prompts
+//
+// Liefert natürliche, deutsche Erklärungen für alle HEIMAT-Services:
+//   - Wetter:   "In Berlin sind es aktuell 22°C und teilweise bewölkt..."
+//   - Luft:     "Der AQI ist 15 (Sehr gut). PM2.5=7.8, PM10=11.3..."
+//   - Abfall:   "Nächste Abfuhr: Restmüll am 15.08.2026..."
+//
+// KEIN Ollama-Call — alle Texte werden aus Templates generiert.
+// Das hält die Latenz bei <50ms (vs 1-5s bei Ollama) und funktioniert
+// auch wenn Ollama offline ist.
+//
+// Architektur-Mirror zu weatherService.ts / airQualityService.ts:
+// - Ruft die Service-Singletons direkt auf (kein axios-Doppel)
+// - Einfache {placeholder}-Template-Engine (kein npm-dep)
+// - Jeder Service hat genau ein Template + fill()-Funktion
+// ---------------------------------------------------------------------------
+
+import { weatherService, type WeatherData } from './weatherService';
+import { airQualityService, type AirQualityData } from './airQualityService';
+import { WasteService } from './wasteService';
+import axios from 'axios';
+
+// WasteService hat keinen Module-Level-Singleton (benötigt axios im Constructor).
+// Erzeuge einen für promptService (analog zu weatherService + airQualityService).
+const wasteService = new WasteService(axios);
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type ServiceName = 'weather' | 'air' | 'waste';
+
+export interface ServicePromptResult {
+  service: ServiceName;
+  text: string;
+  data?: Record<string, unknown>;
+  fetchedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Template-Engine: simple {placeholder} replacement
+// ---------------------------------------------------------------------------
+
+function fillTemplate(template: string, values: Record<string, string | number | null | undefined>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(values)) {
+    const strValue = value?.toString() ?? '';
+    result = result.replaceAll(`{${key}}`, strValue);
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Weather-Tipp-Generator (Regeln ohne Ollama)
+// ---------------------------------------------------------------------------
+
+function weatherTip(temp: number, weatherCode: number, windSpeed: number, precipitation: number): string {
+  const tips: string[] = [];
+
+  if (precipitation > 5) tips.push('Nimm einen Regenschirm mit');
+  else if (precipitation > 1) tips.push('Ein Regenschirm könnte nicht schaden');
+
+  if (temp < 5) tips.push('Zieh dich warm an — es ist eisig kalt');
+  else if (temp < 12) tips.push('Eine Jacke ist heute empfehlenswert');
+  else if (temp > 30) tips.push('Trink genug Wasser und such Schatten');
+
+  if (windSpeed > 50) tips.push('Stürmisch! Achte auf herabfallende Äste');
+  else if (windSpeed > 30) tips.push('Es ist windig — halt deine Mütze fest');
+
+  if (weatherCode >= 95) tips.push('Gewittergefahr! Bleib wenn möglich drinnen');
+
+  if (tips.length === 0) {
+    if (temp > 20 && weatherCode <= 2) tips.push('Perfektes Wetter für einen Spaziergang');
+    else tips.push('Angenehmes Wetter heute');
+  }
+
+  // Nur den relevantesten Tipp zurückgeben
+  return tips[0] ?? '';
+}
+
+// ---------------------------------------------------------------------------
+// Weather-Prompt
+// ---------------------------------------------------------------------------
+
+const WEATHER_TEMPLATE =
+  'In {location} sind es aktuell {temp}°C und {condition}. ' +
+  'Die Höchsttemperatur liegt bei {temp_max}°C, die Tiefsttemperatur bei {temp_min}°C. ' +
+  'Der Wind weht mit {wind} km/h. ' +
+  'Tipp: {tip}';
+
+function buildWeatherPrompt(data: WeatherData): string {
+  const c = data.current;
+  const today = data.daily?.[0];
+  return fillTemplate(WEATHER_TEMPLATE, {
+    location: data.location.name,
+    temp: Math.round(c.temperature),
+    condition: c.weatherText.toLowerCase(),
+    temp_max: today ? Math.round(today.temperatureMax) : Math.round(c.temperature),
+    temp_min: today ? Math.round(today.temperatureMin) : Math.round(c.temperature),
+    wind: Math.round(c.windSpeed),
+    tip: weatherTip(c.temperature, c.weatherCode, c.windSpeed, c.precipitation),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Air Quality-Prompt
+// ---------------------------------------------------------------------------
+
+const AIR_TEMPLATE =
+  'Der Europäische Luftqualitätsindex (EAQI) liegt bei {aqi} ({level}). ' +
+  'Feinstaub (PM2.5): {pm25} µg/m³, Feinstaub (PM10): {pm10} µg/m³, ' +
+  'Stickstoffdioxid: {no2} µg/m³, Ozon: {o3} µg/m³. ' +
+  'Sport-Tipp: {sport_tipp}';
+
+function sportTip(aqi: number | null): string {
+  if (aqi === null || aqi === undefined) return 'Daten nicht verfügbar.';
+  if (aqi < 20) return 'Heute ist ideales Wetter für Sport an der frischen Luft!';
+  if (aqi < 40) return 'Gute Bedingungen für Sport, aber nicht übertreiben.';
+  if (aqi < 60) return 'Vorsicht bei anstrengendem Sport — die Luftbelastung ist mäßig.';
+  if (aqi < 80) return 'Lieber auf intensiven Ausdauersport verzichten. Ein Spaziergang ist okay.';
+  return 'Bei dieser Luftqualität besser drinnen trainieren.';
+}
+
+function buildAirQualityPrompt(data: AirQualityData): string {
+  const c = data.current;
+  return fillTemplate(AIR_TEMPLATE, {
+    aqi: c.europeanAqi?.toFixed(0) ?? '—',
+    level: c.aqiLevel,
+    pm25: c.pm25?.toFixed(1) ?? '—',
+    pm10: c.pm10?.toFixed(1) ?? '—',
+    no2: c.nitrogenDioxide?.toFixed(1) ?? '—',
+    o3: c.ozone?.toFixed(0) ?? '—',
+    sport_tipp: sportTip(c.europeanAqi),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Waste-Prompt
+// ---------------------------------------------------------------------------
+
+const WASTE_TEMPLATE =
+  '{waste_text}';
+
+// Monatsnamen deutsch
+const MONTH_NAMES = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+];
+
+function formatDate(isoString: string): string {
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+  return `${d.getDate()}. ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function wasteCategoryTip(category: string | undefined): string {
+  const map: Record<string, string> = {
+    restmüll: 'Restmüll wird verbrannt — gehört in die graue/schwarze Tonne',
+    restmuell: 'Restmüll wird verbrannt — gehört in die graue/schwarze Tonne',
+    bio: 'Biomüll wird kompostiert — gehört in die braune Tonne',
+    biotonne: 'Biomüll wird kompostiert — gehört in die braune Tonne',
+    papier: 'Altpapier wird recycelt — gehört in die blaue Tonne',
+    papiertonne: 'Altpapier wird recycelt — gehört in die blaue Tonne',
+    'gelbe tonne': 'Verpackungen werden sortiert und recycelt — gehört in die gelbe Tonne',
+    gelber_sack: 'Verpackungen werden sortiert und recycelt — gehört in den gelben Sack',
+    gelbe_tonne: 'Verpackungen werden sortiert und recycelt — gehört in die gelbe Tonne',
+    sperrmüll: 'Sperrmüll wird separat abgeholt — muss angemeldet werden',
+    sperrmuell: 'Sperrmüll wird separat abgeholt — muss angemeldet werden',
+    schadstoff: 'Schadstoffe gehören zum Wertstoffhof — nicht in den Hausmüll',
+    weihnachtsbaum: 'Weihnachtsbäume werden eingesammelt und gehäckselt',
+    elektronik: 'Elektroschrott gehört zum Wertstoffhof oder Recyclinghof',
+  };
+  return map[category?.toLowerCase().trim() ?? ''] ?? 'Trenne Müll nach den lokalen Vorschriften';
+}
+
+async function buildWastePrompt(lat: number, lng: number, street?: string, houseNr?: string): Promise<string> {
+  try {
+    const data = await wasteService.getWasteCalendar(lat, lng, 4, street, houseNr);
+
+    if (data.events.length === 0) {
+      return `In ${data.displayName} sind in den nächsten 4 Wochen keine Abfuhrtermine bekannt.`;
+    }
+
+    const nextEvent = data.events[0];
+    const categoryLabel = nextEvent.category ?? 'Unbekannt';
+    const tip = wasteCategoryTip(nextEvent.category);
+    const dateFormatted = formatDate(nextEvent.start);
+
+    return fillTemplate(WASTE_TEMPLATE, {
+      waste_text:
+        `Nächste Abfuhr in ${data.displayName}: **${nextEvent.summary}** ` +
+        `am ${dateFormatted}. ` +
+        `Kategorie: ${categoryLabel}. ${tip}. ` +
+        `Es folgen ${data.events.length - 1} weitere Termine in den nächsten 4 Wochen.`,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return `Abfallkalender konnte nicht abgerufen werden: ${msg}`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export const promptService = {
+  /**
+   * Generiert einen natürlichen deutschen Erklärungstext für den angegebenen
+   * Service.
+   *
+   * @param service  Name des Services ('weather', 'air', 'waste')
+   * @param lat      Breitengrad (für Wetter + Luft + Abfall)
+   * @param lng      Längengrad (für Wetter + Luft + Abfall)
+   * @param options  Optional: street + houseNr (nur für waste), Ollama-Optimierung
+   */
+  async getPrompt(
+    service: ServiceName,
+    lat: number,
+    lng: number,
+    options?: { street?: string; houseNr?: string },
+  ): Promise<ServicePromptResult> {
+    const fetchedAt = new Date().toISOString();
+
+    switch (service) {
+      case 'weather': {
+        const data = await weatherService.getWeather(lat, lng);
+        return {
+          service,
+          text: buildWeatherPrompt(data),
+          data: {
+            location: data.location.name,
+            temperature: data.current.temperature,
+            condition: data.current.weatherText,
+            windSpeed: data.current.windSpeed,
+          },
+          fetchedAt,
+        };
+      }
+
+      case 'air': {
+        const data = await airQualityService.getAirQuality(lat, lng);
+        return {
+          service,
+          text: buildAirQualityPrompt(data),
+          data: {
+            location: data.location.name,
+            aqi: data.current.europeanAqi,
+            level: data.current.aqiLevel,
+          },
+          fetchedAt,
+        };
+      }
+
+      case 'waste': {
+        const text = await buildWastePrompt(lat, lng, options?.street, options?.houseNr);
+        return {
+          service,
+          text,
+          data: { lat, lng },
+          fetchedAt,
+        };
+      }
+
+      default:
+        throw new Error(`Unbekannter Service: ${String(service)}`);
+    }
+  },
+};
