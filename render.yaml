@@ -35,6 +35,12 @@ services:
         value: "true"
       - key: ENABLE_RAPTOR
         sync: false
+      # OLLAMA_BASE_URL — Verbindung zum Ollama-Server auf diesem Hetzner-VPS.
+      # Render Frankfurt Outbound IPs (74.220.51.0/24 + 74.220.59.0/24) sind per
+      # firewalld auf diesem Server freigeschaltet. Nur Render kann den Port 11434
+      # erreichen (siehe server-firewall-config).
+      - key: OLLAMA_BASE_URL
+        value: "http://158.180.18.110:11434"
       # AUTO_MIGRATE entfaellt: Default ist jetzt "on" (Check in index.ts: !== 'false').
       # Lokales Dev: AUTO_MIGRATE=false um Migration zu ueberspringen.
       - key: REDIS_URL
