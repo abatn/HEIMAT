@@ -202,6 +202,17 @@ class MiniProgramProvider extends ChangeNotifier {
     // url-Feld bleibt für Backwards-Compat, wird aber NICHT mehr fuer
     // IFrame-Loading verwendet. ServiceRegistry routet zu nativeBuilder.
     const MiniProgram(
+      id: 'ev_charging',
+      name: 'E-Ladestationen',
+      url: 'native://registry/ev_charging',
+      iconPath: 'ev',
+      description: 'E-Ladestationen in deiner Nähe — OpenStreetMap Overpass.',
+      category: 'Mobilität',
+      searchTags: ['ladestation', 'laden', 'ev', 'elektro', 'strom'],
+      supportsLiveStatus: true,
+      useNative: true, // Phase B-4: E-Ladestationen native (2026-07-28)
+    ),
+    const MiniProgram(
       id: 'weather',
       name: 'Wetter',
       url: 'native://registry/weather',

@@ -1,6 +1,7 @@
 import '../../weather/weather_screen.dart';
 import '../../air_quality/air_quality_screen.dart';
 import '../../waste/waste_screen.dart';
+import '../../ev_charging/presentation/ev_charging_screen.dart';
 import '../presentation/coming_soon_screen.dart';
 import 'service_definition.dart';
 
@@ -79,6 +80,14 @@ class ServiceRegistry {
           'gelber sack'
         ],
         nativeBuilder: (_) => const WasteScreen(),
+      ),
+      'ev_charging': ServiceDefinition(
+        id: 'ev_charging',
+        name: 'E-Ladestationen',
+        category: 'Mobilität',
+        description: 'E-Ladestationen in deiner Nähe — OpenStreetMap Overpass.',
+        searchTags: const ['ladestation', 'laden', 'ev', 'elektro', 'strom'],
+        nativeBuilder: (_) => const EvChargingScreen(),
       ),
 
       // ===== Coming Soon Placeholder (Phase D/E Migration pending) =====
