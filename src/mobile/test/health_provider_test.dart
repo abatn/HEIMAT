@@ -218,11 +218,9 @@ void main() {
       );
 
       expect(result, isA<bool>(),
-          reason:
-              'registerDoctor() returned bool (true=Erfolg, false=Fehler)');
+          reason: 'registerDoctor() returned bool (true=Erfolg, false=Fehler)');
       expect(provider.isLoading, isFalse,
-          reason:
-              'isLoading wird im finally-Block resettet (beide Pfade)');
+          reason: 'isLoading wird im finally-Block resettet (beide Pfade)');
     });
 
     test('registerDoctor() mit optionalen Feldern bleibt stabil', () async {
@@ -237,8 +235,7 @@ void main() {
       );
 
       expect(result, isA<bool>(),
-          reason:
-              'registerDoctor() returned bool (true=Erfolg, false=Fehler)');
+          reason: 'registerDoctor() returned bool (true=Erfolg, false=Fehler)');
       expect(provider.isLoading, isFalse);
     });
   });
