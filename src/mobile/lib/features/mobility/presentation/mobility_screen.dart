@@ -917,7 +917,7 @@ class _ZoomButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           onTap: onPressed,
           child: Center(
-            child: Icon(widget.icon, color: AppColors.primary, size: 24),
+            child: Icon(icon, color: AppColors.primary, size: 24),
           ),
         ),
       ),
