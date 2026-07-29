@@ -23,6 +23,7 @@ import 'features/weather/weather_provider.dart';
 import 'features/air_quality/air_quality_provider.dart';
 import 'features/waste/presentation/waste_provider.dart';
 import 'features/ev_charging/presentation/ev_charging_provider.dart';
+import 'features/ai_chat/presentation/ai_chat_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +71,10 @@ class HeimatApp extends StatelessWidget {
               // Phase B-4: E-Ladestationen als 4. nativer Flutter-Service.
               ChangeNotifierProvider(
                 create: (_) => EvChargingProvider()..init(),
+              ),
+              // Phase AI-2: AI Chat als 5. nativer Flutter-Service.
+              ChangeNotifierProvider(
+                create: (_) => AiChatProvider(),
               ),
             ],
             child: MaterialApp(

@@ -2,6 +2,7 @@ import '../../weather/weather_screen.dart';
 import '../../air_quality/air_quality_screen.dart';
 import '../../waste/waste_screen.dart';
 import '../../ev_charging/presentation/ev_charging_screen.dart';
+import '../../ai_chat/presentation/ai_chat_screen.dart';
 import '../presentation/coming_soon_screen.dart';
 import 'service_definition.dart';
 
@@ -36,6 +37,22 @@ class ServiceRegistry {
   void initialize() {
     _definitions.addAll({
       // ===== Echte native Services =====
+      'ai_chat': ServiceDefinition(
+        id: 'ai_chat',
+        name: 'HEIMAT AI',
+        category: 'Alltag',
+        description:
+            'KI-Assistent für Wetter, Luftqualität, Abfallkalender & mehr — lokal via Ollama.',
+        searchTags: const [
+          'ki',
+          'chat',
+          'assistent',
+          'ollama',
+          'hilfe',
+          'frage'
+        ],
+        nativeBuilder: (_) => const AiChatScreen(),
+      ),
       'weather': ServiceDefinition(
         id: 'weather',
         name: 'Wetter',

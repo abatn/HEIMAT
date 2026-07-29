@@ -201,6 +201,19 @@ class MiniProgramProvider extends ChangeNotifier {
     // Phase X.1 (2026-07-28, Eliminierung IFrame-Einbettung):
     // url-Feld bleibt für Backwards-Compat, wird aber NICHT mehr fuer
     // IFrame-Loading verwendet. ServiceRegistry routet zu nativeBuilder.
+    // Phase AI-2: AI Chat als erster Eintrag (höchste Sichtbarkeit).
+    const MiniProgram(
+      id: 'ai_chat',
+      name: 'HEIMAT AI',
+      url: 'native://registry/ai_chat',
+      iconPath: 'auto_awesome',
+      description:
+          'KI-Assistent für Wetter, Luftqualität, Abfallkalender & mehr.',
+      category: 'Alltag',
+      searchTags: ['ki', 'chat', 'assistent', 'ollama', 'hilfe', 'frage'],
+      supportsLiveStatus: false,
+      useNative: true, // Phase AI-2: AI Chat native (2026-07-28)
+    ),
     const MiniProgram(
       id: 'ev_charging',
       name: 'E-Ladestationen',
