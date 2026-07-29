@@ -1448,13 +1448,13 @@ POST /api/ai/chat
 
 | Schritt | Datei | Beschreibung |
 |---------|-------|-------------|
-| 2.1 | `lib/features/ai_chat/ai_chat_dto.dart` (NEU) | ChatMessage (role, content, timestamp), ChatResponse (response, model, tokens) |
-| 2.2 | `lib/features/ai_chat/presentation/ai_chat_provider.dart` (NEU) | sendMessage(), loading-state, message-history, clear(), available-models |
-| 2.3 | `lib/features/ai_chat/presentation/ai_chat_screen.dart` (NEU) | Chat-Bubble-UI (wie WhatsApp), Input-Feld, Model-Switcher, Clear-Button |
-| 2.4 | `lib/features/miniprogram/domain/service_registry.dart` (MOD) | `ai_chat` Eintrag mit `nativeBuilder: (_) => const AiChatScreen()` |
-| 2.5 | `lib/features/miniprogram/presentation/miniprogram_provider.dart` (MOD) | `ai_chat` MiniProgram (useNative: true, icon: chat, category: Alltag) |
-| 2.6 | `lib/main.dart` (MOD) | `AiChatProvider` registrieren |
-| 2.7 | `test/ai_chat_dto_test.dart` (NEU) | 8 Tests: ChatMessage.fromJson, missing fields, null safety |
+| 2.1 | `ai_chat_dto.dart` (NEU) | **✅ DONE** — ChatMessage (role, content, timestamp), ChatResponse (status, response, model). isFallback/isError/isOk getter. Factory-Konstruktoren `ChatMessage.user()`, `ChatMessage.assistant()`. |
+| 2.2 | `ai_chat_provider.dart` (NEU) | **✅ DONE** — `sendMessage()` → POST `/api/ai/chat`. maxMessages=50 Begrenzung. `clear()` löscht Verlauf. Network-Fehler → Fallback-Nachricht. |
+| 2.3 | `ai_chat_screen.dart` (NEU) | **✅ DONE** — Chat-Bubble-UI (Signal-Stil: User rechts primary, AI links card). Typing-Indikator. Auto-Scroll nur bei neuen Nachrichten (`_lastMessageCount`-Listener). Kein auto-Hallo mehr (statische Empty-State-Ansicht). Clear-Button in AppBar. |
+| 2.4 | `service_registry.dart` (MOD) | **✅ DONE** — `ai_chat` Eintrag mit `nativeBuilder: (_) => const AiChatScreen()`. |
+| 2.5 | `miniprogram_provider.dart` (MOD) | **✅ DONE** — `ai_chat` als ERSTER Eintrag in DefaultPrograms (höchste Sichtbarkeit). useNative: true. |
+| 2.6 | `main.dart` (MOD) | **✅ DONE** — `AiChatProvider` registriert (ohne `..init()` — kein Network-Call beim Start). |
+| 2.7 | `test/ai_chat_dto_test.dart` (NEU) | **✅ DONE** — 8 Tests: ChatMessage (4: user, assistant, fehlende Felder, null-Werte) + ChatResponse (4: ok, fallback, error, fehlende Felder).
 
 **System-Prompt (zentral):**
 ```
