@@ -1,11 +1,25 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../ai_chat/presentation/ai_chat_provider.dart';
+import '../../checkin/presentation/checkin_provider.dart';
 import 'health_provider.dart';
 
+/// HealthScreen — Integrierter Health AI Agent (Phase X.9, 2026-07-29).
+///
+/// **Plan-getreu:** Ein Screen mit:
+/// 1. AI Health Chat (Symptom-Assessment + Triage via Ollama)
+/// 2. Ärztesuche (Filter + Liste + Buchung)
+/// 3. Lebenszeichen (Check-in Status + Quick Ping)
+///
+/// **Nutzung existierender Provider (KEINE Erfindung):**
+/// - AiChatProvider → Symptom-Chat
+/// - HealthProvider → Ärztesuche
+/// - CheckinProvider → Lebenszeichen
 class HealthScreen extends StatefulWidget {
   const HealthScreen({super.key});
 
@@ -15,6 +29,9 @@ class HealthScreen extends StatefulWidget {
 
 class _HealthScreenState extends State<HealthScreen> {
   String _selectedSpecialty = '';
+  bool _showAiChat = false;
+  final TextEditingController _aiChatController = TextEditingController();
+  final FocusNode _aiChatFocus = FocusNode();
 
   static const _specialties = [
     ('', 'Alle', Icons.local_hospital),
@@ -38,9 +55,16 @@ class _HealthScreenState extends State<HealthScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Sofort DB-Ärzte laden (schnell, kein Warten auf Standort)
       context.read<HealthProvider>().searchDoctors();
-      // Parallel Standort holen — bei Erfolg bessere Ergebnisse via Overpass
+      // Parallel Standort holen — bei Erfolg bessere Ergebnisse via Overpass + AI
       _loadLocationAndRefresh();
     });
+  }
+
+  @override
+  void dispose() {
+    _aiChatController.dispose();
+    _aiChatFocus.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLocationAndRefresh() async {
@@ -49,6 +73,11 @@ class _HealthScreenState extends State<HealthScreen> {
       context.read<HealthProvider>().searchDoctors(
             lat: location.latitude,
             lng: location.longitude,
+          );
+      // Standort auch an AI Chat übergeben (für Service-Context)
+      context.read<AiChatProvider>().setLocation(
+            location.latitude,
+            location.longitude,
           );
     }
   }
@@ -383,6 +412,13 @@ class _HealthScreenState extends State<HealthScreen> {
     );
   }
 
+  /// Health AI Chat senden (über AiChatProvider)
+  void _sendAiChatMessage(String text) {
+    if (text.trim().isEmpty) return;
+    _aiChatController.clear();
+    context.read<AiChatProvider>().sendMessage(text);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -412,7 +448,13 @@ class _HealthScreenState extends State<HealthScreen> {
       ),
       body: Column(
         children: [
-          // Filter chips row
+          // 1. AI Health Chat Header (collapsible)
+          _buildAiHealthHeader(),
+
+          // 2. Lebenszeichen Status (immer sichtbar, unabhängig von Ärzteliste)
+          _buildLebenszeichenStatus(),
+
+          // 3. Filter chips row
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: SizedBox(
@@ -469,7 +511,8 @@ class _HealthScreenState extends State<HealthScreen> {
             ),
           ),
           const Divider(height: 1, color: AppColors.border),
-          // Doctor list
+
+          // 4. Doctor list
           Expanded(
             child: Consumer<HealthProvider>(
               builder: (context, provider, child) {
@@ -529,10 +572,446 @@ class _HealthScreenState extends State<HealthScreen> {
       ),
     );
   }
+
+  // ====================================================================
+  // AI Health Chat Header
+  // ====================================================================
+  Widget _buildAiHealthHeader() {
+    return Consumer<AiChatProvider>(
+      builder: (context, ai, _) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary.withOpacity(0.06),
+                AppColors.primaryLight.withOpacity(0.03),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primary.withOpacity(0.12)),
+          ),
+          child: Column(
+            children: [
+              // Header Row
+              InkWell(
+                onTap: () => setState(() => _showAiChat = !_showAiChat),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Health AI Assistent',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              'Symptome erfragen · Triage · Arzt-Empfehlung',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Disclaimer-Icon
+                      Tooltip(
+                        message:
+                            'Keine medizinische Diagnose. Bei akuten Notfällen 112 wählen.',
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: AppColors.warning.withOpacity(0.6),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      AnimatedRotation(
+                        turns: _showAiChat ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: const Icon(
+                          Icons.expand_more,
+                          color: AppColors.textSecondary,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Expanded Chat Area
+              if (_showAiChat) ...[
+                const Divider(height: 1, color: AppColors.border),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Gesundheits-Disclaimer
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.info_outline,
+                                size: 13, color: AppColors.info),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Keine medizinische Diagnose. Bei Notfällen 112 wählen.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Quick Suggestions (nur wenn keine Nachrichten)
+                      if (ai.messages.isEmpty && !ai.isLoading)
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _healthSuggestionChip(
+                              Icons.healing_outlined,
+                              'Rückenschmerzen',
+                              'Ich habe Rückenschmerzen',
+                              ai,
+                            ),
+                            _healthSuggestionChip(
+                              Icons.headache_outlined,
+                              'Kopfschmerzen',
+                              'Ich habe starke Kopfschmerzen',
+                              ai,
+                            ),
+                            _healthSuggestionChip(
+                              Icons.thermostat_outlined,
+                              'Fieber',
+                              'Ich habe Fieber und fühle mich schwach',
+                              ai,
+                            ),
+                            _healthSuggestionChip(
+                              Icons.air_outlined,
+                              'Husten',
+                              'Ich habe Husten und Atemnot',
+                              ai,
+                            ),
+                          ],
+                        ),
+
+                      // Letzte AI-Antwort anzeigen (max 2 Nachrichten)
+                      if (ai.messages.isNotEmpty) ...[
+                        SizedBox(
+                          maxHeight: 120,
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: ai.messages
+                                .where((m) => m.role.name != 'system')
+                                .toList()
+                                .reversed
+                                .take(2)
+                                .toList()
+                                .reversed
+                                .map((msg) => Container(
+                                      margin: const EdgeInsets.only(bottom: 6),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: msg.role.name == 'user'
+                                            ? AppColors.primary
+                                                .withOpacity(0.08)
+                                            : AppColors.card,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: msg.role.name != 'user'
+                                            ? Border.all(
+                                                color: AppColors.border)
+                                            : null,
+                                      ),
+                                      child: Text(
+                                        msg.content,
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: msg.role.name == 'user'
+                                              ? AppColors.textPrimary
+                                              : AppColors.textPrimary,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+
+                      // Mini Chat Input
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _aiChatController,
+                              enabled: !ai.isLoading,
+                              focusNode: _aiChatFocus,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: ai.isLoading
+                                  ? null
+                                  : (v) => _sendAiChatMessage(v),
+                              decoration: InputDecoration(
+                                hintText: ai.isLoading
+                                    ? 'Denkt nach...'
+                                    : 'Frag nach Symptomen...',
+                                hintStyle: TextStyle(
+                                  fontSize: 13,
+                                  color:
+                                      AppColors.textSecondary.withOpacity(0.6),
+                                ),
+                                filled: true,
+                                fillColor: AppColors.surface,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  borderSide: BorderSide.none,
+                                ),
+                                isDense: true,
+                              ),
+                              maxLines: 2,
+                              minLines: 1,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: ai.isLoading
+                                  ? AppColors.textSecondary.withOpacity(0.3)
+                                  : AppColors.primary,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: IconButton(
+                              icon: ai.isLoading
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.send_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                              onPressed: ai.isLoading
+                                  ? null
+                                  : () => _sendAiChatMessage(
+                                      _aiChatController.text),
+                              padding: const EdgeInsets.all(8),
+                              constraints: const BoxConstraints(
+                                minWidth: 34,
+                                minHeight: 34,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _healthSuggestionChip(
+    IconData icon,
+    String label,
+    String question,
+    AiChatProvider ai,
+  ) {
+    return ActionChip(
+      avatar: Icon(icon, size: 14, color: AppColors.primary),
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+      ),
+      onPressed: ai.isLoading ? null : () => _sendAiChatMessage(question),
+      backgroundColor: AppColors.primary.withOpacity(0.06),
+      side: BorderSide(color: AppColors.primary.withOpacity(0.15)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+
+  // ====================================================================
+  // Lebenszeichen Status — mini Card
+  // ====================================================================
+  Widget _buildLebenszeichenStatus() {
+    return Consumer<CheckinProvider>(
+      builder: (context, checkin, _) {
+        final isActive = checkin.isActive;
+        final stage = checkin.status?.escalationStage ?? 0;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isActive
+                  ? AppColors.success.withOpacity(0.3)
+                  : AppColors.border,
+            ),
+          ),
+          child: Row(
+            children: [
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? AppColors.success.withOpacity(0.1)
+                      : AppColors.textSecondary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.verified_user_outlined,
+                  size: 18,
+                  color: isActive ? AppColors.success : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Text
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Lebenszeichen',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isActive
+                            ? AppColors.success
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      isActive
+                          ? 'Aktiv · Stufe $stage · Alle ${checkin.status?.currentIntervalHours ?? 24}h'
+                          : 'Nicht aktiv — Jetzt aktivieren für täglichen Check-in',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isActive
+                            ? AppColors.textSecondary
+                            : AppColors.textSecondary.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Quick Ping Button (nur wenn aktiv)
+              if (isActive)
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: checkin.isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.success,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.favorite,
+                            color: AppColors.success,
+                            size: 18,
+                          ),
+                    onPressed: checkin.isLoading ? null : () => checkin.ping(),
+                    tooltip: "Mir geht's gut!",
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
+                  ),
+                ),
+              // Aktivieren/Deaktivieren Toggle
+              Switch(
+                value: isActive,
+                onChanged: checkin.isLoading
+                    ? null
+                    : (val) async {
+                        if (val) {
+                          await checkin.activate();
+                        } else {
+                          await checkin.deactivate();
+                        }
+                      },
+                activeColor: AppColors.primary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 // ============================================================================
-// Doctor Card — animiert, mit Gradient & Presseffekt
+// Doctor Card — animiert, mit Gradient & Presseffekt (UNVERÄNDERT)
 // ============================================================================
 
 class _DoctorCard extends StatefulWidget {
@@ -716,7 +1195,7 @@ class _DoctorCardState extends State<_DoctorCard> {
 }
 
 // ============================================================================
-// Skeleton Loading — Shimmer für HealthScreen
+// Skeleton Loading — Shimmer für HealthScreen (UNVERÄNDERT)
 // ============================================================================
 
 class _HealthSkeleton extends StatefulWidget {
