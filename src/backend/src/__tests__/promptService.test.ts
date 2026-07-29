@@ -11,8 +11,9 @@
 // - Dieser Test validiert den promptService.DISPATCH (dass er die
 //   richtigen Services aufruft) — und das kann nur via Integration
 //
-// 10 Tests: Service-Validation (3), Weather-Prompt (3), Air-Prompt (2),
-// Waste-Prompt (2).
+// 18 Tests: Service-Validation (7), Weather-Prompt (3), Air-Prompt (2),
+// Waste-Prompt (2), Job-Prompt (2), Events-Prompt (2), Hotels-Prompt (2),
+// Buergeramt-Prompt (2).
 // ---------------------------------------------------------------------------
 
 import { promptService } from '../services/promptService';
@@ -22,18 +23,38 @@ describe('PromptService — Service-Validierung', () => {
     // Der Service-Dispatch sollte keine Exception werfen (Template-Füllung
     // funktioniert, auch wenn der externe API-Call fehlschlägt — was im CI
     // ohne Netzwerk der Fall sein kann).
-    const validServices = ['weather', 'air', 'waste'];
+    const validServices = ['weather', 'air', 'waste', 'job', 'events', 'hotels', 'buergeramt'];
     expect(validServices).toContain('weather');
   });
 
   it('air ist ein gültiger Service', () => {
-    const validServices = ['weather', 'air', 'waste'];
+    const validServices = ['weather', 'air', 'waste', 'job', 'events', 'hotels', 'buergeramt'];
     expect(validServices).toContain('air');
   });
 
   it('waste ist ein gültiger Service', () => {
-    const validServices = ['weather', 'air', 'waste'];
+    const validServices = ['weather', 'air', 'waste', 'job', 'events', 'hotels', 'buergeramt'];
     expect(validServices).toContain('waste');
+  });
+
+  it('job ist ein gültiger Service', () => {
+    const validServices = ['weather', 'air', 'waste', 'job', 'events', 'hotels', 'buergeramt'];
+    expect(validServices).toContain('job');
+  });
+
+  it('events ist ein gültiger Service', () => {
+    const validServices = ['weather', 'air', 'waste', 'job', 'events', 'hotels', 'buergeramt'];
+    expect(validServices).toContain('events');
+  });
+
+  it('hotels ist ein gültiger Service', () => {
+    const validServices = ['weather', 'air', 'waste', 'job', 'events', 'hotels', 'buergeramt'];
+    expect(validServices).toContain('hotels');
+  });
+
+  it('buergeramt ist ein gültiger Service', () => {
+    const validServices = ['weather', 'air', 'waste', 'job', 'events', 'hotels', 'buergeramt'];
+    expect(validServices).toContain('buergeramt');
   });
 });
 
@@ -112,5 +133,78 @@ describe('PromptService — Waste-Prompt', () => {
     } catch {
       // CI ohne Netzwerk
     }
+  });
+});
+
+describe('PromptService — Job-Prompt', () => {
+  it('job prompt gibt Result mit service=job und Text zurück', async () => {
+    const result = await promptService.getPrompt('job', 0, 0, {
+      jobQuery: 'Softwareentwickler',
+      jobLocation: 'Berlin',
+    });
+    expect(result.service).toBe('job');
+    expect(result.text).toContain('Softwareentwickler');
+    expect(result.text).toContain('Berlin');
+    expect(result.fetchedAt).toBeTruthy();
+  });
+
+  it('job prompt mit Defaults funktioniert', async () => {
+    const result = await promptService.getPrompt('job', 0, 0);
+    expect(result.service).toBe('job');
+    expect(result.text).toContain('Deutschland');
+  });
+});
+
+describe('PromptService — Events-Prompt', () => {
+  it('events prompt gibt Result mit service=events und Datum zurück', async () => {
+    const result = await promptService.getPrompt('events', 0, 0, {
+      eventsLocation: 'München',
+      eventsDate: '15.08.2026',
+    });
+    expect(result.service).toBe('events');
+    expect(result.text).toContain('München');
+    expect(result.text).toContain('15.08.2026');
+  });
+
+  it('events prompt mit Defaults funktioniert', async () => {
+    const result = await promptService.getPrompt('events', 0, 0);
+    expect(result.service).toBe('events');
+    expect(result.text).toContain('interessante Veranstaltungen');
+  });
+});
+
+describe('PromptService — Hotels-Prompt', () => {
+  it('hotels prompt gibt Result mit service=hotels und Budget zurück', async () => {
+    const result = await promptService.getPrompt('hotels', 0, 0, {
+      hotelsCity: 'Hamburg',
+      hotelsBudget: 200,
+    });
+    expect(result.service).toBe('hotels');
+    expect(result.text).toContain('Hamburg');
+    expect(result.text).toContain('200€');
+  });
+
+  it('hotels prompt mit Defaults funktioniert', async () => {
+    const result = await promptService.getPrompt('hotels', 0, 0);
+    expect(result.service).toBe('hotels');
+    expect(result.text).toContain('Wunschstadt');
+  });
+});
+
+describe('PromptService — Bürgeramt-Prompt', () => {
+  it('buergeramt prompt gibt Result mit service=buergeramt und Service-Name zurück', async () => {
+    const result = await promptService.getPrompt('buergeramt', 0, 0, {
+      buergeramtLocation: 'Köln',
+      buergeramtService: 'Personalausweis beantragen',
+    });
+    expect(result.service).toBe('buergeramt');
+    expect(result.text).toContain('Köln');
+    expect(result.text).toContain('Personalausweis beantragen');
+  });
+
+  it('buergeramt prompt mit Defaults funktioniert', async () => {
+    const result = await promptService.getPrompt('buergeramt', 0, 0);
+    expect(result.service).toBe('buergeramt');
+    expect(result.text).toContain('Bürgeramt');
   });
 });

@@ -29,7 +29,7 @@ const wasteService = new WasteService(axios);
 // Types
 // ---------------------------------------------------------------------------
 
-export type ServiceName = 'weather' | 'air' | 'waste';
+export type ServiceName = 'weather' | 'air' | 'waste' | 'job' | 'events' | 'hotels' | 'buergeramt';
 
 export interface ServicePromptResult {
   service: ServiceName;
@@ -46,6 +46,10 @@ export interface ServiceContext {
   weather?: { lat: number; lng: number };
   air?: { lat: number; lng: number };
   waste?: { lat: number; lng: number; street?: string; houseNr?: string };
+  job?: { query?: string; location?: string };
+  events?: { location?: string; date?: string };
+  hotels?: { city?: string; budget?: number; checkin?: string; checkout?: string };
+  buergeramt?: { location?: string; service?: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -211,6 +215,103 @@ async function buildWastePrompt(lat: number, lng: number, street?: string, house
 }
 
 // ---------------------------------------------------------------------------
+// Job-Matching Prompt (Template-based, kein Service-Call)
+// ---------------------------------------------------------------------------
+
+const JOB_TEMPLATE =
+  'Du suchst nach {query} in {location}. ' +
+  'Hier sind passende Job-Matches basierend auf deinen Angaben. ' +
+  'Ein erfolgreicher Bewerbungsprozess beginnt mit einem guten ' +
+  'Anschreiben und einem aktuellen Lebenslauf.';
+
+interface JobPromptOptions {
+  query?: string;
+  location?: string;
+}
+
+function buildJobPrompt(options: JobPromptOptions): string {
+  return fillTemplate(JOB_TEMPLATE, {
+    query: options.query ?? 'einem Job',
+    location: options.location ?? 'Deutschland',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Events Prompt (Template-based, kein Service-Call)
+// ---------------------------------------------------------------------------
+
+const EVENTS_TEMPLATE =
+  'Veranstaltungen in {location}: {events_text}. ' +
+  'Nutze die Veranstaltungssuche, um aktuelle Events, Konzerte, ' +
+  'Ausstellungen und kulturelle Highlights in deiner Nähe zu entdecken.';
+
+interface EventsPromptOptions {
+  location?: string;
+  date?: string;
+}
+
+function buildEventsPrompt(options: EventsPromptOptions): string {
+  const eventsText = options.date
+    ? `Am ${options.date} finden verschiedene Veranstaltungen statt`
+    : 'Es gibt verschiedene interessante Veranstaltungen in deiner Nähe';
+  return fillTemplate(EVENTS_TEMPLATE, {
+    location: options.location ?? 'deiner Nähe',
+    events_text: eventsText,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Hotels Prompt (Template-based, kein Service-Call)
+// ---------------------------------------------------------------------------
+
+const HOTELS_TEMPLATE =
+  'Reise nach {city} vom {checkin} bis {checkout}. ' +
+  'Budget: {budget}€. {hotels_text}';
+
+interface HotelsPromptOptions {
+  city?: string;
+  budget?: number;
+  checkin?: string;
+  checkout?: string;
+}
+
+function buildHotelsPrompt(options: HotelsPromptOptions): string {
+  const hotelsText = options.budget
+    ? `Mit einem Budget von ${options.budget}€ findest du passende Unterkünfte in ${options.city ?? 'deiner Wunschstadt'}`
+    : `Es gibt verschiedene Unterkunftsmöglichkeiten in ${options.city ?? 'deiner Wunschstadt'}`;
+  return fillTemplate(HOTELS_TEMPLATE, {
+    city: options.city ?? 'deiner Wunschstadt',
+    checkin: options.checkin ?? '—',
+    checkout: options.checkout ?? '—',
+    budget: options.budget?.toString() ?? '—',
+    hotels_text: hotelsText,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Bürgeramt Prompt (Template-based, kein Service-Call)
+// ---------------------------------------------------------------------------
+
+const BUERGERAMT_TEMPLATE =
+  'Bürgeramt {location}: {buergeramt_text} ' +
+  'Für eine Terminbuchung nutze bitte die Bürgeramt-Suche.';
+
+interface BuergeramtPromptOptions {
+  location?: string;
+  service?: string;
+}
+
+function buildBuergeramtPrompt(options: BuergeramtPromptOptions): string {
+  const text = options.service
+    ? `Informationen zum Service "${options.service}" im Bürgeramt`
+    : 'Informationen zu Dienstleistungen und Öffnungszeiten des Bürgeramts';
+  return fillTemplate(BUERGERAMT_TEMPLATE, {
+    location: options.location ?? 'deiner Stadt',
+    buergeramt_text: text,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -228,7 +329,18 @@ export const promptService = {
     service: ServiceName,
     lat: number,
     lng: number,
-    options?: { street?: string; houseNr?: string },
+    options?: {
+      street?: string;
+      houseNr?: string;
+      jobQuery?: string;
+      jobLocation?: string;
+      eventsLocation?: string;
+      eventsDate?: string;
+      hotelsCity?: string;
+      hotelsBudget?: number;
+      buergeramtLocation?: string;
+      buergeramtService?: string;
+    },
   ): Promise<ServicePromptResult> {
     const fetchedAt = new Date().toISOString();
 
@@ -268,6 +380,46 @@ export const promptService = {
           service,
           text,
           data: { lat, lng },
+          fetchedAt,
+        };
+      }
+
+      case 'job': {
+        const text = buildJobPrompt({ query: options?.jobQuery, location: options?.jobLocation });
+        return {
+          service,
+          text,
+          data: { query: options?.jobQuery, location: options?.jobLocation },
+          fetchedAt,
+        };
+      }
+
+      case 'events': {
+        const text = buildEventsPrompt({ location: options?.eventsLocation, date: options?.eventsDate });
+        return {
+          service,
+          text,
+          data: { location: options?.eventsLocation, date: options?.eventsDate },
+          fetchedAt,
+        };
+      }
+
+      case 'hotels': {
+        const text = buildHotelsPrompt({ city: options?.hotelsCity, budget: options?.hotelsBudget });
+        return {
+          service,
+          text,
+          data: { city: options?.hotelsCity, budget: options?.hotelsBudget },
+          fetchedAt,
+        };
+      }
+
+      case 'buergeramt': {
+        const text = buildBuergeramtPrompt({ location: options?.buergeramtLocation, service: options?.buergeramtService });
+        return {
+          service,
+          text,
+          data: { location: options?.buergeramtLocation, service: options?.buergeramtService },
           fetchedAt,
         };
       }
@@ -319,6 +471,50 @@ export const promptService = {
         this.getPrompt('waste', context.waste.lat, context.waste.lng, {
           street: context.waste.street,
           houseNr: context.waste.houseNr,
+        })
+          .then(r => ({ service: r.service as ServiceName, text: r.text }))
+          .catch(() => null),
+      );
+    }
+
+    if (context.job) {
+      requests.push(
+        this.getPrompt('job', 0, 0, {
+          jobQuery: context.job.query,
+          jobLocation: context.job.location,
+        })
+          .then(r => ({ service: r.service as ServiceName, text: r.text }))
+          .catch(() => null),
+      );
+    }
+
+    if (context.events) {
+      requests.push(
+        this.getPrompt('events', 0, 0, {
+          eventsLocation: context.events.location,
+          eventsDate: context.events.date,
+        })
+          .then(r => ({ service: r.service as ServiceName, text: r.text }))
+          .catch(() => null),
+      );
+    }
+
+    if (context.hotels) {
+      requests.push(
+        this.getPrompt('hotels', 0, 0, {
+          hotelsCity: context.hotels.city,
+          hotelsBudget: context.hotels.budget,
+        })
+          .then(r => ({ service: r.service as ServiceName, text: r.text }))
+          .catch(() => null),
+      );
+    }
+
+    if (context.buergeramt) {
+      requests.push(
+        this.getPrompt('buergeramt', 0, 0, {
+          buergeramtLocation: context.buergeramt.location,
+          buergeramtService: context.buergeramt.service,
         })
           .then(r => ({ service: r.service as ServiceName, text: r.text }))
           .catch(() => null),

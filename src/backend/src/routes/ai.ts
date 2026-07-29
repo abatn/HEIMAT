@@ -8,7 +8,7 @@ export const aiRouter = Router();
 const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) =>
   (req: Request, res: Response, next: NextFunction) => { Promise.resolve(fn(req, res, next)).catch(next); };
 
-const VALID_SERVICES = new Set<string>(['weather', 'air', 'waste']);
+const VALID_SERVICES = new Set<string>(['weather', 'air', 'waste', 'job', 'events', 'hotels', 'buergeramt']);
 
 // ---------------------------------------------------------------------------
 // AI Home Dashboard — kontextualisierte Daten für die Startseite
