@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/widgets/empty_state.dart';
 import 'checkin_provider.dart';
-import '../checkin_dto.dart';
 
 /// CheckinScreen — "Lebenszeichen" Check-in UI (Phase AI-Health-3, 2026-07-29).
 ///
@@ -817,7 +815,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$intervalHours h',
+                    '$_intervalHours h',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
