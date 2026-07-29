@@ -24,6 +24,7 @@ import 'features/air_quality/air_quality_provider.dart';
 import 'features/waste/presentation/waste_provider.dart';
 import 'features/ev_charging/presentation/ev_charging_provider.dart';
 import 'features/ai_chat/presentation/ai_chat_provider.dart';
+import 'features/checkin/presentation/checkin_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +76,11 @@ class HeimatApp extends StatelessWidget {
               // Phase AI-2: AI Chat als 5. nativer Flutter-Service.
               ChangeNotifierProvider(
                 create: (_) => AiChatProvider(),
+              ),
+              // Phase AI-Health-3: Lebenszeichen Check-in (2026-07-29).
+              ChangeNotifierProvider(
+                create: (_) => CheckinProvider(auth.authService)
+                  ..refreshStatus(),
               ),
             ],
             child: MaterialApp(

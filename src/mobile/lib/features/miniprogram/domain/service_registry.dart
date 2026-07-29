@@ -6,6 +6,7 @@ import '../../ai_chat/presentation/ai_chat_screen.dart';
 import '../../mobility/presentation/mobility_screen.dart';
 import '../../finance/presentation/finance_screen.dart';
 import '../../health/presentation/health_screen.dart';
+import '../../checkin/presentation/checkin_screen.dart';
 import '../presentation/coming_soon_screen.dart';
 import 'service_definition.dart';
 
@@ -137,6 +138,22 @@ class ServiceRegistry {
         description: 'Ärzte-Suche & Online-Terminbuchung.',
         searchTags: const ['arzt', 'praxis', 'termin', 'medizin', 'doc'],
         nativeBuilder: (_) => const HealthScreen(),
+      ),
+
+      'checkin': ServiceDefinition(
+        id: 'checkin',
+        name: 'Lebenszeichen',
+        category: 'Gesundheit',
+        description:
+            'Täglicher Check-in für deine Sicherheit — Timer-basiert, kein Sensor-Tracking.',
+        searchTags: const [
+          'checkin',
+          'lebenszeichen',
+          'sicherheit',
+          'notfall',
+          'schutzengel'
+        ],
+        nativeBuilder: (_) => const CheckinScreen(),
       ),
 
       // ===== Coming Soon Placeholder (Phase D/E Migration pending) =====
