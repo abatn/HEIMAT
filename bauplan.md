@@ -1390,16 +1390,22 @@ Polished Open Items (deferred to Phase X.4):
 
 ### Übersicht: AI-Strategie pro Service
 
-| Service | AI-Feature | Modell | Typ | Timer |
-|---------|-----------|--------|-----|-------|
-| **Alle** | **Universal AI Chat Assistant** | `qwen2.5-coder:7b` oder `llama3.1:8b` | Backend Ollama-Proxy | ~5h |
-| **Wetter** | Natürlichsprachliche Wetteransage | `llama3.1:8b` | Prompt-Template | ~1h |
-| **Luftqualität** | Persönliche Gesundheitsempfehlung | `llama3.1:8b` | Prompt-Template | ~1h |
-| **Abfallkalender** | Sortier-Tipps & Erinnerungen | `llama3.1:8b` | Prompt-Template | ~1h |
-| **E-Ladestationen** | Routenvorschlag mit Ladestopps | `qwen2.5-coder:7b` | Backend Routing + Prompt | ~2h |
-| **Dashboard** | Persönliche Tageszeit-Assistent | `llama3.1:8b` | Prompt-Template | ~1h |
-| **Gesundheit** | Termin-Empfehlungen (Recommender) | LightGBM/Surprise (lokal) | TFLite-Modell | ~3h |
-| **Finanzen** | Ausgabenkategorisierung (spaCy) | TFLite on-device | TFLite-Modell | ~3h |
+| Service | AI-Feature | Modell | Typ | Timer | Strategie-Quelle |
+|---------|-----------|--------|-----|-------|-----------------|
+| **Alle** | **Universal AI Chat Assistant** | `qwen2.5-coder:7b` oder `llama3.1:8b` | Backend Ollama-Proxy | ~5h | AI-Architektur.md |
+| **Wetter** | Natürlichsprachliche Wetteransage | `llama3.1:8b` | Prompt-Template | ~1h | AI-Strategy.md |
+| **Luftqualität** | Persönliche Gesundheitsempfehlung | `llama3.1:8b` | Prompt-Template | ~1h | AI-Strategy.md |
+| **Abfallkalender** | Sortier-Tipps & Erinnerungen | `llama3.1:8b` | Prompt-Template | ~1h | AI-Strategy.md |
+| **E-Ladestationen** | Routenvorschlag mit Ladestopps | `qwen2.5-coder:7b` | Backend Routing + Prompt | ~2h | heimat-plan.md |
+| **Dashboard** | Persönliche Tageszeit-Assistent | `llama3.1:8b` | Prompt-Template | ~1h | AI-Architektur.md |
+| **Gesundheit** | Termin-Empfehlungen (Recommender) | LightGBM/Surprise (lokal) | TFLite-Modell | ~3h | heimat-plan.md |
+| **Finanzen** | Ausgabenkategorisierung (spaCy) | TFLite on-device | TFLite-Modell | ~3h | heimat-plan.md |
+| **💼 Job-Suche** | **Job-Matching + Skill-Gap-Analyse** | `llama3.1:8b` + Embeddings | Prompt-Template + Vektor-Suche | ~3h | heimat-plan.md §25-26 |
+| **📰 Veranstaltungen** | **Personalisierte Event-Empfehlung** | `qwen2.5-coder:7b` + Collaborative Filtering | Backend + Ollama-Prompt | ~3h | heimat-plan.md §25-26 |
+| **🏨 Hotels** | **Budget-Reiseplanung** | `llama3.1:8b` | Prompt-Template mit Budget-Constraints | ~2h | heimat-plan.md §25-26 |
+| **🅿️ Parken** | — (kein AI-Feature definiert) | — | Nur OSM-Daten-Anzeige | — | heimat-plan.md §25-26 |
+| **🏛️ Bürgeramt** | **AI-Terminfindung** | `qwen2.5-coder:7b` | Prompt-Template + Kalender-Logik | ~2h | heimat-plan.md §25-26 |
+| **💬 Futai Chat** | **Ollama-KI-Twin + Emotionen + Gedächtnis** | `llama3.1:8b` (lokal) | React-Native Mini-Program | ~5h (separat) | heimat-plan.md §Futai-Integration |
 
 ---
 
@@ -1473,12 +1479,27 @@ sage ehrlich "Das kann ich leider nicht beantworten".
 
 > **Ziel:** Jeder Service bekommt einen spezifischen Prompt, der seine Daten natürlichsprachlich erklärt.
 
-| Service | Prompt-Template | UX |
-|---------|----------------|-----|
-| **Wetter** | "Erkläre das Wetter in {location}: {temp}°C, {condition}. Max {temp_max}°C, Wind {wind} km/h. Gib einen kurzen Tipp (Jacke/Regenschirm/etc)." | 1-Zeilen-Wetteransage unter CurrentWeatherHero |
-| **Luftqualität** | "Der AQI ist {value} ({level}). PM2.5={pm25}, PM10={pm10}. Sollte ich heute Sport machen? Ja/Nein + Begründung." | Health-Badge unter AQI-Ring |
-| **Abfallkalender** | "Nächste Abfuhr: {event.summary} am {event.date}. Sortier-Tipp: {category}-Tonne → {tip}" | Tooltip bei Event-Tap |
-| **Dashboard** | "Es ist {timeOfDay}, {weekend?}. Empfehlung: Schau auf {service} — {reason}" | Personalisierte AI-Karte im Dashboard |
+| Service | Prompt-Template | UX | Strategie-Quelle |
+|---------|----------------|-----|-----------------|
+| **Wetter** | "Erkläre das Wetter in {location}: {temp}°C, {condition}. Max {temp_max}°C, Wind {wind} km/h. Gib einen kurzen Tipp (Jacke/Regenschirm/etc)." | 1-Zeilen-Wetteransage unter CurrentWeatherHero | AI-Strategy.md |
+| **Luftqualität** | "Der AQI ist {value} ({level}). PM2.5={pm25}, PM10={pm10}. Sollte ich heute Sport machen? Ja/Nein + Begründung." | Health-Badge unter AQI-Ring | AI-Strategy.md |
+| **Abfallkalender** | "Nächste Abfuhr: {event.summary} am {event.date}. Sortier-Tipp: {category}-Tonne → {tip}" | Tooltip bei Event-Tap | AI-Strategy.md |
+| **Dashboard** | "Es ist {timeOfDay}, {weekend?}. Empfehlung: Schau auf {service} — {reason}" | Personalisierte AI-Karte im Dashboard | AI-Architektur.md |
+| **💼 Job-Suche** | "Du suchst {jobTitle} in {location}. Skill-Gap: {missingSkills}. Diese 3 Jobs passen zu dir..." | AI-Karte im Job-Tab + Skill-Gap-Visualisierung | heimat-plan.md §25-26 |
+| **📰 Veranstaltungen** | "In {location} gibt es am {date}: {event}. Wetter: {temp}°C — {weatherTip}" | Personalisierte Event-Karte im Dashboard | heimat-plan.md §25-26 |
+| **🏨 Hotels** | "Reise nach {city} vom {checkin} bis {checkout}. Budget: {budget}€. Empfehlung: {hotelName} ab {price}€/Nacht" | Budget-Karte im Reiseplaner | heimat-plan.md §25-26 |
+| **🏛️ Bürgeramt** | "Nächster freier Termin im Bürgeramt {location}: {date} um {time}. Benötigte Unterlagen: {documents}" | Termin-Vorschlags-Karte | heimat-plan.md §25-26 |
+
+**Erweiterung AI-3a — Service-Prompts für neue Services (aus heimat-plan.md):**
+
+| Service | AI-Feature | Technologie | Timer |
+|---------|-----------|-------------|-------|
+| **💼 Job-Suche** | Job-Matching + Skill-Gap-Analyse | `llama3.1:8b` keyword-extraktion + Embedding-Vergleich (User-Profil ↔ Job-Beschreibung) | ~3h |
+| **📰 Veranstaltungen** | Personalisierte Event-Empfehlung | `qwen2.5-coder:7b` kategorisiert Events + Collaborative Filtering über User-Interessen | ~3h |
+| **🏨 Hotels** | Budget-Reiseplanung | `llama3.1:8b` analysiert OSM-Hotel-Daten + Budget-Constraint → optimierte Route mit Übernachtung | ~2h |
+| **🏛️ Bürgeramt** | AI-Terminfindung | `qwen2.5-coder:7b` parst kommunale Öffnungszeiten + Termin-Slots → natürlicher Terminvorschlag | ~2h |
+| **🅿️ Parken** | Kein AI-Feature (reine OSM-Daten-Anzeige: Standort, Typ, Kapazität, Öffnungszeiten) | — | — |
+| **💬 Futai Chat** | KI-Twin + Emotionen + Gedächtnis | Ollama `llama3.1:8b` über separaten Futai-Backend-Proxy | ~5h (separates Repo) |
 
 **Implementierung:**
 - `src/backend/src/services/promptService.ts` (NEU) — Template-Engine mit `{placeholder}` → Service-Daten
@@ -1541,14 +1562,17 @@ Phase AI-5 (TFLite) — parallel zu AI-1..AI-4
 
 ### Timer-Gesamt
 
-| Phase | Timer | Abhängig von |
-|-------|-------|-------------|
-| AI-1 | ~2h | Keine |
-| AI-2 | ~3h | AI-1 |
-| AI-3 | ~2h | AI-1 |
-| AI-4 | ~3h | AI-1 + AI-2 + AI-3 |
-| AI-5 | ~5h | Keine (parallel) |
-| **Gesamt** | **~15h** | |
+| Phase | Timer | Abhängig von | Enthaltene Services |
+|-------|-------|-------------|-------------------|
+| AI-1 | ~2h | Keine | Ollama Backend + Chat-Endpoint |
+| AI-2 | ~3h | AI-1 | Flutter Chat UI |
+| AI-3 | ~2h | AI-1 | **Bestehend:** Wetter, Luft, Abfall, Dashboard |
+| AI-3a | ~3h | AI-1 | **NEU aus heimat-plan.md:** Job-Matching, Event-Empfehlung, Hotel-Budget, Bürgeramt-Termine |
+| AI-4 | ~3h | AI-1 + AI-2 + AI-3 | Cross-Service AI Assistant |
+| AI-5 | ~5h | Keine (parallel) | TFLite / Vosk / Coqui on-device |
+| **Gesamt** | **~18h** | | (+3h für AI-3a neue Services) |
+
+**Anmerkung:** 💬 Futai Chat (KI-Twin + Emotionen + Gedächtnis) ist ein separates Projekt (github.com/abatn/futai) und in diesen Timern nicht enthalten. Die Integration als Mini-Program in HEIMAT ist separat in Phase D geplant (~5h).
 
 ### Prinzipien
 
