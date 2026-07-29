@@ -112,11 +112,22 @@ void main() {
     await tester.tap(find.text('Health AI Assistent'));
     await tester.pump(const Duration(milliseconds: 200));
 
-    // Overflow drainen: EmptyState passt nicht in 800x600 wenn AI Chat expandiert
-    // Das ist ein Rendering-Problem, kein Test-Fehler.
-    tester.binding.takeException();
-
-    // Prüfe: Chat-Input existiert jetzt (expandiert)
+    // Prüfe: Quick Suggestions sind jetzt sichtbar (kein Overflow mehr)
+    expect(
+      find.text('Rückenschmerzen'),
+      findsOneWidget,
+      reason: 'Nach Expand sollten Quick Suggestions sichtbar sein',
+    );
+    expect(
+      find.text('Kopfschmerzen'),
+      findsOneWidget,
+      reason: 'Nach Expand sollten Quick Suggestions sichtbar sein',
+    );
+    expect(
+      find.text('Fieber'),
+      findsOneWidget,
+      reason: 'Nach Expand sollten Quick Suggestions sichtbar sein',
+    );
     expect(
       find.byType(TextField),
       findsOneWidget,

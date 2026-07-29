@@ -520,28 +520,32 @@ class _HealthScreenState extends State<HealthScreen> {
                   return _HealthSkeleton();
                 }
                 if (provider.error != null && provider.doctors.isEmpty) {
-                  return Center(
-                    child: EmptyState(
-                      icon: Icons.error_outline,
-                      title: 'Fehler',
-                      description: provider.error!,
-                      action: ElevatedButton(
-                        onPressed: () =>
-                            context.read<HealthProvider>().searchDoctors(
-                                  specialty: _selectedSpecialty.isEmpty
-                                      ? null
-                                      : _selectedSpecialty,
-                                ),
-                        child: const Text('Erneut versuchen'),
+                  return SingleChildScrollView(
+                    child: Center(
+                      child: EmptyState(
+                        icon: Icons.error_outline,
+                        title: 'Fehler',
+                        description: provider.error!,
+                        action: ElevatedButton(
+                          onPressed: () =>
+                              context.read<HealthProvider>().searchDoctors(
+                                    specialty: _selectedSpecialty.isEmpty
+                                        ? null
+                                        : _selectedSpecialty,
+                                  ),
+                          child: const Text('Erneut versuchen'),
+                        ),
                       ),
                     ),
                   );
                 }
                 if (provider.doctors.isEmpty) {
-                  return const EmptyState(
-                    icon: Icons.person_search,
-                    title: 'Keine Ärzte gefunden',
-                    description: 'Versuche eine andere Fachrichtung.',
+                  return const SingleChildScrollView(
+                    child: EmptyState(
+                      icon: Icons.person_search,
+                      title: 'Keine Ärzte gefunden',
+                      description: 'Versuche eine andere Fachrichtung.',
+                    ),
                   );
                 }
                 return RefreshIndicator(
