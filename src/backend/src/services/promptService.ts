@@ -19,6 +19,7 @@
 import { weatherService, type WeatherData } from './weatherService';
 import { airQualityService, type AirQualityData } from './airQualityService';
 import { WasteService } from './wasteService';
+import { healthService } from './healthService';
 import axios from 'axios';
 
 // WasteService hat keinen Module-Level-Singleton (benötigt axios im Constructor).
@@ -29,7 +30,7 @@ const wasteService = new WasteService(axios);
 // Types
 // ---------------------------------------------------------------------------
 
-export type ServiceName = 'weather' | 'air' | 'waste' | 'job' | 'events' | 'hotels' | 'buergeramt';
+export type ServiceName = 'weather' | 'air' | 'waste' | 'health' | 'job' | 'events' | 'hotels' | 'buergeramt';
 
 export interface ServicePromptResult {
   service: ServiceName;
@@ -46,6 +47,7 @@ export interface ServiceContext {
   weather?: { lat: number; lng: number };
   air?: { lat: number; lng: number };
   waste?: { lat: number; lng: number; street?: string; houseNr?: string };
+  health?: { lat: number; lng: number; radius?: number; specialty?: string };
   job?: { query?: string; location?: string };
   events?: { location?: string; date?: string };
   hotels?: { city?: string; budget?: number; checkin?: string; checkout?: string };
@@ -211,6 +213,54 @@ async function buildWastePrompt(lat: number, lng: number, street?: string, house
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return `Abfallkalender konnte nicht abgerufen werden: ${msg}`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Health-Prompt (Live-Daten via healthService.getNearbyDoctors)
+// ---------------------------------------------------------------------------
+
+const HEALTH_TEMPLATE =
+  'In {location} sind {count} Ärzte verfügbar. {doctors_list}. {empty_hint}';
+
+async function buildHealthPrompt(lat: number, lng: number, radius?: number, specialty?: string): Promise<string> {
+  try {
+    const doctors = await healthService.getNearbyDoctors(lat, lng, radius ?? 5000, specialty);
+
+    if (doctors.length === 0) {
+      if (specialty) {
+        return `In der Umgebung wurden leider keine ${specialty}-Ärzte gefunden. Versuche es mit einem größeren Suchradius oder einer anderen Fachrichtung.`;
+      }
+      return 'In der Umgebung wurden leider keine Ärzte gefunden. Versuche es mit einem größeren Suchradius oder einer anderen Adresse.';
+    }
+
+    const locationName = doctors[0].address.split(',').pop()?.trim() ?? 'der Umgebung';
+    const specialtyCounts: Record<string, number> = {};
+    for (const doc of doctors) {
+      specialtyCounts[doc.specialty] = (specialtyCounts[doc.specialty] || 0) + 1;
+    }
+    const specialtySummary = Object.entries(specialtyCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([spec, count]) => `${count}x ${spec}`)
+      .join(', ');
+
+    const topDoctors = doctors.slice(0, 5).map(d =>
+      `- **${d.name}** (${d.specialty}) — ${d.address}${d.phone ? `, Tel: ${d.phone}` : ''}`
+    ).join('\n');
+
+    const moreHint = doctors.length > 5
+      ? ` Es folgen ${doctors.length - 5} weitere Ärzte.`
+      : '';
+
+    return fillTemplate(HEALTH_TEMPLATE, {
+      location: locationName,
+      count: doctors.length,
+      doctors_list: `\n${topDoctors}${moreHint}`,
+      empty_hint: `\n\nFachrichtungen: ${specialtySummary}.`,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return `Ärztesuche konnte nicht abgerufen werden: ${msg}`;
   }
 }
 
@@ -414,6 +464,20 @@ export const promptService = {
         };
       }
 
+      case 'health': {
+        const text = await buildHealthPrompt(
+          lat, lng,
+          undefined, // Standard-Radius 5000m
+          options?.buergeramtService, // reuse für specialty
+        );
+        return {
+          service,
+          text,
+          data: { lat, lng, specialty: options?.buergeramtService },
+          fetchedAt,
+        };
+      }
+
       case 'buergeramt': {
         const text = buildBuergeramtPrompt({ location: options?.buergeramtLocation, service: options?.buergeramtService });
         return {
@@ -504,6 +568,16 @@ export const promptService = {
         this.getPrompt('hotels', 0, 0, {
           hotelsCity: context.hotels.city,
           hotelsBudget: context.hotels.budget,
+        })
+          .then(r => ({ service: r.service as ServiceName, text: r.text }))
+          .catch(() => null),
+      );
+    }
+
+    if (context.health) {
+      requests.push(
+        this.getPrompt('health', context.health.lat, context.health.lng, {
+          buergeramtService: context.health.specialty,
         })
           .then(r => ({ service: r.service as ServiceName, text: r.text }))
           .catch(() => null),
