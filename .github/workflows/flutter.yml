@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       - name: Run tests
-        run: flutter test --coverage
+        run: flutter test
 
   smoke:
     name: Smoke (UI Tabs)
