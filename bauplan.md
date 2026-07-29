@@ -1765,3 +1765,37 @@ Phase AI-5 (TFLite) — parallel zu AI-1..AI-4
 - `dart format lib/features/weather/weather_provider.dart` → exit 0
 - `dart analyze lib/features/weather/weather_provider.dart` → No issues found
 - Code-Reviewer: ✅ PASS — keine kritischen Issues
+
+
+---
+
+## Phase X.10 — Health AI Agent: AI Chat + Lebenszeichen im Gesundheit-Tab (2026-07-29, Commit 037dfd0)
+
+> **Ziel:** HealthScreen (Tab 4) vom reinen Ärztelisten-Screen zum integrierten Health AI Agent umbauen — wie in AI-Strategy.md + AI-Architektur.md gefordert. Nutzt EXISTIERENDE Provider (AiChatProvider, CheckinProvider, HealthProvider).
+
+### Status
+
+- ✅ **HealthScreen (MODIFIED):** 
+  - **AI Health Chat Header** (collapsible): Quick-Suggestions (Rückenschmerzen, Kopfschmerzen, Fieber, Husten), Mini-Chat-Input, Message-Preview
+  - **Lebenszeichen Status** (immer sichtbar): Aktiv/Inaktiv-Toggle, Quick-Ping-Button, Status-Text
+  - Alle existierenden Features erhalten: Filter-Chips, Doktor-Liste, Booking-Sheet, Register-Sheet
+- ✅ **test/health_screen_test.dart (NEU, 3 Tests):** Smoke-Test + AI-Chat-Expand + Lebenszeichen-Status
+
+### Layout
+
+Column( AI Header → Lebenszeichen Status → Filter Chips → Divider → Doctor List )
+
+### Nutzung existierender Provider (KEINE Erfindung)
+
+| Provider | Service | Genutzt für |
+|----------|---------|-------------|
+| AiChatProvider | ai_chat/ | Symptom-Fragen, Quick-Suggestions, Chat-Antworten |
+| CheckinProvider | checkin/ | Lebenszeichen-Status, Ping, Aktivierung |
+| HealthProvider | health/ | Ärztesuche, Filter, Buchung (unverändert) |
+
+### Validation
+
+- Code-Reviewer: ✅ PASS (Bugfix: Lebenszeichen aus ListView in Column verschoben)
+- dart format: ✅ 1 file formatted
+- Commit 037dfd0: ✅ erfolgreich gepusht
+- CI erwartet: flutter analyze + flutter test (3 neue Tests)
