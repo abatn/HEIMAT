@@ -12,6 +12,10 @@ on:
       - '.github/workflows/**'
       - 'src/mobile/**'
 
+concurrency:
+  group: flutter-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
