@@ -1568,12 +1568,12 @@ Phase AI-5 (TFLite) — parallel zu AI-1..AI-4
 | AI-1 | ~2h | Keine | Ollama Backend + Chat-Endpoint | ✅ LIVE |
 | AI-2 | ~3h | AI-1 | Flutter Chat UI | ✅ LIVE |
 | AI-3 | ~2h | AI-1 | **Bestehend:** Wetter, Luft, Abfall, Dashboard | ✅ LIVE |
-| AI-3a | ~3h | AI-1 | **NEU aus heimat-plan.md:** Job-Matching, Event-Empfehlung, Hotel-Budget, Bürgeramt-Termine | ⏳ Offen |
+| AI-3a | ~3h | AI-1 | **NEU aus heimat-plan.md:** Job-Matching, Event-Empfehlung, Hotel-Budget, Bürgeramt-Termine | ✅ LIVE |
 | AI-4 | ~3h | AI-1 + AI-2 + AI-3 | Cross-Service AI Assistant | ✅ LIVE |
 | AI-5 | ~5h | Keine (parallel) | TFLite / Vosk / Coqui on-device | ⏳ Offen |
-| **Gesamt** | **~18h** | | (+3h für AI-3a neue Services) | **4/6 ✅** |
+| **Gesamt** | **~18h** | | (+3h für AI-3a neue Services) | **5/6 ✅** |
 
-> **Stand 2026-07-28:** Phase AI-1 **✅** (`a7cdbf6`), AI-2 **✅** (`14672aa`), AI-3 **✅** (`bf9b8ca`), AI-4 **✅** (`fe2d570`) — **alle 4 Phasen LIVE auf main**. ollamaService.ts + AiChatScreen UI + promptService.ts (Wetter/Luft/Abfall) + chatWithContext() Cross-Service. 7+8+10+4=29 neue Tests. Nächste: AI-5 (On-Device TFLite) oder AI-3a (Job/Events/Hotels/Bürgeramt Prompts).
+> **Stand 2026-07-28:** Phase AI-1 **✅** (`a7cdbf6`), AI-2 **✅** (`14672aa`), AI-3 **✅** (`bf9b8ca`), AI-3a **✅** (`f54f2b7`), AI-4 **✅** (`fe2d570`) — **alle 5 Phasen LIVE auf main**. ollamaService.ts + AiChatScreen UI + promptService.ts (7 Services: Wetter/Luft/Abfall/Job/Events/Hotels/Bürgeramt) + chatWithContext() Cross-Service. 7+8+10+18+4=47 neue Tests. Nächste: AI-5 (On-Device TFLite).
 
 **Anmerkung:** 💬 Futai Chat (KI-Twin + Emotionen + Gedächtnis) ist ein separates Projekt (github.com/abatn/futai) und in diesen Timern nicht enthalten. Die Integration als Mini-Program in HEIMAT ist separat in Phase D geplant (~5h).
 
