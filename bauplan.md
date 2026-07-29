@@ -1385,26 +1385,26 @@ Polished Open Items (deferred to Phase X.4):
 ## Phase AI — AI-Integration: Ollama Backend + Natürlichsprachliche Services (2026-07-28)
 
 > **Basierend auf:** AI-Strategy.md, AI-Architektur.md, AI-Implementierungsplan.md, heimat-plan.md
-> **Lokale Ollama-Instanz:** `llama3.1:8b` (General) + `qwen2.5-coder:7b` (Code/Tools) auf `localhost:11434`
+> **Lokale Ollama-Instanz:** `llama3.1:8b` auf `localhost:11434`
 > **Ziel:** On-Device AI für alle HEIMAT-Services — keine Cloud-APIs, keine Kosten, keine Datenabflüsse.
 
 ### Übersicht: AI-Strategie pro Service
 
 | Service | AI-Feature | Modell | Typ | Timer | Strategie-Quelle |
 |---------|-----------|--------|-----|-------|-----------------|
-| **Alle** | **Universal AI Chat Assistant** | `qwen2.5-coder:7b` oder `llama3.1:8b` | Backend Ollama-Proxy | ~5h | AI-Architektur.md |
+| **Alle** | **Universal AI Chat Assistant** | `llama3.1:8b` | Backend Ollama-Proxy | ~5h | AI-Architektur.md |
 | **Wetter** | Natürlichsprachliche Wetteransage | `llama3.1:8b` | Prompt-Template | ~1h | AI-Strategy.md |
 | **Luftqualität** | Persönliche Gesundheitsempfehlung | `llama3.1:8b` | Prompt-Template | ~1h | AI-Strategy.md |
 | **Abfallkalender** | Sortier-Tipps & Erinnerungen | `llama3.1:8b` | Prompt-Template | ~1h | AI-Strategy.md |
-| **E-Ladestationen** | Routenvorschlag mit Ladestopps | `qwen2.5-coder:7b` | Backend Routing + Prompt | ~2h | heimat-plan.md |
+| **E-Ladestationen** | Routenvorschlag mit Ladestopps | `llama3.1:8b` | Backend Routing + Prompt | ~2h | heimat-plan.md |
 | **Dashboard** | Persönliche Tageszeit-Assistent | `llama3.1:8b` | Prompt-Template | ~1h | AI-Architektur.md |
 | **Gesundheit** | Termin-Empfehlungen (Recommender) | LightGBM/Surprise (lokal) | TFLite-Modell | ~3h | heimat-plan.md |
 | **Finanzen** | Ausgabenkategorisierung (spaCy) | TFLite on-device | TFLite-Modell | ~3h | heimat-plan.md |
 | **💼 Job-Suche** | **Job-Matching + Skill-Gap-Analyse** | `llama3.1:8b` + Embeddings | Prompt-Template + Vektor-Suche | ~3h | heimat-plan.md §25-26 |
-| **📰 Veranstaltungen** | **Personalisierte Event-Empfehlung** | `qwen2.5-coder:7b` + Collaborative Filtering | Backend + Ollama-Prompt | ~3h | heimat-plan.md §25-26 |
+| **📰 Veranstaltungen** | **Personalisierte Event-Empfehlung** | `llama3.1:8b` + Collaborative Filtering | Backend + Ollama-Prompt | ~3h | heimat-plan.md §25-26 |
 | **🏨 Hotels** | **Budget-Reiseplanung** | `llama3.1:8b` | Prompt-Template mit Budget-Constraints | ~2h | heimat-plan.md §25-26 |
 | **🅿️ Parken** | — (kein AI-Feature definiert) | — | Nur OSM-Daten-Anzeige | — | heimat-plan.md §25-26 |
-| **🏛️ Bürgeramt** | **AI-Terminfindung** | `qwen2.5-coder:7b` | Prompt-Template + Kalender-Logik | ~2h | heimat-plan.md §25-26 |
+| **🏛️ Bürgeramt** | **AI-Terminfindung** | `llama3.1:8b` | Prompt-Template + Kalender-Logik | ~2h | heimat-plan.md §25-26 |
 | **💬 Futai Chat** | **Ollama-KI-Twin + Emotionen + Gedächtnis** | `llama3.1:8b` (lokal) | React-Native Mini-Program | ~5h (separat) | heimat-plan.md §Futai-Integration |
 
 ---
@@ -1417,22 +1417,21 @@ Polished Open Items (deferred to Phase X.4):
 |---------|-------|-------------|
 | 1.1 | `src/backend/src/services/ollamaService.ts` (NEU) | Axios-Client gegen `http://localhost:11434/api/chat`. POST mit `{model, messages, stream}`, SSE-Support. Method `chat(model, systemPrompt, userMessages) : AsyncIterable<string>` |
 | 1.2 | `src/backend/src/routes/ai.ts` (MODIFIED) | `POST /api/ai/chat` → ollamaService.chat(). `GET /api/ai/status` → checkt ob Ollama läuft (HTTP 200/503). |
-| 1.3 | `src/backend/src/middleware/schemas.ts` (MODIFIED) | Zod-Schema: `{model: enum['qwen2.5-coder:7b','llama3.1:8b'], messages: array, systemPrompt?: string}` |
+| 1.3 | `src/backend/src/middleware/schemas.ts` (MODIFIED) | Zod-Schema: `{model: 'llama3.1:8b', messages: array, systemPrompt?: string}` |
 | 1.4 | `src/backend/src/__tests__/ollamaService.test.ts` (NEU) | 3 Tests: (1) Constructor ok, (2) `chat()` fallback-msg bei Connection-Refused, (3) URL-Config aus externalServices. **Kein Mockito** — echte HTTP-Errors reichen. |
 | 1.5 | `bauplan.md` | Phase AI-1 abgeschlossen markieren |
 
 **Abhängigkeiten:** Keine — eigenständiger Service.
 
-**Modell-Strategie:**
-- `qwen2.5-coder:7b` für schnelle, tool-basierte Antworten (Default)
-- `llama3.1:8b` für qualitativ hochwertige, längere Texte (optional)
+**Modell:**
+- `llama3.1:8b` — General Purpose, 131k Kontext, ideal für natürliche Sprache und alle HEIMAT-Services
 - Fallback: Eingebauter "Ollama nicht erreichbar"-Text (kein Mock, kein Cache)
 
 **API-Design:**
 ```
 POST /api/ai/chat
 {
-  "model": "qwen2.5-coder:7b",
+  "model": "llama3.1:8b",
   "systemPrompt": "Du bist ein deutscher Assistent...",
   "messages": [
     {"role": "user", "content": "Wie ist das Wetter in Berlin?"}
@@ -1495,9 +1494,9 @@ sage ehrlich "Das kann ich leider nicht beantworten".
 | Service | AI-Feature | Technologie | Timer |
 |---------|-----------|-------------|-------|
 | **💼 Job-Suche** | Job-Matching + Skill-Gap-Analyse | `llama3.1:8b` keyword-extraktion + Embedding-Vergleich (User-Profil ↔ Job-Beschreibung) | ~3h |
-| **📰 Veranstaltungen** | Personalisierte Event-Empfehlung | `qwen2.5-coder:7b` kategorisiert Events + Collaborative Filtering über User-Interessen | ~3h |
+| **📰 Veranstaltungen** | Personalisierte Event-Empfehlung | `llama3.1:8b` kategorisiert Events + Collaborative Filtering über User-Interessen | ~3h |
 | **🏨 Hotels** | Budget-Reiseplanung | `llama3.1:8b` analysiert OSM-Hotel-Daten + Budget-Constraint → optimierte Route mit Übernachtung | ~2h |
-| **🏛️ Bürgeramt** | AI-Terminfindung | `qwen2.5-coder:7b` parst kommunale Öffnungszeiten + Termin-Slots → natürlicher Terminvorschlag | ~2h |
+| **🏛️ Bürgeramt** | AI-Terminfindung | `llama3.1:8b` parst kommunale Öffnungszeiten + Termin-Slots → natürlicher Terminvorschlag | ~2h |
 | **🅿️ Parken** | Kein AI-Feature (reine OSM-Daten-Anzeige: Standort, Typ, Kapazität, Öffnungszeiten) | — | — |
 | **💬 Futai Chat** | KI-Twin + Emotionen + Gedächtnis | Ollama `llama3.1:8b` über separaten Futai-Backend-Proxy | ~5h (separates Repo) |
 
@@ -1505,7 +1504,7 @@ sage ehrlich "Das kann ich leider nicht beantworten".
 - `src/backend/src/services/promptService.ts` (NEU) — Template-Engine mit `{placeholder}` → Service-Daten
 - `GET /api/ai/service-prompt?service=weather&lat=52.52&lng=13.41` → gibt Prompt-Result zurück
 - Flutter ruft Prompt auf und zeigt Ergebnis als Tooltip/Badge/Annotation
-- **Kein Caching** (Prompts sind billig, <1s auf `qwen2.5-coder:7b`)
+- **Kein Caching** (Prompts sind billig, <1s auf `llama3.1:8b`)
 
 ---
 
@@ -1581,6 +1580,6 @@ Phase AI-5 (TFLite) — parallel zu AI-1..AI-4
 3. **Keine Mocks/Simulationen** — Wenn Ollama offline ist, liefert der Service einen ehrlichen "nicht verfügbar"-Text
 4. **Inkrementell** — Jede Phase ist einzeln deploybar und testbar
 5. **Kein Mockito** — Tests nutzen echte HTTP-Errors oder Constructor-DI für Error-Pfade
-6. **`qwen2.5-coder:7b` als Default** — Schneller, tools-fähig, 7.6B Parameter
+6. **Ein Modell für alles** — `llama3.1:8b` deckt Chat, Service-Prompts und Quervernetzung ab. Einheitliche Prompt-Engine, ein Fallback-Pfad, ein Optimierungsziel.
 
 ---
