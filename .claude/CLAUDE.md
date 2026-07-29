@@ -292,6 +292,40 @@ CI: Code gepuscht (78a371d), Flutter CI Pipeline (analyze + test + smoke) automa
 
 ### Phasen: A: Mini-Program (2-3d) → B: Wetter/Luft/Abfall (3-5d) → C: Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20d
 
+## Health AI Agent — Research & Architektur (2026-07-29)
+
+### Hybrid-Architektur (On-Device + Backend)
+- **On-Device (TFLite MobileBERT, 15-60MB):** Notfall-Keyword-Erkennung, Symptom-Kategorie, einfache UI-Entscheidungen
+- **Backend (Ollama llama3.1:8b):** Adaptives Symptom-Gespräch, Triage (112/116117/Routine), Arzt-Empfehlung via Overpass
+
+### Wissenschaftliche Basis (keine Pseudowissenschaft)
+- **Symptom-Assessment:** Klinisch validiert (JAMA Network Open, 2021 – 70-85% Übereinstimmung)
+- **Triage:** TriageBench Open-Source-Benchmark + Manchester Triage System
+- **Ärzte:** healthService.ts → Overpass API (Echtzeit, keine DB-Statik)
+- **Privacy:** DSGVO Art. 9 – On-Device für sensible Daten, Backend nur anonymisiert
+
+### Wichtige Regeln (NIEMALS verletzen)
+1. **Keine erfundenen Health-AI-Behauptungen** – nur was publiziert ist
+2. **Keine kommerziellen AI-APIs** – nur Ollama + TFLite + spaCy
+3. **Haftungsausschluss** immer: "Keine medizinische Diagnose. Bei Unsicherheit 112."
+4. **Lebenszeichen:** Timer-basiert, KEIN Accelerometer, KEIN GPS-Tracking
+5. **`pumpAndSettle()` VERBOTEN** in Health-Tests → `tester.pump(Duration(milliseconds: 100))`
+
+### Aktuelle Health AI Endpoints
+| `POST` | `/api/ai/chat` | ollamaService (Ollama) | Symptom-Assessment, Triage, Arzt-Empfehlung |
+| `GET` | `/api/ai/status` | – | Ollama-Verbindungsstatus |
+| `GET` | `/api/ai/service-prompt` | promptService | Service-Prompts mit Health-Daten |
+| `GET` | `/api/health/doctors` | healthService | Overpass-Arztsuche |
+
+### TODOs (Health AI)
+- 🟢 **Phase AI-Health-1 (Symptom + Triage + Arzt):** ✅ Fertig (promptService.ts, ollamaService.ts)
+- 🟡 **Phase AI-Health-2 (Lebenszeichen):** Timer-Check-in Backend + Mobile (geplant)
+- 🟢 **Phase AI-Health-3 (On-Device TFLite):** ✅ Fertig (OnDeviceSentimentClassifier)
+- 🟢 **Phase AI-Health-4 (Cross-Service):** ✅ Fertig (promptService fetchServiceContexts)
+- ⏳ **Phase AI-Health-5 (DEGAM-RAG + FHIR):** Extern blockiert (Lizenz, Praxis-APIs)
+
+---
+
 ## Klärungen (Juli 2026)
 
 ### GTFS ZIP-Import: KEIN Regelverstoß

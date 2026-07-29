@@ -22,6 +22,8 @@ import { airQualityRouter } from './routes/airQuality';
 import { wasteRouter } from './routes/waste';
 import { evChargingRouter } from './routes/evCharging';
 import { configRouter } from './routes/config';
+import { checkinRouter } from './routes/checkin';
+import { checkinService } from './services/checkinService';
 import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
 import { gtfsService } from './services/gtfsService';
@@ -61,6 +63,12 @@ app.use('/api/air-quality', airQualityRouter);
 app.use('/api/waste', wasteRouter);
 app.use('/api/ev-charging', evChargingRouter);
 app.use('/api/config', configRouter);
+app.use('/api/checkin', checkinRouter);
+
+// Lebenszeichen Check-in Eskalations-Timer starten (nur in Produktion)
+if (process.env.NODE_ENV !== 'test') {
+  checkinService.startEscalationTimer();
+}
 
 // Statische Dateien ausliefern (Favicon, etc.)
 // Phase X.1 (2026-07-28): /mini-Static-Serving entfernt — IFrame-Einbettung

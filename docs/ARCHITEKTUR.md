@@ -220,6 +220,9 @@ Fehlerfall (Backend offline):
 | `GET` | `/api/admin/gtfs-status` | `ADMIN_KEY` | GtfsService | Supabase |
 | `GET` | `/api/ai/home` | — | AiHomeService | — |
 | `POST` | `/api/ai/home/personalized` | — | AiHomeService | BayesClassifier |
+| `GET` | `/api/ai/status` | — | — | Ollama Server |
+| `POST` | `/api/ai/chat` | — | ollamaService | Ollama Server + Service-Prompts |
+| `GET` | `/api/ai/service-prompt` | — | promptService | Service-Daten (Health, Weather, etc.) |
 | `GET` | `/api/weather/current` | — | WeatherService | api.open-meteo.com |
 | `GET` | `/api/weather/forecast` | — | WeatherService | api.open-meteo.com |
 | `GET` | `/api/weather/status` | — | — | — |
@@ -253,6 +256,8 @@ Fehlerfall (Backend offline):
 | **WeatherService** | `services/weatherService.ts` | Open-Meteo DWD-Client, 5-Min-Cache, 429-Retry, Nominatim Reverse-Geocode |
 | **AiHomeService** | `services/aiHomeService.ts` | Dashboard-Context (Tageszeit/Vorschläge/Quick Actions), Personalisierung via BayesClassifier |
 | **AiService** | `services/aiService.ts` | BayesClassifier mit deutschem Stemmer, Intent-Erkennung (journey/departure/disruption/nearby/info) |
+| **OllamaService** | `services/ollamaService.ts` | Ollama-Client (`http://158.180.18.110:11434`), Chat mit Service-Kontext, Health AI Symptom-Assessment, Triage |
+| **PromptService** | `services/promptService.ts` | Service-spezifische AI-Prompts (Wetter, Luft, Abfall, Gesundheit, Jobs, Events, Hotels, Bürgeramt), Cross-Service-Kontext-Fusion, Health AI `fetchHealthData()` |
 | **TalerService** | `services/talerService.ts` | GNU Taler Exchange Client, Reserve-Erstellung, Wallet-Bindung, dynamische Currency |
 | **FinanceService** | `services/financeService.ts` | Wallet-CRUD, Transaktionen, Purse-System, fund-local |
 | **MobilityService** | `services/mobilityService.ts` | Overpass-Stops, Nominatim-Geocoding, OSRM-Routing, transitous-Departures |

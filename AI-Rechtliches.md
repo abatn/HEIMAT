@@ -44,22 +44,38 @@
 
 ---
 
-### 3. Gesundheit (Symptom-Checker)
+### 3. Gesundheit (Symptom-Assessment + Triage + Arztsuche) — Health AI Agent
 
 | Frage | Antwort |
 |-------|---------|
 | Brauche ich eine BaFin-Lizenz? | **Nein** – keine Finanzdienstleistung |
-| Brauche ich eine TI-Anbindung? | **Nein** – keine Patientendaten |
-| Brauche ich eine DSGVO-Folgenabschätzung? | **Nein** – keine besonderen Kategorien |
-| Brauche ich einen Haftungsausschluss? | **Ja** – "Keine medizinische Beratung" |
+| Brauche ich eine TI-Anbindung? | **Nein** – keine Patientendaten, keine ePA-Anbindung |
+| Brauche ich eine DSGVO-Folgenabschätzung? | **Nein** – keine besonderen Kategorien (User gibt freiwillig Symptome an) |
+| Ist das ein Medizinprodukt? | **Nein** – Orientierungshilfe, keine Diagnose, keine Behandlung |
+| Brauche ich einen Haftungsausschluss? | **Ja** – **zwingend erforderlich** |
+| Brauche ich eine CE-Kennzeichnung? | **Nein** – keine klinische Entscheidungsunterstützung (EU MDR Art. 2) |
+| Darf ich Gesundheitsdaten verarbeiten? | **Ja** – Art. 9(2)(a) DSGVO (ausdrückliche Einwilligung) |
 
-**Haftungsausschluss:**
-> "Dieser Service ersetzt keine ärztliche Beratung. Bei akuten Beschwerden wenden Sie sich bitte umgehend an Ihren Arzt oder eine Notaufnahme."
+**Haftungsausschluss (muss IMMER eingeblendet werden):**
+> **WICHTIGER HINWEIS:** Dies ist eine KI-basierte **Orientierungshilfe** — keine medizinische Diagnose, keine ärztliche Beratung, keine Behandlung. Die Antworten basieren auf einem allgemeinen Sprachmodell (Ollama) und nicht auf einer individuellen medizinischen Untersuchung.
+>
+> **Bei akuten Beschwerden, Brustschmerz, Atemnot, Lähmungserscheinungen oder anderen Notfällen wählen Sie SOFORT 112 oder suchen Sie die nächste Notaufnahme auf.**
+>
+> **Bei dringenden, aber nicht lebensbedrohlichen Beschwerden wählen Sie den ärztlichen Bereitschaftsdienst unter 116117.**
+>
+> Die angezeigten Ärzte basieren auf OpenStreetMap-Daten (Overpass API, ODbL) und können Fehler enthalten. Bitte prüfen Sie die Erreichbarkeit und Qualifikation vor einem Besuch.
 
 **Zusätzliche Maßnahmen:**
-- Klare Warnung in der UI
-- Keine Diagnosen, nur allgemeine Informationen
-- Verweis auf professionelle Hilfe
+- 🔴 **Notfall-Keywords** (Brustschmerz, Schlaganfall, Atemnot) → sofort 112-Empfehlung, keine AI-Konversation
+- 🟡 **Triage-Stufen** → AI schlägt vor, User entscheidet (nie automatisierte Entscheidung)
+- ✅ **Arzt-Empfehlung** → basiert auf Overpass-Echtzeitdaten, keinem statischen DB-Listing
+- 📋 **Privacy:** Symptom-Daten verlassen das Gerät NUR für die Chat-Anfrage (keine Speicherung)
+
+**Lebenszeichen (Phase AI-Health-2, geplant):**
+- Timer-basiert, **KEIN Accelerometer, KEIN GPS-Tracking**
+- User aktiviert bewusst (Opt-in)
+- Eskalation: Push → Notfallkontakt → 112
+- Bei Gesundheits-Kontext: adaptive Timer-Verkürzung
 
 ---
 

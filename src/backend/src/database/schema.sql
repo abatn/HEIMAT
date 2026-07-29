@@ -347,6 +347,42 @@ CREATE INDEX IF NOT EXISTS idx_taler_transactions_to ON taler_transactions(to_wa
 -- ML: DELAY LOGGING (Verspätungsvorhersage)
 -- ============================================
 
+-- ============================================
+-- CHECK-IN (Lebenszeichen, Phase AI-Health-2)
+-- ============================================
+
+-- User Check-in Einstellungen (timer-basiert, KEIN Sensor-Tracking)
+CREATE TABLE IF NOT EXISTS checkin_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL UNIQUE,
+    is_active BOOLEAN DEFAULT false,
+    interval_hours INTEGER DEFAULT 24,          -- Normal: 24h zwischen Check-ins
+    interval_health_hours INTEGER DEFAULT 6,     -- Bei Gesundheits-Kontext: 6h
+    emergency_contact_name VARCHAR(255),
+    emergency_contact_phone VARCHAR(50),
+    emergency_contact_email VARCHAR(255),
+    auto_112_enabled BOOLEAN DEFAULT false,      -- Nur aktivierbar mit vorherigem Gesundheits-Symptom
+    last_ping_at TIMESTAMP,
+    health_context_symptoms TEXT,                 -- Vom User im Chat gemeldete Symptome (z.B. "Brustschmerz")
+    health_context_reported_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_checkin_settings_user ON checkin_settings(user_id);
+CREATE INDEX IF NOT EXISTS idx_checkin_settings_active ON checkin_settings(is_active) WHERE is_active = true;
+
+-- Check-in Ereignisse (Eskalations-Historie)
+CREATE TABLE IF NOT EXISTS checkin_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    event_type VARCHAR(30) NOT NULL,             -- 'ping' | 'missed' | 'escalation_push' | 'escalation_contact' | 'escalation_emergency' | 'deactivated'
+    escalation_stage INTEGER DEFAULT 0,          -- 0=ping, 1=push, 2=contact, 3=112
+    details TEXT,                                 -- Zusätzliche Informationen
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_checkin_events_user ON checkin_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_checkin_events_type ON checkin_events(event_type);
+
 -- Delay-Logs: Täglich Abfahrten + reale Ankunftszeiten für ML-Training
 CREATE TABLE IF NOT EXISTS delay_logs (
     id SERIAL PRIMARY KEY,

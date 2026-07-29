@@ -1,134 +1,128 @@
 # HEIMAT 2.0 – AI-Implementierungsplan
 
-## Zeitplan (relativ)
-
-### Phase 1: On-Device AI
-
-| Aufgabe | Tool | Verantwortlich | Status |
-|---------|------|----------------|--------|
-| TensorFlow Lite Integration | tflite_flutter | 2 ML-Engineers | ⏳ |
-| Vosk Setup (Speech-to-Text) | vosk_flutter | 1 ML-Engineer | ⏳ |
-| Coqui TTS Integration | coqui_tts | 1 ML-Engineer | ⏳ |
-| Lokale NLP-Klassifikation | spaCy | 1 ML-Engineer | ⏳ |
-| UI für AI-Funktionen | Flutter | 2 Frontend-Devs | ⏳ |
-
-**Meilenstein:** Sprachsteuerung und lokale Kategorisierung funktionieren offline.
-
-**Benötigte Contributors:**
-- 2 ML-Engineers (TensorFlow, Vosk)
-- 2 Frontend-Devs (Flutter UI)
-
-**Open-Source-Tools:**
-- TensorFlow Lite
-- Vosk
-- Coqui TTS
-- spaCy
+> **Stand:** 2026-07-29 | **Letztes Update:** Health AI Agent Phasen (Symptom-Assessment, Triage, Lebenszeichen)
+> **Forschung:** Wissenschaftlich fundierte Health-AI-Punkte aus Recherche (Ada Health, TriageBench, DEGAM, Ollama, On-Device TFLite)
 
 ---
 
-### Phase 2: Cloud AI
+## 🔴 Phase AI-Health-1: Symptom-Assessment + Triage + Arztsuche (JETZT)
 
-| Aufgabe | Tool | Verantwortlich | Status |
-|---------|------|----------------|--------|
-| MLflow Setup | MLflow | 1 Backend-Dev | ⏳ |
-| FastAPI ML-Services | FastAPI | 2 Backend-Devs | ⏳ |
-| LightGBM Training | LightGBM | 1 ML-Engineer | ⏳ |
-| Verspätungsvorhersage | LightGBM | 1 ML-Engineer | ⏳ |
-| Termin-Empfehlungen | Surprise | 1 ML-Engineer | ⏳ |
-| Redis Caching | Redis | 1 Backend-Dev | ⏳ |
+**Ziel:** AI führt adaptives Symptom-Gespräch, bestimmt Dringlichkeit, findet passenden Arzt via Overpass.
 
-**Meilenstein:** Cloud-basierte AI-Services für Verspätung und Termine verfügbar.
+| Aufgabe | Datei | Status | Tests |
+|---------|-------|--------|-------|
+| `fetchHealthData()` – Rohdaten statt Fertigtext | `promptService.ts` | ✅ **Fertig** | 3 |
+| Symptom-Assessment im Chat | `ollamaService.ts` (System-Prompt) | ✅ **Fertig** | 1 |
+| `'health'` in VALID_SERVICES | `ai.ts` | ✅ **Fertig** | Integration |
+| `tsc --noEmit` typecheck | – | ✅ **Fertig** | – |
+| **Post-Production:** Triage-Stufen verfeinern | `promptService.ts` | 🟡 Nächster Schritt | 3 |
+| **Post-Production:** Haftungsausschluss-Check | Alle | 🟡 Nächster Schritt | – |
 
-**Benötigte Contributors:**
-- 2 Backend-Devs (FastAPI, MLflow)
-- 1 ML-Engineer (Training)
+**Meilenstein:** Ollama kann Symptome erfragen, Dringlichkeit einschätzen und passenden Arzt empfehlen.
 
-**Open-Source-Tools:**
-- MLflow
-- FastAPI
-- LightGBM
-- Surprise
-- Redis
+### Wissenschaftliche Basis
+- **Symptom-Assessment:** Klinisch validiert (JAMA Network Open, 2021 – Ada Health 70-85% Übereinstimmung)
+- **Triage:** `TriageBench` Open-Source-Benchmark + Manchester Triage System
+- **Arztsuche:** Overpass API (OSM, ODbL) – bereits implementiert in `healthService.ts`
+
+**Liability:** "Keine medizinische Diagnose. Dies ist eine KI-basierte Orientierungshilfe ohne Gewähr. Bei akuten Beschwerden wählen Sie 112 oder den ärztlichen Bereitschaftsdienst 116117."
 
 ---
 
-### Phase 3: Generative AI
+## 🟡 Phase AI-Health-2: "Lebenszeichen" – Adaptives Check-in
 
-| Aufgabe | Tool | Verantwortlich | Status |
-|---------|------|----------------|--------|
-| Code Llama Setup | Code Llama | 1 ML-Engineer | ⏳ |
-| StarCoder Integration | StarCoder | 1 ML-Engineer | ⏳ |
-| GPU-Server Konfiguration | Hetzner | 1 DevOps | ⏳ |
-| Code-Generierung für Mini-Apps | Code Llama | 1 ML-Engineer | ⏳ |
-| Automatische Dokumentation | spaCy + BERT | 1 Dev | ⏳ |
+**Ziel:** Timer-basiertes Sicherheitsnetz für alleinlebende Menschen. Keine Sensoren, kein Tracking – nur Check-in via Chat.
 
-**Meilenstein:** Code-Generierung für Mini-Apps funktioniert.
+| Aufgabe | Datei | Status | Tests |
+|---------|-------|--------|-------|
+| Backend: Check-in-Timer-Logik | Neu: `checkinService.ts` | ⏳ Geplant | 5 |
+| Backend: Eskalationskette (Push→SMS→112) | Neu: `checkinRoutes.ts` | ⏳ Geplant | 3 |
+| Mobile: Check-in-Provider | `lib/features/checkin/` | ⏳ Geplant | 8 |
+| Mobile: UI (Aktivierung + Status) | `lib/features/checkin/` | ⏳ Geplant | – |
+| Mobile: Timer-Background-Service | `lib/core/services/` | ⏳ Geplant | – |
 
-**Benötigte Contributors:**
-- 1 ML-Engineer (Code Llama)
-- 1 Dev (Integration)
-- 1 DevOps (GPU-Server)
+**Meilenstein:** Alleinlebende User können Check-in aktivieren. Bei ausbleibender Antwort → Familie → Rettungsdienst.
 
-**Open-Source-Tools:**
-- Code Llama
-- StarCoder
-- spaCy
-- BERT
+### Architektur-Prinzipien
+- **KEINE Sensoren** – nur Timer + Chat-Interaktion
+- **KEIN Accelerometer** – kein Hintergrund-Tracking
+- **KEINE Kamera, kein Mikrofon** – reine App-Interaktion
+- **Privacy-first** – User aktiviert bewusst, nichts läuft im Hintergrund
+- **Eskalation nur bei ausbleibender Antwort** – keine permanente Überwachung
 
 ---
 
-### Phase 4: Vollintegration
+## 🟢 Phase AI-Health-3: On-Device TFLite Klassifikation (Phase 2)
 
-| Aufgabe | Tool | Verantwortlich | Status |
-|---------|------|----------------|--------|
-| Alle Systeme verbinden | Alle | 3 Developers | ⏳ |
-| Performance-Optimierung | Alle | 2 Developers | ⏳ |
-| DSGVO-Audit | Alle | 1 Legal | ⏳ |
-| Dokumentation | Alle | 1 Dev | ⏳ |
-| Community-Training | Alle | 1 Community | ⏳ |
+**Ziel:** Erstklassifizierung von Symptomen on-device (15-60ms) bevor Backend-Ollama angefragt wird.
 
-**Meilenstein:** Vollständige AI-Integration in alle HEIMAT-Bereiche.
+| Aufgabe | Tool | Status | Tests |
+|---------|------|--------|-------|
+| TFLite-Modell exportieren (MobileBERT) | TensorFlow Lite | ⏳ Geplant | – |
+| OnDeviceSymptomClassifier | Flutter | ✅ **Fertig** (Phase AI-5) | 5 |
+| HybridDecisionEngine | Flutter | ⏳ Geplant | 3 |
+| Modell-Optimierung für deutsche Symptome | spaCy → TFLite | ⏳ Geplant | – |
 
-**Benötigte Contributors:**
-- 3 Developers
-- 1 Legal (DSGVO)
-- 1 Community Manager
+**Meilenstein:** On-Device-Erstklassifikation (Notfall erkennen, Kategorie bestimmen) in <50ms.
+
+### Wissenschaftliche Basis
+- **MobileBERT:** 25-60MB quantisiert, 90%+ BERT-Genauigkeit bei 4× Geschwindigkeit
+- **Notfall-Detection:** Regex + TFLite Hybrid – sofortige 112-Empfehlung
 
 ---
 
-## Meilensteine
+## 🟢 Phase AI-Health-4: Cross-Service AI Assistant (Phase 2)
 
-| Meilenstein | Status |
-|-------------|--------|
-| On-Device AI Setup | ⏳ Geplant |
-| Sprachsteuerung funktioniert | ⏳ Geplant |
-| Cloud AI Services verfügbar | ⏳ Geplant |
-| Code-Generierung funktioniert | ⏳ Geplant |
-| Vollständige AI-Integration | ⏳ Geplant |
+**Ziel:** Quervernetzung aller HEIMAT-Services (Gesundheit + Wetter + Mobilität + Finanzen).
+
+| Aufgabe | Datei | Status | Tests |
+|---------|-------|--------|-------|
+| Service-Prompts (Job, Events, Hotels, Bürgeramt) | `promptService.ts` | ✅ **Fertig** | 5 |
+| Cross-Service Chat-Kontext | `ollamaService.ts` | ✅ **Fertig** | 3 |
+| RAG mit DEGAM-Leitlinien | Neu: `ragService.ts` | ⏳ Geplant | 5 |
+
+**Meilenstein:** AI versteht Zusammenhänge: "Morgen 10 Uhr Arzt in Berlin" → Route + Wetter + Parken.
+
+---
+
+## ⏳ Phase AI-Health-5: DEGAM-RAG + FHIR-Terminbuchung (Vision)
+
+**Ziel:** Faktenbasierte medizinische Antworten + Terminbuchung.
+
+| Aufgabe | Tool | Status | Tests |
+|---------|------|--------|-------|
+| DEGAM-Leitlinien als Vektordatenbank | Qdrant/Chroma | ⏳ Vision | – |
+| FHIR-Scheduling-Integration | Open Reception | ⏳ Vision | – |
+| Medizinische Haftungsstrategie | Legal | ⏳ Vision | – |
+
+**Meilenstein:** AI kann mit klinischen Leitlinien antworten und direkt Termine buchen.
+
+**⚠️ Blockiert durch:**
+- DEGAM-Leitlinien sind nur als PDF verfügbar (kein maschinenlesbares Format)
+- Deutsche Praxen haben keine offene FHIR-Schnittstelle
+- Open Reception (BMBF) muss erst Praxis-Partnerschaften aufbauen
+
+---
+
+## 📊 Zeitplan
+
+| Phase | Fokus | Zeit | Abhängigkeit |
+|-------|-------|------|-------------|
+| **AI-Health-1** | Symptom + Triage + Arzt | 🟢 **Live seit 2026-07-29** | Ollama läuft |
+| **AI-Health-2** | Lebenszeichen Check-in | 🟡 2-3 Tage | Timer-Service Backend |
+| **AI-Health-3** | On-Device TFLite | 🟢 **Phase AI-5 fertig** | TFLite-Modell |
+| **AI-Health-4** | Cross-Service Assistant | 🟢 **Phase AI-4 fertig** | – |
+| **AI-Health-5** | DEGAM-RAG + FHIR | ⏳ Offen (extern blockiert) | Lizenz + Praxis-APIs |
 
 ---
 
 ## Open-Source-Tools Übersicht
 
-| Kategorie | Tool | Lizenz | On-Device |
-|-----------|------|--------|-----------|
-| **ML-Framework** | TensorFlow Lite | Apache 2.0 | ✅ |
-| **Speech-to-Text** | Vosk | Apache 2.0 | ✅ |
-| **Text-to-Speech** | Coqui TTS | MPL 2.0 | ✅ |
-| **NLP** | spaCy | MIT | ✅ |
-| **Gradient Boosting** | LightGBM | MIT | ❌ |
-| **Recommender** | Surprise | BSD | ❌ |
-| **Code-Generierung** | Code Llama | Llama 2 | ❌ |
-| **Modell-Management** | MLflow | Apache 2.0 | ❌ |
-| **API-Framework** | FastAPI | MIT | ❌ |
-
----
-
-## Tester und Validierung
-
-Für jede Phase:
-1. **Unit Tests** (Flutter/Jest)
-2. **Integration Tests** (API + ML)
-3. **Performance Tests** (Latenz, Genauigkeit)
-4. **DSGVO-Audit** (Datenschutzprüfung)
-5. **Community-Feedback** (Beta-Tester)
+| Kategorie | Tool | Lizenz | On-Device | Status |
+|-----------|------|--------|-----------|--------|
+| **LLM** | Ollama (llama3.1:8b) | Llama 3 Community | ❌ Backend | ✅ **Aktiv** |
+| **On-Device ML** | TFLite LiteRT | Apache 2.0 | ✅ | ⏳ Geplant |
+| **NLP** | spaCy | MIT | ✅ | ⏳ Optional |
+| **Vektordatenbank** | Qdrant/Chroma | Apache 2.0 | ❌ | ⏳ Vision |
+| **Symptom-Checker** | MedPrompt | MIT | ❌ | ⏳ Forschung |
+| **FHIR-Scheduling** | Open Reception | AGPL | ❌ | ⏳ Vision |

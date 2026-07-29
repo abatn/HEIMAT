@@ -251,6 +251,51 @@ flowchart LR
 
 ---
 
+## 5b. Datenfluss: Health AI Agent (Symptom-Assessment + Triage)
+
+```mermaid
+sequenceDiagram
+    actor User as 👤 User
+    participant Phone as 📱 On-Device (TFLite)
+    participant API as Backend API
+    participant Ollama as 🦙 Ollama Server
+    participant Overpass as 🌍 Overpass API
+
+    User->>Phone: "Ich habe Rückenschmerzen"
+
+    Note over Phone: Schritt 1: On-Device (<10ms)
+    Phone->>Phone: Notfall-Keyword-Detection
+    Phone->>Phone: KEIN Notfall → Symptom-Kategorie: Orthopädie
+
+    Note over Phone: Kein Notfall → Backend-Anfrage
+    Phone->>API: POST /api/ai/chat
+    API->>Ollama: promptService + Symptom-Kontext
+
+    Note over Ollama: Schritt 2: Adaptives Gespräch
+    Ollama-->>User: "Seit wann haben Sie Rückenschmerzen?"
+    User->>Ollama: "Seit 3 Tagen, Schmerz 4/10"
+    Ollama-->>User: "Strahlung in die Beine?"
+    User->>Ollama: "Nein, nur im unteren Rücken"
+
+    Note over Ollama: Schritt 3: Triage
+    Ollama->>Ollama: Routine (kein Notfall, kein Bereitschaft)
+
+    Note over Ollama: Schritt 4: Arzt-Empfehlung
+    Ollama->>API: fetchHealthData(lat, lng)
+    API->>Overpass: Orthopäden in der Nähe?
+    Overpass-->>API: 3 Orthopäden gefunden
+    API-->>Ollama: Ärzte-Daten (JSON, kein Fertigtext)
+
+    Note over Ollama: Schritt 5: Antwort generieren
+    Ollama-->>User: "Bei Rückenschmerzen ist ein Orthopäde die richtige Wahl. Ich habe 3 Orthopäden in Ihrer Nähe gefunden: Dr. Müller (1.2km)... Soll ich die Adresse zeigen?"
+
+    Note over User: Haftungsausschluss eingeblendet
+    Note right of User: "Keine medizinische Diagnose.
+    Note right of User: Bei Unsicherheit 112 wählen."
+```
+
+---
+
 ## 6. Backend-Middleware-Stack
 
 ```mermaid

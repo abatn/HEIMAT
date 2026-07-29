@@ -35,6 +35,11 @@ export type ServiceName = 'weather' | 'air' | 'waste' | 'health' | 'job' | 'even
 export interface ServicePromptResult {
   service: ServiceName;
   text: string;
+  /** fallbackText — Menschlich lesbarer Text für den Fall, dass
+   *  Ollama offline ist und die Rohdaten (text) nicht interpretieren kann.
+   *  Nur von Services gesetzt, die strukturierte JSON-Rohdaten liefern.
+   */
+  fallbackText?: string;
   data?: Record<string, unknown>;
   fetchedAt: string;
 }
@@ -47,7 +52,7 @@ export interface ServiceContext {
   weather?: { lat: number; lng: number };
   air?: { lat: number; lng: number };
   waste?: { lat: number; lng: number; street?: string; houseNr?: string };
-  health?: { lat: number; lng: number; radius?: number; specialty?: string };
+  health?: { lat: number; lng: number; radius?: number; specialty?: string; symptom?: string };
   job?: { query?: string; location?: string };
   events?: { location?: string; date?: string };
   hotels?: { city?: string; budget?: number; checkin?: string; checkout?: string };

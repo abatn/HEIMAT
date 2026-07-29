@@ -31,8 +31,13 @@ HEIMAT 2.0 ist ein Open-Source-Projekt für eine datenschutzkonforme Super App f
 | Phase 17: Open Collective | ✅ Abgeschlossen |
 | Phase 18: Stiftungs-Anschreiben | ✅ Abgeschlossen |
 | Phase 23: Auto-Migration + Security-Härtung | ✅ Live seit 2026-07-25 |
+| **Phase AI-Health-1**: Symptom-Assessment + Triage + Arztsuche | ✅ **Live seit 2026-07-29** (Commit 3b31cd5) |
+| **Phase AI-Health-2**: Lebenszeichen-Check-in | 🟡 Geplant |
+| **Phase AI-Health-3**: On-Device TFLite | ✅ **Fertig** (Phase AI-5) |
+| **Phase AI-Health-4**: Cross-Service AI Assistant | ✅ **Fertig** (Phase AI-4) |
+| **Phase AI-Health-5**: DEGAM-RAG + FHIR | ⏳ Vision (extern blockiert) |
 
-**Status:** 🟢 Produktion end-to-end live — Auto-Migration bei jedem Render-Deploy (Commit 7e5f063)
+**Status:** 🟢 Produktion end-to-end live — Health AI Agent (Symptom-Assessment + Triage + Arztsuche) live seit 2026-07-29
 
 ---
 

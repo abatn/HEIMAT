@@ -228,6 +228,50 @@ Integration via **Mini-Program-Container (WebView)** — weil HEIMAT = Flutter �
 **A: Mini-Program-Container (2-3d) ✅ Live (Commit 92ec307, 2026-07-27)** — Fundament mit 10 Mini-Programmen und WebView-Framework.
 B: Wetter (✅ deployed) + Luft/Abfall (3-5d rest) → C: Ladestationen/Parken (2-3d) → D: Futai/Jobs/Events (3-5d) → E: Hotels/Bürgeramt (5-7d) = ~15-20 Tage
 
+## Health AI Agent — Research- & Architektur-Regeln (2026-07-29)
+
+### Regel 1: Keine Pseudowissenschaft
+Jede Health-AI-Funktion muss auf **publizierter Forschung** basieren. Keine erfundenen Behauptungen ("2 Wochen vorher erkennen"). Akzeptierte Quellen: Peer-Reviewed Journals, Open-Source-Benchmarks (
+
+TriageBench
+
+), Open-Source-GitHub-Projekte mit >100 Stars.
+
+### Regel 2: Hybrid-Architektur (On-Device + Backend)
+| Task | Wo | Begründung |
+|------|----|-----------|
+| Notfall-Keyword-Erkennung | On-Device (TFLite) | <10ms, 100% offline |
+| Symptom-Klassifikation | On-Device (TFLite) | Privacy, keine Latenz |
+| Adaptives Gespräch | Backend (Ollama) | Braucht Reasoning (4-8GB Modell) |
+| Triage | Backend (Ollama) | Braucht Kontext-Verständnis |
+| Arzt-Empfehlung | Backend (Ollama + Overpass) | Braucht API + Reasoning |
+
+### Regel 3: Privacy-by-Design
+- **KEINE** Gesundheitsdaten verlassen das Gerät ohne User-Willen
+- **KEIN** GPS-Tracking, **KEINE** Kamera, **KEIN** Mikrofon im Hintergrund
+- **KEINE** kommerziellen AI-APIs (OpenAI, Google, Ada Health)
+- **ON-DEVICE** für sensible Daten, **BACKEND** nur anonymisiert
+
+### Regel 4: Haftungsausschluss (immer einblenden)
+> "Keine medizinische Diagnose. Dies ist eine KI-basierte Orientierungshilfe ohne Gewähr. Bei akuten Beschwerden wählen Sie 112 oder den ärztlichen Bereitschaftsdienst 116117."
+
+### Regel 5: Lebenszeichen — Adaptive Check-in
+- **KEINE Sensoren** (Accelerometer, GPS, Kamera, Mikrofon)
+- **NUR Timer-basiert** (App-Check-in via Chat)
+- Eskalationskette: Push → Notfallkontakt → 112
+- User muss Check-in **bewusst aktivieren** (Opt-in)
+- Bei Gesundheits-Kontext: adaptive Timer-Verkürzung
+
+### Aktuelle Health AI Endpoints
+| Methode | Pfad | Beschreibung |
+|---------|------|-------------|
+| `POST` | `/api/ai/chat` | Chat mit Service-Kontext (Gesundheit, Wetter, etc.) |
+| `GET` | `/api/ai/status` | Ollama-Verbindungsstatus |
+| `GET` | `/api/ai/service-prompt` | Service-spezifische Prompts |
+| `GET` | `/api/health/doctors` | Overpass-Arztsuche |
+
+---
+
 ## HEIMAT Architecture Rules (Phase X, 2026-07-28, Commit b80b07d + 0d7ef3d)
 
 ### Mobile Architecture — ServiceRegistry + nativeBuilder (Phase X.1)

@@ -276,6 +276,34 @@ Erstelle eine **DSGVO-konforme AI-Strategie**:
 
 ---
 
+### 8.2b Health AI Agent — Forschung & Architektur (2026-07-29)
+
+**Ziel:** Kein reiner Arzt-Listen-Ausgeber, sondern ein intelligenter Symptom-Lotse der adaptiv Gespräche führt, Dringlichkeit erkennt und den passenden Arzt via Overpass findet.
+
+#### Wissenschaftliche Bewertung (kurz)
+
+| Feature | Machbar? | Wissenschaftlich? | Privacy? | Risiko |
+|---------|----------|------------------|----------|--------|
+| Symptom-Assessment (Ada-ähnlich) | ✅ Ollama | ✅ Klinisch validiert | ✅ On-Device | ⚠️ Haftung |
+| Triage (112/116117/Routine) | ✅ LLM | ✅ TriageBench | ✅ Backend | 🔴 Haftung |
+| DEGAM-RAG | ⚠️ PDF-Problem | ✅ Leitlinien existieren | ✅ On-Device | ⚠️ Urheberrecht |
+| Medical LLM | ✅ ollama:8b läuft | ✅ Forschung | ✅ Selbst gehostet | 🟢 Gering |
+| Overpass-Ärzte | ✅ **Fertig** | ✅ Echtzeit | ✅ Keine Historie | 🟢 Gering |
+| FHIR-Termine | ❌ Keine Praxis-API | ✅ Standard | ✅ Open-Source | 🟡 Extern blockiert |
+
+#### Architektur-Prinzip
+
+**Hybrid:** On-Device (TFLite) für Notfall-Erkennung (<10ms, 100% offline) + Backend (Ollama) für adaptives Gespräch und Triage (500-2000ms).
+
+#### Regeln für den Agenten
+1. **Keine Pseudowissenschaft** — nicht behaupten was nicht belegt ist
+2. **Keine kommerziellen AI-APIs** — nur Open Source (Ollama, TFLite, spaCy)
+3. **Haftungsausschluss** immer einblenden: "Keine medizinische Diagnose"
+4. **Privacy-first:** keine Gesundheitsdaten ohne User-Willen übertragen
+5. **Lebenszeichen:** Timer-basiert, kein Sensor-Tracking
+
+---
+
 ### 8.4 AI-Implementierungsplan (Monate 6-18)
 
 Erstelle einen **detaillierten Zeitplan** für AI-Integration:

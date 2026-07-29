@@ -421,6 +421,51 @@ Das erste Release enthält:
 
 ---
 
+### 9c. Health AI Agent — Symptom-Assessment + Triage + Arztsuche (2026-07-29)
+
+**Status:** 🟢 **Live** — Forschung-basiert, 7+1 Punkte wissenschaftlich analysiert.
+
+#### Architektur: Hybrid (On-Device + Backend)
+
+```
+User sagt Symptom (z.B. "Rückenschmerzen")
+    │
+    ▼
+On-Device (TFLite, <10ms):
+  - Notfall-Keyword-Detection (Brustschmerz → sofort 112)
+  - Symptom-Kategorie (Orthopädie, Kardiologie, Neurologie...)
+    │
+    ▼
+Backend (Ollama llama3.1:8b, 500-2000ms):
+  - Adaptives Gespräch (seit wann? Schmerzskala?)
+  - Triage (112 / 116117 / Routine)
+  - Overpass-Arztsuche (Symptom → Fachrichtung → Arzt)
+    │
+    ▼
+Antwort mit Haftungsausschluss
+```
+
+#### Wissenschaftliche Basis
+
+| Punkt | Forschung | Bewertung |
+|-------|-----------|-----------|
+| Symptom-Assessment | Ada Health: 70-85% Übereinstimmung (JAMA 2021) | ✅ Klinisch validiert |
+| Triage | TriageBench Open-Source-Benchmark | ✅ Open Source |
+| RAG mit DEGAM | Nur PDF — kein maschinenlesbares Format | ⚠️ Phase 2 |
+| Medical LLM | Ollama + llama3.1:8b | ✅ Läuft |
+| Overpass-Ärzte | healthService.ts | ✅ Bereits implementiert |
+| FHIR-Termine | Open Reception (BMBF) | ⏳ Vision |
+| On-Device NLP | TFLite MobileBERT (15-60MB) | ⏳ Phase 2 |
+| Lebenszeichen | Timer-basiert, kein Sensor-Tracking | 🟡 Phase 2 |
+
+#### Wichtige Regeln
+1. **Keine Pseudowissenschaft** — Jede Funktion muss auf publizierter Forschung basieren
+2. **Keine kommerziellen AI-APIs** — Nur Open Source (Ollama, TFLite, spaCy)
+3. **Haftungsausschluss** — "Keine medizinische Diagnose. Bei Unsicherheit 112 wählen."
+4. **Privacy-first** — On-Device für sensible Tasks, Backend nur anonymisiert
+
+---
+
 ### 9b. ÖPNV-Architektur: db-rest (Vendo API)
 
 **Status:** Aktiv — ersetzt GTFS-Datei-Import durch professionellen REST-API-Wrapper.

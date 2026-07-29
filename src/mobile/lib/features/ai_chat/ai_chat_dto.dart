@@ -35,6 +35,14 @@ class ChatMessage {
     );
   }
 
+  factory ChatMessage.system(String content) {
+    return ChatMessage(
+      role: ChatRole.system,
+      content: content,
+      timestamp: DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'role': role.name,
         'content': content,

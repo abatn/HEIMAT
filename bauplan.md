@@ -1583,7 +1583,109 @@ Phase AI-5 (TFLite) — parallel zu AI-1..AI-4
 2. **Privacy-by-Design** — Ollama läuft auf dem HEIMAT-Backend-Server, keine Daten an Dritte
 3. **Keine Mocks/Simulationen** — Wenn Ollama offline ist, liefert der Service einen ehrlichen "nicht verfügbar"-Text
 4. **Inkrementell** — Jede Phase ist einzeln deploybar und testbar
-5. **Kein Mockito** — Tests nutzen echte HTTP-Errors oder Constructor-DI für Error-Pfade
-6. **Ein Modell für alles** — `llama3.1:8b` deckt Chat, Service-Prompts und Quervernetzung ab. Einheitliche Prompt-Engine, ein Fallback-Pfad, ein Optimierungsziel.
+5. **Kein Mockito** — Tests nutzen echte HTTP-Errors oder Constructor-DI für Error-Pfade6. **Ein Modell für alles** — `llama3.1:8b` deckt Chat, Service-Prompts und Quervernetzung ab. Einheitliche Prompt-Engine, ein Fallback-Pfad, ein Optimierungsziel.
+ 
+---
+
+## Phase X.7 — ServiceRegistry: Mobility/Finance/Health als native Screens (2026-07-29, Commit f424da8)
+
+> **Ziel:** MobilityScreen, FinanceScreen, HealthScreen als nativeBuilder in service_registry.dart registrieren (statt ComingSoonScreen-Placeholder). Alle drei Screens existierten bereits als vollwertige native Flutter-Screens, waren aber fälschlich als "Coming Soon" im Apps-Tab gelistet.
+
+### Status
+
+- ✅ `src/mobile/lib/features/miniprogram/domain/service_registry.dart` (MODIFIED, 14 insertions, 20 deletions):
+  - 3 neue imports: `mobility_screen.dart`, `finance_screen.dart`, `health_screen.dart`
+  - 3 ComingSoonScreen-Einträge durch native const Screens ersetzt:
+    - `nativeBuilder: (_) => const MobilityScreen()`
+    - `nativeBuilder: (_) => const FinanceScreen()`
+    - `nativeBuilder: (_) => const HealthScreen()`
+  - Doc-Kommentar Status aktualisiert (mobility/finance/health jetzt als ✅ markiert)
+- ✅ Alle 3 Screens haben `const` Konstruktoren — Interface-kompatibel mit `nativeBuilder: (_)` Pattern
+- ✅ Import `coming_soon_screen.dart` bleibt erhalten (wird noch von events/jobs/hotels/buergeramt genutzt)
+
+### Auswirkung auf Live-App
+
+- **Vorher:** Apps-Tab → Mobility/Finance/Health → ComingSoonScreen (Dummy-Status)
+- **Nachher:** Apps-Tab → Mobility/Finance/Health → Echter nativer Screen (Karte/Wallet/Ärztesuche)
+
+### Design-Entscheidungen
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **Kein IFrame, kein WebView** | Alle 3 Screens sind echte native Flutter Widgets — keine Einbettung externer URLs |
+| **Kein Hardcoding** | ServiceRegistry bleibt Single Source of Truth — Screens werden via `nativeBuilder` injiziert |
+| **Import-Struktur beibehalten** | `coming_soon_screen.dart` bleibt importiert (wird von 4 verbleibenden ComingSoon-Services genutzt) |
+
+### Validation
+
+- `dart format lib/features/miniprogram/domain/service_registry.dart` → exit 0
+- `dart analyze lib/features/miniprogram/domain/service_registry.dart` → No issues found
+- Code-Reviewer: ✅ PASS — keine kritischen Issues
 
 ---
+
+## Phase X.8 — Mobilitätskarte Zoom +/- Buttons (2026-07-29, Commit 4a2ef27)
+
+> **Ziel:** Zoom-Funktionalität der Mobilitätskarte verbessern: fehlende min/maxZoom-Restriktionen ergänzen, Zoom-Buttons robuster machen und Hardcoding-Berlin-Fallback entfernen.
+
+### Status
+
+- ✅ `src/mobile/lib/features/mobility/presentation/mobility_screen.dart` (MODIFIED, 3 Änderungen):
+  - **1. `MapOptions`:** `minZoom: 3.0`, `maxZoom: 19.0` hinzugefügt (fehlte vorher — Karte konnte unbegrenzt rein-/rauszoomen)
+  - **2. `_zoomIn()`/`_zoomOut()`:** try/catch mit Hardcoded-Berlin-Defaults ENTFERNT → ersetzt durch `if (_startLocation == null) return;` early-return Guard. `_startLocation` wird erst nach erfolgreicher Location-Initiierung gesetzt → Map ist dann garantiert initialisiert.
+  - **3. `_ZoomButton`:** Bugfix — `Icon(widget.icon)` statt `const Icon(Icons.add)` (Minus-Button zeigte fälschlich Plus-Symbol). 44x44 Hit-Target für bessere Touch-Bedienung. InkWell beibehalten für natives Ripple-Feedback (kein GestureDetector — Verlust der Material-Design-Ripple vermieden).
+
+### Bug-Historie (3 Iterationen)
+
+1. **v1-Initial:** try/catch mit Hardcoded-Berlin-Fallback `const LatLng(52.52, 13.41)` — Code-Reviewer flagged Hardcoding als Regelverstoß
+2. **v1.1-Fix:** Hardcoding entfernt → early-return Guard. Aber: `const Icon(Icons.add, ...)` statt `widget.icon` eingeführt — Minus-Button zeigte Plus
+3. **v2-Final:** `widget.icon` korrigiert, InkWell-Ripple beibehalten
+
+### Validation
+
+- `dart format lib/features/mobility/presentation/mobility_screen.dart` → exit 0
+- `dart analyze lib/features/mobility/presentation/mobility_screen.dart` → No issues found
+- Code-Reviewer: ✅ PASS — 2 Review-Runden (Hardcoding-Flag + Icon-Bug), alle Issues resolved
+
+---
+
+## Phase X.9 — WeatherProvider: Hardcoded Berlin-Defaults entfernt (2026-07-29, Commit 0a68948)
+
+> **Ziel:** Letzte hardcoded Berlin-Defaults (`_lat=52.52`, `_lng=13.41`, `_locationName='Berlin'`) im WeatherProvider durch dynamische Location ersetzen. AirQuality/Waste/EvCharging Provider hatten bereits `_lat=0,_lng=0`.
+
+### Status
+
+- ✅ `src/mobile/lib/features/weather/weather_provider.dart` (MODIFIED, 4 Änderungen):
+  - `_lat = 52.52` → `_lat = 0` (kein Hardcoded-Berlin mehr)
+  - `_lng = 13.41` → `_lng = 0`
+  - `_locationName = 'Berlin'` → `_locationName = ''`
+  - `refresh()` Guard: `if (_lat == 0 && _lng == 0) { _error = 'Standort nicht verfügbar — bitte Standortzugriff erlauben.'; return; }` verhindert API-Call mit (0,0)-Koordinaten
+  - Class-Doc Kommentar aktualisiert: "Fallback Berlin" entfernt
+- ✅ `src/mobile/test/weather_provider_test.dart` (MODIFIED, 2 Gruppen angepasst):
+  - Group 1: Erwartung von 52.52/13.41/'Berlin' → 0/0/'' (kein Berlin-Fallback mehr)
+  - Group 6: Partial Cache ohne lat/lng/name-Keys → erwartet 0/0/'' statt Berlin-Defaults
+
+### Systematische Überprüfung aller Provider auf Hardcoded-Berlin
+
+| Provider | Vorher | Nachher | Status |
+|----------|--------|---------|--------|
+| **WeatherProvider** | `_lat=52.52, _lng=13.41, _locationName='Berlin'` | `0, 0, ''` | ✅ Gefixt |
+| **AirQualityProvider** | `_lat=0, _lng=0` (bereits sauber) | unverändert | ✅ Kein Hardcoding |
+| **WasteProvider** | `_lat=0, _lng=0, _city='unknown'` (bereits sauber) | unverändert | ✅ Kein Hardcoding |
+| **EvChargingProvider** | `_lat=0, _lng=0` (bereits sauber) | unverändert | ✅ Kein Hardcoding |
+| **HealthProvider** | Keine lat/lng-Felder | unverändert | ✅ Kein Hardcoding |
+| **MobilityProvider** | Keine lat/lng-Defaults | unverändert | ✅ Kein Hardcoding |
+
+### Design-Entscheidungen
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **Guard in `refresh()`** (statt silent (0,0)-Call) | Verhindert API-Call mit (0,0)-Koordinaten → `lat=0` würde Open-Meteo auf null-Insel (Atlantik) zeigen. Ehrlicher Error-Status > fake-Daten |
+| **`_tryUpdateLocation()` überschreibt 0,0** | LocationService läuft in `init()` — wenn erfolgreich, werden echte Koordinaten gesetzt und `refresh()` mit gültigen Werten aufgerufen |
+| **Cache-Restore geht vor** | Wenn SharedPreferences gecachte Koordinaten haben, überschreiben sie 0,0 — kein Location-Need beim zweiten App-Start |
+
+### Validation
+
+- `dart format lib/features/weather/weather_provider.dart` → exit 0
+- `dart analyze lib/features/weather/weather_provider.dart` → No issues found
+- Code-Reviewer: ✅ PASS — keine kritischen Issues

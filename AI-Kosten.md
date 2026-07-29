@@ -1,24 +1,32 @@
 # HEIMAT 2.0 – AI-Kosten
 
-## Kostenübersicht (Jahr 1)
+> **Stand:** 2026-07-29 | **Letztes Update:** Health AI Agent Kosten (Ollama VPS, TFLite on-device)
+
+## Kostenübersicht (Jahr 1, aktuelle Architektur)
 
 | Komponente | Kosten/Monat | Kosten/Jahr | Anbieter |
 |------------|--------------|-------------|----------|
-| **GPU-Server (ML-Training)** | €20-50 | €240-600 | Hetzner Cloud |
-| **Hetzner Cloud (Backend)** | €5-10 | €60-120 | Hetzner |
+| **Ollama VPS (llama3.1:8b)** | €5-10 | €60-120 | Hetzner (bestehend) |
+| **Render Backend** | €0 | €0 | Render Free Tier |
+| **Supabase DB** | €0 | €0 | Supabase Free Tier |
 | **Domain (.de)** | - | €10 | Namecheap |
-| **GitHub Actions** | €0 | €0 | GitHub |
-| **MLflow Server** | €0 | €0 | Selbst gehostet |
-| **FastAPI ML-Services** | €0 | €0 | Selbst gehostet |
-| **TensorFlow Lite** | €0 | €0 | Open Source |
-| **Vosk** | €0 | €0 | Open Source |
-| **Coqui TTS** | €0 | €0 | Open Source |
-| **spaCy** | €0 | €0 | Open Source |
-| **LightGBM** | €0 | €0 | Open Source |
-| **Surprise** | €0 | €0 | Open Source |
-| **Code Llama** | €0 | €0 | Open Source |
+| **GitHub Actions** | €0 | €0 | GitHub (Open Source) |
+| **TFLite (On-Device)** | €0 | €0 | Open Source (kein Server) |
+| **Ollama (Open Source)** | €0 | €0 | Open Source |
+| **spaCy (NLP, optional)** | €0 | €0 | Open Source |
+| **Qdrant/Chroma (RAG)** | €0 | €0 | Selbst gehostet auf bestehendem VPS |
 
-**Gesamtkosten (Jahr 1):** €310-730
+**Gesamtkosten (Jahr 1, aktuell):** ~€70-130
+
+### Health AI — Keine Zusatzkosten
+| Komponente | Kosten | Begründung |
+|------------|--------|------------|
+| Ollama llama3.1:8b | €0 | Läuft auf bestehendem VPS (158.180.18.110:11434) |
+| promptService.ts | €0 | Code-Änderung, kein neuer Server |
+| ollamaService.ts | €0 | Code-Änderung, kein neuer Server |
+| Overpass API (Arztsuche) | €0 | Öffentliche API (OSM, ODbL) |
+| TFLite On-Device | €0 | Läuft auf User-Smartphone |
+| Lebenszeichen Timer | €0 | Nur App-interner Timer (kein Server) |
 
 ---
 
