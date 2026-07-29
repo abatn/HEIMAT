@@ -11,6 +11,8 @@ import 'package:heimat_app/core/widgets/empty_state.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_provider.dart';
 import 'package:heimat_app/features/finance/presentation/finance_provider.dart';
 import 'package:heimat_app/features/health/presentation/health_provider.dart';
+import 'package:heimat_app/features/ai_chat/presentation/ai_chat_provider.dart';
+import 'package:heimat_app/features/checkin/presentation/checkin_provider.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_screen.dart';
 import 'package:heimat_app/features/finance/presentation/finance_screen.dart';
 import 'package:heimat_app/features/health/presentation/health_screen.dart';
@@ -33,6 +35,23 @@ class _StubHealth extends HealthProvider {
   @override
   Future<void> searchDoctors(
       {String? specialty, double? lat, double? lng}) async {}
+}
+
+class _StubAiChat extends AiChatProvider {
+  @override
+  Future<void> sendMessage(String text) async {}
+}
+
+class _StubCheckin extends CheckinProvider {
+  _StubCheckin(super.authService);
+  @override
+  Future<void> activate() async {}
+  @override
+  Future<void> deactivate() async {}
+  @override
+  Future<void> ping() async {}
+  @override
+  Future<void> refreshStatus() async {}
 }
 
 // ---------------------------------------------------------------------------
@@ -88,6 +107,10 @@ Widget buildTestApp({required Widget child}) {
         create: (_) => _StubFinance(AuthService()),
       ),
       ChangeNotifierProvider<HealthProvider>(create: (_) => _StubHealth()),
+      ChangeNotifierProvider<AiChatProvider>(create: (_) => _StubAiChat()),
+      ChangeNotifierProvider<CheckinProvider>(
+        create: (_) => _StubCheckin(AuthService()),
+      ),
     ],
     child: MaterialApp(
       title: AppConfig.appName,

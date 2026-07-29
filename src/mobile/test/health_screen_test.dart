@@ -85,6 +85,10 @@ void main() {
   });
 
   testWidgets('HealthScreen AI Chat section can be expanded', (tester) async {
+    // Groesserer Viewport fuer den expandierten AI Chat + EmptyState
+    addTearDown(tester.view.resetPhysicalSize);
+    tester.view.physicalSize = const Size(1080, 2400);
+
     await tester.pumpWidget(
       MultiProvider(
         providers: [
