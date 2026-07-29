@@ -38,6 +38,16 @@ export interface ServicePromptResult {
   fetchedAt: string;
 }
 
+/** ServiceContext — Beschreibt welche Services mit welchen Parametern
+ *  in den Chat-Kontext eingebunden werden sollen (Phase AI-4).
+ *  Mobile App sendet dieses Objekt an POST /api/ai/chat mit.
+ */
+export interface ServiceContext {
+  weather?: { lat: number; lng: number };
+  air?: { lat: number; lng: number };
+  waste?: { lat: number; lng: number; street?: string; houseNr?: string };
+}
+
 // ---------------------------------------------------------------------------
 // Template-Engine: simple {placeholder} replacement
 // ---------------------------------------------------------------------------
@@ -212,7 +222,7 @@ export const promptService = {
    * @param service  Name des Services ('weather', 'air', 'waste')
    * @param lat      Breitengrad (für Wetter + Luft + Abfall)
    * @param lng      Längengrad (für Wetter + Luft + Abfall)
-   * @param options  Optional: street + houseNr (nur für waste), Ollama-Optimierung
+   * @param options  Optional: street + houseNr (nur für waste)
    */
   async getPrompt(
     service: ServiceName,
@@ -265,5 +275,59 @@ export const promptService = {
       default:
         throw new Error(`Unbekannter Service: ${String(service)}`);
     }
+  },
+
+  /**
+   * fetchServiceContexts — Holt Prompt-Texte für mehrere Services parallel.
+   *
+   * Zentraler Cross-Service-Context-Fetcher (Phase AI-4): Holt die aktuellen
+   * Daten für alle im context-Objekt angegebenen Services parallel via
+   * Promise.all. Die Texte werden als System-Prompt-Erweiterung an Ollama
+   * übergeben, sodass der AI-Assistent informierte, quervernetzte Antworten
+   * geben kann (z.B. "Heute ist Restmüll und es regnet — stell die Tonne
+   * unter" statt nur "Heute ist Restmüll").
+   *
+   * Wenn ein Service fehlschlägt (z.B. Abfall-API offline), wird nur dieser
+   * eine Prompt stumm übersprungen — die anderen Services liefern weiter.
+   *
+   * @param context  Objekt mit service → params Mapping
+   * @returns Array von { service, text } für alle erfolgreich geladenen Services
+   */
+  async fetchServiceContexts(
+    context: ServiceContext,
+  ): Promise<Array<{ service: ServiceName; text: string }>> {
+    const requests: Array<Promise<{ service: ServiceName; text: string } | null>> = [];
+
+    if (context.weather) {
+      requests.push(
+        this.getPrompt('weather', context.weather.lat, context.weather.lng)
+          .then(r => ({ service: r.service as ServiceName, text: r.text }))
+          .catch(() => null),
+      );
+    }
+
+    if (context.air) {
+      requests.push(
+        this.getPrompt('air', context.air.lat, context.air.lng)
+          .then(r => ({ service: r.service as ServiceName, text: r.text }))
+          .catch(() => null),
+      );
+    }
+
+    if (context.waste) {
+      requests.push(
+        this.getPrompt('waste', context.waste.lat, context.waste.lng, {
+          street: context.waste.street,
+          houseNr: context.waste.houseNr,
+        })
+          .then(r => ({ service: r.service as ServiceName, text: r.text }))
+          .catch(() => null),
+      );
+    }
+
+    const results = await Promise.all(requests);
+    return results.filter(
+      (r): r is { service: ServiceName; text: string } => r !== null,
+    );
   },
 };

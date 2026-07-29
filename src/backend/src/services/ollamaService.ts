@@ -18,6 +18,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { externalServices } from '../config/externalServices';
 import { logger } from '../utils/logger';
+import { promptService, type ServiceContext } from './promptService';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -52,6 +53,11 @@ sage ehrlich "Das kann ich leider nicht beantworten".`;
 
 const FALLBACK_MESSAGE =
   'KI-Assistent ist nicht verfügbar. Bitte stelle sicher, dass Ollama auf dem Server läuft (http://localhost:11434).';
+
+/** Separator zwischen Service-Kontexten im System-Prompt. */
+const SERVICE_CONTEXT_SEPARATOR = '\n\n---\n\n';
+
+
 
 export class OllamaService {
   private readonly baseUrl: string;
@@ -128,6 +134,63 @@ export class OllamaService {
       );
       return FALLBACK_MESSAGE;
     }
+  }
+
+  // -----------------------------------------------------------------------
+  // chatWithContext — Ollama-Chat mit eingebetteten Service-Daten.
+  //
+  // Holt vor dem Chat die aktuellen Daten für die angeforderten Services
+  // (Wetter, Luftqualität, Abfall) und injiziert sie in den System-Prompt.
+  // So kann Ollama (wenn online) quervernetzte Antworten geben.
+  //
+  // Wenn Ollama offline ist, werden die Service-Daten direkt als
+  // strukturierte Antwort zurückgegeben (kein generischer Fallback).
+  //
+  // @param userMessage  Die Nachricht des Users
+  // @param context      Welche Services mit welchen Parametern abgefragt werden
+  // @param options      Modell + SystemPrompt-Optionen
+  // @returns            Antwort-String (entweder Ollama oder Service-Daten)
+  // -----------------------------------------------------------------------
+  async chatWithContext(
+    userMessage: string,
+    context: ServiceContext,
+    options?: { model?: string; systemPrompt?: string },
+  ): Promise<string> {
+    // 1. Service-Kontexte parallel fetchen
+    const serviceContexts = await promptService.fetchServiceContexts(context);
+
+    // 2. Erweiterten System-Prompt bauen
+    let extendedPrompt =
+      options?.systemPrompt ?? this.systemPrompt;
+
+    if (serviceContexts.length > 0) {
+      extendedPrompt +=
+        SERVICE_CONTEXT_SEPARATOR +
+        'Hier sind die aktuellen Service-Daten, die du für deine Antwort nutzen solltest:' +
+        SERVICE_CONTEXT_SEPARATOR +
+        serviceContexts
+          .map(sc => `[${sc.service.toUpperCase()}]: ${sc.text}`)
+          .join(SERVICE_CONTEXT_SEPARATOR);
+    }
+
+    // 3. An Ollama senden
+    const ollamaResponse = await this.chat(userMessage, {
+      model: options?.model,
+      systemPrompt: extendedPrompt,
+    });
+
+    // 4. Wenn Ollama offline war → kombinierte Service-Daten zurückgeben
+    if (ollamaResponse === FALLBACK_MESSAGE && serviceContexts.length > 0) {
+      const combined = serviceContexts
+        .map(sc => `📊 ${sc.service.toUpperCase()}\n${sc.text}`)
+        .join('\n\n');
+      return (
+        `Hier sind die aktuellen Daten aus deinen HEIMAT-Services:\n\n${combined}\n\n` +
+        `💡 Für eine persönlichere Erklärung stelle bitte sicher, dass der KI-Assistent läuft.`
+      );
+    }
+
+    return ollamaResponse;
   }
 
   // -----------------------------------------------------------------------

@@ -45,21 +45,28 @@ aiRouter.post('/home/personalized', asyncHandler(async (req: Request, res: Respo
 // Sendet eine User-Nachricht an Ollama (llama3.1:8b) und gibt die
 // KI-generierte Antwort zurueck.
 //
-// Body: { message: string, model?: string, systemPrompt?: string }
-// Response: { status: 'ok' | 'error', response: string, model: string }
+// Body: { message, model?, systemPrompt?, services? }
+//   services: { weather?: {lat,lng}, air?: {lat,lng}, waste?: {lat,lng,street?,houseNr?} }
 //
-// Fallback: Wenn Ollama offline ist, kommt ein klarer deutscher Text
-// (kein Mock, kein Cache).
+// Response: { status, response, model, contexts?: [...] }
+//
+// Cross-Service (Phase AI-4):
+//   - services-Objekt injected aktuelle Service-Daten in den System-Prompt
+//   - Ollama kann dann quervernetzte Antworten geben (z.B. Wetter + Abfall)
+//   - Wenn Ollama offline: direkte Daten-Rückgabe statt generischer Fallback
+//
+// Fallback: Wenn Ollama offline ist, kommen die Service-Daten als Text.
 // ---------------------------------------------------------------------------
 
 export interface ChatRequestBody {
   message: string;
   model?: string;
   systemPrompt?: string;
+  services?: import('../services/promptService').ServiceContext;
 }
 
 aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
-  const { message, model, systemPrompt } = req.body as ChatRequestBody;
+  const { message, model, systemPrompt, services } = req.body as ChatRequestBody;
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     res.status(400).json({
@@ -76,6 +83,27 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
+  // Cross-Service Chat (Phase AI-4): Wenn services-Objekt vorhanden,
+  // nutze chatWithContext() für daten-angereicherte Antwort.
+  if (services && typeof services === 'object' && Object.keys(services).length > 0) {
+    const response = await ollamaService.chatWithContext(
+      message.trim(),
+      services,
+      { model, systemPrompt },
+    );
+
+    const isFallback = response.startsWith('Hier sind die aktuellen Daten');
+
+    res.json({
+      status: isFallback ? 'context' : 'ok',
+      response,
+      model: model ?? 'llama3.1:8b',
+      services_used: Object.keys(services),
+    });
+    return;
+  }
+
+  // Standard-Chat (ohne Service-Kontext)
   const response = await ollamaService.chat(message.trim(), {
     model,
     systemPrompt,
