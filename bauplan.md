@@ -1415,11 +1415,11 @@ Polished Open Items (deferred to Phase X.4):
 
 | Schritt | Datei | Beschreibung |
 |---------|-------|-------------|
-| 1.1 | `src/backend/src/services/ollamaService.ts` (NEU) | Axios-Client gegen `http://localhost:11434/api/chat`. POST mit `{model, messages, stream}`, SSE-Support. Method `chat(model, systemPrompt, userMessages) : AsyncIterable<string>` |
-| 1.2 | `src/backend/src/routes/ai.ts` (MODIFIED) | `POST /api/ai/chat` → ollamaService.chat(). `GET /api/ai/status` → checkt ob Ollama läuft (HTTP 200/503). |
-| 1.3 | `src/backend/src/middleware/schemas.ts` (MODIFIED) | Zod-Schema: `{model: 'llama3.1:8b', messages: array, systemPrompt?: string}` |
-| 1.4 | `src/backend/src/__tests__/ollamaService.test.ts` (NEU) | 3 Tests: (1) Constructor ok, (2) `chat()` fallback-msg bei Connection-Refused, (3) URL-Config aus externalServices. **Kein Mockito** — echte HTTP-Errors reichen. |
-| 1.5 | `bauplan.md` | Phase AI-1 abgeschlossen markieren |
+| 1.1 | `src/backend/src/services/ollamaService.ts` (NEU) | **✅ DONE** — Axios-Client gegen `http://localhost:11434/api/chat` + `/api/tags`. `chat(message)` + `status()`. Fallback bei ECONNREFUSED/ECONNABORTED/ENOTFOUND → deutscher "KI-Assistent nicht verfügbar"-Text. Constructor-DI, Module-Singleton. |
+| 1.2 | `src/backend/src/routes/ai.ts` (MODIFIED) | **✅ DONE** — `POST /api/ai/chat` → ollamaService.chat(). `GET /api/ai/status` → ollamaService.status(). Input-Validierung: message required + max 2000 Zeichen. |
+| 1.3 | `src/backend/src/config/externalServices.ts` (MODIFIED) | **✅ DONE** — `ollamaBaseUrl` Property + env-var `OLLAMA_BASE_URL` (Default: `http://localhost:11434`). describe()-Return-Type erweitert. |
+| 1.4 | `src/backend/src/__tests__/ollamaService.test.ts` (NEU) | **✅ DONE** — 7 Tests: Constructor (3), Connection-Refused-Fallback (3), Fallback-Message (2). **Kein Mockito** — echter axios gegen localhost:11434 (CI offline → realer ECONNREFUSED). |
+| 1.5 | `bauplan.md` | **✅ DONE** — Commit `a7cdbf6`. tsc 0, eslint 0, audit 0 violations. |
 
 **Abhängigkeiten:** Keine — eigenständiger Service.
 
@@ -1570,6 +1570,8 @@ Phase AI-5 (TFLite) — parallel zu AI-1..AI-4
 | AI-4 | ~3h | AI-1 + AI-2 + AI-3 | Cross-Service AI Assistant |
 | AI-5 | ~5h | Keine (parallel) | TFLite / Vosk / Coqui on-device |
 | **Gesamt** | **~18h** | | (+3h für AI-3a neue Services) |
+
+> **Stand 2026-07-28:** Phase AI-1 **✅ LIVE auf main** (Commit `a7cdbf6`). ollamaService.ts + POST /api/ai/chat + GET /api/ai/status + 7 Tests. Nächste: Phase AI-2 (Flutter Chat UI) oder AI-3 (Service Prompts).
 
 **Anmerkung:** 💬 Futai Chat (KI-Twin + Emotionen + Gedächtnis) ist ein separates Projekt (github.com/abatn/futai) und in diesen Timern nicht enthalten. Die Integration als Mini-Program in HEIMAT ist separat in Phase D geplant (~5h).
 
