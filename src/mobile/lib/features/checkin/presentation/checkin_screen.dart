@@ -133,10 +133,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primaryLight,
-          ],
+          colors: [AppColors.primary, AppColors.primaryLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -182,10 +179,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     SizedBox(height: 2),
                     Text(
                       'Täglicher Check-in für deine Sicherheit',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white70,
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -231,8 +225,11 @@ class _CheckinScreenState extends State<CheckinScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline,
-              size: 18, color: AppColors.warning.withOpacity(0.8)),
+          Icon(
+            Icons.info_outline,
+            size: 18,
+            color: AppColors.warning.withOpacity(0.8),
+          ),
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
@@ -375,15 +372,19 @@ class _CheckinScreenState extends State<CheckinScreen> {
       children: [
         Icon(icon, size: 16, color: AppColors.textSecondary),
         const SizedBox(width: 8),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
         const Spacer(),
-        Text(value,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+        ),
       ],
     );
   }
@@ -498,8 +499,11 @@ class _CheckinScreenState extends State<CheckinScreen> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.check_circle_outline,
-                      size: 16, color: AppColors.success),
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 16,
+                    color: AppColors.success,
+                  ),
                   SizedBox(width: 6),
                   Text(
                     'Bestätigt — Timer zurückgesetzt',
@@ -599,8 +603,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 '$i',
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight:
-                      i == stage ? FontWeight.w600 : FontWeight.normal,
+                  fontWeight: i == stage ? FontWeight.w600 : FontWeight.normal,
                   color: i == stage ? stageColor : AppColors.textSecondary,
                 ),
               );
@@ -646,8 +649,11 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   color: AppColors.info.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.contact_emergency_outlined,
-                    size: 20, color: AppColors.info),
+                child: const Icon(
+                  Icons.contact_emergency_outlined,
+                  size: 20,
+                  color: AppColors.info,
+                ),
               ),
               const SizedBox(width: 10),
               const Text(
@@ -662,16 +668,22 @@ class _CheckinScreenState extends State<CheckinScreen> {
           ),
           const SizedBox(height: 12),
           if (settings?.emergencyContactName != null) ...[
-            _buildContactRow(Icons.person_outline,
-                settings!.emergencyContactName!),
+            _buildContactRow(
+              Icons.person_outline,
+              settings!.emergencyContactName!,
+            ),
             const SizedBox(height: 6),
             if (settings.emergencyContactPhone != null)
               _buildContactRow(
-                  Icons.phone_outlined, settings.emergencyContactPhone!),
+                Icons.phone_outlined,
+                settings.emergencyContactPhone!,
+              ),
             if (settings.emergencyContactEmail != null) ...[
               const SizedBox(height: 6),
               _buildContactRow(
-                  Icons.email_outlined, settings.emergencyContactEmail!),
+                Icons.email_outlined,
+                settings.emergencyContactEmail!,
+              ),
             ],
             const SizedBox(height: 8),
             Row(
@@ -709,9 +721,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
               onPressed: () => _showContactSheet(provider),
               icon: const Icon(Icons.add_circle_outline, size: 18),
               label: const Text('Notfallkontakt hinterlegen'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
           ],
         ],
@@ -725,9 +735,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
         Icon(icon, size: 16, color: AppColors.textSecondary),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(text,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.textPrimary)),
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+          ),
         ),
       ],
     );
@@ -762,8 +773,11 @@ class _CheckinScreenState extends State<CheckinScreen> {
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.tune_outlined,
-                        size: 20, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.tune_outlined,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   const Text(
@@ -778,8 +792,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   AnimatedRotation(
                     turns: _showSettings ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.expand_more,
-                        color: AppColors.textSecondary),
+                    child: const Icon(
+                      Icons.expand_more,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -792,15 +808,22 @@ class _CheckinScreenState extends State<CheckinScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Check-in Intervall (Stunden)',
-                      style: TextStyle(
-                          fontSize: 13, color: AppColors.textSecondary)),
+                  const Text(
+                    'Check-in Intervall (Stunden)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('$intervalHours h',
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary)),
+                  Text(
+                    '$intervalHours h',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   Slider(
                     value: _intervalHours.toDouble(),
                     min: 6,
@@ -812,19 +835,25 @@ class _CheckinScreenState extends State<CheckinScreen> {
                         ? (v) => setState(() => _intervalHours = v.round())
                         : null,
                     onChangeEnd: (v) async {
-                      await provider.updateSettings(
-                          intervalHours: v.round());
+                      await provider.updateSettings(intervalHours: v.round());
                     },
                   ),
-                  const Text('Gesundheits-Intervall (Stunden)',
-                      style: TextStyle(
-                          fontSize: 13, color: AppColors.textSecondary)),
+                  const Text(
+                    'Gesundheits-Intervall (Stunden)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('$_healthIntervalHours h',
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary)),
+                  Text(
+                    '$_healthIntervalHours h',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   Slider(
                     value: _healthIntervalHours.toDouble(),
                     min: 2,
@@ -833,29 +862,32 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     activeColor: AppColors.info,
                     label: '$_healthIntervalHours h',
                     onChanged: settings != null
-                        ? (v) => setState(
-                            () => _healthIntervalHours = v.round())
+                        ? (v) =>
+                              setState(() => _healthIntervalHours = v.round())
                         : null,
                     onChangeEnd: (v) async {
                       await provider.updateSettings(
-                          intervalHealthHours: v.round());
+                        intervalHealthHours: v.round(),
+                      );
                     },
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Text('112-Benachrichtigung',
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textPrimary)),
+                      const Text(
+                        '112-Benachrichtigung',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                       const Spacer(),
                       Switch(
                         value: _auto112,
                         onChanged: settings != null
                             ? (v) {
                                 setState(() => _auto112 = v);
-                                provider.updateSettings(
-                                    auto112Enabled: v);
+                                provider.updateSettings(auto112Enabled: v);
                               }
                             : null,
                         activeColor: AppColors.error,
@@ -866,7 +898,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     'Wenn aktiviert, kann im äußersten Notfall '
                     'der Rettungsdienst (112) benachrichtigt werden.',
                     style: TextStyle(
-                        fontSize: 11, color: AppColors.textSecondary),
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -901,8 +935,11 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.history_outlined,
-                    size: 20, color: AppColors.primary),
+                child: const Icon(
+                  Icons.history_outlined,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: 10),
               const Text(
@@ -967,24 +1004,31 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(evLabel,
+                        Text(
+                          evLabel,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (event.details != null && event.details!.isNotEmpty)
+                          Text(
+                            event.details!,
                             style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textPrimary)),
-                        if (event.details != null &&
-                            event.details!.isNotEmpty)
-                          Text(event.details!,
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary)),
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
                       ],
                     ),
                   ),
                   Text(
                     _formatDate(event.createdAt),
                     style: const TextStyle(
-                        fontSize: 11, color: AppColors.textSecondary),
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -1019,9 +1063,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
           const Icon(Icons.error_outline, size: 20, color: AppColors.error),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(errorText,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColors.error)),
+            child: Text(
+              errorText,
+              style: const TextStyle(fontSize: 13, color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -1063,32 +1108,38 @@ class _CheckinScreenState extends State<CheckinScreen> {
             children: [
               const Text(
                 'Notfallkontakt hinzufügen',
-                style: TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              _buildSheetField(
-                  _nameController, 'Name', Icons.person_outline),
+              _buildSheetField(_nameController, 'Name', Icons.person_outline),
               const SizedBox(height: 12),
               _buildSheetField(
-                  _phoneController, 'Telefon', Icons.phone_outlined,
-                  keyboardType: TextInputType.phone),
+                _phoneController,
+                'Telefon',
+                Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+              ),
               const SizedBox(height: 12),
               _buildSheetField(
-                  _emailController, 'E-Mail (optional)',
-                  Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress),
+                _emailController,
+                'E-Mail (optional)',
+                Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Text('112-Benachrichtigung erlauben',
-                      style: TextStyle(
-                          fontSize: 14, color: AppColors.textPrimary)),
+                  const Text(
+                    '112-Benachrichtigung erlauben',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   const Spacer(),
                   Switch(
                     value: _auto112,
-                    onChanged: (v) =>
-                        setState(() => _auto112 = v),
+                    onChanged: (v) => setState(() => _auto112 = v),
                     activeColor: AppColors.error,
                   ),
                 ],
@@ -1100,12 +1151,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   onPressed: () async {
                     Navigator.pop(ctx);
                     await provider.activate(
-                      emergencyContactName:
-                          _nameController.text.trim(),
-                      emergencyContactPhone:
-                          _phoneController.text.trim(),
-                      emergencyContactEmail:
-                          _emailController.text.trim(),
+                      emergencyContactName: _nameController.text.trim(),
+                      emergencyContactPhone: _phoneController.text.trim(),
+                      emergencyContactEmail: _emailController.text.trim(),
                       auto112Enabled: _auto112,
                     );
                     await provider.loadSettings();
@@ -1118,10 +1166,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Aktivieren & Speichern',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600)),
+                  child: const Text(
+                    'Aktivieren & Speichern',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -1132,9 +1180,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
     );
   }
 
-  Widget _buildSheetField(TextEditingController ctrl, String label,
-      IconData icon,
-      {TextInputType? keyboardType}) {
+  Widget _buildSheetField(
+    TextEditingController ctrl,
+    String label,
+    IconData icon, {
+    TextInputType? keyboardType,
+  }) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -1147,8 +1198,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
           labelText: label,
           prefixIcon: Icon(icon),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
         keyboardType: keyboardType,
       ),

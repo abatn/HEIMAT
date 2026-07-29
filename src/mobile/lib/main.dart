@@ -59,28 +59,22 @@ class HeimatApp extends StatelessWidget {
                   return hp;
                 },
               ),
-              ChangeNotifierProvider(
-                create: (_) => WeatherProvider()..init(),
-              ),
+              ChangeNotifierProvider(create: (_) => WeatherProvider()..init()),
               ChangeNotifierProvider(
                 create: (_) => AirQualityProvider()..init(),
               ),
               // Phase B-3: Abfallkalender als 3. nativer Flutter-Service (nach weather + air).
-              ChangeNotifierProvider(
-                create: (_) => WasteProvider()..init(),
-              ),
+              ChangeNotifierProvider(create: (_) => WasteProvider()..init()),
               // Phase B-4: E-Ladestationen als 4. nativer Flutter-Service.
               ChangeNotifierProvider(
                 create: (_) => EvChargingProvider()..init(),
               ),
               // Phase AI-2: AI Chat als 5. nativer Flutter-Service.
-              ChangeNotifierProvider(
-                create: (_) => AiChatProvider(),
-              ),
+              ChangeNotifierProvider(create: (_) => AiChatProvider()),
               // Phase AI-Health-3: Lebenszeichen Check-in (2026-07-29).
               ChangeNotifierProvider(
-                create: (_) => CheckinProvider(auth.authService)
-                  ..refreshStatus(),
+                create: (_) =>
+                    CheckinProvider(auth.authService)..refreshStatus(),
               ),
             ],
             child: MaterialApp(
@@ -140,14 +134,12 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   List<Widget> get _screens => [
-        HomeScreen(
-          onNavigateTab: (index) => setState(() => _currentIndex = index),
-        ),
-        const MobilityScreen(),
-        const FinanceScreen(),
-        const HealthScreen(),
-        const LaunchpadScreen(),
-      ];
+    HomeScreen(onNavigateTab: (index) => setState(() => _currentIndex = index)),
+    const MobilityScreen(),
+    const FinanceScreen(),
+    const HealthScreen(),
+    const LaunchpadScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -184,9 +176,7 @@ class _MainScreenState extends State<MainScreen> {
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(color: AppColors.border, width: 0.5),
-          ),
+          border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
         ),
         child: NavigationBar(
           selectedIndex: _currentIndex,

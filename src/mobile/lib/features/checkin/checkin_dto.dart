@@ -70,16 +70,16 @@ class CheckinSettingsDto {
   }
 
   Map<String, dynamic> toJson() => {
-        'intervalHours': intervalHours,
-        'intervalHealthHours': intervalHealthHours,
-        if (emergencyContactName != null)
-          'emergencyContactName': emergencyContactName,
-        if (emergencyContactPhone != null)
-          'emergencyContactPhone': emergencyContactPhone,
-        if (emergencyContactEmail != null)
-          'emergencyContactEmail': emergencyContactEmail,
-        'auto112Enabled': auto112Enabled,
-      };
+    'intervalHours': intervalHours,
+    'intervalHealthHours': intervalHealthHours,
+    if (emergencyContactName != null)
+      'emergencyContactName': emergencyContactName,
+    if (emergencyContactPhone != null)
+      'emergencyContactPhone': emergencyContactPhone,
+    if (emergencyContactEmail != null)
+      'emergencyContactEmail': emergencyContactEmail,
+    'auto112Enabled': auto112Enabled,
+  };
 }
 
 class CheckinEventDto {
@@ -100,10 +100,15 @@ class CheckinEventDto {
   factory CheckinEventDto.fromJson(Map<String, dynamic> json) {
     return CheckinEventDto(
       id: json['id'] ?? '',
-      eventType: json['event_type'] as String? ?? json['eventType'] as String? ?? '',
-      escalationStage: json['escalation_stage'] as int? ?? json['escalationStage'] as int? ?? 0,
+      eventType:
+          json['event_type'] as String? ?? json['eventType'] as String? ?? '',
+      escalationStage:
+          json['escalation_stage'] as int? ??
+          json['escalationStage'] as int? ??
+          0,
       details: json['details'] as String?,
-      createdAt: json['created_at'] as String? ?? json['createdAt'] as String? ?? '',
+      createdAt:
+          json['created_at'] as String? ?? json['createdAt'] as String? ?? '',
     );
   }
 }

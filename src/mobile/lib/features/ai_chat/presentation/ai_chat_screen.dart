@@ -107,8 +107,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 color: AppColors.primary.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.auto_awesome,
-                  color: AppColors.primary, size: 18),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: AppColors.primary,
+                size: 18,
+              ),
             ),
             const SizedBox(width: 10),
             const Expanded(
@@ -117,10 +120,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 children: [
                   Text(
                     'HEIMAT AI',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   Text(
                     'llama3.1:8b · lokal · datenschutz',
@@ -191,7 +191,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
       color: AppColors.info.withOpacity(0.08),
       child: Row(
         children: [
-          Icon(Icons.info_outline, size: 14, color: AppColors.info.withOpacity(0.8)),
+          Icon(
+            Icons.info_outline,
+            size: 14,
+            color: AppColors.info.withOpacity(0.8),
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -288,9 +292,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ),
               onPressed: () => _sendSuggestion(s.question),
               backgroundColor: AppColors.primary.withOpacity(0.06),
-              side: BorderSide(
-                color: AppColors.primary.withOpacity(0.15),
-              ),
+              side: BorderSide(color: AppColors.primary.withOpacity(0.15)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -350,12 +352,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
         bottom: 8,
       ),
       child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            mainAxisAlignment: isUser
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               // Avatar (nur bei AI)
@@ -367,8 +371,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     color: AppColors.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.auto_awesome,
-                      color: AppColors.primary, size: 14),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: AppColors.primary,
+                    size: 14,
+                  ),
                 ),
               // Bubble
               Flexible(
@@ -385,8 +392,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       bottomLeft: Radius.circular(isUser ? 16 : 4),
                       bottomRight: Radius.circular(isUser ? 4 : 16),
                     ),
-                    border:
-                        isUser ? null : Border.all(color: AppColors.border),
+                    border: isUser ? null : Border.all(color: AppColors.border),
                     boxShadow: isUser
                         ? [
                             BoxShadow(
@@ -404,9 +410,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         message.content,
                         style: TextStyle(
                           fontSize: 14,
-                          color: isUser
-                              ? Colors.white
-                              : AppColors.textPrimary,
+                          color: isUser ? Colors.white : AppColors.textPrimary,
                           height: 1.4,
                         ),
                       ),
@@ -434,7 +438,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 14),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 14,
+                  ),
                 ),
             ],
           ),
@@ -457,8 +465,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
               color: AppColors.primary.withOpacity(0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.auto_awesome,
-                color: AppColors.primary, size: 14),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: AppColors.primary,
+              size: 14,
+            ),
           ),
           // Typing-Bubble
           Container(
@@ -508,9 +519,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       decoration: const BoxDecoration(
         color: AppColors.card,
-        border: Border(
-          top: BorderSide(color: AppColors.border, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
       ),
       child: SafeArea(
         top: false,
@@ -523,8 +532,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
                   children: [
-                    Icon(Icons.cloud_off,
-                        size: 14, color: AppColors.error.withOpacity(0.7)),
+                    Icon(
+                      Icons.cloud_off,
+                      size: 14,
+                      color: AppColors.error.withOpacity(0.7),
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -537,13 +549,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     ),
                     TextButton.icon(
                       icon: const Icon(Icons.refresh, size: 14),
-                      label: const Text('Wiederholen',
-                          style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'Wiederholen',
+                        style: TextStyle(fontSize: 12),
+                      ),
                       onPressed: () => p.retryLast(),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 0),
+                          horizontal: 8,
+                          vertical: 0,
+                        ),
                         minimumSize: const Size(0, 28),
                       ),
                     ),
@@ -560,8 +576,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     enabled: !p.isLoading,
                     focusNode: _textFocus,
                     textInputAction: TextInputAction.send,
-                    onSubmitted:
-                        p.isLoading ? null : (_) => _sendMessage(),
+                    onSubmitted: p.isLoading ? null : (_) => _sendMessage(),
                     decoration: InputDecoration(
                       hintText: p.isLoading
                           ? 'Antwort wird erstellt …'
@@ -573,7 +588,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       filled: true,
                       fillColor: AppColors.surface,
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -611,8 +628,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Icon(Icons.send_rounded,
-                            color: Colors.white, size: 20),
+                        : const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                     onPressed: p.isLoading ? null : _sendMessage,
                   ),
                 ),

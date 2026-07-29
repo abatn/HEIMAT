@@ -118,10 +118,7 @@ class CheckinProvider extends ChangeNotifier {
     try {
       final url = '${AppConfig.backendUrl}/api/checkin/deactivate';
       final response = await http
-          .post(
-            Uri.parse(url),
-            headers: _authService.authHeaders,
-          )
+          .post(Uri.parse(url), headers: _authService.authHeaders)
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
@@ -154,8 +151,7 @@ class CheckinProvider extends ChangeNotifier {
             Uri.parse(url),
             headers: _authService.authHeaders,
             body: json.encode({
-              if (healthSymptoms != null)
-                'healthSymptoms': healthSymptoms,
+              if (healthSymptoms != null) 'healthSymptoms': healthSymptoms,
             }),
           )
           .timeout(const Duration(seconds: 30));
@@ -186,10 +182,7 @@ class CheckinProvider extends ChangeNotifier {
     try {
       final url = '${AppConfig.backendUrl}/api/checkin/status';
       final response = await http
-          .get(
-            Uri.parse(url),
-            headers: _authService.authHeaders,
-          )
+          .get(Uri.parse(url), headers: _authService.authHeaders)
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
@@ -216,10 +209,7 @@ class CheckinProvider extends ChangeNotifier {
     try {
       final url = '${AppConfig.backendUrl}/api/checkin/settings';
       final response = await http
-          .get(
-            Uri.parse(url),
-            headers: _authService.authHeaders,
-          )
+          .get(Uri.parse(url), headers: _authService.authHeaders)
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
@@ -285,10 +275,7 @@ class CheckinProvider extends ChangeNotifier {
     try {
       final url = '${AppConfig.backendUrl}/api/checkin/events';
       final response = await http
-          .get(
-            Uri.parse(url),
-            headers: _authService.authHeaders,
-          )
+          .get(Uri.parse(url), headers: _authService.authHeaders)
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
