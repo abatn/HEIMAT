@@ -711,7 +711,7 @@ class _HealthScreenState extends State<HealthScreen> {
                               ai,
                             ),
                             _healthSuggestionChip(
-                              Icons.headache_outlined,
+                              Icons.healing,
                               'Kopfschmerzen',
                               'Ich habe starke Kopfschmerzen',
                               ai,
@@ -733,8 +733,8 @@ class _HealthScreenState extends State<HealthScreen> {
 
                       // Letzte AI-Antwort anzeigen (max 2 Nachrichten)
                       if (ai.messages.isNotEmpty) ...[
-                        SizedBox(
-                          maxHeight: 120,
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 120),
                           child: ListView(
                             shrinkWrap: true,
                             children: ai.messages
