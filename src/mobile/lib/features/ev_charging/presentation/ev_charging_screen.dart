@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/skeleton_loader.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../ev_charging_dto.dart';
 import 'ev_charging_provider.dart';
 import '../widgets/ev_charging_widgets.dart';
 
