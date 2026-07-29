@@ -61,12 +61,14 @@ class _MobilityScreenState extends State<MobilityScreen> {
   }
 
   void _zoomIn() {
+    if (_startLocation == null) return;
     final currentZoom = _mapController.camera.zoom;
     _mapController.move(
         _mapController.camera.center, (currentZoom + 1).clamp(3.0, 19.0));
   }
 
   void _zoomOut() {
+    if (_startLocation == null) return;
     final currentZoom = _mapController.camera.zoom;
     _mapController.move(
         _mapController.camera.center, (currentZoom - 1).clamp(3.0, 19.0));
@@ -269,6 +271,8 @@ class _MobilityScreenState extends State<MobilityScreen> {
                   options: MapOptions(
                     initialCenter: _startLocation!,
                     initialZoom: 13.0,
+                    minZoom: 3.0,
+                    maxZoom: 19.0,
                   ),
                   children: [
                     TileLayer(
@@ -891,11 +895,16 @@ class _ZoomButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
+        color: AppColors.card.withOpacity(0.95),
         borderRadius: BorderRadius.circular(14),
+        border:
+            Border.all(color: AppColors.border.withOpacity(0.5), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.15),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -903,13 +912,12 @@ class _ZoomButton extends StatelessWidget {
       ),
       child: Material(
         borderRadius: BorderRadius.circular(14),
-        color: AppColors.card,
+        color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: onPressed,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            child: Icon(icon, color: AppColors.textPrimary, size: 20),
+          child: Center(
+            child: Icon(widget.icon, color: AppColors.primary, size: 24),
           ),
         ),
       ),
