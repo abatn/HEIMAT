@@ -45,11 +45,18 @@ class _StubAiChat extends AiChatProvider {
 class _StubCheckin extends CheckinProvider {
   _StubCheckin(super.authService);
   @override
-  Future<void> activate() async {}
+  Future<void> activate({
+    int? intervalHours,
+    int? intervalHealthHours,
+    String? emergencyContactName,
+    String? emergencyContactPhone,
+    String? emergencyContactEmail,
+    bool auto112Enabled = false,
+  }) async {}
   @override
   Future<void> deactivate() async {}
   @override
-  Future<void> ping() async {}
+  Future<bool> ping({String? healthSymptoms}) async => true;
   @override
   Future<void> refreshStatus() async {}
 }
