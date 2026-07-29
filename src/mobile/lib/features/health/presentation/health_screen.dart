@@ -36,16 +36,19 @@ class _HealthScreenState extends State<HealthScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initLocationAndSearch();
+      // Sofort DB-Ärzte laden (schnell, kein Warten auf Standort)
+      context.read<HealthProvider>().searchDoctors();
+      // Parallel Standort holen — bei Erfolg bessere Ergebnisse via Overpass
+      _loadLocationAndRefresh();
     });
   }
 
-  Future<void> _initLocationAndSearch() async {
+  Future<void> _loadLocationAndRefresh() async {
     final location = await LocationService.getCurrentLocation();
-    if (mounted) {
+    if (mounted && location != null) {
       context.read<HealthProvider>().searchDoctors(
-            lat: location?.latitude,
-            lng: location?.longitude,
+            lat: location.latitude,
+            lng: location.longitude,
           );
     }
   }
