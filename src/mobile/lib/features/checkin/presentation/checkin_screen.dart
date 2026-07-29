@@ -863,7 +863,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     label: '$_healthIntervalHours h',
                     onChanged: settings != null
                         ? (v) =>
-                              setState(() => _healthIntervalHours = v.round())
+                            setState(() => _healthIntervalHours = v.round())
                         : null,
                     onChangeEnd: (v) async {
                       await provider.updateSettings(
