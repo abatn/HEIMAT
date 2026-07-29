@@ -74,8 +74,8 @@ class HealthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    HomeProvider.onUserAction?.call('arzt gesucht');
     try {
+      HomeProvider.onUserAction?.call('arzt gesucht');
       // Wenn Koordinaten vorhanden: Overpass + DB (nearby)
       if (lat != null && lng != null) {
         final query = <String, String>{
