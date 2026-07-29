@@ -158,11 +158,11 @@ void main() {
   });
 
   // ==================================================================
-  // Group 1: Initial State — Konstruktor-Defaults (Berlin-Fallback)
+  // Group 1: Initial State — Konstruktor-Defaults (kein hardcoded Standort)
   //
   // Weather-spezifisch: 9 AQ-Defaults + sentiment/alerts/hasAlerts = 12
   // ==================================================================
-  group('Initial state — Konstruktor-Defaults (Berlin-Fallback)', () {
+  group('Initial state — Konstruktor-Defaults (kein hardcoded Standort)', () {
     test('hasData ist false initial', () {
       expect(provider.hasData, isFalse);
     });
@@ -187,16 +187,16 @@ void main() {
       expect(provider.isStale, isFalse);
     });
 
-    test('locationName defaulted auf "Berlin"', () {
-      expect(provider.locationName, 'Berlin');
+    test('locationName defaulted auf "" (kein hardcoded Standort)', () {
+      expect(provider.locationName, '');
     });
 
-    test('lat defaulted auf 52.52 (Berlin-Koordinate)', () {
-      expect(provider.lat, 52.52);
+    test('lat defaulted auf 0 (kein hardcoded Standort)', () {
+      expect(provider.lat, 0);
     });
 
-    test('lng defaulted auf 13.41 (Berlin-Koordinate)', () {
-      expect(provider.lng, 13.41);
+    test('lng defaulted auf 0 (kein hardcoded Standort)', () {
+      expect(provider.lng, 0);
     });
 
     // --- Weather-spezifische Defaults ---
@@ -499,8 +499,10 @@ void main() {
   // ==================================================================
   // Group 6: init() mit partiellem Cache (Berlin-Defaults)
   // ==================================================================
-  group('init() mit partiellem Cache (Berlin-Defaults bei fehlenden Keys)', () {
-    test('behaelt Berlin-Defaults wenn lat/lng-Keys fehlen', () async {
+  group('init() mit partiellem Cache (0/0/leer bei fehlenden Keys)', () {
+    test(
+        'location 0/0/leer wenn lat/lng/name-Keys fehlen (kein Berlin-Fallback)',
+        () async {
       final now = DateTime.now();
       SharedPreferences.setMockInitialValues({
         kCacheKey: validForecastJson(),
@@ -510,13 +512,13 @@ void main() {
 
       await provider.init();
 
-      expect(provider.lat, 52.52,
-          reason: 'Berlin-Fallback wenn kein lat im Cache');
-      expect(provider.lng, 13.41,
-          reason: 'Berlin-Fallback wenn kein lng im Cache');
-      expect(provider.locationName, 'Berlin',
+      expect(provider.lat, 0,
+          reason: '0 wenn kein lat im Cache (kein hardcoded Fallback)');
+      expect(provider.lng, 0,
+          reason: '0 wenn kein lng im Cache (kein hardcoded Fallback)');
+      expect(provider.locationName, '',
           reason:
-              'locationName aus Konstruktor-Default wenn kein name im Cache');
+              'leerer name wenn kein name im Cache (kein hardcoded Fallback)');
     });
 
     test('Last-Cached-Name wird uebernommen wenn nur name-Key fehlt', () async {
@@ -533,8 +535,8 @@ void main() {
 
       expect(provider.lat, 48.0);
       expect(provider.lng, 11.0);
-      expect(provider.locationName, 'Berlin',
-          reason: 'locationName bleibt Default wenn name-Key fehlt');
+      expect(provider.locationName, '',
+          reason: 'locationName bleibt leer wenn name-Key fehlt');
     });
 
     // --- Weather-Add: Partial alerts-Key (forecast only, no alerts) ---

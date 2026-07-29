@@ -14,7 +14,7 @@ import 'weather_dto.dart';
 /// - Cache-Tier 1 (Memory): ein _forecast-Feld für sofortiges Tab-Switching
 /// - Cache-Tier 2 (SharedPreferences): JSON + Timestamp persistent
 /// - Stale Graceful Degradation: zeigt letzte Daten + isStale=true statt Error-Screen
-/// - Location: LocationService.getCurrentLocation() mit Fallback Berlin
+/// - Location: LocationService.getCurrentLocation() (kein hardcoded Fallback)
 ///
 /// **AI-Architektur.md:** Kein Cloud-AI-Call hier. Reine DTO-Daten.
 class WeatherProvider extends ChangeNotifier {
@@ -36,10 +36,10 @@ class WeatherProvider extends ChangeNotifier {
   String? _error;
   WeatherForecastResponse? _forecast;
 
-  // Default: Berlin — wird in init() ggf. überschrieben
-  double _lat = 52.52;
-  double _lng = 13.41;
-  String _locationName = 'Berlin';
+  // Kein hardcoded Standort — wird via LocationService + Cache dynamisch geladen
+  double _lat = 0;
+  double _lng = 0;
+  String _locationName = '';
   DateTime? _lastUpdated;
   bool _isStale = false;
 
@@ -101,7 +101,7 @@ class WeatherProvider extends ChangeNotifier {
     if (hasData && _isStale) {
       unawaited(refresh());
     }
-    // Location update ist best-effort — Fehler ignorieren, Berlin bleibt Fallback
+    // Location update ist best-effort — bei Fehler kein Fetch (Standort unbekannt)
     unawaited(_tryUpdateLocation());
   }
 
@@ -120,7 +120,7 @@ class WeatherProvider extends ChangeNotifier {
         await refresh();
       }
     } catch (_) {
-      // silently ignore — Berlin-Fallback bleibt aktiv
+      // silently ignore — Standort aktuell nicht verfuegbar
     }
   }
 
@@ -131,9 +131,14 @@ class WeatherProvider extends ChangeNotifier {
     if (_isLoading) return;
     _isLoading = true;
     _error = null;
-    // MAJOR-Fix: _sentiment reset vor neuem Fetch damit Pull-to-Refresh
-    // nicht stale UI anzeigt (altes Sentiment waere waehrend Network-Latenz
-    // noch sichtbar obwohl Forecast schon neuen Wettertext hat).
+    // Kein hardcoded Standort — wenn _lat==0 && _lng==0 (Location nicht verfuegbar),
+    // keinen leeren API-Call starten. User sieht "Standort nicht verfuegbar".
+    if (_lat == 0 && _lng == 0) {
+      _error = 'Standort nicht verfügbar — bitte Standortzugriff erlauben.';
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
     _sentiment = null;
     notifyListeners();
     try {
