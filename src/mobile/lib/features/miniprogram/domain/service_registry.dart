@@ -3,6 +3,9 @@ import '../../air_quality/air_quality_screen.dart';
 import '../../waste/waste_screen.dart';
 import '../../ev_charging/presentation/ev_charging_screen.dart';
 import '../../ai_chat/presentation/ai_chat_screen.dart';
+import '../../mobility/presentation/mobility_screen.dart';
+import '../../finance/presentation/finance_screen.dart';
+import '../../health/presentation/health_screen.dart';
 import '../presentation/coming_soon_screen.dart';
 import 'service_definition.dart';
 
@@ -22,7 +25,10 @@ import 'service_definition.dart';
 /// - ✅ `weather` → Native Flutter (Phase E Pilot)
 /// - ✅ `air` → Native Flutter (Luftqualität — Phase B, 2026-07-27)
 /// - ✅ `waste` → Native Flutter (Phase B-3, 2026-07-27)
-/// - ⏳ mobility, finance, health, futai, events, jobs, hotels, buergeramt → ComingSoonScreen-Placeholder (Migration in Phase D/E)
+/// - ✅ `mobility` → Native Flutter (Mobilität — 2026-07-29)
+/// - ✅ `finance` → Native Flutter (Finanzen — 2026-07-29)
+/// - ✅ `health` → Native Flutter (Gesundheit — 2026-07-29)
+/// - ⏳ futai, events, jobs, hotels, buergeramt → ComingSoonScreen-Placeholder (Migration in Phase D/E)
 class ServiceRegistry {
   ServiceRegistry._();
   static final ServiceRegistry instance = ServiceRegistry._();
@@ -107,19 +113,14 @@ class ServiceRegistry {
         nativeBuilder: (_) => const EvChargingScreen(),
       ),
 
-      // ===== Coming Soon Placeholder (Phase D/E Migration pending) =====
+      // ===== Echte native Services =====
       'mobility': ServiceDefinition(
         id: 'mobility',
         name: 'Mobilität',
         category: 'Mobilität',
         description: 'Haltestellen & Abfahrten in deiner Nähe.',
         searchTags: const ['bus', 'bahn', 'öpnv', 'transitous', 'haltestelle'],
-        nativeBuilder: (_) => const ComingSoonScreen(
-          serviceName: 'Mobilität',
-          description: 'Haltestellen & Abfahrten in deiner Nähe.',
-          category: 'Mobilität',
-          searchTags: ['bus', 'bahn', 'öpnv'],
-        ),
+        nativeBuilder: (_) => const MobilityScreen(),
       ),
       'finance': ServiceDefinition(
         id: 'finance',
@@ -127,12 +128,7 @@ class ServiceRegistry {
         category: 'Alltag',
         description: 'Taler-Wallet & P2P-Überweisungen.',
         searchTags: const ['geld', 'kudos', 'taler', 'p2p', 'wallet'],
-        nativeBuilder: (_) => const ComingSoonScreen(
-          serviceName: 'Finanzen',
-          description: 'Taler-Wallet & P2P-Überweisungen.',
-          category: 'Alltag',
-          searchTags: ['geld', 'kudos', 'taler', 'p2p', 'wallet'],
-        ),
+        nativeBuilder: (_) => const FinanceScreen(),
       ),
       'health': ServiceDefinition(
         id: 'health',
@@ -140,13 +136,11 @@ class ServiceRegistry {
         category: 'Alltag',
         description: 'Ärzte-Suche & Online-Terminbuchung.',
         searchTags: const ['arzt', 'praxis', 'termin', 'medizin', 'doc'],
-        nativeBuilder: (_) => const ComingSoonScreen(
-          serviceName: 'Gesundheit',
-          description: 'Ärzte-Suche & Online-Terminbuchung.',
-          category: 'Alltag',
-          searchTags: ['arzt', 'praxis', 'termin'],
-        ),
+        nativeBuilder: (_) => const HealthScreen(),
       ),
+
+      // ===== Coming Soon Placeholder (Phase D/E Migration pending) =====
+
       'events': ServiceDefinition(
         id: 'events',
         name: 'Veranstaltungen',
