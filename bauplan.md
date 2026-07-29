@@ -381,6 +381,82 @@ Entscheidend: wenn env-var NICHT konfiguriert (production-default), läuft der b
   - Kummulativ Phase R.7+R.8+B-2+B-2.1: backend-side **53+19+2 = 74 Tests** erwartet grün
 - **Mock-Policy-Konformität unverändert strict**: Produktion-Code (`services/`, `routes/`, `lib/`, `index.ts`, `scripts/`): ZERO forbidden identifiers. audit-no-mocks.sh wird in CI ohne ripgrep-dependencyänderung grün bleiben.
 
+## Phase AI-Health-2 — Check-in Backend ("Lebenszeichen") (2026-07-29, Commit e0f23bf)
+
+> **Ziel:** Timer-basiertes Check-in-System — KEIN Accelerometer, KEIN GPS, KEINE Kamera.
+> User aktiviert tägliche Erinnerung. Bei Ausbleiben → Eskalationskette (0-4).
+> Privacy-first: Nur Timer. User muss Opt-in geben.
+
+### Status
+
+- ✅ `src/backend/src/database/schema.sql` — 2 neue Tabellen: `checkin_settings` + `checkin_events` mit Indizes
+- ✅ `src/backend/src/services/checkinService.ts` (NEU, ~310 LOC) — Core Service: activate/deactivate/ping/getStatus/getSettings/updateSettings/getEvents/getOverdueUsers/checkEscalation/reportHealthContext/clearCache. Escalation-Stages 0-4. Auto-112 nur mit User-Einwilligung. Timer-Job via setInterval(60s).
+- ✅ `src/backend/src/routes/checkin.ts` (NEU, ~200 LOC) — 7 Endpoints (POST activate/deactivate/ping, GET status/settings/events, PUT settings). Alle requireAuth.
+- ✅ `src/backend/src/index.ts` (MODIFIED) — /api/checkin Router gemountet + `checkinService.startEscalationTimer()` im Startup (NODE_ENV !== 'test').
+- ✅ `src/backend/src/__tests__/checkin.test.ts` (NEU, 23 Tests in 9 Gruppen) — ALL GREEN. activate(3)/deactivate(2)/ping(3)/getStatus(3)/getSettings(2)/updateSettings(3)/getEvents(2)/computeStatus(3)/reportHealthContext(2).
+- ✅ Live-Verifikation: `GET https://heimat-backend.onrender.com/api/checkin/status` → 401 Authentifizierung erforderlich (JWT-Protected — korrekt).
+
+### Escalation-Stages
+
+| Stage | Status | Aktion |
+|-------|--------|--------|
+| 0 | ✅ Alles okay | — |
+| 1 | ⏰ Überschritten | Nächste Erinnerung folgt |
+| 2 | 🔔 Erinnerung | Push-Benachrichtigung |
+| 3 | 👤 Kontakt | Notfallkontakt benachrichtigt |
+| 4 | 🚑 112 | Rettungsdienst (nur mit Einwilligung) |
+
+### Adaptiver Timer
+
+- Normal: 24h Intervall
+- Bei Symptom-Meldung: automatisch auf 6h verkürzt (healthContextActive)
+- Kein Sensor-Tracking, keine Standort-Historie
+
+### Validation
+
+- ✅ Backend Tests: 23/23 passed
+- ✅ tsc --noEmit: 0 Errors
+- ✅ Endpoint Live: 401 (JWT-Protected)
+
+---
+
+## Phase AI-Health-3 — Check-in Flutter UI (2026-07-29, Commit 7c63b1b)
+
+> **Ziel:** Lebenszeichen-Check-in als nativen Flutter-Screen im Apps-Tab bereitstellen.
+> Großer "Mir geht's gut!"-Button, Eskalationsanzeige, Notfallkontakt-Settings.
+
+### Status
+
+- ✅ `checkin_dto.dart` (NEU) — CheckinStatusDto, CheckinSettingsDto, CheckinEventDto, CheckinPingResult
+- ✅ `checkin_provider.dart` (NEU) — Provider mit JWT-Auth via `_authService.authHeaders` (mirror zu FinanceProvider). 7 API-Calls: activate/deactivate/ping/refreshStatus/loadSettings/updateSettings/loadEvents.
+- ✅ `checkin_screen.dart` (NEU) — "Lebenszeichen" Screen mit:
+  - Gradient-Header (Schutzengel-Icon)
+  - Disclaimer-Banner ("Kein medizinischer Notdienst — bei Notfällen 112")
+  - Activation-Toggle + Status-Infos
+  - **Großer runder Ping-Button** (160px Herz-Icon "Mir geht's gut!")
+  - Escalation-Card (5-Stufen-Indikator 0-4)
+  - Emergency-Contact-Card mit Bottom-Sheet-Bearbeitung
+  - Settings (Intervall-Slider 6-48h, 112-Toggle)
+  - Events-Timeline
+- ✅ `service_registry.dart` (MODIFIED) — `checkin` Service mit nativeBuilder: CheckinScreen
+- ✅ `main.dart` (MODIFIED) — CheckinProvider(auth.authService) registriert mit refreshStatus()
+- ✅ `test/checkin_provider_test.dart` (NEU, 28 Tests in 7 Gruppen) — Initial State, Auth Injection, Escalation Descriptions (6x), DTO Parsing (12x in 4 Sub-Gruppen).
+
+### UI-Design
+
+- **Kein IFrame/WebView** — pure Flutter
+- **Beruhigend, grün**, große Tap-Ziele für Senioren
+- **Privacy-first** — erklärt was NICHT getrackt wird
+- **Settings sync** — Slider-Werte werden aus Backend geladen
+
+### Validation (CI-gate)
+
+- Code-Reviewer: Keine Blocker ✅
+- CI erwartet: dart format + flutter analyze + flutter test (28 Tests grün)
+- audit-no-mocks.sh: 0 violations erwartet
+
+---
+
 ### Offene Punkte (bewusst nicht umgesetzt)
 
 - **Hamburg-Mirror-URL-Recherche Phase 2**: Licensed community-mirror (z.B. analog `mil-muenchen/muenchen-abfallkalender`-Pattern für Hamburg) OR `transparenz.hamburg.de` iCal-export-license-positive. Wenn gefunden, deployment-owner setzt env-var `ABFALL_SRH_FALLBACK_URL` ohne Code-Refactor.
