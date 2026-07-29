@@ -1334,3 +1334,50 @@ Polished Open Items (deferred to Phase X.4):
 - **flutter test nicht lokal validiert** — Flutter SDK nicht auf diesem Rechner installiert. CI muss die Test-Änderungen (Group 1/6/9/10 Expectations) validieren.
 - **Test-Datei-Drift in other providers** — weather_provider_test.dart + finance_provider_test.dart haben keine hardcoded Koordinaten-Assertions mehr, aber sollten in Zukunft auf new-defaults-Konsistenz geprüft werden.
 - **Route-level integration-test** für admin.ts Endpoints (erfordern jetzt query-params). Phase 5 Clean-up für Test-Coverage.
+
+## Phase X.6 — Mobilitätskarte Zoom-Buttons + Health Location-Integration (2026-07-28, Commits 3b92308 + 08fd8ac)
+
+> **Ziel:** Zwei User-Komplimente aus Live-Test beheben: (1) Mobilitätskarte hatte keine sichtbaren +/- Zoom-Buttons, (2) Gesundheitsscreen zeigte nur 5 hardcodierte DB-Seed-Ärzte statt dynamischer OSM-Ärzte.
+
+### Status
+
+- ✅ **mobility_screen.dart**: Neue `_ZoomButton`-Klasse (+) und (-) neben GPS-Button. `_zoomIn()/_zoomOut()` mit `_mapController.camera.zoom` + `clamp(3, 19)`. Padding `EdgeInsets.all(12)` — konsistent mit `_GpsButton`. Column-Layout: [ZoomIn, Divider, ZoomOut, Spacer(8), GpsButton].
+- ✅ **health_screen.dart**: LocationService-Integration für dynamische OSM-Ärzte via `/api/health/doctors/nearby`:
+  - `initState()`: **Sofort** `searchDoctors()` ohne Koordinaten (zeigt DB-Ärzte in <1s, keine Wartezeit)
+  - Parallel: `_loadLocationAndRefresh()` → `LocationService.getCurrentLocation()` mit Permission-Guard
+  - Wenn Location verfügbar: Zweiter `searchDoctors(lat, lng)`-Call → `/api/health/doctors/nearby` → **echte OSM-Ärzte via Overpass + DB-Merge** (dynamisch, keine Hardcodierung)
+  - Wenn Location nicht verfügbar: DB-Ärzte bleiben sichtbar (graceful degradation)
+- ✅ Keine hardcodierten Koordinaten im HealthScreen mehr (LocationService + Backend-Driven)
+- ✅ CI grün auf `08fd8ac` (Flutter CI + Deploy Web beide success)
+
+### UX-Verbesserungen
+
+| Vorher | Nachher |
+|--------|--------|
+| Mobilität: Nur Pinch/Scroll-Zoom (keine sichtbaren Steuerelemente) | Mobilität: +/- Buttons rechts, identifizierbar + touch-bar |
+| Gesundheit: 5 hardcodierte DB-Ärzte (Berlin Seed), kein Location-Bezug | Gesundheit: Sofort DB-Ärzte, dann dynamische OSM-Ärzte nahe User-Standort |
+| Gesundheit: Kein Loading-Indikator während Location-Fetch (leerer Screen 5-15s) | Gesundheit: Skeleton sofort via DB-Call, Update nach Location (nie leer) |
+
+### Design-Entscheidungen
+
+| Entscheidung | Begründung |
+|--------------|------------|
+| **Zoom +/- als sichtbare Buttons** (nicht nur Touch-Gesten) | FlutterMap unterstützt Pinch/Scroll-Zoom, aber User erwarten sichtbare +/- Steuerung (Google-Maps-Pattern). `_ZoomButton` folgt `_GpsButton`-Stil. |
+| **Two-Phase Health-Load: DB first, then OSM** | DB-Ärzte sind in <1s verfügbar (kein Network-Wait). OSM-Ärzte brauchen Overpass (5-30s). Two-Phase = nie leerer Screen. |
+| **`clamp(3, 19)` für Zoom** | Verhindert Zoom-Out ins Weltall (<3) und Zoom-In in Pixel-Break (>19). OSM-Tiles sind zwischen Zoom 3-19 sinnvoll. |
+| **Padding `EdgeInsets.all(12)` auf Zoom-Buttons** | Konsistent mit `_GpsButton`. Code-Reviewer-Feedback aus Phase X.5 (Padding-Inkonsistenz) umgesetzt. |
+
+### Validation
+
+- `dart format lib/features/mobility/presentation/mobility_screen.dart lib/features/health/presentation/health_screen.dart` → exit 0 ✓
+- `bash scripts/audit-no-mocks.sh` → 0 violations ✓
+- Flutter CI (Commit 08fd8ac): dart format → analyze → test → build-web + build-android → **success** ✓
+- Deploy Web: GitHub Pages auto-deployed auf `08fd8ac` ✓
+
+### Offene Punkte
+
+- **Health-Provider-Tests fehlen** — `searchDoctors()` + `loadSlots()` + `bookAppointment()` Logik ungetestet. Mirror-Pattern zu air_quality_provider_test.dart möglich.
+- **E-Ladestationen (Phase B-4)** — Nächster Service. OSM Overpass Backend + Mobile UI.
+- **WasteScreen Location-Integration** — Analog Health: LocationService einbinden statt Berlin-Defaults (52.52/13.41). Phase X.5c hat BBox-Hardcoding entfernt, aber init-State ist noch Berlin.
+
+---
