@@ -60,6 +60,18 @@ class _MobilityScreenState extends State<MobilityScreen> {
     super.dispose();
   }
 
+  void _zoomIn() {
+    final currentZoom = _mapController.camera.zoom;
+    _mapController.move(
+        _mapController.camera.center, (currentZoom + 1).clamp(3.0, 19.0));
+  }
+
+  void _zoomOut() {
+    final currentZoom = _mapController.camera.zoom;
+    _mapController.move(
+        _mapController.camera.center, (currentZoom - 1).clamp(3.0, 19.0));
+  }
+
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     if (query.length < 3) {
@@ -341,23 +353,42 @@ class _MobilityScreenState extends State<MobilityScreen> {
               child: _buildSearchPanel(),
             ),
 
-          // GPS Button
+          // Zoom Controls + GPS Button
           if (!_showSearch)
             Positioned(
               top: MediaQuery.of(context).padding.top + 140,
               right: 16,
-              child: _GpsButton(
-                onPressed: () async {
-                  LatLng? loc = await LocationService.getCurrentLocation();
-                  if (loc != null && mounted) {
-                    setState(() => _startLocation = loc);
-                    _mapController.move(loc, 13.0);
-                    context.read<MobilityProvider>().loadNearbyStops(
-                          loc.latitude,
-                          loc.longitude,
-                        );
-                  }
-                },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ZoomButton(
+                    icon: Icons.add,
+                    onPressed: _zoomIn,
+                  ),
+                  Container(
+                    height: 1,
+                    width: 24,
+                    color: AppColors.border.withOpacity(0.3),
+                  ),
+                  _ZoomButton(
+                    icon: Icons.remove,
+                    onPressed: _zoomOut,
+                  ),
+                  const SizedBox(height: 8),
+                  _GpsButton(
+                    onPressed: () async {
+                      LatLng? loc = await LocationService.getCurrentLocation();
+                      if (loc != null && mounted) {
+                        setState(() => _startLocation = loc);
+                        _mapController.move(loc, 13.0);
+                        context.read<MobilityProvider>().loadNearbyStops(
+                              loc.latitude,
+                              loc.longitude,
+                            );
+                      }
+                    },
+                  ),
+                ],
               ),
             ),
 
@@ -844,6 +875,44 @@ class _MapMarker extends StatelessWidget {
         ],
       ),
       child: const Icon(Icons.circle, color: Colors.white, size: 12),
+    );
+  }
+}
+
+// ============================================================================
+// Zoom Button (+ / -)
+// ============================================================================
+
+class _ZoomButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  const _ZoomButton({required this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        borderRadius: BorderRadius.circular(14),
+        color: AppColors.card,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onPressed,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Icon(icon, color: AppColors.textPrimary, size: 20),
+          ),
+        ),
+      ),
     );
   }
 }

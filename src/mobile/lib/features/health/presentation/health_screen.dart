@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -35,8 +36,18 @@ class _HealthScreenState extends State<HealthScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HealthProvider>().searchDoctors();
+      _initLocationAndSearch();
     });
+  }
+
+  Future<void> _initLocationAndSearch() async {
+    final location = await LocationService.getCurrentLocation();
+    if (mounted) {
+      context.read<HealthProvider>().searchDoctors(
+            lat: location?.latitude,
+            lng: location?.longitude,
+          );
+    }
   }
 
   void _showRegisterSheet() {
