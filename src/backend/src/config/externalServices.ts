@@ -47,6 +47,8 @@ export interface ExternalServiceEnv {
   // ABFALL_AWB_FALLBACK_URL?: string; — env-only (Phase B-2.3 AGPL-defensiv: kein commit-fähiger default)
   // ABFALL_SRH_FALLBACK_URL?: string; — env-only (Phase B-2.1 NEEDS-FIX #2 AGPL-defensiv)
   ABFALL_SRH_PRIMARY_URL?: string;
+  // --- Ollama AI (Phase AI-1) ---
+  OLLAMA_BASE_URL?: string;
   // --- Allgemein ---
   HEIMAT_USER_AGENT?: string;
 }
@@ -97,6 +99,9 @@ export class ExternalServiceRegistry {
 
   /** Abfallkalender Hamburg SRH Primary iCal-Endpoint (HTML-form-export). */
   public readonly abfallHamburgPrimaryUrl: string;
+
+  /** Ollama Base-URL (lokaler AI-Assistent). Default: localhost:11434 */
+  public readonly ollamaBaseUrl: string;
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
     // VALIDATE-URL-HELPER (Phase X.3b — NEEDS-FIX #2 resolution):
@@ -163,6 +168,7 @@ export class ExternalServiceRegistry {
     const abfallBerlinFallbackRaw = normalizeEnvValue(env.ABFALL_BSR_FALLBACK_URL);
     const abfallMuenchenPrimaryRaw = normalizeEnvValue(env.ABFALL_AWB_PRIMARY_URL);
     const abfallHamburgPrimaryRaw = normalizeEnvValue(env.ABFALL_SRH_PRIMARY_URL);
+    const ollamaRaw = normalizeEnvValue(env.OLLAMA_BASE_URL);
     const userAgentRaw = normalizeEnvValue(env.HEIMAT_USER_AGENT);
     const overpassRaw = normalizeEnvValue(env.OVERPASS_MIRRORS);
 
@@ -225,6 +231,12 @@ export class ExternalServiceRegistry {
       'https://www.stadtreinigung-hamburg.de/icity/export.php?street={street}&houseNr={houseNr}',
     );
 
+    this.ollamaBaseUrl = validateUrl(
+      ollamaRaw,
+      'OLLAMA_BASE_URL',
+      'http://localhost:11434',
+    );
+
     // Mirror-Liste: comma-separated env-var oder 3-Default-Mirrors.
     // .filter(Boolean) schuetzt vor OVERPASS_MIRRORS="" → [''] Crash.
     // Inline `replace(/\/+$/, '')` statt stripTrailingSlash-Helper (Phase X.3b
@@ -273,6 +285,7 @@ export class ExternalServiceRegistry {
     abfallBerlinFallbackUrl: string;
     abfallMuenchenPrimaryUrl: string;
     abfallHamburgPrimaryUrl: string;
+    ollamaBaseUrl: string;
     envOverridesActive: string[];
   } {
     const activeOverrides: string[] = [];
@@ -289,6 +302,7 @@ export class ExternalServiceRegistry {
     if (process.env.ABFALL_BSR_FALLBACK_URL) activeOverrides.push('ABFALL_BSR_FALLBACK_URL');
     if (process.env.ABFALL_AWB_PRIMARY_URL) activeOverrides.push('ABFALL_AWB_PRIMARY_URL');
     if (process.env.ABFALL_SRH_PRIMARY_URL) activeOverrides.push('ABFALL_SRH_PRIMARY_URL');
+    if (process.env.OLLAMA_BASE_URL) activeOverrides.push('OLLAMA_BASE_URL');
     if (process.env.HEIMAT_USER_AGENT) activeOverrides.push('HEIMAT_USER_AGENT');
     return {
       userAgent: this.userAgent,
@@ -305,6 +319,7 @@ export class ExternalServiceRegistry {
       abfallBerlinFallbackUrl: this.abfallBerlinFallbackUrl,
       abfallMuenchenPrimaryUrl: this.abfallMuenchenPrimaryUrl,
       abfallHamburgPrimaryUrl: this.abfallHamburgPrimaryUrl,
+      ollamaBaseUrl: this.ollamaBaseUrl,
       envOverridesActive: activeOverrides,
     };
   }
