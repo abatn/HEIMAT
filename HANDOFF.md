@@ -26,7 +26,7 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - **Quick-Actions-Flicker-Fix (Commit 8aad85f)**: getPersonalizedContext() überschrieb Quick Actions mit intent-spezifischen 2-Button-Sets („Störungen/Alternativ"). Fix: Nur Suggestions werden personalisiert, Quick Actions bleiben 4 Standard-Buttons. Dead Code entfernt. ✅
 - Backend CI + Mobile CI grün auf `main`
 - Swagger/OpenAPI /docs + /docs.json
-- Mobilität und Gesundheit seit MVP grün
+- Mobilität und Gesundheit (100% Overpass-Live, standortunabhängig) seit MVP grün
 
 ### Was ist offen
 - EUR-Exchange: Wallet-Balance bleibt 0.00 KUDOS bis EUR-Production-Exchange (oder bank.demo.taler.net) echtes Taler-Guthaben via Reserve-Adresse-Bank-Wire bucht. Demo-Mock-Bypass fundLocal liefert HTTP 410 Gone (Commit 2d3ae18). Mobile Demo-Button "25 Demo-KUDOS" + `_computeMockLiveStatus` entfernt (Commit 7718333). audit-no-mocks.sh enforced in CI (Commit 82047ad). User-Regel (AGENTS.md:143 + knowledge.md:283): "mock, simulation, fake sind verboten".
@@ -43,7 +43,7 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 
 ### Was bereits implementiert ist
 - Mobilität: Overpass, Nominatim, OSRM, transitous.org, RAPTOR, GTFS Stop-Matching
-- Gesundheit: Overpass-Ärzte, Registrierung, Slots, Terminbuchung
+- Gesundheit: 100% Overpass-Live (weltweit, keine Seed-Daten), classifySpecialty 25 Rules, 21 Specialty-Chips, dynamische DB bei Terminbuchung via ensureDoctorInDb()
 - Finanzen: Taler Wallet-Client (echte GNU-Taler-Software, Ed25519, /keys + /reserves/<pub>). **Currency dynamisch aus /keys (d91fc76)** — EUR-ready via `TALER_EXCHANGE_URL` env var.
 - AI: Intent-Klassifikation (BayesClassifier), Disruption-Analyse, Personal Routing
 - ML-Service: LightGBM Delay Predictor + Naive Bayes Budget Classifier (mit Training-Endpoints)

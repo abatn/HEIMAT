@@ -48,8 +48,9 @@ HEIMAT 2.0 ist eine datenschutzkonforme, kostenfreie Super App für den deutsche
 - Privacy-by-Design
 
 ### Gesundheit
-- Arzt-Suche nach Fachrichtung und Ort
-- Terminbuchung mit verfügbarer Zeitplanung
+- Ärzte weltweit via OpenStreetMap Overpass (standortunabhängig, keine Seed-Daten)
+- 25 Specialty-Kategorien mit classifySpecialty() (52 Unit-Tests)
+- Terminbuchung: OSM-Ärzte werden bei Buchung automatisch in DB gespeichert
 - Keine TI-Anbindung, keine Patientendaten
 
 ### Mini-Programme (Apps-Tab)
@@ -156,7 +157,7 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | Phase | Status | Details |
 |-------|--------|---------|
 | Mobilität (OSM/Overpass/OSRM) | ✅ Abgeschlossen | Echte Haltestellen, Nominatim-Geocoding, Routing |
-| Gesundheit (OSM + Registrierung) | ✅ Abgeschlossen | Echte Ärzte aus Overpass, Arzt-Registrierung |
+| Gesundheit (100% Overpass-Live) | ✅ Abgeschlossen | Ortsunabhängig, 25 Specialty-Kategorien, dynamische DB bei Terminbuchung |
 | **User-Auth (JWT)** | ✅ Live (2026-07-25) | Register/Login/Logout end-to-end auf Render, Token in Browser-LocalStorage persistiert, AppBar mit ⋮-Logout |
 | **Finanzen (JWT-Roundtrip)** | ✅ Live (2026-07-25) | Bearer-Token in allen 5 Mobile-HTTP-Calls; Backend `GET /wallet` neu; Schema-Migration |
 | **Phase 23 Security-Härtung** | ✅ Live (2026-07-25) | `POST /api/migrate` entfernt; `preDeployCommand` Auto-Migration; `security.test.ts` Regression-Lock |
