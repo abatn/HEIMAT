@@ -128,7 +128,11 @@ void main() {
       // Beide Pfade gueltig — isLoading-Resets ist der invariante Test.
     });
 
-    test('refresh() mit radiusKm bleibt stabil', () async {
+    test('refresh() mit radiusKm bleibt stabil',
+        // CI Race-Fix: HTTP .timeout(30s) == Test-Default-Timeout(30s) →
+        // Test-Runner killt den Test bevor finally-Block greift.
+        // Fix: Test-Timeout auf 60s erhöhen (> HTTP 30s).
+        timeout: const Timeout(Duration(seconds: 60)), () async {
       await provider.refresh(radiusKm: 10);
 
       expect(provider.isLoading, isFalse);

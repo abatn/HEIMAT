@@ -111,7 +111,11 @@ void main() {
   group(
       'searchDoctors() mit lat/lng (nearby-Endpoint — kein hardcoded Fallback)',
       () {
-    test('searchDoctors(lat, lng) resolved ohne unhandled Exception', () async {
+    test('searchDoctors(lat, lng) resolved ohne unhandled Exception',
+        // CI Race-Fix: HTTP .timeout(30s) == Test-Default-Timeout(30s) →
+        // Test-Runner killt den Test bevor finally-Block greift.
+        // Fix: Test-Timeout auf 60s erhöhen (> HTTP 30s).
+        timeout: const Timeout(Duration(seconds: 60)), () async {
       // CI ohne Netzwerk: http.get kann TimeoutException oder SocketException werfen.
       // Der Error-Handling-Contract (try/catch/finally) fängt beides ab.
       try {
@@ -127,7 +131,7 @@ void main() {
 
     test(
         'searchDoctors(lat, lng) mit specialty bleibt stabil (nearby + filter)',
-        () async {
+        timeout: const Timeout(Duration(seconds: 60)), () async {
       await provider.searchDoctors(
         lat: 52.52,
         lng: 13.41,
