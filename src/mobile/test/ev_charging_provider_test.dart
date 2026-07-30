@@ -1,3 +1,4 @@
+@Timeout(Duration(seconds: 60))
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heimat_app/features/ev_charging/presentation/ev_charging_provider.dart';
@@ -63,13 +64,11 @@ void main() {
     test('init() komplettiert ohne Exception', () async {
       await provider.init();
     });
-
     test('init() laesst isLoading=false (kein sync-Call)', () async {
       await provider.init();
       expect(provider.isLoading, isFalse);
       expect(provider.error, isNull);
     });
-
     test('init() ruft notifyListeners mind. 1x auf', () async {
       int notifyCount = 0;
       provider.addListener(() => notifyCount++);
@@ -117,7 +116,6 @@ void main() {
       expect(notifyCount, greaterThanOrEqualTo(1),
           reason: 'notifyListeners wurde mind. 1x aufgerufen');
     });
-
     test('refresh() setzt error bei Network-Failure (stabiler Endzustand)',
         () async {
       await provider.refresh();
@@ -128,18 +126,13 @@ void main() {
       // Beide Pfade gueltig — isLoading-Resets ist der invariante Test.
     });
 
-    test('refresh() mit radiusKm bleibt stabil',
-        // CI Race-Fix: HTTP .timeout(30s) == Test-Default-Timeout(30s) →
-        // Test-Runner killt den Test bevor finally-Block greift.
-        // Fix: Test-Timeout auf 60s erhöhen (> HTTP 30s).
-        timeout: const Timeout(Duration(seconds: 60)), () async {
+    test('refresh() mit radiusKm bleibt stabil', () async {
       await provider.refresh(radiusKm: 10);
 
       expect(provider.isLoading, isFalse);
     });
     test('refresh() Doppel-Call: zweiter Aufruf wird sicher gedroppt',
-        // 2x refresh() = 2x HTTP .timeout(30s) → Test braucht >60s
-        timeout: const Timeout(Duration(seconds: 90)), () async {
+        () async {
       // Beide awaiten: erster läuft durch, zweiter wird via Guard gedroppt
       await provider.refresh();
       await provider.refresh();

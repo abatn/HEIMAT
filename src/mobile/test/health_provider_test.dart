@@ -1,3 +1,4 @@
+@Timeout(Duration(seconds: 60))
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heimat_app/features/health/presentation/health_provider.dart';
@@ -111,11 +112,7 @@ void main() {
   group(
       'searchDoctors() mit lat/lng (nearby-Endpoint — kein hardcoded Fallback)',
       () {
-    test('searchDoctors(lat, lng) resolved ohne unhandled Exception',
-        // CI Race-Fix: HTTP .timeout(30s) == Test-Default-Timeout(30s) →
-        // Test-Runner killt den Test bevor finally-Block greift.
-        // Fix: Test-Timeout auf 60s erhöhen (> HTTP 30s).
-        timeout: const Timeout(Duration(seconds: 60)), () async {
+    test('searchDoctors(lat, lng) resolved ohne unhandled Exception', () async {
       // CI ohne Netzwerk: http.get kann TimeoutException oder SocketException werfen.
       // Der Error-Handling-Contract (try/catch/finally) fängt beides ab.
       try {
@@ -128,10 +125,9 @@ void main() {
           reason:
               'isLoading resettet auch bei nearby-path (finally-Block sichert ab)');
     });
-
     test(
         'searchDoctors(lat, lng) mit specialty bleibt stabil (nearby + filter)',
-        timeout: const Timeout(Duration(seconds: 60)), () async {
+        () async {
       await provider.searchDoctors(
         lat: 52.52,
         lng: 13.41,

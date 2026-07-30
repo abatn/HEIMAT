@@ -1,3 +1,4 @@
+@Timeout(Duration(seconds: 60))
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
