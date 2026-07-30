@@ -318,6 +318,15 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 **Pipeline:** Mini-Program (IFrame) → Render /mini/weather.html → JS Geolocation → Backend /api/weather/forecast → Open-Meteo (DWD ICON)
 
+### ✅ Health-Screen Overhaul (2026-07-30, Commits 9934c45 + 494e7d6 + dd0f9ed)
+- **classifySpecialty()** von 6 auf 15 Regeln erweitert (Kinderarzt, Frauenarzt, Kardiologe, Orthopädie, Neurologe, Psychotherapeut, Pneumologie, Allergologie, Innere Medizin, Sportmedizin)
+- **distanceKm** Feld + `haversineKm()` Methode — Entfernungsberechnung für alle Ärzte, sortiert nach Distanz
+- **12 Specialty-Chips** statt 6 (Kinder, Frauen, Herz, Ortho, Neuro, Psyche)
+- **Distance-Badge** auf jeder Arzt-Karte (blaue Pille, z.B. "1.2 km")
+- **Anruf-Button** für alle Ärzte mit Telefon (SnackBar mit Telefonnummer)
+- **CI-Fixes**: classifySpecialty Return-Wert an Tests angepasst (494e7d6), url_launcher entfernt wegen Platform-Channel-Mock-Problem (dd0f9ed)
+- Backend `tsc --noEmit` ✅ | `audit-no-mocks.sh` ✅ 0 violations
+
 ### ❌ Was fehlt (echte Lücken)
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
