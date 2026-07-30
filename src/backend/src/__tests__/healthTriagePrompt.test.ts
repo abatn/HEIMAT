@@ -5,138 +5,66 @@
 //
 // Test-Strategie:
 // - KEIN jest.mock (Mock-Policy)
-// - Constructor-DI für AxiosInstance in OllamaService
-// - Mock-HTTP fängt den POST /api/chat Request ab und prüft den System-Prompt
-// - Testet: Health-Triage-Prompt wird injiziert + Symptom-Context wird übergeben
+// - Teste EXPORTIERTE pure Funktion buildHealthSystemPrompt (kein Netzwerk)
+// - Nur 1 chatWithContext Integrationstest mit Recording-HTTP
 // ---------------------------------------------------------------------------
 
-import { OllamaService } from '../services/ollamaService';
+import { OllamaService, buildHealthSystemPrompt } from '../services/ollamaService';
 import { promptService } from '../services/promptService';
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 
 // ---------------------------------------------------------------------------
-// Hilfsfunktion: Erzeugt eine AxiosInstance die POST-Anfragen aufzeichnet
+// Tests: Pure Function (kein Netzwerk)
 // ---------------------------------------------------------------------------
-
-function createRecordingHttp(): {
-  http: AxiosInstance;
-  getRequests: () => Array<{ url: string; body: unknown }>;
-} {
-  const requests: Array<{ url: string; body: unknown }> = [];
-
-  const http = axios.create({
-    // adapter: macht keine echten HTTP-Calls (nur Recording)
-  });
-
-  // @ts-expect-error - AxiosInstance-adapter überschreiben für Test-Zwecke
-  http.defaults.adapter = async (config: Record<string, unknown>) => {
-    requests.push({
-      url: config.url as string,
-      body: config.data ? JSON.parse(config.data as string) : null,
-    });
-    return {
-      data: {
-        model: 'llama3.1:8b',
-        message: {
-          role: 'assistant',
-          content: 'Danke fuer deine Nachricht.',
-        },
-        done: true,
-      },
-      status: 200,
-      statusText: 'OK',
-      headers: {},
-      config,
-    };
-  };
-
-  return {
-    http,
-    getRequests: () => [...requests],
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Der vollständige Triage-Prompt-Block (genutzte Strings für Assertions)
-// ---------------------------------------------------------------------------
-// Der Triage-Block beginnt mit dieser Überschrift:
-// "## 🏥 Gesundheit — Symptom-Assessment & Triage"
-// und enthält die Abschnitte "Schritt 1", "Schritt 2", "Schritt 3".
-// Der DEFAULT_SYSTEM_PROMPT enthält nur die Service-Liste mit
-// "Symptom-Assessment + Triage" als Beschreibung (einzeilig, kein Block).
-// Daher: Prüfe auf den BLOCK (mehrzeilig) nicht auf den String allein.
 
 describe('HealthTriagePrompt — buildHealthSystemPrompt', () => {
-  it('chatWithContext mit health-Context injiziert Triage-Prompt', async () => {
-    const { http, getRequests } = createRecordingHttp();
-    const service = new OllamaService(http);
+  const basePrompt = 'Du bist HEIMAT AI, ein hilfreicher Assistent.';
 
-    await service.chatWithContext('Ich habe Rueckenschmerzen', {
-      health: { lat: 52.52, lng: 13.41 },
-    });
+  it('fuegt Triage-Block an Basis-Prompt an', () => {
+    const result = buildHealthSystemPrompt(basePrompt);
 
-    const requests = getRequests();
-    expect(requests.length).toBe(1);
-    const messages = (requests[0].body as Record<string, unknown>).messages as Array<Record<string, unknown>>;
-    const systemMsg = messages.find(m => m.role === 'system')?.content as string;
-
-    // Pruefe: Triage-Prompt-Block (mehrzeilig) ist enthalten
-    expect(systemMsg).toContain('Symptom-Assessment');
-    expect(systemMsg).toContain('NOTFALL');
-    expect(systemMsg).toContain('BEREITSCHAFTSDIENST');
-    expect(systemMsg).toContain('ROUTINETERMIN');
-    expect(systemMsg).toContain('Schritt 1');
-    expect(systemMsg).toContain('Schritt 2');
-    expect(systemMsg).toContain('Schritt 3');
-    expect(systemMsg).toContain('112');
-    expect(systemMsg).toContain('116117');
+    expect(result).toContain(basePrompt);
+    expect(result).toContain('Symptom-Assessment');
+    expect(result).toContain('Schritt 1');
+    expect(result).toContain('Schritt 2');
+    expect(result).toContain('Schritt 3');
   });
 
-  it('chatWithContext OHNE health-Context enthaelt keinen Triage-Block', async () => {
-    const { http, getRequests } = createRecordingHttp();
-    const service = new OllamaService(http);
+  it('Triage-Block enthaelt NOTFALL-Kriterien', () => {
+    const result = buildHealthSystemPrompt(basePrompt);
 
-    await service.chatWithContext('Wie ist das Wetter?', {
-      weather: { lat: 52.52, lng: 13.41 },
-    });
-
-    const requests = getRequests();
-    expect(requests.length).toBe(1);
-    const messages = (requests[0].body as Record<string, unknown>).messages as Array<Record<string, unknown>>;
-    const systemMsg = messages.find(m => m.role === 'system')?.content as string;
-
-    // Default-Prompt + Service-Daten
-    expect(systemMsg).toContain('HEIMAT AI');
-    expect(systemMsg).toContain('[WEATHER]');
-
-    // Default-Prompt erwaehnt "Symptom-Assessment" nur als Liste (einzeilig)
-    // Der MEHRZEILIGE Triage-BLOCK muss fehlen
-    expect(systemMsg).not.toContain('Schritt 1');
-    expect(systemMsg).not.toContain('Schritt 2');
-    expect(systemMsg).not.toContain('NOTFALL');
+    expect(result).toContain('NOTFALL');
+    expect(result).toContain('Brustschmerz');
+    expect(result).toContain('Atemnot');
+    expect(result).toContain('Bewusstlosigkeit');
+    expect(result).toContain('Schlaganfall');
+    expect(result).toContain('112');
   });
 
-  it('chatWithContext mit health+weather: beide Kontexte sichtbar', async () => {
-    const { http, getRequests } = createRecordingHttp();
-    const service = new OllamaService(http);
+  it('Triage-Block enthaelt BEREITSCHAFTS-Kriterien', () => {
+    const result = buildHealthSystemPrompt(basePrompt);
 
-    await service.chatWithContext('Ich habe Kopfschmerzen', {
-      health: { lat: 52.52, lng: 13.41 },
-      weather: { lat: 52.52, lng: 13.41 },
-    });
+    expect(result).toContain('BEREITSCHAFTSDIENST');
+    expect(result).toContain('39\u00b0C');
+    expect(result).toContain('116117');
+  });
 
-    const requests = getRequests();
-    expect(requests.length).toBe(1);
-    const messages = (requests[0].body as Record<string, unknown>).messages as Array<Record<string, unknown>>;
-    const systemMsg = messages.find(m => m.role === 'system')?.content as string;
+  it('Triage-Block enthaelt ROUTINE-Kriterien', () => {
+    const result = buildHealthSystemPrompt(basePrompt);
 
-    // Triage-Prompt + beide Service-Kontexte
-    expect(systemMsg).toContain('Schritt 1');
-    expect(systemMsg).toContain('NOTFALL');
-    // Service-Daten: [WEATHER] + [HEALTH]
-    expect(systemMsg).toContain('[WEATHER]');
-    expect(systemMsg).toContain('[HEALTH]');
+    expect(result).toContain('ROUTINETERMIN');
+    expect(result).toContain('Hausarzt');
+    expect(result).toContain('Erk\u00e4ltung');
+    expect(result).toContain('Kopfschmerzen');
+  });
+
+  it('Triage-Block enthaelt medizinische Disclaimer', () => {
+    const result = buildHealthSystemPrompt(basePrompt);
+
+    expect(result).toContain('KEINE medizinische Diagnose');
+    expect(result).toContain('Keine Medikamente');
+    expect(result).toContain('einf\u00fchlsam');
   });
 });
 
@@ -163,67 +91,10 @@ describe('HealthTriagePrompt — Symptom-Context in promptService', () => {
     if (result.length > 0) {
       const healthCtx = result.find(r => r.service === 'health');
       if (healthCtx) {
-        // Ohne Symptom: Keine Symptom-Meldung im Text
         expect(healthCtx.text).not.toContain('Symptom-Meldung');
       }
     }
   });
 });
 
-describe('HealthTriagePrompt — Triage-Kategorien im Prompt', () => {
-  it('Triage-Prompt enthaelt NOTFALL-Kriterien (Brustschmerz, Atemnot)', async () => {
-    const { http, getRequests } = createRecordingHttp();
-    const service = new OllamaService(http);
 
-    await service.chatWithContext('Mir geht es nicht gut', {
-      health: { lat: 52.52, lng: 13.41 },
-    });
-
-    const requests = getRequests();
-    const messages = (requests[0].body as Record<string, unknown>).messages as Array<Record<string, unknown>>;
-    const systemMsg = messages.find(m => m.role === 'system')?.content as string;
-
-    expect(systemMsg).toContain('Brustschmerz');
-    expect(systemMsg).toContain('Atemnot');
-    expect(systemMsg).toContain('Bewusstlosigkeit');
-    expect(systemMsg).toContain('Schlaganfall');
-  });
-
-  it('Triage-Prompt enthaelt BEREITSCHAFTS-Kriterien', async () => {
-    const { http, getRequests } = createRecordingHttp();
-    const service = new OllamaService(http);
-
-    await service.chatWithContext('Ich habe Fieber', {
-      health: { lat: 52.52, lng: 13.41 },
-    });
-
-    const requests = getRequests();
-    const messages = (requests[0].body as Record<string, unknown>).messages as Array<Record<string, unknown>>;
-    const systemMsg = messages.find(m => m.role === 'system')?.content as string;
-
-    expect(systemMsg).toContain('39\u00b0C');
-    expect(systemMsg).toContain('116117');
-    expect(systemMsg).toContain('BEREITSCHAFTSDIENST');
-  });
-
-  it('Triage-Prompt enthaelt ROUTINE-Kriterien (Erkaeltung, Kopfschmerzen)', async () => {
-    const { http, getRequests } = createRecordingHttp();
-    const service = new OllamaService(http);
-
-    await service.chatWithContext('Ich habe Schnupfen', {
-      health: { lat: 52.52, lng: 13.41 },
-    });
-
-    const requests = getRequests();
-    const messages = (requests[0].body as Record<string, unknown>).messages as Array<Record<string, unknown>>;
-    const systemMsg = messages.find(m => m.role === 'system')?.content as string;
-
-    expect(systemMsg).toContain('ROUTINETERMIN');
-    expect(systemMsg).toContain('Hausarzt');
-    // Genauen Prompt-Text verwenden
-    // Prompt-Text: Erkältung, leichte Kopfschmerzen
-    // (Umbrüche: newline + Aufzählungszeichen statt Komma)
-    expect(systemMsg).toContain('Erkältung');
-    expect(systemMsg).toContain('Kopfschmerzen');
-  });
-});

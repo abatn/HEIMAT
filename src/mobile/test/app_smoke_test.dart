@@ -39,7 +39,7 @@ class _StubHealth extends HealthProvider {
 
 class _StubAiChat extends AiChatProvider {
   @override
-  Future<void> sendMessage(String text) async {}
+  Future<void> sendMessage(String text, {bool includeWeather = true}) async {}
 }
 
 class _StubCheckin extends CheckinProvider {

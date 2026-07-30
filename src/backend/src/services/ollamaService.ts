@@ -105,7 +105,7 @@ sage ehrlich "Das kann ich leider nicht beantworten".`;
 
 /** Kombinierter Prompt: Default + Health Triage. Wird genutzt wenn
  *  der health-Service im Context aktiv ist. */
-function buildHealthSystemPrompt(basePrompt: string): string {
+export function buildHealthSystemPrompt(basePrompt: string): string {
   return basePrompt + HEALTH_TRIAGE_PROMPT;
 }
 
