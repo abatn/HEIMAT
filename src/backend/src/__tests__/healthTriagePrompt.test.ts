@@ -1,20 +1,16 @@
 // ---------------------------------------------------------------------------
 // healthTriagePrompt.test.ts — Phase X.10 Health AI Agent Prompt Tests
 //
-// Testet die Health-Triage-Prompt-Logik in ollamaService.ts + promptService.ts
+// Testet den Health-Triage-System-Prompt.
 //
 // Test-Strategie:
 // - KEIN jest.mock (Mock-Policy)
-// - Teste EXPORTIERTE pure Funktion buildHealthSystemPrompt (kein Netzwerk)
-// - Nur 1 chatWithContext Integrationstest mit Recording-HTTP
+// - Nur PURE Funktionen testen (kein Netzwerk, kein Timeout)
+// - buildHealthSystemPrompt ist eine exportierte reine Funktion in
+//   ollamaService.ts — kein axios, kein HTTP, keine DB
 // ---------------------------------------------------------------------------
 
 import { buildHealthSystemPrompt } from '../services/ollamaService';
-import { promptService } from '../services/promptService';
-
-// ---------------------------------------------------------------------------
-// Tests: Pure Function (kein Netzwerk)
-// ---------------------------------------------------------------------------
 
 describe('HealthTriagePrompt — buildHealthSystemPrompt', () => {
   const basePrompt = 'Du bist HEIMAT AI, ein hilfreicher Assistent.';
@@ -64,35 +60,12 @@ describe('HealthTriagePrompt — buildHealthSystemPrompt', () => {
     expect(result).toContain('Keine Medikamente');
     expect(result).toContain('einf\u00fchlsam');
   });
-});
 
-describe('HealthTriagePrompt — Symptom-Context in promptService', () => {
-  it('fetchServiceContexts mit Symptom uebergibt symptom-String', async () => {
-    const result = await promptService.fetchServiceContexts({
-      health: { lat: 52.52, lng: 13.41, symptom: 'Brustschmerzen' },
-    });
+  it('Triage-Block enthaelt Ada-Health-artige Rueckfragen', () => {
+    const result = buildHealthSystemPrompt(basePrompt);
 
-    // Ergebnis kann im CI ohne Netzwerk leer sein
-    if (result.length > 0) {
-      const healthCtx = result.find(r => r.service === 'health');
-      if (healthCtx) {
-        expect(healthCtx.text).toBeTruthy();
-      }
-    }
-  });
-
-  it('health-Context ohne Symptom hat keinen Symptom-Text', async () => {
-    const result = await promptService.fetchServiceContexts({
-      health: { lat: 52.52, lng: 13.41 },
-    });
-
-    if (result.length > 0) {
-      const healthCtx = result.find(r => r.service === 'health');
-      if (healthCtx) {
-        expect(healthCtx.text).not.toContain('Symptom-Meldung');
-      }
-    }
+    expect(result).toContain('Schmerzskala');
+    expect(result).toContain('Begleitsymptome');
+    expect(result).toContain('Ausl\u00f6ser');
   });
 });
-
-
