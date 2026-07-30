@@ -331,8 +331,8 @@ CI: Code gepuscht (78a371d), Flutter CI Pipeline (analyze + test + smoke) automa
 ### GTFS ZIP-Import: KEIN Regelverstoß
 Der GTFS-Zip-Import (`gtfs.de/nv_free`) verstößt gegen KEINE Projektdaten. CC-BY lizenziert, explizit erlaubt in `project-prompt.md:59` und `heimat-plan.md:392`.
 
-### Ärzte: ECHTE Overpass-Ergebnisse
-Die 5 Ärzte die auf der Gesundheitsseite erscheinen sind echte Overpass-API-Ergebnisse für Berlin, keine hardcodierten Daten. `schema.sql:370`: "Keine Seed-Daten".
+### Ärzte: 100% Overpass-Live, keine Seed-Daten (Commit 760d88f)
+Alle Ärzte kommen live von Overpass (OSM) — weltweit, standortunabhängig. Keine Berlin-Seed-Daten mehr. `ensureDoctorInDb()` auto-saved OSM-Arzt in DB bei Terminbuchung mit Default-Slots (Mo-Fr 8-17). classifySpecialty(): 16→25 Rules, 52 Unit-Tests.
 
 ### Finanzen: Demo-User ist ein echtes Problem (Status 2026-07-25)
 `finance_provider.dart:45` hat `user-demo-001` hartkodiert. **Backend-JWT-Auth ist seit 2026-07-25 live auf Production** (siehe Offene Tasks #1). Mobile-Finance-Integration steht noch aus.

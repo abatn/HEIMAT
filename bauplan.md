@@ -1426,25 +1426,31 @@ Polished Open Items (deferred to Phase X.4):
 - ✅ Keine hardcodierten Koordinaten im HealthScreen mehr (LocationService + Backend-Driven)
 - ✅ CI grün auf `08fd8ac` (Flutter CI + Deploy Web beide success)
 
-## Health-Screen Overhaul (2026-07-30, Commits 9934c45 + 494e7d6 + dd0f9ed)
+## Health-Screen Overhaul (Phase 1-3, 2026-07-30)
 
-> **Ziel:** Specialty-Filter-Bug fixen, Entfernungsanzeige, mehr Specialty-Chips, Anruf-Button, professionelles UI.
+> **Ziel:** Specialty-Filter fixen, Entfernungsanzeige, mehr Chips, Ortsunabhängigkeit.
 
-### Änderungen
-- ✅ `src/backend/src/services/healthService.ts` (MODIFIED): classifySpecialty() von 6 auf 15 Regeln erweitert. distanceKm Feld + haversineKm() Methode. getNearbyDoctors() berechnet Entfernung für alle Ärzte, sortiert nach Distanz. SQL: Haversine mit ROUND.
-- ✅ `src/mobile/lib/features/health/presentation/health_provider.dart` (MODIFIED): Doctor-Modell mit distanceKm + distanceFormatted Getter.
-- ✅ `src/mobile/lib/features/health/presentation/health_screen.dart` (MODIFIED): 12 Specialty-Chips, Distance-Badge, Anruf-Button (SnackBar).
-- ✅ `src/mobile/pubspec.yaml` — url_launcher entfernt (CI-kompatibel).
+### Phase 1+2 (Commits 9934c45 + 494e7d6 + dd0f9ed + 7daca23 + f6c05c9)
+- ✅ classifySpecialty() 16→25 Rules, 21 Specialty-Chips, 52 Unit-Tests
+- ✅ distanceKm + haversineKm Entfernungsberechnung
+- ✅ Distance-Badge + Anruf-Button (SnackBar)
+- ✅ 25 Berliner Arztpraxen Seed (Commits 445cd9e/d2dd4b2/eaff883)
 
-### CI-Fixes
-- ✅ Commit 494e7d6: classifySpecialty Return-Wert 'Orthopädie/Chirurgie' → 'Chirurg/Orthopäde' (Tests angepasst)
-- ✅ Commit dd0f9ed: url_launcher entfernt (Platform-Channel-Mock-Problem in Tests)
+### Phase 3: Ortsunabhängigkeit (Commit 760d88f)
+> **Ziel:** Berlin-Seed entfernt — alle Ärzte weltweit via Overpass.
+- ✅ schema.sql: Seed-Block (25 Berliner Praxen) + DELETE-Cleanup entfernt
+- ✅ healthService.ts: `ensureDoctorInDb()` — auto-saved OSM-Arzt in DB mit Default-Slots (Mo-Fr 8-17)
+- ✅ healthService.ts: `getDoctorById()` prüft jetzt DB für osm_ IDs (war 404)
+- ✅ healthService.ts: `bookAppointment()` funktioniert mit JEDEM Arzt
+- ✅ routes: POST `/api/health/doctors/ensure` mit `requireAuth` (JWT)
+- ✅ health_provider.dart: latitude/longitude im Doctor-Modell + ensureDoctor()
+- ✅ GPS-Fallback: klare Fehlermeldung statt leerer DB-Abfrage
 
 ### Validation
 - `npx tsc --noEmit` → 0 errors ✓
-- `npx jest src/__tests__/classifySpecialty.test.ts` → 27/27 passed ✓
-- `bash scripts/audit-no-mocks.sh` → 0 violations ✓
-- `dart format` → 0 changed ✓
+- `npx jest src/__tests__/classifySpecialty.test.ts` → 52/52 passed ✓
+- `audit-no-mocks.sh` → 0 violations ✓
+- Code-Reviewer: approved ✓
 
 ### UX-Verbesserungen
 

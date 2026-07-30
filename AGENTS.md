@@ -89,8 +89,8 @@ Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.
 ### GTFS ZIP import: NOT a rule violation
 The GTFS zip import (`gtfs.de/nv_free`) does NOT violate any project rules. CC-BY licensed, explicitly allowed in `project-prompt.md:59` and `heimat-plan.md:392`.
 
-### Doctors: REAL Overpass results
-The 5 doctors shown on the health page are real Overpass API results for Berlin, NOT hardcoded data. `schema.sql:370`: "Keine Seed-Daten".
+### Doctors: 100% Overpass-Live, keine Seed-Daten (Commit 760d88f)
+Berlin-Seed entfernt. Alle Ärzte live von Overpass (OSM) — weltweit, standortunabhängig. `ensureDoctorInDb()` auto-saved OSM-Arzt in DB bei Terminbuchung mit Default-Slots (Mo-Fr 8-17). `requireAuth` auf `/doctors/ensure`. classifySpecialty(): 16→25 Rules, 52 Unit-Tests.
 
 ### Finance: Demo user status (Juli 2026)
 `finance_provider.dart:45` still hardcodes `user-demo-001`. **Backend JWT-Auth is live on Production since 2026-07-25** (`/api/auth/{register,login,me}` end-to-end against `heimat-backend.onrender.com`). Mobile-Finance-Integration (Provider + Headers + Screen) is the remaining track.
@@ -141,7 +141,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Mobilität + Gesundheit**: seit MVP grün
 
 - **Phase E Wetter Real-Fix ✅ (2026-07-27, Commit 99daa9c)**: Render Free-Tier 429-Rate-Limit auf Open-Meteo behoben via Mirror-Fallback-Pattern. Open-Meteo primary (reduziert 2× Retry) + Bright Sky DWD-Proxy (`api.brightsky.dev`) als fallback. Architektur-Spiegel von mobilityService.ts Overpass-Mirror-List. **WICHTIG: keine Mocks/Simulations** (per User-Regel "mock, simulation, fake sind verboten") — alle HTTP-Calls gegen reale Upstream-APIs. Constructor-DI für Test-Seam. 10/10 Tests grün (jest). Live: Berlin 21.1°C, Klarer Himmel, 28.1 km/h Wind via `heimat-backend.onrender.com/api/weather/forecast`. Mobile DTO erhalten → kein Flutter-Rebuild.
-- **Health-Screen Overhaul ✅ (2026-07-30, Commits 9934c45 + 494e7d6 + dd0f9ed)**: classifySpecialty() von 6 auf 15 Regeln erweitert (Kinderarzt, Frauenarzt, Kardiologe, Orthopädie, Neurologe, Psychotherapeut, Pneumologie, Allergologie, Innere Medizin, Sportmedizin). distanceKm Feld + haversineKm() Entfernungsberechnung, sortiert nach Distanz. 12 Specialty-Chips statt 6. Distance-Badge auf Arzt-Karten. Anruf-Button (SnackBar). CI-Fixes: classifySpecialty Return-Wert (494e7d6), url_launcher entfernt (dd0f9ed). Backend tsc + audit-no-mocks ✅.
+- **Health-Screen Overhaul ✅ (Phase 1-3, 2026-07-30)**: classifySpecialty() 16→25 Rules (Commits 7daca23 + f6c05c9). 21 Specialty-Chips. 52 Unit-Tests. distanceKm + haversineKm. Distance-Badge + Anruf-Button. **Phase 3 (Commit 760d88f): Ortsunabhängigkeit** — Berlin-Seed entfernt, 100% Overpass-Live weltweit. `ensureDoctorInDb()` auto-saved bei Terminbuchung. Backend tsc + audit-no-mocks ✅.
 
 ### ⚠️ Was ist offen
 - **Wallet-Balance bleibt 0.00 KUDOS bis EUR-Exchange-Live (Phase R geschlossen, 2026-07-27)**: Demo-Mock-Bypass fundLocal entfernt (per User-Regel). Wallet wird via echten Reserve-Adresse-Bank-Wire gefuellt (bank.demo.taler.net heute, EUR-Production-Exchange wartet auf oeffentliche GLS-Bank-Integration). Demo-Option (a) im Finanzen-Tab-Bottom-Sheet entfernt. EUR-Production-Exchange bleibt der einzige offene Block.

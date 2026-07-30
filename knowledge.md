@@ -145,7 +145,7 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 
 10. **GTFS zip import is allowed** (`gtfs.de/nv_free`), CC-BY. NOT a rule violation.
 
-11. **Doctors on the health page are real Overpass results for Berlin** (not hardcoded seed data). `schema.sql:370`: "Keine Seed-Daten".
+11. **Doctors: 100%% Overpass-Live, keine Seed-Daten (Commit 760d88f).** Berlin-Seed (25 Ärzte) entfernt — war Designfehler (95% Deutschlands bekam leere DB). Jetzt: alle Ärzte live von Overpass (OSM) — weltweit, standortunabhängig. Wenn User auf OSM-Arzt tippt → `ensureDoctorInDb()` speichert ihn dynamisch in DB mit Default-Slots (Mo-Fr 8-17). Terminbuchung funktioniert danach für JEDE Stadt. classifySpecialty(): 16→25 Rules, 52 Unit-Tests.
 
 12. **Finance `user-demo-001` is still hardcoded** in `finance_provider.dart:45`. Backend JWT-Auth is live on Production since 2026-07-25 (`/api/auth/{register,login,me}` end-to-end against `heimat-backend.onrender.com`); Mobile-Finance still needs to be wired against the real token instead of the demo user.
 
@@ -318,19 +318,22 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 **Pipeline:** Mini-Program (IFrame) → Render /mini/weather.html → JS Geolocation → Backend /api/weather/forecast → Open-Meteo (DWD ICON)
 
-### ✅ Health-Screen Overhaul (2026-07-30, Commits 9934c45 + 494e7d6 + dd0f9ed)
-- **classifySpecialty()** von 6 auf 15 Regeln erweitert (Kinderarzt, Frauenarzt, Kardiologe, Orthopädie, Neurologe, Psychotherapeut, Pneumologie, Allergologie, Innere Medizin, Sportmedizin)
+### ✅ Health-Screen Overhaul (Phase 1: 2026-07-30 + Phase 2: 2026-07-30 + Phase 3: 2026-07-30)
+- **classifySpecialty()** 16→25 Rules (Commits 7daca23 + f6c05c9): Orthopäde (von Chirurg getrennt), Urologe, Chirurg, Physiotherapie, Radiologie, Naturheilkunde, Pneumologie, Allergologie + Sub-Spezialitäten (endocrinology/gastroenterology/oncology → Innere Medizin). Keyword-Bug `uro`→`naturopath` behoben.
+- **21 Specialty-Chips** aligned mit Backend-Fachrichtungen (inkl. Allergologie nach Code-Reviewer-Fix)
+- **52 Unit-Tests** für classifySpecialty (classifySpecialty.test.ts) — alle grün
+- **25 Berliner Arztpraxen seed** (Commit 445cd9e + d2dd4b2): alle 20 Specialty-Kategorien, idempotent via DO block + WHERE NOT EXISTS. Alte Test-Ärzte (Dr. Full, Dr. Test) via DELETE bereinigt (Commit eaff883)
 - **distanceKm** Feld + `haversineKm()` Methode — Entfernungsberechnung für alle Ärzte, sortiert nach Distanz
-- **12 Specialty-Chips** statt 6 (Kinder, Frauen, Herz, Ortho, Neuro, Psyche)
-- **Distance-Badge** auf jeder Arzt-Karte (blaue Pille, z.B. "1.2 km")
-- **Anruf-Button** für alle Ärzte mit Telefon (SnackBar mit Telefonnummer)
-- **CI-Fixes**: classifySpecialty Return-Wert an Tests angepasst (494e7d6), url_launcher entfernt wegen Platform-Channel-Mock-Problem (dd0f9ed)
-- Backend `tsc --noEmit` ✅ | `audit-no-mocks.sh` ✅ 0 violations
+- **Distance-Badge** auf jeder Arzt-Karte + **Anruf-Button** (SnackBar)
+- **CI-Fixes** (Phase 1): classifySpecialty Return-Wert (494e7d6), url_launcher entfernt (dd0f9ed)
+- **Live-Verifikation Phase 1+2**: 25 DB + OSM-Live merged, 20 Specialty-Kategorien
+- **Phase 3 (Commit 760d88f): Ortsunabhängigkeit** — Berlin-Seed entfernt, 100% Overpass-Live. `ensureDoctorInDb()` auto-saved bei Terminbuchung. GPS-Fallback zeigt klare Fehlermeldung. `requireAuth` auf `/doctors/ensure`.
 
 ### ❌ Was fehlt (echte Lücken)
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
 - Auto-Migration health-check Tool (`npm run migrate:status`)
+- Health-Provider-Tests fehlen (searchDoctors + loadSlots + bookAppointment)
 
 ### ✅ Phase Q: Quality-Pass (2026-07-27, Commit 78a371d, CI grün via ea29e63)
 

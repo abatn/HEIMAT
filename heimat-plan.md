@@ -64,7 +64,7 @@ Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-
 - **Mobile CI grün**: dart format + flutter analyze + flutter test — CI grün (Commit 246ece3 Verifikation)
 - **Swagger/OpenAPI**: /docs UI + /docs.json live
 - **Mobilität (Überpass/Nominatim/OSRM/transitous)** und **Gesundheit (Ärzte+Termine)** seit MVP grün
-- **Health-Screen Overhaul ✅ (2026-07-30)**: classifySpecialty 15 Regeln, Distance-Berechnung (haversineKm), 12 Specialty-Chips, Distance-Badge, Anruf-Button. Commits 9934c45 + 494e7d6 + dd0f9ed.
+- **Health-Screen Overhaul ✅ (Phase 1-3, 2026-07-30)**: classifySpecialty 16→25 Rules, 21 Specialty-Chips, 52 Unit-Tests, Distance-Berechnung (haversineKm), Distance-Badge, Anruf-Button. **Phase 3: Ortsunabhängigkeit (Commit 760d88f)** — Berlin-Seed entfernt, 100% Overpass-Live weltweit. ensureDoctorInDb() auto-saved bei Terminbuchung.
 
 ### ⚠️ Was ist offen (nicht-blockierend)
 - **Wallet-Balance bleibt 0.00 KUDOS bis EUR-Exchange-Live (Phase R geschlossen, 2026-07-27)**: Demo-Mock-Bypass fundLocal entfernt per User-Regel (AGENTS.md:143 + knowledge.md:283 "mock, simulation, fake sind verboten"). Wallet wird via echten Reserve-Adresse-Bank-Wire gefuellt (bank.demo.taler.net heute, EUR-Production-Exchange wartet auf oeffentliche GLS-Bank-Integration). Demo-Option (a) im Finanzen-Tab-Bottom-Sheet entfernt (Commit 7718333). audit-no-mocks.sh enforced in CI (Commit 82047ad).
