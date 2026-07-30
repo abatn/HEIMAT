@@ -228,7 +228,19 @@ async function buildWastePrompt(lat: number, lng: number, street?: string, house
 const HEALTH_TEMPLATE =
   'In {location} sind {count} Ärzte verfügbar. {doctors_list}. {empty_hint}';
 
-async function buildHealthPrompt(lat: number, lng: number, radius?: number, specialty?: string): Promise<string> {
+/** Symptom-Assessment Text (für Triage + Rückfragen)
+ *  Wird in den Health-Prompt injiziert wenn der User Symptome beschrieben hat.
+ */
+function buildSymptomAssessmentText(symptom?: string): string {
+  if (!symptom || symptom.trim().length === 0) return '';
+  return `\n\n⚠️ **Aktuelle Symptom-Meldung:** "${symptom.trim()}"\n` +
+    'Bitte führe einen strukturierten Symptom-Check durch:\n' +
+    '1. Frage nach Dauer, Schmerzstärke (1-10) und Begleitsymptomen\n' +
+    '2. Bestimme die Triage-Stufe: NOTFALL (112) / BEREITSCHAFT (116117) / ROUTINE (Hausarzt)\n' +
+    '3. Gib eine klare, fett markierte Handlungsempfehlung';
+}
+
+async function buildHealthPrompt(lat: number, lng: number, radius?: number, specialty?: string, symptom?: string): Promise<string> {
   try {
     const doctors = await healthService.getNearbyDoctors(lat, lng, radius ?? 5000, specialty);
 
@@ -257,12 +269,16 @@ async function buildHealthPrompt(lat: number, lng: number, radius?: number, spec
       ? ` Es folgen ${doctors.length - 5} weitere Ärzte.`
       : '';
 
-    return fillTemplate(HEALTH_TEMPLATE, {
+    const baseText = fillTemplate(HEALTH_TEMPLATE, {
       location: locationName,
       count: doctors.length,
       doctors_list: `\n${topDoctors}${moreHint}`,
       empty_hint: `\n\nFachrichtungen: ${specialtySummary}.`,
     });
+
+    // Symptom-Assessment anhängen wenn Symptome gemeldet wurden
+    const symptomText = buildSymptomAssessmentText(symptom);
+    return baseText + symptomText;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return `Ärztesuche konnte nicht abgerufen werden: ${msg}`;
@@ -395,6 +411,7 @@ export const promptService = {
       hotelsBudget?: number;
       buergeramtLocation?: string;
       buergeramtService?: string;
+      healthSymptom?: string;
     },
   ): Promise<ServicePromptResult> {
     const fetchedAt = new Date().toISOString();
@@ -474,11 +491,12 @@ export const promptService = {
           lat, lng,
           undefined, // Standard-Radius 5000m
           options?.buergeramtService, // reuse für specialty
+          options?.healthSymptom,
         );
         return {
           service,
           text,
-          data: { lat, lng, specialty: options?.buergeramtService },
+          data: { lat, lng, specialty: options?.buergeramtService, symptom: options?.healthSymptom },
           fetchedAt,
         };
       }
@@ -583,6 +601,7 @@ export const promptService = {
       requests.push(
         this.getPrompt('health', context.health.lat, context.health.lng, {
           buergeramtService: context.health.specialty,
+          healthSymptom: context.health.symptom,
         })
           .then(r => ({ service: r.service as ServiceName, text: r.text }))
           .catch(() => null),
