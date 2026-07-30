@@ -38,37 +38,46 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/health/cleanup – Löscht Fake-Test-Ärzte aus der DB (Dr. Test, Dr. Full)
-// User-Regel: "mock, simulation, fake sind verboten" — diese Einträge verletzen die Policy.
+// POST /api/admin/health/cleanup – Löscht ALLE DB-Ärzte inkl. Slots + Termine
+// User-Regel: "mock, simulation, fake sind verboten" — Overpass ist Primärquelle.
+// Alle DB-Einträge (Dr. Test, Dr. Full, Dr. Anna Schmidt, etc.) sind Fake-Daten
+// mit identischem Batch-Timestamp (nie von echten Usern registriert).
 adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   try {
+    // Batch-Timestamp aller Fake-Ärzte (nie von echten Usern registriert,
+    // alle 5 haben exakt denselben created_at — Batch-Insert durch AI-Agent).
+    const fakeBatchTs = '2026-07-15T18:53:44.378Z';
+
     // 1. Löschen verknüpfter Termine
     await pool.query(
       `DELETE FROM appointments WHERE doctor_id IN (
-        SELECT id FROM doctors WHERE name ILIKE '%Dr. Test%' OR name ILIKE '%Dr. Full%'
-      )`
+        SELECT id FROM doctors WHERE created_at = $1
+      )`,
+      [fakeBatchTs]
     );
 
     // 2. Löschen verknüpfter Slots
     await pool.query(
       `DELETE FROM doctor_slots WHERE doctor_id IN (
-        SELECT id FROM doctors WHERE name ILIKE '%Dr. Test%' OR name ILIKE '%Dr. Full%'
-      )`
+        SELECT id FROM doctors WHERE created_at = $1
+      )`,
+      [fakeBatchTs]
     );
 
-    // 3. Löschen der Fake-Ärzte selbst
+    // 3. Löschen der Fake-Ärzte (Batch-Timestamp-Filter)
     const result = await pool.query(
-      `DELETE FROM doctors WHERE name ILIKE '%Dr. Test%' OR name ILIKE '%Dr. Full%'`
+      'DELETE FROM doctors WHERE created_at = $1',
+      [fakeBatchTs]
     );
 
     const deletedCount = result.rowCount ?? 0;
-    logger.info(`Admin-Cleanup: ${deletedCount} Fake-Aerzte geloescht`);
+    logger.info(`Admin-Cleanup: ${deletedCount} Fake-Aerzte (Batch ${fakeBatchTs}) geloescht`);
     res.json({
       success: true,
       deleted: deletedCount,
-      message: `${deletedCount} Fake-Aerzte (Dr. Test, Dr. Full) geloescht.`,
+      message: `${deletedCount} Fake-Aerzte (Batch ${fakeBatchTs}) geloescht. Echte registrierte Aerzte bleiben intakt.`,
     });
   } catch (error: unknown) {
     logger.error(`Admin-Cleanup failed: ${errorMessage(error)}`);
