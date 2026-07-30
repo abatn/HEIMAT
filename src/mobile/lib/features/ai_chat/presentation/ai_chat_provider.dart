@@ -68,20 +68,28 @@ class AiChatProvider extends ChangeNotifier {
 
   // ------------------------------------------------------------------
   // getServiceContext — Baut Service-Context für Backend-Anfrage
+  //
+  // [includeWeather]: Health-Tab sollte kein weather mitsenden (weather
+  //  hat nichts mit Gesundheit zu tun). Standard: true für AI-Dashboard.
   // ------------------------------------------------------------------
-  Map<String, dynamic> getServiceContext() {
+  Map<String, dynamic> getServiceContext({bool includeWeather = true}) {
     final context = <String, dynamic>{};
     if (_currentLat != null && _currentLng != null) {
       context['health'] = {'lat': _currentLat, 'lng': _currentLng};
-      context['weather'] = {'lat': _currentLat, 'lng': _currentLng};
+      if (includeWeather) {
+        context['weather'] = {'lat': _currentLat, 'lng': _currentLng};
+      }
     }
     return context;
   }
 
   // ------------------------------------------------------------------
   // sendMessage — POST an Backend, Antwort anhängen
+  //
+  // [includeWeather]: Health-Tab sollte kein weather mitsenden.
+  //  Siehe getServiceContext() für Details. Standard: true.
   // ------------------------------------------------------------------
-  Future<void> sendMessage(String text) async {
+  Future<void> sendMessage(String text, {bool includeWeather = true}) async {
     if (text.trim().isEmpty) return;
     if (_isLoading) return;
 
@@ -103,7 +111,8 @@ class AiChatProvider extends ChangeNotifier {
       };
 
       // Service-Context anhängen (für Health AI, Wetter, etc.)
-      final services = getServiceContext();
+      // Health-Tab nutzt includeWeather: false (weather ≠ health)
+      final services = getServiceContext(includeWeather: includeWeather);
       if (services.isNotEmpty) {
         body['services'] = services;
       }

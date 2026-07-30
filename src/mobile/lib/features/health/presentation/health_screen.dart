@@ -53,9 +53,8 @@ class _HealthScreenState extends State<HealthScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Sofort DB-Ärzte laden (schnell, kein Warten auf Standort)
-      context.read<HealthProvider>().searchDoctors();
-      // Parallel Standort holen — bei Erfolg bessere Ergebnisse via Overpass + AI
+      // Overpass als Primärquelle: Standort holen → echte OSM-Ärzte
+      // Kein DB-only Fallback — Ärzte live aus OpenStreetMap
       _loadLocationAndRefresh();
     });
   }
@@ -412,11 +411,12 @@ class _HealthScreenState extends State<HealthScreen> {
     );
   }
 
-  /// Health AI Chat senden (über AiChatProvider)
+  /// Health AI Chat senden (über AiChatProvider) — NUR Health-Kontext
   void _sendAiChatMessage(String text) {
     if (text.trim().isEmpty) return;
     _aiChatController.clear();
-    context.read<AiChatProvider>().sendMessage(text);
+    // includeWeather: false — weather hat nichts mit Gesundheit zu tun
+    context.read<AiChatProvider>().sendMessage(text, includeWeather: false);
   }
 
   @override
