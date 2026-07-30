@@ -157,7 +157,7 @@ export class OllamaService {
           messages,
           stream: false,
         },
-        { timeout: 30000 },
+        { timeout: 120000 },
       );
 
       if (response.data?.message?.content) {
