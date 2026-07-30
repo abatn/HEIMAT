@@ -68,23 +68,57 @@ export class HealthService {
     const input = (tagText + ' ' + name).toLowerCase();
 
     // Einheitliche Keyword-Map: [keyword1, keyword2, ...] → Fachrichtung
-    // Reihenfolge: spezifischere Matches ZUERST, Allgemeinmedizin als Fallback
+    // Reihenfolge: spezifischere Matches ZUERST, Allgemeinmedizin als Fallback.
+    // OSM-Tags (healthcare:speciality) UND deutsche Praxisnamen werden gleichermaßen
+    // erkannt — damit Specialty-Chips tatsächlich verschiedene Ergebnisse liefern.
     const rules: [string[], string][] = [
-      [['augen', 'ophthalm'], 'Augenarzt'],
+      // --- Spezifisch: Augen ---
+      [['augen', 'ophthalm', 'sehkraft'], 'Augenarzt'],
+      // --- Spezifisch: Zähne ---
       [['zahn', 'dental', 'dentist', 'kiefer'], 'Zahnarzt'],
-      [['hno', 'ohren', 'ohr', 'hals-nasen'], 'HNO-Arzt'],
-      [['haut', 'dermat'], 'Hautarzt'],
-      [['kinder', 'päda', 'paediat', 'kindergyn', 'jugend'], 'Kinderarzt'],
-      [['frau', 'gyn', 'gynaekolog', 'gynäkolog', 'gynaecology', 'geburt'], 'Frauenarzt'],
+      // --- Spezifisch: HNO ---
+      [['hno', 'hals-nasen', 'ohren', 'otolaryng'], 'HNO-Arzt'],
+      // --- Spezifisch: Haut ---
+      [['haut', 'dermat', 'dermatovenere'], 'Hautarzt'],
+      // --- Spezifisch: Kinder ---
+      [['kinder', 'päda', 'paediat', 'jugend'], 'Kinderarzt'],
+      // --- Spezifisch: Frauen ---
+      [['frauen', 'gyn', 'gynäkolog', 'gynaekolog', 'gynaecology', 'geburtshilf', 'hebamme', 'midwife'], 'Frauenarzt'],
+      // --- Spezifisch: Herz ---
       [['herz', 'kardio', 'kardiolog', 'cardio'], 'Kardiologe'],
-      [['psycho', 'psych', 'therapeut'], 'Psychotherapeut'],
-      [['chirurg', 'orthopä', 'ortho', 'rüc', 'ruec', 'unfallchirurg'], 'Chirurg/Orthopäde'],
+      // --- Spezifisch: Psyche ---
+      [['psycho', 'psych', 'therapeut', 'psychiatrie'], 'Psychotherapeut'],
+      // --- Spezifisch: Orthopädie (VOR Chirurg — orthopädische Praxen ≠ Chirurgen) ---
+      [['orthopä', 'ortho', 'rüc', 'ruec', 'wirbel', 'orthopaed'], 'Orthopäde'],
+      // --- Spezifisch: Neuro ---
       [['neurolog', 'nerven'], 'Neurologe'],
+      // --- Spezifisch: Sport ---
       [['sportarzt', 'sportmedizin', 'sport'], 'Sportmedizin'],
-      [['lunge', 'pulmo', 'atmung', 'pneumo'], 'Pneumologie'],
+      // --- Spezifisch: Lunge / Pneumologie ---
+      [['lunge', 'pulmo', 'atmung', 'pneumo', 'pulmonol', 'respiratory'], 'Pneumologie'],
+      // --- Spezifisch: Allergie ---
       [['allerg', 'allergo'], 'Allergologie'],
+      // --- Spezifisch: Innere Medizin ---
       [['innere', 'internist', 'internal'], 'Innere Medizin'],
-      [['hals', 'nasen'], 'HNO-Arzt'],
+      // --- Spezifisch: Urologie ---
+      [['urolog', 'nieren', 'prostat'], 'Urologe'],
+      // --- Spezifisch: Physiotherapie ---
+      [['physio', 'physiotherap', 'bewegungstherap', 'manualtherap'], 'Physiotherapie'],
+      // --- Spezifisch: Rheumatologie ---
+      [['rheum', 'rheumat'], 'Orthopäde'],
+      // --- Spezifisch: Endokrinologie ---
+      [['endokrin', 'endocrin', 'schilddrüse', 'thyroid', 'diabet'], 'Innere Medizin'],
+      // --- Spezifisch: Gastroenterologie ---
+      [['gastro', 'magendarm', 'hepatol', 'leber'], 'Innere Medizin'],
+      // --- Spezifisch: Onkologie ---
+      [['onkolog', 'oncolog', 'tumor', 'krebs'], 'Innere Medizin'],
+      // --- Spezifisch: Radiologie ---
+      [['radiolog', 'röntgen', 'radiology', 'imaging'], 'Radiologie'],
+      // --- Spezifisch: Chirurgie (NUR wenn kein Orthopädie-Match) ---
+      [['chirurg', 'unfallchirurg', 'surgery', 'operative'], 'Chirurg'],
+      // --- Spezifisch: Naturheilkunde ---
+      [['naturheilkund', 'naturopath', 'homöopath', 'homeopath', 'heilpraktik'], 'Naturheilkunde'],
+      // --- Allgemeinmedizin: letzter Fallback ---
       [['allgemein', 'general', 'hausarzt', 'family'], 'Allgemeinmedizin'],
     ];
 

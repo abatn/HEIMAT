@@ -33,6 +33,8 @@ class _HealthScreenState extends State<HealthScreen> {
   final TextEditingController _aiChatController = TextEditingController();
   final FocusNode _aiChatFocus = FocusNode();
 
+  // Spezialitäten — aligned mit classifySpecialty() Backend-Rules.
+  // Value = exakter Fachrichtungs-String aus healthService.ts.
   static const _specialties = [
     ('', 'Alle', Icons.local_hospital),
     ('Allgemeinmedizin', 'Hausarzt', Icons.medical_services),
@@ -43,9 +45,17 @@ class _HealthScreenState extends State<HealthScreen> {
     ('Kinderarzt', 'Kinder', Icons.child_care),
     ('Frauenarzt', 'Frauen', Icons.pregnant_woman),
     ('Kardiologe', 'Herz', Icons.favorite),
-    ('Orthopädie', 'Ortho', Icons.accessibility_new),
+    ('Orthopäde', 'Orthopäde', Icons.accessibility_new),
     ('Neurologe', 'Neuro', Icons.psychology),
     ('Psychotherapeut', 'Psyche', Icons.psychology_alt),
+    ('Urologe', 'Uro', Icons.water_drop),
+    ('Pneumologie', 'Lunge', Icons.air),
+    ('Chirurg', 'Chirurg', Icons.content_cut),
+    ('Innere Medizin', 'Innere', Icons.monitor_heart),
+    ('Sportmedizin', 'Sport', Icons.directions_run),
+    ('Radiologie', 'Röntgen', Icons.radio),
+    ('Physiotherapie', 'Physio', Icons.directions_walk),
+    ('Naturheilkunde', 'Natur', Icons.spa),
   ];
 
   IconData _specialtyIcon(String specialty) {
