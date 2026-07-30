@@ -9,10 +9,8 @@
 // - Nur 1 chatWithContext Integrationstest mit Recording-HTTP
 // ---------------------------------------------------------------------------
 
-import { OllamaService, buildHealthSystemPrompt } from '../services/ollamaService';
+import { buildHealthSystemPrompt } from '../services/ollamaService';
 import { promptService } from '../services/promptService';
-import axios from 'axios';
-import type { AxiosInstance } from 'axios';
 
 // ---------------------------------------------------------------------------
 // Tests: Pure Function (kein Netzwerk)
