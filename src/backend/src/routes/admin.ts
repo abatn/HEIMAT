@@ -38,6 +38,44 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/health/cleanup – Löscht Fake-Test-Ärzte aus der DB (Dr. Test, Dr. Full)
+// User-Regel: "mock, simulation, fake sind verboten" — diese Einträge verletzen die Policy.
+adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    // 1. Löschen verknüpfter Termine
+    await pool.query(
+      `DELETE FROM appointments WHERE doctor_id IN (
+        SELECT id FROM doctors WHERE name ILIKE '%Dr. Test%' OR name ILIKE '%Dr. Full%'
+      )`
+    );
+
+    // 2. Löschen verknüpfter Slots
+    await pool.query(
+      `DELETE FROM doctor_slots WHERE doctor_id IN (
+        SELECT id FROM doctors WHERE name ILIKE '%Dr. Test%' OR name ILIKE '%Dr. Full%'
+      )`
+    );
+
+    // 3. Löschen der Fake-Ärzte selbst
+    const result = await pool.query(
+      `DELETE FROM doctors WHERE name ILIKE '%Dr. Test%' OR name ILIKE '%Dr. Full%'`
+    );
+
+    const deletedCount = result.rowCount ?? 0;
+    logger.info(`Admin-Cleanup: ${deletedCount} Fake-Aerzte geloescht`);
+    res.json({
+      success: true,
+      deleted: deletedCount,
+      message: `${deletedCount} Fake-Aerzte (Dr. Test, Dr. Full) geloescht.`,
+    });
+  } catch (error: unknown) {
+    logger.error(`Admin-Cleanup failed: ${errorMessage(error)}`);
+    res.status(500).json({ success: false, message: errorMessage(error) });
+  }
+});
+
 // GET /api/admin/db-vendo-status – Prüft transitous.org Erreichbarkeit
 // Erfordert ?lat=&lng= Query-Parameter (keine hardcoded Koordinaten mehr)
 adminRouter.get('/db-vendo-status', async (req: Request, res: Response) => {
