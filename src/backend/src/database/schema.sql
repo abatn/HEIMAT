@@ -412,7 +412,7 @@ CREATE INDEX IF NOT EXISTS idx_delay_logs_logged_at ON delay_logs(logged_at);
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM doctors LIMIT 1) THEN
+  IF NOT EXISTS (SELECT 1 FROM doctors WHERE name = 'Praxis Dr. Katja Meißner') THEN
 
     -- 1. Allgemeinmedizin (3 Praxen)
     INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
