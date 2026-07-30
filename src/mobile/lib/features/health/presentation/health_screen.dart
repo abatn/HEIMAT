@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
@@ -1179,18 +1178,27 @@ class _DoctorCardState extends State<_DoctorCard> {
                       child: IconButton(
                         icon: const Icon(Icons.phone_outlined,
                             size: 18, color: AppColors.success),
-                        onPressed: () async {
-                          final uri = Uri.parse('tel:${doc.phone}');
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri);
-                          } else if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Telefon: ${doc.phone}'),
-                                duration: const Duration(seconds: 3),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.phone,
+                                      size: 16, color: Colors.white),
+                                  const SizedBox(width: 8),
+                                  Text(doc.phone,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600)),
+                                ],
                               ),
-                            );
-                          }
+                              duration: const Duration(seconds: 4),
+                              action: SnackBarAction(
+                                label: 'OK',
+                                textColor: Colors.white,
+                                onPressed: () {},
+                              ),
+                            ),
+                          );
                         },
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(
