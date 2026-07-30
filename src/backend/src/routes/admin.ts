@@ -38,48 +38,59 @@ adminRouter.post('/migrate', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/health/cleanup – Löscht ALLE DB-Ärzte inkl. Slots + Termine
+// POST /api/admin/health/cleanup – Löscht Fake-DB-Ärzte (Name-basierter Filter)
 // User-Regel: "mock, simulation, fake sind verboten" — Overpass ist Primärquelle.
-// Alle DB-Einträge (Dr. Test, Dr. Full, Dr. Anna Schmidt, etc.) sind Fake-Daten
-// mit identischem Batch-Timestamp (nie von echten Usern registriert).
+// Diese 5 Einträge haben identischen Batch-Timestamp (2026-07-15, nie von
+// echten Usern registriert). Echte via 'Arzt eintragen'-Button registrierte
+// Ärzte bleiben intakt.
 adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
 
   try {
-    // Batch-Timestamp aller Fake-Ärzte (nie von echten Usern registriert,
-    // alle 5 haben exakt denselben created_at — Batch-Insert durch AI-Agent).
-    // WICHTIG: Kein 'Z' Suffix — PostgreSQL interpretiert 'Z' als UTC und
-    // konvertiert in die Session-Timezone, was den Vergleich zerstört.
-    const fakeBatchTs = '2026-07-15 18:53:44.378';
+    // Fake-Ärzte: nie von echten Usern registriert (identischer Batch-Timestamp
+    // 2026-07-15T18:53:44.378Z durch AI-Agent). Name-basierter Filter weil
+    // PostgreSQL TIMESTAMP-Vergleich mit Timezone-Konvertierung fragil ist.
+    const fakeNames = [
+      'Dr. Anna Schmidt',
+      'Dr. Lisa Müller',
+      'Dr. Markus Weber',
+      'Dr. Sarah Fischer',
+      'Dr. Thomas Koch',
+    ];
 
     // 1. Löschen verknüpfter Termine
     await pool.query(
       `DELETE FROM appointments WHERE doctor_id IN (
-        SELECT id FROM doctors WHERE created_at = $1::timestamp
+        SELECT id FROM doctors WHERE name = ANY($1::text[])
       )`,
-      [fakeBatchTs]
+      [fakeNames]
     );
 
     // 2. Löschen verknüpfter Slots
     await pool.query(
       `DELETE FROM doctor_slots WHERE doctor_id IN (
-        SELECT id FROM doctors WHERE created_at = $1::timestamp
+        SELECT id FROM doctors WHERE name = ANY($1::text[])
       )`,
-      [fakeBatchTs]
+      [fakeNames]
     );
 
-    // 3. Löschen der Fake-Ärzte (Batch-Timestamp-Filter)
+    // 3. Löschen der Fake-Ärzte
     const result = await pool.query(
-      'DELETE FROM doctors WHERE created_at = $1::timestamp',
-      [fakeBatchTs]
+      'DELETE FROM doctors WHERE name = ANY($1::text[])',
+      [fakeNames]
     );
+
+    // 4. Sanity-Check: wie viele Ärzte bleiben in der DB?
+    const remaining = await pool.query('SELECT count(*) FROM doctors');
+    const remainingCount = parseInt(remaining.rows[0].count, 10);
 
     const deletedCount = result.rowCount ?? 0;
-    logger.info(`Admin-Cleanup: ${deletedCount} Fake-Aerzte (Batch ${fakeBatchTs}) geloescht`);
+    logger.info(`Admin-Cleanup: ${deletedCount} Fake-Aerzte geloescht, ${remainingCount} DB-Eintraege verbleibend`);
     res.json({
       success: true,
       deleted: deletedCount,
-      message: `${deletedCount} Fake-Aerzte (Batch ${fakeBatchTs}) geloescht. Echte registrierte Aerzte bleiben intakt.`,
+      remainingDbDoctors: remainingCount,
+      message: `${deletedCount} Fake-Aerzte geloescht. ${remainingCount} registrierte Aerzte in DB (Overpass liefert die echten).`,
     });
   } catch (error: unknown) {
     logger.error(`Admin-Cleanup failed: ${errorMessage(error)}`);
