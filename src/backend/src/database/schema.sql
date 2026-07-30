@@ -586,3 +586,7 @@ END $$;
 -- mehr befuellt (INSERT nutzt wallet_priv_pkcs8). Drop ist idempotent (IF EXISTS).
 ALTER TABLE taler_wallets DROP COLUMN IF EXISTS wallet_priv;
 -- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.
+
+-- Cleanup: alte Test-Ärzte entfernen (aus API-Testing, nicht real)
+-- Idempotent: DELETE mit WHERE IN — keine Auswirkung auf echte Ärzte.
+DELETE FROM doctors WHERE name IN ('Dr. Full', 'Dr. Test');
