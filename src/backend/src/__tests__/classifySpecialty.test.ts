@@ -6,7 +6,7 @@
 //
 // Strategie: Für jede Spezialisierung wird getestet:
 //   - Erkennung aus dem Namen (häufigster Fall in OSM)
-//   - Erkennung aus OSM-Tags (healthcare_speciality, specialty, healthcare)
+//   - Erkennung aus OSM-Tags (healthcare:speciality, specialty, healthcare)
 //   - Fallback auf Allgemeinmedizin bei fehlenden Keywords
 // ---------------------------------------------------------------------------
 
@@ -83,9 +83,9 @@ describe('classifySpecialty() — aus OSM-Name (häufigster Fall)', () => {
 });
 
 describe('classifySpecialty() — aus OSM-Tags', () => {
-  test('Augenarzt aus healthcare_speciality=ophthalmology', () => {
+  test('Augenarzt aus healthcare:speciality=ophthalmology', () => {
     expect(healthService.classifySpecialty(
-      { amenity: 'doctors', healthcare_speciality: 'ophthalmology' },
+      { amenity: 'doctors', 'healthcare:speciality': 'ophthalmology' },
       'Dr. Schmidt'
     )).toBe('Augenarzt');
   });
@@ -104,16 +104,16 @@ describe('classifySpecialty() — aus OSM-Tags', () => {
     )).toBe('Hautarzt');
   });
 
-  test('Kinderarzt aus healthcare_speciality=paediatrics', () => {
+  test('Kinderarzt aus healthcare:speciality=paediatrics', () => {
     expect(healthService.classifySpecialty(
-      { healthcare_speciality: 'paediatrics' },
+      { 'healthcare:speciality': 'paediatrics' },
       'Dr. Koch'
     )).toBe('Kinderarzt');
   });
 
-  test('Frauenarzt aus healthcare_speciality=gynaecology', () => {
+  test('Frauenarzt aus healthcare:speciality=gynaecology', () => {
     expect(healthService.classifySpecialty(
-      { healthcare_speciality: 'gynaecology' },
+      { 'healthcare:speciality': 'gynaecology' },
       'Dr. Müller'
     )).toBe('Frauenarzt');
   });

@@ -58,7 +58,7 @@ export class HealthService {
    */
   classifySpecialty(tags: Record<string, string> = {}, name: string = ''): string {
     const tagSources = [
-      tags.healthcare_speciality,
+      tags['healthcare:speciality'],
       tags.specialty,
       tags.healthcare,
       tags.amenity,
@@ -148,13 +148,54 @@ export class HealthService {
       id: `osm_${el.id}`,
       name: tags.name || tags['name:de'] || 'Praxis',
       specialty: this.classifySpecialty(tags, tags.name || tags['name:de'] || ''),
-      address: address || `Koordinaten: ${el.lat}, ${el.lon}`,
+      address: address || '', // leer → wird später via Reverse-Geocoding gefüllt
       phone: tags.phone || tags['contact:phone'] || '',
       email: tags.email || tags['contact:email'] || '',
       latitude: el.lat,
       longitude: el.lon,
       source: 'osm',
     };
+  }
+
+  /**
+   * Nominatim Reverse-Geocoding: Koordinaten → lesbare Adresse.
+   * Rate-Limit: max 1 req/sec (Nominatim-Policy). Begrenzt auf maxDoctors
+   * um Endpunkte nicht zu verlangsamen.
+   */
+  private async enrichAddresses(doctors: Doctor[], maxDoctors: number = 10): Promise<Doctor[]> {
+    const needAddress = doctors.filter(d => d.source === 'osm' && !d.address);
+    const toEnrich = needAddress.slice(0, maxDoctors);
+
+    for (let i = 0; i < toEnrich.length; i++) {
+      const doc = toEnrich[i];
+      try {
+        const url = `${externalServices.nominatimUrl}/reverse?lat=${doc.latitude}&lon=${doc.longitude}&format=json&addressdetails=1&zoom=18&accept-language=de`;
+        const resp = await axios.get(url, {
+          headers: { 'User-Agent': this.userAgent },
+          timeout: 5000,
+        });
+        const data = resp.data;
+        if (data && data.address) {
+          const a = data.address;
+          const parts = [
+            [a.road, a.house_number].filter(Boolean).join(' '),
+            [a.postcode, a.city || a.town || a.village || a.municipality].filter(Boolean).join(' '),
+          ].filter(Boolean);
+          doc.address = parts.join(', ') || data.display_name?.split(',').slice(0, 3).join(',').trim() || '';
+        } else if (data?.display_name) {
+          doc.address = data.display_name.split(',').slice(0, 3).join(',').trim();
+        }
+      } catch (e) {
+        // Silent fallback — Adresse bleibt leer bei Nominatim-Fehler
+        logger.debug(`Reverse-Geocoding fehlgeschlagen fuer ${doc.latitude},${doc.longitude}`);
+      }
+      // Nominatim Rate-Limit: max 1 req/sec (Policy)
+      if (i < toEnrich.length - 1) {
+        await new Promise(r => setTimeout(r, 1100));
+      }
+    }
+
+    return doctors;
   }
 
   async searchDoctors(specialty?: string, location?: string): Promise<Doctor[]> {
@@ -205,6 +246,8 @@ export class HealthService {
               seenKeys.add(key);
             }
           }
+          // Adressen für OSM-Ärzte ohne addr:street via Nominatim auflösen
+          await this.enrichAddresses(dbDoctors);
         }
       } catch (e) {
         logger.warn(`Overpass-Suche fuer Location "${location}" fehlgeschlagen: ${e}`);
@@ -264,6 +307,9 @@ export class HealthService {
         seenKeys.add(key);
       }
     }
+
+    // 3b. Adressen für OSM-Ärzte ohne addr:street via Nominatim auflösen
+    await this.enrichAddresses(merged);
 
     // 4. Optional nach Fachrichtung filtern
     if (specialty && specialty.trim()) {
