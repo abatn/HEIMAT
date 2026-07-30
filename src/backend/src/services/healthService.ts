@@ -78,7 +78,7 @@ export class HealthService {
       [['frau', 'gyn', 'gynaekolog', 'gynäkolog', 'gynaecology', 'geburt'], 'Frauenarzt'],
       [['herz', 'kardio', 'kardiolog', 'cardio'], 'Kardiologe'],
       [['psycho', 'psych', 'therapeut'], 'Psychotherapeut'],
-      [['chirurg', 'orthopä', 'ortho', 'rüc', 'ruec', 'unfallchirurg'], 'Orthopädie/Chirurgie'],
+      [['chirurg', 'orthopä', 'ortho', 'rüc', 'ruec', 'unfallchirurg'], 'Chirurg/Orthopäde'],
       [['neurolog', 'nerven'], 'Neurologe'],
       [['sportarzt', 'sportmedizin', 'sport'], 'Sportmedizin'],
       [['lunge', 'pulmo', 'atmung', 'pneumo'], 'Pneumologie'],
