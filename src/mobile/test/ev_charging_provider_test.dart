@@ -138,7 +138,8 @@ void main() {
       expect(provider.isLoading, isFalse);
     });
     test('refresh() Doppel-Call: zweiter Aufruf wird sicher gedroppt',
-        () async {
+        // 2x refresh() = 2x HTTP .timeout(30s) → Test braucht >60s
+        timeout: const Timeout(Duration(seconds: 90)), () async {
       // Beide awaiten: erster läuft durch, zweiter wird via Guard gedroppt
       await provider.refresh();
       await provider.refresh();
