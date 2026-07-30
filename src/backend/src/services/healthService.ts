@@ -71,12 +71,15 @@ export class HealthService {
     radiusMeters: number
   ): Promise<OverpassElement[]> {
     const r = Math.min(radiusMeters, 10000);
+    // NUR echte Ärzte, KEINE Apotheken:
+    // - amenity=doctors: klassische Arztpraxis
+    // - healthcare=doctor / healthcare=clinic: medizinische Einrichtungen (Regex filtert pharmacy raus)
     const q =
       `[out:json][timeout:25];(` +
       `node["amenity"="doctors"](around:${r},${lat},${lng});` +
-      `node["healthcare"](around:${r},${lat},${lng});` +
+      `node["healthcare"~"^(doctor|clinic)$"](around:${r},${lat},${lng});` +
       `way["amenity"="doctors"](around:${r},${lat},${lng});` +
-      `way["healthcare"](around:${r},${lat},${lng});` +
+      `way["healthcare"~"^(doctor|clinic)$"](around:${r},${lat},${lng});` +
       `);out body 50;`;
 
     let lastError: unknown;
@@ -89,7 +92,12 @@ export class HealthService {
           },
           timeout: 25000,
         });
-        return (response.data?.elements ?? []) as OverpassElement[];
+        const elements = (response.data?.elements ?? []) as OverpassElement[];
+        // Sicherheitsfilter: Apotheken explizit ausschließen
+        return elements.filter(el => {
+          const tags = el.tags ?? {};
+          return tags.amenity !== 'pharmacy' && tags.healthcare !== 'pharmacy';
+        });
       } catch (e) {
         lastError = e;
         const status = (e as AxiosError).response?.status;
