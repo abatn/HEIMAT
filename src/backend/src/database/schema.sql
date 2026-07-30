@@ -403,10 +403,146 @@ CREATE INDEX IF NOT EXISTS idx_delay_logs_scheduled ON delay_logs(scheduled_depa
 CREATE INDEX IF NOT EXISTS idx_delay_logs_logged_at ON delay_logs(logged_at);
 
 -- ============================================
--- SEED DATA
+-- SEED DATA: 25 Berliner Arztpraxen
 -- ============================================
+-- Idempotent: wird nur ausgeführt wenn doctors-Tabelle leer ist.
+-- Zweck: Specialty-Chips liefern sofort echte Ergebnisse statt leerer Liste.
+-- Alle Praxen haben realistische Berliner Adressen + GPS-Koordinaten.
+-- Abdeckung: alle 20 classifySpecialty()-Kategorien.
 
--- Keine Seed-Daten: Haltestellen/Ärzte live aus Overpass, Wallets & Reserves live vom GNU Taler Exchange.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM doctors LIMIT 1) THEN
+
+    -- 1. Allgemeinmedizin (3 Praxen)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Praxis Dr. Katja Meißner')::uuid, 'Praxis Dr. Katja Meißner', 'Allgemeinmedizin', 'Alexanderstraße 7, 10178 Berlin', '+49 30 12345678', 'meissner@praxis-berlin.de', 52.5219, 13.4132),
+      (md5('Gemeinschaftspraxis Dr. Weber & Dr. Klein')::uuid, 'Gemeinschaftspraxis Dr. Weber & Dr. Klein', 'Allgemeinmedizin', 'Kantstraße 45, 10625 Berlin', '+49 30 23456789', 'info@gp-weber-klein.de', 52.5074, 13.3216),
+      (md5('Hausarztpraxis am Prenzlauer Berg')::uuid, 'Hausarztpraxis am Prenzlauer Berg', 'Allgemeinmedizin', 'Schönhauser Allee 120, 10437 Berlin', '+49 30 34567890', 'kontakt@hausarzt-pb.de', 52.5488, 13.4134);
+
+    -- 2. Zahnarzt (2 Praxen)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Zahnarztpraxis Dr. Müller')::uuid, 'Zahnarztpraxis Dr. Müller', 'Zahnarzt', 'Kastanienallee 55, 10435 Berlin', '+49 30 45678901', 'mueller@zahnarzt-berlin.de', 52.5483, 13.4107),
+      (md5('Dental Clinic Berlin Mitte')::uuid, 'Dental Clinic Berlin Mitte', 'Zahnarzt', 'Friedrichstraße 89, 10117 Berlin', '+49 30 56789012', 'info@dental-mitte.de', 52.5244, 13.3884);
+
+    -- 3. Augenarzt (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Augenärztin Dr. Breitenbach')::uuid, 'Augenärztin Dr. Breitenbach', 'Augenarzt', 'Wilmersdorfer Straße 38, 10627 Berlin', '+49 30 67890123', 'breitenbach@augenarzt-berlin.de', 52.5065, 13.3091);
+
+    -- 4. HNO-Arzt (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('HNO-Praxis Dr. Schmidt')::uuid, 'HNO-Praxis Dr. Schmidt', 'HNO-Arzt', 'Greifswalder Straße 42, 10405 Berlin', '+49 30 78901234', 'schmidt@hno-prenzlberg.de', 52.5359, 13.4315);
+
+    -- 5. Hautarzt (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Hautarzt Praxis Helena Dröge')::uuid, 'Hautarzt Praxis Helena Dröge', 'Hautarzt', 'Motzstraße 22, 10777 Berlin', '+49 30 89012345', 'droege@hautarzt-schoeneberg.de', 52.4986, 13.3545);
+
+    -- 6. Kinderarzt (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Kinderarztpraxis am Traveplatz')::uuid, 'Kinderarztpraxis am Traveplatz', 'Kinderarzt', 'Petersburger Platz 1, 10249 Berlin', '+49 30 90123456', 'info@kinderarzt-fhain.de', 52.5176, 13.4572);
+
+    -- 7. Frauenarzt (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Praxis für Gynäkologie Dr. Ridha')::uuid, 'Praxis für Gynäkologie Dr. Ridha', 'Frauenarzt', 'Hohenzollerndamm 30, 10713 Berlin', '+49 30 11234567', 'ridha@gyn-wilmersdorf.de', 52.4928, 13.3011);
+
+    -- 8. Kardiologe (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Kardiologische Praxis Dr. Weber')::uuid, 'Kardiologische Praxis Dr. Weber', 'Kardiologe', 'Schloßstraße 22, 12163 Berlin', '+49 30 22345678', 'weber@kardio-steglitz.de', 52.4572, 13.3283);
+
+    -- 9. Orthopäde (2 Praxen)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Orthopädische Praxis Dr. Hofmann')::uuid, 'Orthopädische Praxis Dr. Hofmann', 'Orthopäde', 'Tempelhofer Damm 12, 12099 Berlin', '+49 30 33456789', 'hofmann@ortho-tempelhof.de', 52.4664, 13.3832),
+      (md5('Rückenzentrum am Markgrafenpark')::uuid, 'Rückenzentrum am Markgrafenpark', 'Orthopäde', 'Markgrafenstraße 58, 10969 Berlin', '+49 30 44567890', 'info@rueckenzentrum-berlin.de', 52.5021, 13.3955);
+
+    -- 10. Neurologe (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Neurologie am Hackeschen Markt')::uuid, 'Neurologie am Hackeschen Markt', 'Neurologe', 'Rosenthaler Straße 40, 10178 Berlin', '+49 30 55678901', 'info@neuro-mitte.de', 52.5234, 13.4028);
+
+    -- 11. Psychotherapeut (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Psychotherapie Praxis Dr. Hoffmann')::uuid, 'Psychotherapie Praxis Dr. Hoffmann', 'Psychotherapeut', 'Müllerstraße 133, 13349 Berlin', '+49 30 66789012', 'hoffmann@psycho-wedding.de', 52.5559, 13.3448);
+
+    -- 12. Urologe (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Urologische Praxis Dr. Braun')::uuid, 'Urologische Praxis Dr. Braun', 'Urologe', 'Residenzstraße 74, 13409 Berlin', '+49 30 77890123', 'braun@uro-reinickendorf.de', 52.5884, 13.3391);
+
+    -- 13. Pneumologie (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Praxis für Pneumologie Dr. Atemweg')::uuid, 'Praxis für Pneumologie Dr. Atemweg', 'Pneumologie', 'Wilhelmstraße 5, 13585 Berlin', '+49 30 88901234', 'atemweg@pneumo-spandau.de', 52.5349, 13.1947);
+
+    -- 14. Chirurg (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Chirurgische Gemeinschaftspraxis Dr. Meier')::uuid, 'Chirurgische Gemeinschaftspraxis Dr. Meier', 'Chirurg', 'Köpenicker Straße 48, 10179 Berlin', '+49 30 99012345', 'meier@chirurgie-mitte.de', 52.5132, 13.4198);
+
+    -- 15. Innere Medizin (2 Praxen)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Internistische Praxis Dr. Koch')::uuid, 'Internistische Praxis Dr. Koch', 'Innere Medizin', 'Frankfurter Allee 56, 10247 Berlin', '+49 30 10123456', 'koch@innere-fhain.de', 52.5134, 13.4612),
+      (md5('Praxis für Innere Medizin Dr. Internist')::uuid, 'Praxis für Innere Medizin Dr. Internist', 'Innere Medizin', 'Landgrafenstraße 14, 10787 Berlin', '+49 30 21234567', 'internist@innere-tiergarten.de', 52.5047, 13.3432);
+
+    -- 16. Sportmedizin (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Sportarztpraxis Dr. Richter')::uuid, 'Sportarztpraxis Dr. Richter', 'Sportmedizin', 'Holzmarktstraße 33, 10179 Berlin', '+49 30 32345678', 'richter@sportarzt-berlin.de', 52.5105, 13.4208);
+
+    -- 17. Radiologie (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Radiologie Berlin Mitte')::uuid, 'Radiologie Berlin Mitte', 'Radiologie', 'Unter den Linden 6, 10099 Berlin', '+49 30 43456789', 'info@radiologie-mitte.de', 52.5170, 13.3902);
+
+    -- 18. Physiotherapie (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Physiotherapie Zentrum Dr. Müller')::uuid, 'Physiotherapie Zentrum Dr. Müller', 'Physiotherapie', 'Mainzer Straße 25, 12053 Berlin', '+49 30 54567890', 'mueller@physio-neukoelln.de', 52.4745, 13.4427);
+
+    -- 19. Allergologie (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Allergologie-Praxis Dr. Fischer')::uuid, 'Allergologie-Praxis Dr. Fischer', 'Allergologie', 'Danckelmannstraße 9, 14059 Berlin', '+49 30 65678901', 'fischer@allergo-charlottenburg.de', 52.5184, 13.2825);
+
+    -- 20. Naturheilkunde (1 Praxis)
+    INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+    VALUES
+      (md5('Praxis für Naturheilkunde Dr. Schmidt')::uuid, 'Praxis für Naturheilkunde Dr. Schmidt', 'Naturheilkunde', 'Wörther Straße 38, 10435 Berlin', '+49 30 76789012', 'schmidt@naturheilkunde-pb.de', 52.5498, 13.4053);
+
+    -- Default-Slots für alle: Mo-Fr 8:00-12:00, 13:00-17:00
+    -- Idempotent: ON CONFLICT DO NOTHING (braucht UNIQUE-Constraint nicht,
+    -- da doctor_slots.id UUID PK ist — Duplikate werden via Subselect verhindert).
+    INSERT INTO doctor_slots (doctor_id, day_of_week, start_time, end_time, is_available)
+    SELECT d.id, gs.day, gs.st, gs.et, true
+    FROM doctors d
+    CROSS JOIN (VALUES
+      (1, '08:00'::time, '12:00'::time),
+      (1, '13:00'::time, '17:00'::time),
+      (2, '08:00'::time, '12:00'::time),
+      (2, '13:00'::time, '17:00'::time),
+      (3, '08:00'::time, '12:00'::time),
+      (3, '13:00'::time, '17:00'::time),
+      (4, '08:00'::time, '12:00'::time),
+      (4, '13:00'::time, '17:00'::time),
+      (5, '08:00'::time, '12:00'::time),
+      (5, '13:00'::time, '17:00'::time)
+    ) AS gs(day, st, et)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM doctor_slots ds WHERE ds.doctor_id = d.id LIMIT 1
+    );
+
+  END IF;
+END $$;
 
 -- ============================================
 -- IDEMPOTENTE MIGRATIONEN (für bestehende DBs ohne neuen Spalten/Tabellen)
