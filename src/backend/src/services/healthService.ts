@@ -14,6 +14,7 @@ interface Doctor {
   latitude: number;
   longitude: number;
   source: string; // 'db' | 'osm'
+  distanceKm?: number; // Entfernung vom User-Standort in km
 }
 
 interface OverpassElement {
@@ -67,20 +68,24 @@ export class HealthService {
     const input = (tagText + ' ' + name).toLowerCase();
 
     // Einheitliche Keyword-Map: [keyword1, keyword2, ...] → Fachrichtung
+    // Reihenfolge: spezifischere Matches ZUERST, Allgemeinmedizin als Fallback
     const rules: [string[], string][] = [
       [['augen', 'ophthalm'], 'Augenarzt'],
-      [['zahn', 'dental', 'dentist'], 'Zahnarzt'],
-      [['hno', 'ohren', 'ohr'], 'HNO-Arzt'],
+      [['zahn', 'dental', 'dentist', 'kiefer'], 'Zahnarzt'],
+      [['hno', 'ohren', 'ohr', 'hals-nasen'], 'HNO-Arzt'],
       [['haut', 'dermat'], 'Hautarzt'],
-      [['kinder', 'päda', 'paediat', 'kindergyn'], 'Kinderarzt'],
-      [['frau', 'gyn', 'gynaekolog', 'gynäkolog', 'gynaecology'], 'Frauenarzt'],
+      [['kinder', 'päda', 'paediat', 'kindergyn', 'jugend'], 'Kinderarzt'],
+      [['frau', 'gyn', 'gynaekolog', 'gynäkolog', 'gynaecology', 'geburt'], 'Frauenarzt'],
       [['herz', 'kardio', 'kardiolog', 'cardio'], 'Kardiologe'],
-      [['psycho', 'psych'], 'Psychotherapeut'],
-      [['chirurg', 'orthopä', 'ortho', 'rüc', 'ruec'], 'Chirurg/Orthopäde'],
-      [['neurolog'], 'Neurologe'],
-      [['hals', 'nasen'], 'HNO-Arzt'],
+      [['psycho', 'psych', 'therapeut'], 'Psychotherapeut'],
+      [['chirurg', 'orthopä', 'ortho', 'rüc', 'ruec', 'unfallchirurg'], 'Orthopädie/Chirurgie'],
+      [['neurolog', 'nerven'], 'Neurologe'],
       [['sportarzt', 'sportmedizin', 'sport'], 'Sportmedizin'],
-      [['allgemein'], 'Allgemeinmedizin'],
+      [['lunge', 'pulmo', 'atmung', 'pneumo'], 'Pneumologie'],
+      [['allerg', 'allergo'], 'Allergologie'],
+      [['innere', 'internist', 'internal'], 'Innere Medizin'],
+      [['hals', 'nasen'], 'HNO-Arzt'],
+      [['allgemein', 'general', 'hausarzt', 'family'], 'Allgemeinmedizin'],
     ];
 
     for (const [keywords, specialty] of rules) {
@@ -149,7 +154,7 @@ export class HealthService {
       name: tags.name || tags['name:de'] || 'Praxis',
       specialty: this.classifySpecialty(tags, tags.name || tags['name:de'] || ''),
       address: address || '', // leer → wird später via Reverse-Geocoding gefüllt
-      phone: tags.phone || tags['contact:phone'] || '',
+      phone: tags.phone || tags['contact:phone'] || tags['phone:mobile'] || '',
       email: tags.email || tags['contact:email'] || '',
       latitude: el.lat,
       longitude: el.lon,
@@ -271,17 +276,26 @@ export class HealthService {
   ): Promise<Doctor[]> {
     // 1. DB-Ärzte im Umkreis laden (via Haversine)
     const dbDoctors = await query<Doctor>(
-      `SELECT * FROM doctors
+      `SELECT *,
+        ROUND((6371 * acos(LEAST(1,
+          cos(radians($2)) * cos(radians(latitude)) *
+          cos(radians(longitude) - radians($1)) +
+          sin(radians($2)) * sin(radians(latitude))
+        )))::numeric, 1) AS distance_km
+       FROM doctors
        WHERE (6371000 * acos(LEAST(1,
          cos(radians($2)) * cos(radians(latitude)) *
          cos(radians(longitude) - radians($1)) +
          sin(radians($2)) * sin(radians(latitude))
        ))) < $3
-       ORDER BY name`,
+       ORDER BY distance_km`,
       [lng, lat, radiusMeters]
     );
 
-    const dbMarked: Doctor[] = dbDoctors.map(d => ({ ...d, source: 'db' as const }));
+    const dbMarked: Doctor[] = dbDoctors.map(d => {
+      const distRaw = (d as any).distance_km;
+      return { ...d, source: 'db' as const, distanceKm: distRaw != null ? Number(distRaw) : undefined };
+    });
 
     // 2. Overpass: echte OSM-Praxen
     let osmDoctors: Doctor[] = [];
@@ -311,7 +325,17 @@ export class HealthService {
     // 3b. Adressen für OSM-Ärzte ohne addr:street via Nominatim auflösen
     await this.enrichAddresses(merged);
 
-    // 4. Optional nach Fachrichtung filtern
+    // 3c. Entfernung für alle Ärzte berechnen (Haversine)
+    for (const doc of merged) {
+      if (doc.latitude && doc.longitude && !doc.distanceKm) {
+        doc.distanceKm = this.haversineKm(lat, lng, doc.latitude, doc.longitude);
+      }
+    }
+
+    // 4. Sortieren nach Entfernung
+    merged.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+
+    // 5. Optional nach Fachrichtung filtern
     if (specialty && specialty.trim()) {
       const lower = specialty.toLowerCase();
       return merged.filter(
@@ -320,6 +344,16 @@ export class HealthService {
     }
 
     return merged;
+  }
+
+  private haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) ** 2;
+    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
   }
 
   async getDoctorById(id: string): Promise<Doctor> {

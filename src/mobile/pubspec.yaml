@@ -34,6 +34,9 @@ dependencies:
   geolocator: ^10.1.0
   permission_handler: ^12.0.3
 
+  # URL / Telefon
+  url_launcher: ^6.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

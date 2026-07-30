@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
@@ -35,11 +36,17 @@ class _HealthScreenState extends State<HealthScreen> {
 
   static const _specialties = [
     ('', 'Alle', Icons.local_hospital),
-    ('Allgemeinmedizin', 'Allgemein', Icons.medical_services),
+    ('Allgemeinmedizin', 'Hausarzt', Icons.medical_services),
     ('Zahnarzt', 'Zahnarzt', Icons.medical_services),
     ('Augenarzt', 'Augenarzt', Icons.remove_red_eye),
     ('HNO-Arzt', 'HNO', Icons.hearing),
     ('Hautarzt', 'Hautarzt', Icons.face),
+    ('Kinderarzt', 'Kinder', Icons.child_care),
+    ('Frauenarzt', 'Frauen', Icons.pregnant_woman),
+    ('Kardiologe', 'Herz', Icons.favorite),
+    ('Orthopädie', 'Ortho', Icons.accessibility_new),
+    ('Neurologe', 'Neuro', Icons.psychology),
+    ('Psychotherapeut', 'Psyche', Icons.psychology_alt),
   ];
 
   IconData _specialtyIcon(String specialty) {
@@ -1040,6 +1047,7 @@ class _DoctorCardState extends State<_DoctorCard> {
   Widget build(BuildContext context) {
     final doc = widget.doctor;
     final isOsm = doc.source == 'osm';
+    final hasPhone = doc.phone.isNotEmpty;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -1109,29 +1117,21 @@ class _DoctorCardState extends State<_DoctorCard> {
                                 color: AppColors.textPrimary,
                               )),
                         ),
-                        if (isOsm)
+                        // Distance badge
+                        if (doc.distanceKm != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.secondary.withOpacity(0.15),
-                                  AppColors.secondary.withOpacity(0.05),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                              color: AppColors.primary.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: AppColors.secondary.withOpacity(0.2)),
                             ),
-                            child: const Text(
-                              'OSM',
+                            child: Text(
+                              doc.distanceFormatted,
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.secondary,
+                                color: AppColors.primary,
                               ),
                             ),
                           ),
@@ -1165,31 +1165,87 @@ class _DoctorCardState extends State<_DoctorCard> {
                 ),
               ),
               const SizedBox(width: 8),
-              isOsm
-                  ? Container(
-                      padding: const EdgeInsets.all(10),
+              // Action buttons: Call + Book/OSM badge
+              Column(
+                children: [
+                  // Call button (für ALLE Ärzte mit Telefon)
+                  if (hasPhone)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 6),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary.withOpacity(0.1),
+                        color: AppColors.success.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.phone_outlined,
-                          size: 20, color: AppColors.secondary),
-                    )
-                  : ElevatedButton(
+                      child: IconButton(
+                        icon: const Icon(Icons.phone_outlined,
+                            size: 18, color: AppColors.success),
+                        onPressed: () async {
+                          final uri = Uri.parse('tel:${doc.phone}');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Telefon: ${doc.phone}'),
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          }
+                        },
+                        padding: const EdgeInsets.all(8),
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
+                        tooltip: 'Anrufen: ${doc.phone}',
+                      ),
+                    ),
+                  // Book button (nur für DB-Ärzte)
+                  if (!isOsm)
+                    ElevatedButton(
                       onPressed: widget.onBook,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
+                            horizontal: 14, vertical: 8),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
                       child: const Text('Termin',
                           style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600)),
+                              fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
+                  // OSM badge
+                  if (isOsm)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.secondary.withOpacity(0.15),
+                            AppColors.secondary.withOpacity(0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: AppColors.secondary.withOpacity(0.2)),
+                      ),
+                      child: const Text(
+                        'OSM',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ),

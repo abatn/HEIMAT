@@ -11,6 +11,7 @@ class Doctor {
   final String address;
   final String phone;
   final String source; // 'db' | 'osm'
+  final double? distanceKm; // Entfernung vom User-Standort
 
   Doctor({
     required this.id,
@@ -19,6 +20,7 @@ class Doctor {
     required this.address,
     required this.phone,
     this.source = 'db',
+    this.distanceKm,
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -29,7 +31,15 @@ class Doctor {
       address: json['address'] ?? '',
       phone: json['phone'] ?? '',
       source: json['source'] ?? 'db',
+      distanceKm: (json['distanceKm'] as num?)?.toDouble(),
     );
+  }
+
+  /// Formatierte Entfernung (z.B. '1.2 km' oder '800 m')
+  String get distanceFormatted {
+    if (distanceKm == null) return '';
+    if (distanceKm! < 1) return '${(distanceKm! * 1000).round()} m';
+    return '${distanceKm!.toStringAsFixed(1)} km';
   }
 }
 
