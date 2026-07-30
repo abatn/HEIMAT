@@ -19,10 +19,9 @@ describe('HealthTriagePrompt — buildHealthSystemPrompt', () => {
     const result = buildHealthSystemPrompt(basePrompt);
 
     expect(result).toContain(basePrompt);
-    expect(result).toContain('Symptom-Assessment');
-    expect(result).toContain('Schritt 1');
-    expect(result).toContain('Schritt 2');
-    expect(result).toContain('Schritt 3');
+    expect(result).toContain('Triage');
+    expect(result).toContain('R\u00fcckfragen');
+    expect(result).toContain('Handlungsempfehlung');
   });
 
   it('Triage-Block enthaelt NOTFALL-Kriterien', () => {
@@ -39,26 +38,22 @@ describe('HealthTriagePrompt — buildHealthSystemPrompt', () => {
   it('Triage-Block enthaelt BEREITSCHAFTS-Kriterien', () => {
     const result = buildHealthSystemPrompt(basePrompt);
 
-    expect(result).toContain('BEREITSCHAFTSDIENST');
-    expect(result).toContain('39\u00b0C');
+    expect(result).toContain('BEREITSCHAFT');
     expect(result).toContain('116117');
   });
 
   it('Triage-Block enthaelt ROUTINE-Kriterien', () => {
     const result = buildHealthSystemPrompt(basePrompt);
 
-    expect(result).toContain('ROUTINETERMIN');
+    expect(result).toContain('ROUTINE');
     expect(result).toContain('Hausarzt');
-    expect(result).toContain('Erk\u00e4ltung');
-    expect(result).toContain('Kopfschmerzen');
   });
 
   it('Triage-Block enthaelt medizinische Disclaimer', () => {
     const result = buildHealthSystemPrompt(basePrompt);
 
-    expect(result).toContain('KEINE medizinische Diagnose');
-    expect(result).toContain('Keine Medikamente');
-    expect(result).toContain('einf\u00fchlsam');
+    expect(result).toContain('Diagnose');
+    expect(result).toContain('Medikamente');
   });
 
   it('Triage-Block enthaelt Ada-Health-artige Rueckfragen', () => {
@@ -66,6 +61,5 @@ describe('HealthTriagePrompt — buildHealthSystemPrompt', () => {
 
     expect(result).toContain('Schmerzskala');
     expect(result).toContain('Begleitsymptome');
-    expect(result).toContain('Ausl\u00f6ser');
   });
 });

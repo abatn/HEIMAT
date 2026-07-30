@@ -233,11 +233,7 @@ const HEALTH_TEMPLATE =
  */
 function buildSymptomAssessmentText(symptom?: string): string {
   if (!symptom || symptom.trim().length === 0) return '';
-  return `\n\n⚠️ **Aktuelle Symptom-Meldung:** "${symptom.trim()}"\n` +
-    'Bitte führe einen strukturierten Symptom-Check durch:\n' +
-    '1. Frage nach Dauer, Schmerzstärke (1-10) und Begleitsymptomen\n' +
-    '2. Bestimme die Triage-Stufe: NOTFALL (112) / BEREITSCHAFT (116117) / ROUTINE (Hausarzt)\n' +
-    '3. Gib eine klare, fett markierte Handlungsempfehlung';
+  return `\n\nSymptom: "${symptom.trim()}" — Fuehre Triage durch (Rueckfragen, Stufe: NOTFALL/BEREITSCHAFT/ROUTINE, Handlungsempfehlung).`;
 }
 
 async function buildHealthPrompt(lat: number, lng: number, radius?: number, specialty?: string, symptom?: string): Promise<string> {
@@ -261,12 +257,12 @@ async function buildHealthPrompt(lat: number, lng: number, radius?: number, spec
       .map(([spec, count]) => `${count}x ${spec}`)
       .join(', ');
 
-    const topDoctors = doctors.slice(0, 5).map(d =>
+    const topDoctors = doctors.slice(0, 2).map(d =>
       `- **${d.name}** (${d.specialty}) — ${d.address}${d.phone ? `, Tel: ${d.phone}` : ''}`
     ).join('\n');
 
-    const moreHint = doctors.length > 5
-      ? ` Es folgen ${doctors.length - 5} weitere Ärzte.`
+    const moreHint = doctors.length > 2
+      ? ` Es folgen ${doctors.length - 2} weitere Ärzte.`
       : '';
 
     const baseText = fillTemplate(HEALTH_TEMPLATE, {
