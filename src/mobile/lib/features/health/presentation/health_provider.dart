@@ -12,6 +12,8 @@ class Doctor {
   final String phone;
   final String source; // 'db' | 'osm'
   final double? distanceKm; // Entfernung vom User-Standort
+  final double? latitude;
+  final double? longitude;
 
   Doctor({
     required this.id,
@@ -21,6 +23,8 @@ class Doctor {
     required this.phone,
     this.source = 'db',
     this.distanceKm,
+    this.latitude,
+    this.longitude,
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,8 @@ class Doctor {
       phone: json['phone'] ?? '',
       source: json['source'] ?? 'db',
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -130,20 +136,11 @@ class HealthProvider extends ChangeNotifier {
         }
       }
 
-      // Fallback: DB-only (nur wenn nie GPS verfügbar war)
-      final queryParam = specialty != null && specialty.isNotEmpty
-          ? '?specialty=$specialty'
-          : '';
-      final url = '${AppConfig.backendUrl}/api/health/doctors$queryParam';
-      final response = await http.get(Uri.parse(url), headers: {
-        'Content-Type': 'application/json'
-      }).timeout(const Duration(seconds: 30));
-      if (response.statusCode != 200) {
-        throw Exception('Server error: ${response.statusCode}');
-      }
-      final data = json.decode(response.body);
-      _doctors =
-          (data['doctors'] as List).map((d) => Doctor.fromJson(d)).toList();
+      // Fallback: Kein GPS verfügbar — Hinweis anzeigen statt leerer DB-Abfrage
+      // (Ärzte sind standortunabhängig nur via Overpass verfügbar)
+      _error =
+          'GPS-Position benötigt. Bitte Standortzugriff aktivieren, um Ärzte in Ihrer Nähe zu finden.';
+      _doctors = [];
     } catch (e) {
       _error = 'Ärzte konnten nicht geladen werden: $e';
     } finally {
@@ -204,6 +201,33 @@ class HealthProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// OSM-Arzt on-demand in DB speichern (standortunabhaengig).
+  /// Wird aufgerufen wenn User auf Overpass-Arzt tippt — danach ist
+  /// Terminbuchung moeglich egal wo auf der Welt.
+  Future<bool> ensureDoctor(Doctor doctor) async {
+    try {
+      final url = '${AppConfig.backendUrl}/api/health/doctors/ensure';
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'id': doctor.id,
+              'name': doctor.name,
+              'specialty': doctor.specialty,
+              'address': doctor.address,
+              'phone': doctor.phone,
+              'latitude': doctor.latitude,
+              'longitude': doctor.longitude,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false; // Silent fallback — Arzt bleibt sichtbar, nur Slots fehlen
     }
   }
 

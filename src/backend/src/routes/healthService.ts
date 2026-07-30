@@ -7,7 +7,8 @@ import {
   doctorSlotsQuerySchema,
   bookAppointmentBodySchema,
 } from '../middleware/schemas';
-import { healthService } from '../services/healthService';
+import { healthService, Doctor } from '../services/healthService';
+import { requireAuth } from '../middleware/auth';
 
 export const healthRouter = Router();
 
@@ -36,6 +37,22 @@ healthRouter.get('/doctors/nearby', validate(doctorsNearbyQuerySchema, 'query'),
 healthRouter.get('/doctors/:id', asyncHandler(async (req: Request, res: Response) => {
   const doctor = await healthService.getDoctorById(req.params.id as string);
   res.json({ status: 'ok', doctor });
+}));
+
+// POST /api/health/doctors/ensure — OSM-Arzt in DB ueberfuehren (on-demand, standortunabhaengig)
+healthRouter.post('/doctors/ensure', requireAuth, asyncHandler(async (req: Request, res: Response) => {
+  const { id, name, specialty, address, phone, email, latitude, longitude } = req.body;
+  if (!id || !name) {
+    res.status(400).json({ status: 'error', message: 'id and name are required' });
+    return;
+  }
+  const doctor: Doctor = {
+    id, name, specialty: specialty || 'Allgemeinmedizin',
+    address: address || '', phone: phone || '', email: email || '',
+    latitude: latitude || 0, longitude: longitude || 0, source: 'osm',
+  };
+  const dbId = await healthService.ensureDoctorInDb(doctor);
+  res.json({ status: 'ok', dbId, message: 'Arzt in DB gespeichert — Terminbuchung jetzt verfuegbar.' });
 }));
 
 // POST /api/health/doctors — Arzt registrieren (mit optionalen Slots)

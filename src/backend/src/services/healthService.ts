@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 import axios, { AxiosError } from 'axios';
 import { externalServices } from '../config/externalServices';
 
-interface Doctor {
+export interface Doctor {
   id: string;
   name: string;
   specialty: string;
@@ -391,10 +391,18 @@ export class HealthService {
   }
 
   async getDoctorById(id: string): Promise<Doctor> {
-    // OSM-Ärzte sind nicht in DB
+    // OSM-Ärzte: Versuche DB-Eintrag zu finden (wurde via ensureDoctorInDb angelegt)
     if (id.startsWith('osm_')) {
+      // 1. Schon in DB? (dynamisch angelegt bei vorheriger Buchung)
+      const cached = await queryOne<Doctor>(
+        'SELECT * FROM doctors WHERE id = $1',
+        [id]
+      );
+      if (cached) return { ...cached, source: 'db' };
+
+      // 2. Noch nicht in DB — Arzt existiert nur in Overpass-Karte
       throw new AppError(
-        'OSM-Aerzte sind nur ueber die Karte verfuegbar. Nur registrierte Aerzte haben Profile.',
+        'OSM-Arzt noch nicht in Datenbank. Bitte zuerst Arztprofil in der App laden (speichert ihn automatisch).',
         404
       );
     }
@@ -406,6 +414,63 @@ export class HealthService {
       throw new AppError('Doctor not found', 404);
     }
     return { ...doctor, source: 'db' };
+  }
+
+  /**
+   * Stellt sicher, dass ein Overpass-Arzt in der DB existiert.
+   * Wird aufgerufen wenn der User auf einen OSM-Arzt tippt → auto-save
+   * mit Default-Slots (Mo-Fr 8-12, 13-17). Danach ist Terminbuchung moeglich.
+   * Ortsun unabhaengig: funktioniert fuer JEDEN Ort weltweit.
+   */
+  async ensureDoctorInDb(doctor: Doctor): Promise<string> {
+    // Schon in DB?
+    const existing = await queryOne<{ id: string }>(
+      'SELECT id FROM doctors WHERE id = $1',
+      [doctor.id]
+    );
+    if (existing) return existing.id;
+
+    // In DB anlegen (on-demand, standortunabhängig)
+    const result = await queryOne<{ id: string }>(
+      `INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+       RETURNING id`,
+      [
+        doctor.id,
+        doctor.name,
+        doctor.specialty,
+        doctor.address || '',
+        doctor.phone || '',
+        doctor.email || '',
+        doctor.latitude || null,
+        doctor.longitude || null,
+      ]
+    );
+
+    // Default-Slots erstellen (Mo-Fr 8:00-12:00, 13:00-17:00)
+    const doctorDbId = result!.id;
+    for (let day = 1; day <= 5; day++) {
+      await query(
+        `INSERT INTO doctor_slots (doctor_id, day_of_week, start_time, end_time)
+         SELECT $1, $2, $3, $4
+         WHERE NOT EXISTS (
+           SELECT 1 FROM doctor_slots WHERE doctor_id = $1 AND day_of_week = $2
+         )`,
+        [doctorDbId, day, '08:00', '12:00']
+      );
+      await query(
+        `INSERT INTO doctor_slots (doctor_id, day_of_week, start_time, end_time)
+         SELECT $1, $2, $3, $4
+         WHERE NOT EXISTS (
+           SELECT 1 FROM doctor_slots WHERE doctor_id = $1 AND day_of_week = $2 AND start_time = $3
+         )`,
+        [doctorDbId, day, '13:00', '17:00']
+      );
+    }
+
+    logger.info(`OSM-Arzt ${doctor.name} (${doctor.id}) dynamisch in DB angelegt — Terminbuchung jetzt moeglich`);
+    return doctorDbId;
   }
 
   async registerDoctor(data: {
@@ -511,13 +576,7 @@ export class HealthService {
     date: string,
     time: string
   ): Promise<Appointment> {
-    if (doctorId.startsWith('osm_')) {
-      throw new AppError(
-        'OSM-Aerzte unterstuetzen keine Online-Terminbuchung. Bitte kontaktieren Sie die Praxis direkt.',
-        400
-      );
-    }
-
+    // Arzt muss in DB existieren (OSM-Aerzte werden dynamisch angelegt via ensureDoctorInDb)
     await this.getDoctorById(doctorId);
 
     const availableSlots = await this.getAvailableSlots(doctorId, date);
