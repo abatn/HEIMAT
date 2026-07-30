@@ -48,8 +48,9 @@ adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
   try {
     // Batch-Timestamp aller Fake-Ärzte (nie von echten Usern registriert,
     // alle 5 haben exakt denselben created_at — Batch-Insert durch AI-Agent).
-    // PostgreSQL TIMESTAMP ohne Timezone: cast via ::timestamp fuer exakten Match.
-    const fakeBatchTs = '2026-07-15T18:53:44.378Z';
+    // WICHTIG: Kein 'Z' Suffix — PostgreSQL interpretiert 'Z' als UTC und
+    // konvertiert in die Session-Timezone, was den Vergleich zerstört.
+    const fakeBatchTs = '2026-07-15 18:53:44.378';
 
     // 1. Löschen verknüpfter Termine
     await pool.query(
