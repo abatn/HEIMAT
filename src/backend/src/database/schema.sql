@@ -453,5 +453,37 @@ END $$;
 ALTER TABLE taler_wallets DROP COLUMN IF EXISTS wallet_priv;
 -- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.
 
--- Cleanup-Block entfernt: Keine Seed-Daten mehr vorhanden (Phase: Ortsunabhängigkeit).
+-- Cleanup: Berliner Seed-Aerzte entfernen (Phase: Ortsunabhaengigkeit).
+-- Alle Aerzte kommen jetzt live von Overpass — weltweit, standortunabhaengig.
+-- Idempotent: DELETE wird nur ausgeführt wenn Seed-Daten vorhanden sind.
+-- Cascade loescht zugehoerige doctor_slots automatisch.
+DELETE FROM doctors WHERE name IN (
+  'Praxis Dr. Katja Meißner',
+  'Gemeinschaftspraxis Dr. Weber & Dr. Klein',
+  'Hausarztpraxis am Prenzlauer Berg',
+  'Zahnarztpraxis Dr. Müller',
+  'Dental Clinic Berlin Mitte',
+  'Augenärztin Dr. Breitenbach',
+  'HNO-Praxis Dr. Schmidt',
+  'Hautarzt Praxis Helena Dröge',
+  'Kinderarztpraxis am Traveplatz',
+  'Praxis für Gynäkologie Dr. Ridha',
+  'Kardiologische Praxis Dr. Weber',
+  'Orthopädische Praxis Dr. Hofmann',
+  'Rückenzentrum am Markgrafenpark',
+  'Neurologie am Hackeschen Markt',
+  'Psychotherapie Praxis Dr. Hoffmann',
+  'Urologische Praxis Dr. Braun',
+  'Praxis für Pneumologie Dr. Atemweg',
+  'Chirurgische Gemeinschaftspraxis Dr. Meier',
+  'Internistische Praxis Dr. Koch',
+  'Praxis für Innere Medizin Dr. Internist',
+  'Sportarztpraxis Dr. Richter',
+  'Radiologie Berlin Mitte',
+  'Physiotherapie Zentrum Dr. Müller',
+  'Allergologie-Praxis Dr. Fischer',
+  'Praxis für Naturheilkunde Dr. Schmidt',
+  'Dr. Full',
+  'Dr. Test'
+);
 -- Ärzte werden dynamisch via Overpass + ensureDoctorInDb() angelegt.
