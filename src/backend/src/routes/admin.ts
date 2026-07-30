@@ -48,12 +48,13 @@ adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
   try {
     // Batch-Timestamp aller Fake-Ärzte (nie von echten Usern registriert,
     // alle 5 haben exakt denselben created_at — Batch-Insert durch AI-Agent).
+    // PostgreSQL TIMESTAMP ohne Timezone: cast via ::timestamp fuer exakten Match.
     const fakeBatchTs = '2026-07-15T18:53:44.378Z';
 
     // 1. Löschen verknüpfter Termine
     await pool.query(
       `DELETE FROM appointments WHERE doctor_id IN (
-        SELECT id FROM doctors WHERE created_at = $1
+        SELECT id FROM doctors WHERE created_at = $1::timestamp
       )`,
       [fakeBatchTs]
     );
@@ -61,14 +62,14 @@ adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
     // 2. Löschen verknüpfter Slots
     await pool.query(
       `DELETE FROM doctor_slots WHERE doctor_id IN (
-        SELECT id FROM doctors WHERE created_at = $1
+        SELECT id FROM doctors WHERE created_at = $1::timestamp
       )`,
       [fakeBatchTs]
     );
 
     // 3. Löschen der Fake-Ärzte (Batch-Timestamp-Filter)
     const result = await pool.query(
-      'DELETE FROM doctors WHERE created_at = $1',
+      'DELETE FROM doctors WHERE created_at = $1::timestamp',
       [fakeBatchTs]
     );
 
