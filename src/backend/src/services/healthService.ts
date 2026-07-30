@@ -46,23 +46,50 @@ export class HealthService {
   private readonly userAgent = externalServices.userAgent;
   private readonly overpassMirrors = externalServices.overpassMirrors;
 
-  private classifySpecialty(tags: Record<string, string> = {}): string {
-    const specialty =
-      tags.healthcare ||
-      tags.amenity === 'doctors'
-        ? (tags.specialty || tags.healthcare_speciality || 'Allgemeinmedizin')
-        : 'Allgemeinmedizin';
+  /**
+   * Klassifiziert die Fachrichtung eines Arztes aus OSM-Tags UND Name.
+   *
+   * Strategie: Ein konsolidierter Keyword-Check ueber alle verfuegbaren
+   * Informationen (Tags + Name). Kein frueher Return — alle Quellen
+   * werden gleichzeitig ausgewertet (verhindert dass "Allgemeinmedizin"
+   * spezifischere Namen wie "Sportarztpraxis" ueberschreibt).
+   */
+  private classifySpecialty(tags: Record<string, string> = {}, name: string = ''): string {
+    const tagSources = [
+      tags.healthcare_speciality,
+      tags.specialty,
+      tags.healthcare,
+      tags.amenity,
+    ].filter((v): v is string => !!v);
+    const tagText = tagSources.join(' ').toLowerCase();
+    const input = (tagText + ' ' + name).toLowerCase();
 
-    const lower = specialty.toLowerCase();
-    if (lower.includes('zahn') || lower.includes('dental')) return 'Zahnarzt';
-    if (lower.includes('augen') || lower.includes('ophthalm')) return 'Augenarzt';
-    if (lower.includes('hno') || lower.includes('ohr')) return 'HNO-Arzt';
-    if (lower.includes('haut') || lower.includes('dermat')) return 'Hautarzt';
-    if (lower.includes('kinder') || lower.includes('päda')) return 'Kinderarzt';
-    if (lower.includes('frau') || lower.includes('gyn')) return 'Frauenarzt';
-    if (lower.includes('herz') || lower.includes('kardio')) return 'Kardiologe';
-    if (lower.includes('psycho') || lower.includes('psych')) return 'Psychotherapeut';
-    return specialty.charAt(0).toUpperCase() + specialty.slice(1);
+    // Einheitliche Keyword-Map: [keyword1, keyword2, ...] → Fachrichtung
+    const rules: [string[], string][] = [
+      [['augen', 'ophthalm'], 'Augenarzt'],
+      [['zahn', 'dental', 'dentist'], 'Zahnarzt'],
+      [['hno', 'ohren', 'ohr'], 'HNO-Arzt'],
+      [['haut', 'dermat'], 'Hautarzt'],
+      [['kinder', 'päda', 'paediat', 'kindergyn'], 'Kinderarzt'],
+      [['frau', 'gyn', 'gynaekolog', 'gynäkolog', 'gynaecology'], 'Frauenarzt'],
+      [['herz', 'kardio', 'kardiolog'], 'Kardiologe'],
+      [['psycho', 'psych'], 'Psychotherapeut'],
+      [['chirurg', 'orthopä', 'ortho', 'rüc', 'ruec'], 'Chirurg/Orthopäde'],
+      [['neurolog'], 'Neurologe'],
+      [['hals', 'nasen'], 'HNO-Arzt'],
+      [['sportarzt', 'sportmedizin', 'sport'], 'Sportmedizin'],
+      [['allgemein'], 'Allgemeinmedizin'],
+    ];
+
+    for (const [keywords, specialty] of rules) {
+      for (const keyword of keywords) {
+        if (input.includes(keyword)) {
+          return specialty;
+        }
+      }
+    }
+
+    return 'Allgemeinmedizin';
   }
 
   private async fetchDoctorsFromOverpass(
@@ -118,7 +145,7 @@ export class HealthService {
     return {
       id: `osm_${el.id}`,
       name: tags.name || tags['name:de'] || 'Praxis',
-      specialty: this.classifySpecialty(tags),
+      specialty: this.classifySpecialty(tags, tags.name || tags['name:de'] || ''),
       address: address || `Koordinaten: ${el.lat}, ${el.lon}`,
       phone: tags.phone || tags['contact:phone'] || '',
       email: tags.email || tags['contact:email'] || '',
