@@ -53,8 +53,10 @@ export class HealthService {
    * Informationen (Tags + Name). Kein frueher Return — alle Quellen
    * werden gleichzeitig ausgewertet (verhindert dass "Allgemeinmedizin"
    * spezifischere Namen wie "Sportarztpraxis" ueberschreibt).
+   *
+   * Exportiert fuer Unit-Tests (classifySpecialty.test.ts).
    */
-  private classifySpecialty(tags: Record<string, string> = {}, name: string = ''): string {
+  classifySpecialty(tags: Record<string, string> = {}, name: string = ''): string {
     const tagSources = [
       tags.healthcare_speciality,
       tags.specialty,
@@ -72,7 +74,7 @@ export class HealthService {
       [['haut', 'dermat'], 'Hautarzt'],
       [['kinder', 'päda', 'paediat', 'kindergyn'], 'Kinderarzt'],
       [['frau', 'gyn', 'gynaekolog', 'gynäkolog', 'gynaecology'], 'Frauenarzt'],
-      [['herz', 'kardio', 'kardiolog'], 'Kardiologe'],
+      [['herz', 'kardio', 'kardiolog', 'cardio'], 'Kardiologe'],
       [['psycho', 'psych'], 'Psychotherapeut'],
       [['chirurg', 'orthopä', 'ortho', 'rüc', 'ruec'], 'Chirurg/Orthopäde'],
       [['neurolog'], 'Neurologe'],
