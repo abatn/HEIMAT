@@ -62,12 +62,19 @@ class HealthProvider extends ChangeNotifier {
   String? _error;
   List<TimeSlot> _slots = [];
   String? _selectedDoctorId;
+  // Gespeicherte GPS-Koordinaten — werden beim ersten Standort-Laden gesetzt
+  // und für alle weiteren Filter/Refresh-Aufrufe als Fallback genutzt.
+  // So laden Filter-Chips und Pull-to-Refresh immer via Overpass (nicht DB-only).
+  double? _lastLat;
+  double? _lastLng;
 
   List<Doctor> get doctors => _doctors;
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<TimeSlot> get slots => _slots;
   String? get selectedDoctorId => _selectedDoctorId;
+  double? get lastLat => _lastLat;
+  double? get lastLng => _lastLng;
 
   Future<void> searchDoctors(
       {String? specialty, double? lat, double? lng}) async {
@@ -76,11 +83,22 @@ class HealthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       HomeProvider.onUserAction?.call('arzt gesucht');
-      // Wenn Koordinaten vorhanden: Overpass + DB (nearby)
+
+      // Koordinaten merken für nachfolgende Calls ohne lat/lng
+      // (z.B. Filter-Chip-Klick, Pull-to-Refresh)
       if (lat != null && lng != null) {
+        _lastLat = lat;
+        _lastLng = lng;
+      }
+
+      // Wenn lat/lng übergeben ODER gespeichert: Overpass + DB (nearby)
+      final useLat = lat ?? _lastLat;
+      final useLng = lng ?? _lastLng;
+
+      if (useLat != null && useLng != null) {
         final query = <String, String>{
-          'lat': lat.toString(),
-          'lng': lng.toString(),
+          'lat': useLat.toString(),
+          'lng': useLng.toString(),
           'radius': '5000',
         };
         if (specialty != null && specialty.isNotEmpty) {
@@ -101,7 +119,8 @@ class HealthProvider extends ChangeNotifier {
           return;
         }
       }
-      // Fallback: DB-only
+
+      // Fallback: DB-only (nur wenn nie GPS verfügbar war)
       final queryParam = specialty != null && specialty.isNotEmpty
           ? '?specialty=$specialty'
           : '';
