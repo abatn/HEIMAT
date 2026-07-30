@@ -35,6 +35,8 @@ class _HealthScreenState extends State<HealthScreen> {
 
   // Spezialitäten — aligned mit classifySpecialty() Backend-Rules.
   // Value = exakter Fachrichtungs-String aus healthService.ts.
+  // ACHTUNG: Rule-Reihenfolge in healthService.ts ist lastenheft-gebunden
+  // (z.B. 'frauen' vor 'haut' — 'frauenarzt' enthält 'haut' als Substring).
   static const _specialties = [
     ('', 'Alle', Icons.local_hospital),
     ('Allgemeinmedizin', 'Hausarzt', Icons.medical_services),
@@ -55,6 +57,7 @@ class _HealthScreenState extends State<HealthScreen> {
     ('Sportmedizin', 'Sport', Icons.directions_run),
     ('Radiologie', 'Röntgen', Icons.radio),
     ('Physiotherapie', 'Physio', Icons.directions_walk),
+    ('Allergologie', 'Allergie', Icons.bug_report),
     ('Naturheilkunde', 'Natur', Icons.spa),
   ];
 
