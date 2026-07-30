@@ -1,3 +1,5 @@
+// CI Race-Fix: HTTP .timeout(30s) races with test runner default 30s.
+// Library-level @Timeout gives HTTP calls time to timeout before test kill.
 @Timeout(Duration(seconds: 60))
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -132,7 +134,8 @@ void main() {
       expect(provider.isLoading, isFalse);
     });
     test('refresh() Doppel-Call: zweiter Aufruf wird sicher gedroppt',
-        () async {
+        // 2x refresh() = potentiell 2x HTTP 30s = 60s → braucht >60s
+        timeout: const Timeout(Duration(seconds: 90)), () async {
       // Beide awaiten: erster läuft durch, zweiter wird via Guard gedroppt
       await provider.refresh();
       await provider.refresh();
