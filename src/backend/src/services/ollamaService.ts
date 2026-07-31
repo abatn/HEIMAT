@@ -46,14 +46,10 @@ const MODEL_PREFERENCES = ['qwen2.5:3b', 'phi3:3.8b', 'llama3.1:8b'];
 // (Phase X.10: Research-basiert, Ada-Health-artig, DEGAM-konform)
 // ---------------------------------------------------------------------------
 
-const HEALTH_TRIAGE_PROMPT = `
-## Gesundheit — Triage
+const HEALTH_TRIAGE_PROMPT = `Du bist HEIMAT Triage-Assistent. Antworte kurz (max 150 Wörter).
+Stufen: NOTFALL (Brustschmerz, Atemnot, Bewusstlosigkeit, Schlaganfall)→112 | BEREITSCHAFT (Fieber>39, Schmerzen 7+)→116117 | ROUTINE (leichte Symptome)→Hausarzt.
 Rückfragen: seit wann? Schmerzskala 1-10? Begleitsymptome?
-NOTFALL (Brustschmerz, Atemnot, Bewusstlosigkeit, Schlaganfall) → 112
-BEREITSCHAFT (Fieber >39, Schmerzen 7+) → 116117
-ROUTINE (leichte Symptome) → Hausarzt
-(3) Klare Handlungsempfehlung fett markiert.
-Regeln: Keine Diagnose, keine Medikamente.`;
+Handlungsempfehlung fett. Keine Diagnose, keine Medikamente. Deutsch.`;
 
 const DEFAULT_SYSTEM_PROMPT = `Du bist HEIMAT AI, ein hilfreicher Assistent für die HEIMAT Super App.
 Du kennst folgende Services:
@@ -180,8 +176,8 @@ export class OllamaService {
           messages,
           stream: false,
           options: {
-            num_predict: 500,   // Max 500 Tokens Antwort — kürzer = schneller
-            temperature: 0.5,   // Deterministisch genug, aber nicht zu kreativ
+            num_predict: 200,   // Max 200 Tokens (~150 Wörter) — kürzer = schneller
+            temperature: 0.3,   // Deterministisch — Triage braucht Präzision
           },
         },
         { timeout: 60000 },
@@ -241,57 +237,48 @@ export class OllamaService {
     context: ServiceContext,
     options?: { model?: string; systemPrompt?: string },
   ): Promise<string> {
-    // 1. Service-Kontexte parallel fetchen
-    // Bei Health Triage: NUR Health-Kontext (andere Services irrelevant fuer Triage)
     const isHealthTriage = !!(context.health?.symptom);
-    const contextToFetch = isHealthTriage
-      ? { health: context.health }
-      : context;
-    const serviceContexts = await promptService.fetchServiceContexts(contextToFetch);
 
-    // 2a. Basis-Prompt bestimmen (Default oder Custom)
-    let basePrompt = options?.systemPrompt ?? this.systemPrompt;
-
-    // 2b. Health-Triage-Prompt + RAG-Kontext INJEZIEREN wenn health-Context aktiv ist
-    if (context.health) {
-      basePrompt = buildHealthSystemPrompt(basePrompt);
-
-      // RAG: DEGAM-Leitlinien basierend auf User-Symptomen abrufen
-      // Prompt-Size Guard: Bei >6k Zeichen RAG ueberspringen (qwen2.5:3b 32k Context)
-      if (context.health.symptom && basePrompt.length < 6000) {
-        const guidelineChunks = await ragService.searchGuidelines(context.health.symptom);
-        if (guidelineChunks.length > 0) {
-          const ragContext = ragService.formatGuidelinesForPrompt(guidelineChunks);
-          basePrompt += ragContext;
-          logger.info(`RAG: ${guidelineChunks.length} DEGAM-Leitlinien fuer Symptom "${context.health.symptom}" gefunden`);
-        }
-      } else if (context.health.symptom) {
-        logger.warn(`RAG uebersprungen: Prompt zu lang (${basePrompt.length} Zeichen > 6000)`);
-      }
+    // ---- FAST PATH: Health Triage (kein Overpass, kein RAG, minimaler Prompt) ----
+    // Overpass (15-20s) + RAG (1-2s) + langer Prompt (CPU-Verarbeitung) machten
+    // die Triage 79s lang. Stattdessen: minimaler Prompt direkt an Ollama.
+    if (isHealthTriage) {
+      const triagePrompt = HEALTH_TRIAGE_PROMPT;
+      logger.info(`Health Triage: direkter Ollama-Call (kein Overpass, kein RAG)`);
+      return this.chat(userMessage, {
+        model: options?.model,
+        systemPrompt: triagePrompt,
+      });
     }
 
-    // 2c. Erweiterten System-Prompt mit Service-Daten bauen
-    let extendedPrompt = basePrompt;
+    // ---- STANDARD PATH: Non-Triage (alle Services parallel fetchen) ----
+    const serviceContexts = await promptService.fetchServiceContexts(context);
 
+    // Basis-Prompt bestimmen
+    let basePrompt = options?.systemPrompt ?? this.systemPrompt;
+
+    // Health-Kontext ohne Symptom (z.B. Ärztesuche) — erweiterten Prompt bauen
+    if (context.health && !isHealthTriage) {
+      basePrompt = buildHealthSystemPrompt(basePrompt);
+    }
+
+    // Service-Daten anhängen
     if (serviceContexts.length > 0) {
-      extendedPrompt +=
+      basePrompt +=
         SERVICE_CONTEXT_SEPARATOR +
-        (isHealthTriage
-          ? 'Ärzte in der Nähe:'
-          : 'Service-Daten:') +
+        'Service-Daten:' +
         SERVICE_CONTEXT_SEPARATOR +
         serviceContexts
           .map(sc => `[${sc.service.toUpperCase()}]: ${sc.text}`)
           .join(SERVICE_CONTEXT_SEPARATOR);
     }
 
-    // 3. An Ollama senden
     const ollamaResponse = await this.chat(userMessage, {
       model: options?.model,
-      systemPrompt: extendedPrompt,
+      systemPrompt: basePrompt,
     });
 
-    // 4. Wenn Ollama offline war → kombinierte Service-Daten zurückgeben
+    // Fallback: Service-Daten direkt zeigen wenn Ollama offline
     if (ollamaResponse === FALLBACK_MESSAGE && serviceContexts.length > 0) {
       const combined = serviceContexts
         .map(sc => `📊 ${sc.service.toUpperCase()}\n${sc.text}`)
