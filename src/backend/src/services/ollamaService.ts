@@ -49,9 +49,10 @@ const MODEL_PREFERENCES = ['qwen2.5:3b', 'phi3:3.8b', 'llama3.1:8b'];
 const HEALTH_TRIAGE_PROMPT = `
 ## Gesundheit — Triage
 Rückfragen: seit wann? Schmerzskala 1-10? Begleitsymptome?
-NOTFALL (Brustschmerz, Atemnot, Bewusstlosigkeit) → 112
+NOTFALL (Brustschmerz, Atemnot, Bewusstlosigkeit, Schlaganfall) → 112
 BEREITSCHAFT (Fieber >39, Schmerzen 7+) → 116117
 ROUTINE (leichte Symptome) → Hausarzt
+(3) Klare Handlungsempfehlung fett markiert.
 Regeln: Keine Diagnose, keine Medikamente.`;
 
 const DEFAULT_SYSTEM_PROMPT = `Du bist HEIMAT AI, ein hilfreicher Assistent für die HEIMAT Super App.
