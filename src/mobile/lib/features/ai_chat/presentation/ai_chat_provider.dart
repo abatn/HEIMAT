@@ -15,7 +15,6 @@ class AiChatProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   List<ChatMessage> _messages = [];
-  String _model = '';
   double? _currentLat;
   double? _currentLng;
 
@@ -51,7 +50,6 @@ class AiChatProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<ChatMessage> get messages => List.unmodifiable(_messages);
-  String get model => _model;
   double? get currentLat => _currentLat;
   double? get currentLng => _currentLng;
 
@@ -175,15 +173,6 @@ class AiChatProvider extends ChangeNotifier {
 
     // Erneut senden
     await sendMessage(_messages.last.content);
-  }
-
-  // ------------------------------------------------------------------
-  // setModel — Modell wechseln (optional, für zukünftige Modelle)
-  // ------------------------------------------------------------------
-  void setModel(String model) {
-    if (_model == model) return;
-    _model = model;
-    notifyListeners();
   }
 
   // ------------------------------------------------------------------

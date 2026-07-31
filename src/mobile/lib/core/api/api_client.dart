@@ -20,7 +20,7 @@ Future<Map<String, dynamic>> apiGet(String endpoint) async {
   if (response.statusCode >= 500) {
     throw Exception(
       'Server-Fehler (${response.statusCode}). '
-      'Bitte versuche es spaeter erneut.',
+      'Bitte versuche es später erneut.',
     );
   }
   return json.decode(response.body);
@@ -40,13 +40,14 @@ Future<Map<String, dynamic>> apiPost(
       .timeout(timeout);
   if (response.statusCode == 429) {
     throw Exception(
-      'Zu viele Anfragen. Bitte warte kurz und versuche es erneut.',
+      'Zu viele Anfragen. Bitte warte kurz '
+      'und versuche es erneut.',
     );
   }
   if (response.statusCode >= 500) {
     throw Exception(
       'Server-Fehler (${response.statusCode}). '
-      'Bitte versuche es spaeter erneut.',
+      'Bitte versuche es später erneut.',
     );
   }
   return json.decode(response.body);
@@ -61,5 +62,17 @@ Future<Map<String, dynamic>> apiPut(
         body: json.encode(body),
       )
       .timeout(const Duration(seconds: 30));
+  if (response.statusCode == 429) {
+    throw Exception(
+      'Zu viele Anfragen. Bitte warte kurz '
+      'und versuche es erneut.',
+    );
+  }
+  if (response.statusCode >= 500) {
+    throw Exception(
+      'Server-Fehler (${response.statusCode}). '
+      'Bitte versuche es später erneut.',
+    );
+  }
   return json.decode(response.body);
 }
