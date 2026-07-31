@@ -135,7 +135,7 @@ export class OllamaService {
   // -----------------------------------------------------------------------
   // getActiveModel — Gib das aktive Modell zurueck (detected oder fallback).
   // -----------------------------------------------------------------------
-  private getActiveModel(): string {
+  getActiveModel(): string {
     return this.detectedModel || 'llama3.1:8b';
   }
 

@@ -42,7 +42,7 @@ aiRouter.post('/home/personalized', asyncHandler(async (req: Request, res: Respo
 // ---------------------------------------------------------------------------
 // AI Chat — POST /api/ai/chat
 //
-// Sendet eine User-Nachricht an Ollama (llama3.1:8b) und gibt die
+// Sendet eine User-Nachricht an Ollama (auto-detect Modell) und gibt die
 // KI-generierte Antwort zurueck.
 //
 // Body: { message, model?, systemPrompt?, services? }
@@ -97,7 +97,7 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
     res.json({
       status: isFallback ? 'context' : 'ok',
       response,
-      model: model ?? 'llama3.1:8b',
+      model: model ?? ollamaService.getActiveModel(),
       services_used: Object.keys(services),
     });
     return;
@@ -112,7 +112,7 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
   res.json({
     status: response === ollamaService.getFallbackMessage() ? 'fallback' : 'ok',
     response,
-    model: model ?? 'llama3.1:8b',
+    model: model ?? ollamaService.getActiveModel(),
   });
 }));
 
