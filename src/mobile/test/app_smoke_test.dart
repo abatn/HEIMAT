@@ -32,6 +32,7 @@ class _StubFinance extends FinanceProvider {
 }
 
 class _StubHealth extends HealthProvider {
+  _StubHealth(super.authService);
   @override
   Future<void> searchDoctors(
       {String? specialty, double? lat, double? lng}) async {}
@@ -113,7 +114,9 @@ Widget buildTestApp({required Widget child}) {
       ChangeNotifierProvider<FinanceProvider>(
         create: (_) => _StubFinance(AuthService()),
       ),
-      ChangeNotifierProvider<HealthProvider>(create: (_) => _StubHealth()),
+      ChangeNotifierProvider<HealthProvider>(
+        create: (_) => _StubHealth(AuthService()),
+      ),
       ChangeNotifierProvider<AiChatProvider>(create: (_) => _StubAiChat()),
       ChangeNotifierProvider<CheckinProvider>(
         create: (_) => _StubCheckin(AuthService()),
