@@ -791,13 +791,15 @@ export class HealthService {
     withinHours: number = 2
   ): Promise<Appointment[]> {
     return query<Appointment>(
-      `SELECT * FROM appointments
-       WHERE patient_email = $1
-         AND status IN ('pending', 'confirmed')
-         AND (appointment_date + appointment_time)::timestamp
+      `SELECT a.*, d.name AS doctor_name
+       FROM appointments a
+       LEFT JOIN doctors d ON d.id = a.doctor_id
+       WHERE a.patient_email = $1
+         AND a.status IN ('pending', 'confirmed')
+         AND (a.appointment_date + a.appointment_time)::timestamp
              BETWEEN CURRENT_TIMESTAMP
              AND CURRENT_TIMESTAMP + ($2 || ' hours')::interval
-       ORDER BY appointment_date, appointment_time
+       ORDER BY a.appointment_date, a.appointment_time
        LIMIT 10`,
       [patientEmail, withinHours]
     );

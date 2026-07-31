@@ -50,7 +50,9 @@ class HeimatApp extends StatelessWidget {
                 create: (_) => FinanceProvider(auth.authService),
               ),
               ChangeNotifierProvider(create: (_) => MobilityProvider()),
-              ChangeNotifierProvider(create: (_) => HealthProvider()),
+              ChangeNotifierProvider(
+                create: (_) => HealthProvider(auth.authService),
+              ),
               ChangeNotifierProvider(create: (_) => MiniProgramProvider()),
               ChangeNotifierProvider(
                 create: (_) {

@@ -1,6 +1,7 @@
 @Timeout(Duration(seconds: 60))
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:heimat_app/core/services/auth_service.dart';
 import 'package:heimat_app/features/health/presentation/health_provider.dart';
 
 /// HealthProvider Tests — State + Error-Handling + DTO-Parsing.
@@ -28,7 +29,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    provider = HealthProvider();
+    provider = HealthProvider(AuthService());
   });
 
   // ==================================================================

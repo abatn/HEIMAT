@@ -75,6 +75,8 @@ class _HealthScreenState extends State<HealthScreen> {
       // Overpass als Primärquelle: Standort holen → echte OSM-Ärzte
       // Kein DB-only Fallback — Ärzte live aus OpenStreetMap
       _loadLocationAndRefresh();
+      // Push-Erinnerung: bevorstehende Termine pollen ("Termin in 1 Stunde")
+      context.read<HealthProvider>().loadUpcomingAppointments();
     });
   }
 
@@ -282,15 +284,47 @@ class _HealthScreenState extends State<HealthScreen> {
                             selectedTime!,
                           );
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(ok
-                            ? 'Termin gebucht: ${dateController.text} $selectedTime'
-                            : 'Buchung fehlgeschlagen'),
-                        backgroundColor:
-                            ok ? AppColors.success : AppColors.error,
-                      ),
+                    // Nach erfolgreicher Buchung Reminder-Liste aktualisieren
+                    if (ok) {
+                      context.read<HealthProvider>().loadUpcomingAppointments();
+                    }
+                    final snackBar = SnackBar(
+                      content: Text(ok
+                          ? 'Termin gebucht: ${dateController.text} $selectedTime'
+                          : 'Buchung fehlgeschlagen — ggf. Slot belegt. Warteliste verfügbar.'),
+                      backgroundColor:
+                          ok ? AppColors.success : AppColors.warning,
+                      action: ok
+                          ? null
+                          : SnackBarAction(
+                              label: 'Warteliste',
+                              textColor: Colors.white,
+                              onPressed: () async {
+                                final joined = await context
+                                    .read<HealthProvider>()
+                                    .joinWaitlist(
+                                      doctor.id,
+                                      nameController.text.trim(),
+                                      emailController.text.trim(),
+                                      dateController.text,
+                                      selectedTime!,
+                                    );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(joined
+                                          ? 'Auf Warteliste — Sie rücken bei Stornierung automatisch nach.'
+                                          : 'Warteliste fehlgeschlagen — bitte erneut versuchen.'),
+                                      backgroundColor: joined
+                                          ? AppColors.success
+                                          : AppColors.error,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                     );
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
                   }
                 }
               : null,
@@ -474,6 +508,9 @@ class _HealthScreenState extends State<HealthScreen> {
         children: [
           // 1. AI Health Chat Header (collapsible)
           _buildAiHealthHeader(),
+
+          // 1b. Termin-Erinnerung Banner ("Termin in 1 Stunde") — nur wenn Termine bevorstehen
+          _buildAppointmentReminderBanner(),
 
           // 2. Lebenszeichen Status (immer sichtbar, unabhängig von Ärzteliste)
           _buildLebenszeichenStatus(),
@@ -905,6 +942,96 @@ class _HealthScreenState extends State<HealthScreen> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+
+  // ====================================================================
+  // Termin-Erinnerung Banner — "Termin in 1 Stunde" (Push-Reminder)
+  // ====================================================================
+  Widget _buildAppointmentReminderBanner() {
+    return Consumer<HealthProvider>(
+      builder: (context, prov, _) {
+        final appointments = prov.upcomingAppointments;
+        if (appointments.isEmpty) return const SizedBox.shrink();
+
+        final next = appointments.first;
+        return Container(
+          margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.info.withOpacity(0.12),
+                AppColors.info.withOpacity(0.04),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.info.withOpacity(0.25)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.alarm_on,
+                  color: AppColors.info,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Termin ${next.countdownLabel}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      '${next.doctorName} · ${next.date} ${next.time} Uhr'
+                      '${next.notes != null && next.notes!.isNotEmpty ? ' · ${next.notes}' : ''}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Anzahl weiterer Termine
+              if (appointments.length > 1)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '+${appointments.length - 1}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.info,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 

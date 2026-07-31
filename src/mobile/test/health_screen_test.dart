@@ -27,7 +27,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    healthProvider = HealthProvider();
+    healthProvider = HealthProvider(AuthService());
     aiChatProvider = AiChatProvider();
     checkinProvider = CheckinProvider(AuthService());
   });

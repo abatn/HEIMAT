@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/services/auth_service.dart';
 import '../../home/presentation/home_provider.dart';
 
 class Doctor {
@@ -72,7 +73,61 @@ class TimeSlot {
   }
 }
 
+/// Bevorstehender Termin (Push-Erinnerung "Termin in X h").
+class UpcomingAppointment {
+  final String id;
+  final String doctorName;
+  final String date; // 'YYYY-MM-DD'
+  final String time; // 'HH:MM:SS'
+  final String status;
+  final String? notes;
+
+  UpcomingAppointment({
+    required this.id,
+    required this.doctorName,
+    required this.date,
+    required this.time,
+    required this.status,
+    this.notes,
+  });
+
+  factory UpcomingAppointment.fromJson(Map<String, dynamic> json) {
+    // Guard gegen leere/fehlende Zeit: substring(0,5) wuerde sonst crashen.
+    final rawTime = (json['appointment_time'] ?? '').toString();
+    return UpcomingAppointment(
+      id: json['id'] ?? '',
+      doctorName: json['doctor_name'] ?? 'Arzt',
+      date: (json['appointment_date'] ?? '').toString(),
+      time: rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime,
+      status: json['status'] ?? 'pending',
+      notes: json['notes'],
+    );
+  }
+
+  /// Termin-Zeitpunkt als DateTime (lokal interpretiert).
+  DateTime get dateTime {
+    return DateTime.parse('$date $time');
+  }
+
+  /// Menschliche Darstellung: 'in 45 Min' / 'in 2 Std 10 Min' / '12.8. 08:00 Uhr'.
+  String get countdownLabel {
+    final diff = dateTime.difference(DateTime.now());
+    if (diff.inMinutes < 60) {
+      final minutes = diff.inMinutes < 0 ? 0 : diff.inMinutes;
+      return 'in $minutes Min';
+    }
+    final hours = diff.inHours;
+    final minutes = (diff.inMinutes % 60).toString().padLeft(2, '0');
+    if (diff.inDays < 1) {
+      return 'in $hours Std $minutes Min';
+    }
+    return '${dateTime.day}.${dateTime.month}. ${time} Uhr';
+  }
+}
+
 class HealthProvider extends ChangeNotifier {
+  final AuthService _authService;
+
   List<Doctor> _allDoctors = []; // Alle geladenen Ärzte (ungefiltert)
   List<Doctor> _doctors = []; // Aktuell angezeigte Ärzte (gefiltert)
   bool _isLoading = false;
@@ -86,6 +141,11 @@ class HealthProvider extends ChangeNotifier {
   double? _lastLat;
   double? _lastLng;
 
+  // Push-Erinnerung: bevorstehende Termine (GET /appointments/reminders)
+  List<UpcomingAppointment> _upcomingAppointments = [];
+
+  HealthProvider(this._authService);
+
   List<Doctor> get doctors => _doctors;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -93,6 +153,7 @@ class HealthProvider extends ChangeNotifier {
   String? get selectedDoctorId => _selectedDoctorId;
   double? get lastLat => _lastLat;
   double? get lastLng => _lastLng;
+  List<UpcomingAppointment> get upcomingAppointments => _upcomingAppointments;
 
   /// Specialty-Filter client-side anwenden (instant, kein HTTP-Call).
   /// Die vollständige Ärzteliste wird bei searchDoctors() geladen,
@@ -227,6 +288,80 @@ class HealthProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Push-Erinnerung: Pollt GET /api/health/appointments/reminders und
+  /// zeigt bevorstehende Termine ("Termin in 1 Stunde") als Banner.
+  /// Silent-Fail: bei nicht eingeloggtem User oder Fehler kein Crash.
+  Future<void> loadUpcomingAppointments({int withinHours = 24}) async {
+    final email = _authService.email;
+    if (email == null || email.isEmpty) {
+      _upcomingAppointments = [];
+      notifyListeners();
+      return;
+    }
+    try {
+      final uri = Uri.https(
+        Uri.parse(AppConfig.backendUrl).host,
+        '/api/health/appointments/reminders',
+        {'patientEmail': email, 'withinHours': withinHours.toString()},
+      );
+      final response = await http.get(uri, headers: {
+        ..._authService.authHeaders,
+        'Content-Type': 'application/json',
+      }).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _upcomingAppointments = (data['appointments'] as List? ?? [])
+            .map((a) => UpcomingAppointment.fromJson(a as Map<String, dynamic>))
+            .toList();
+      } else {
+        // Silent: Reminder-Banner ist Nice-to-have — kein Fehler-Schleier
+        _upcomingAppointments = [];
+      }
+    } catch (_) {
+      // Silent: Reminder-Banner ist Nice-to-have — kein Fehler-Schleier
+      _upcomingAppointments = [];
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Warteliste: Slot belegt → POST /api/health/appointments/waitlist.
+  /// Bei Stornierung rueckt der erste Wartende automatisch nach (Backend).
+  /// KEIN notifyListeners: der Caller (SnackBar in health_screen.dart)
+  /// zeigt das Ergebnis selbst — kein UI-State haengt an diesem Provider.
+  Future<bool> joinWaitlist(
+    String doctorId,
+    String patientName,
+    String patientEmail,
+    String date,
+    String time,
+  ) async {
+    try {
+      final url = '${AppConfig.backendUrl}/api/health/appointments/waitlist';
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: {
+              ..._authService.authHeaders,
+              'Content-Type': 'application/json',
+            },
+            body: json.encode({
+              'doctorId': doctorId,
+              'patientName': patientName,
+              'patientEmail': patientEmail,
+              'date': date,
+              'time': time,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+      return response.statusCode == 200;
+    } catch (_) {
+      // KEIN _error-Polluting: _error gehoert der Aerzteliste. Der Caller
+      // (SnackBar in health_screen.dart) zeigt seine eigene Fehlermeldung.
+      return false;
     }
   }
 
