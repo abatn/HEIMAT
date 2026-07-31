@@ -73,11 +73,13 @@ class TimeSlot {
 }
 
 class HealthProvider extends ChangeNotifier {
-  List<Doctor> _doctors = [];
+  List<Doctor> _allDoctors = []; // Alle geladenen Ärzte (ungefiltert)
+  List<Doctor> _doctors = []; // Aktuell angezeigte Ärzte (gefiltert)
   bool _isLoading = false;
   String? _error;
   List<TimeSlot> _slots = [];
   String? _selectedDoctorId;
+  String? _selectedSpecialty; // Aktuell ausgewählte Specialty
   // Gespeicherte GPS-Koordinaten — werden beim ersten Standort-Laden gesetzt
   // und für alle weiteren Filter/Refresh-Aufrufe als Fallback genutzt.
   // So laden Filter-Chips und Pull-to-Refresh immer via Overpass (nicht DB-only).
@@ -91,6 +93,23 @@ class HealthProvider extends ChangeNotifier {
   String? get selectedDoctorId => _selectedDoctorId;
   double? get lastLat => _lastLat;
   double? get lastLng => _lastLng;
+
+  /// Specialty-Filter client-side anwenden (instant, kein HTTP-Call).
+  /// Die vollständige Ärzteliste wird bei searchDoctors() geladen,
+  /// danach filtert filterBySpecialty() lokal nach Fachrichtung.
+  void filterBySpecialty(String? specialty) {
+    _selectedSpecialty = specialty;
+    if (specialty == null || specialty.isEmpty) {
+      _doctors = List.from(_allDoctors);
+    } else {
+      final lower = specialty.toLowerCase();
+      _doctors = _allDoctors
+          .where((d) => d.specialty.toLowerCase().contains(lower))
+          .toList();
+    }
+    _error = null;
+    notifyListeners();
+  }
 
   Future<void> searchDoctors(
       {String? specialty, double? lat, double? lng}) async {
@@ -117,9 +136,6 @@ class HealthProvider extends ChangeNotifier {
           'lng': useLng.toString(),
           'radius': '5000',
         };
-        if (specialty != null && specialty.isNotEmpty) {
-          query['specialty'] = specialty;
-        }
         final uri = Uri.https(
           Uri.parse(AppConfig.backendUrl).host,
           '/api/health/doctors/nearby',
@@ -130,19 +146,29 @@ class HealthProvider extends ChangeNotifier {
         }).timeout(const Duration(seconds: 30));
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
-          _doctors =
+          _allDoctors =
               (data['doctors'] as List).map((d) => Doctor.fromJson(d)).toList();
+          // Specialty-Filter client-side anwenden
+          filterBySpecialty(specialty ?? _selectedSpecialty);
           return;
         }
       }
 
-      // Fallback: Kein GPS verfügbar — Hinweis anzeigen statt leerer DB-Abfrage
-      // (Ärzte sind standortunabhängig nur via Overpass verfügbar)
-      _error =
-          'GPS-Position benötigt. Bitte Standortzugriff aktivieren, um Ärzte in Ihrer Nähe zu finden.';
-      _doctors = [];
+      // Fallback: Kein GPS verfügbar
+      if (_allDoctors.isNotEmpty) {
+        _error =
+            'Standort nicht verfügbar — Filter benötigen GPS. Ziehen Sie zum Aktualisieren.';
+      } else {
+        _error =
+            'GPS-Position benötigt. Bitte Standortzugriff aktivieren, um Ärzte in Ihrer Nähe zu finden.';
+        _doctors = [];
+      }
     } catch (e) {
-      _error = 'Ärzte konnten nicht geladen werden: $e';
+      if (_allDoctors.isEmpty) {
+        _error = 'Ärzte konnten nicht geladen werden: $e';
+      } else {
+        _error = 'Aktualisierung fehlgeschlagen: $e';
+      }
     } finally {
       _isLoading = false;
       notifyListeners();

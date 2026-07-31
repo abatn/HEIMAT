@@ -240,16 +240,21 @@ class _HealthScreenState extends State<HealthScreen> {
     );
   }
 
-  void _showBookingSheet(Doctor doctor) {
+  Future<void> _showBookingSheet(Doctor doctor) async {
+    // OSM-Arzt: zuerst in DB speichern (ensureDoctor) damit Terminbuchung geht
     if (doctor.source == 'osm') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'OSM-Ärzte: Bitte kontaktieren Sie die Praxis direkt. Terminbuchung ist nur für registrierte Ärzte verfügbar.'),
-          duration: Duration(seconds: 4),
-        ),
-      );
-      return;
+      final saved = await context.read<HealthProvider>().ensureDoctor(doctor);
+      if (!mounted) return;
+      if (!saved) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Arzt konnte nicht gespeichert werden. Bitte erneut versuchen.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
     }
 
     final nameController = TextEditingController();
@@ -519,8 +524,8 @@ class _HealthScreenState extends State<HealthScreen> {
                       ),
                       onSelected: (_) {
                         setState(() => _selectedSpecialty = value);
-                        context.read<HealthProvider>().searchDoctors(
-                              specialty: value.isEmpty ? null : value,
+                        context.read<HealthProvider>().filterBySpecialty(
+                              value.isEmpty ? null : value,
                             );
                       },
                     ),
@@ -547,11 +552,7 @@ class _HealthScreenState extends State<HealthScreen> {
                         description: provider.error!,
                         action: ElevatedButton(
                           onPressed: () =>
-                              context.read<HealthProvider>().searchDoctors(
-                                    specialty: _selectedSpecialty.isEmpty
-                                        ? null
-                                        : _selectedSpecialty,
-                                  ),
+                              context.read<HealthProvider>().searchDoctors(),
                           child: const Text('Erneut versuchen'),
                         ),
                       ),
@@ -569,11 +570,7 @@ class _HealthScreenState extends State<HealthScreen> {
                 }
                 return RefreshIndicator(
                   onRefresh: () async {
-                    await context.read<HealthProvider>().searchDoctors(
-                          specialty: _selectedSpecialty.isEmpty
-                              ? null
-                              : _selectedSpecialty,
-                        );
+                    await context.read<HealthProvider>().searchDoctors();
                   },
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
