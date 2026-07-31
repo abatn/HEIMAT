@@ -101,7 +101,7 @@ void main() {
       expect(resp.status, 'error');
       expect(resp.isError, true);
       expect(resp.response, '');
-      expect(resp.model, 'llama3.1:8b');
+      expect(resp.model, 'qwen2.5:3b');
     });
   });
 }
