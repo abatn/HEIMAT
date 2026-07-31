@@ -41,6 +41,8 @@ services:
       # erreichen (siehe server-firewall-config).
       - key: OLLAMA_BASE_URL
         value: "http://158.180.18.110:11434"
+      - key: OLLAMA_MODEL
+        value: "qwen2.5:3b"
       # AUTO_MIGRATE entfaellt: Default ist jetzt "on" (Check in index.ts: !== 'false').
       # Lokales Dev: AUTO_MIGRATE=false um Migration zu ueberspringen.
       - key: REDIS_URL
