@@ -463,12 +463,13 @@ Antwort mit Haftungsausschluss
 - **Evaluierung abgeschlossen**: HAPI FHIR (~500MB RAM), Medplum (~200MB + eigene DB/Auth), Firely Server (.NET) — alle zu schwer für Render Free-Tier (512MB) und zu große Migration für den Nutzen.
 - **HEIMAT-Äquivalent existiert bereits**: `doctor_slots` (≈ FHIR Schedule), `getAvailableSlots()` (≈ FHIR Slot), `appointments` (≈ FHIR Appointment). 1:1 funktional.
 - **Kein Interop-Benefit heute**: OSM/Overpass-Ärzte haben keine FHIR-Endpunkte. FHIR-Interop bringt erst Wert, wenn echte Praxis-Software (CompuGroup, SAP) angebunden wird → Phase 3+.
-- **Stattdessen: Bestehendes System FHIR-ähnlich erweitern** (geplant):
-  1. Appointment-Status-Pipeline: pending → confirmed → completed → no-show
-  2. Recurring Slots (Serien-Termine, z.B. "jeden Dienstag 14:00")
-  3. Warteliste (Slot voll → automatisch nachrücken)
-  4. Notiz-Feld am Appointment (Symptome vorab lesbar)
-  5. Termin-Erinnerung (Push, "Termin in 1 Stunde")
+- **Stattdessen: Bestehendes System FHIR-ähnlich erweitert** ✅ **Implementiert (Commit 01f91a4, 2026-07-31)**:
+  1. **Status-Pipeline** ✅ — `completeAppointment()` + `markNoShow()` → Status `completed`/`no-show`. Routen: `PUT /api/health/appointments/:id/complete` + `/no-show`
+  2. **Recurring Slots** ✅ — `bookRecurringAppointments()` (Serien-Termine 1-12 Wochen, gemeinsame `recurrence_id`). Route: `POST /api/health/appointments/recurring`
+  3. **Warteliste** ✅ — Tabelle `appointment_waitlist` + `joinWaitlist()`. Auto-Promotion: `cancelAppointment` → `promoteFromWaitlist` rückt ersten Wartenden nach. Route: `POST /api/health/appointments/waitlist`
+  4. **Notiz-Feld** ✅ — `notes` in Buchung + Zod-Schema + Tests
+  5. **Termin-Erinnerung** ✅ — `getUpcomingAppointments()` → `GET /api/health/appointments/reminders?patientEmail=&withinHours=` (Backend; Flutter-Polling offen)
+- **Tests**: 23/23 grün (health.test.ts, inkl. Waitlist-Promotion + Status-Pipeline + Recurring)
 - **Future**: FHIR-Adapter-Endpoint erst wenn echte Praxis-Anbindung relevant wird.
 
 #### Wichtige Regeln
