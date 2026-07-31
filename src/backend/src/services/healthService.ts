@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { query, queryOne } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -40,7 +41,19 @@ interface Appointment {
   patient_email: string;
   appointment_date: string;
   appointment_time: string;
-  status: string;
+  status: string; // 'pending' | 'confirmed' | 'completed' | 'no-show' | 'cancelled'
+  notes?: string;
+  recurrence_id?: string | null;
+}
+
+interface WaitlistEntry {
+  id: string;
+  doctor_id: string;
+  patient_name: string;
+  patient_email: string;
+  requested_date: string;
+  requested_time: string;
+  status: string; // 'waiting' | 'promoted'
 }
 
 export class HealthService {
@@ -574,7 +587,9 @@ export class HealthService {
     patientName: string,
     patientEmail: string,
     date: string,
-    time: string
+    time: string,
+    notes?: string,
+    recurrenceId?: string | null
   ): Promise<Appointment> {
     // Arzt muss in DB existieren (OSM-Aerzte werden dynamisch angelegt via ensureDoctorInDb)
     await this.getDoctorById(doctorId);
@@ -585,13 +600,58 @@ export class HealthService {
     }
 
     const result = await queryOne<Appointment>(
-      `INSERT INTO appointments (doctor_id, patient_name, patient_email, appointment_date, appointment_time, status)
-       VALUES ($1, $2, $3, $4, $5, 'pending')
+      `INSERT INTO appointments (doctor_id, patient_name, patient_email, appointment_date, appointment_time, status, notes, recurrence_id)
+       VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7)
        RETURNING *`,
-      [doctorId, patientName, patientEmail, date, time]
+      [doctorId, patientName, patientEmail, date, time, notes || null, recurrenceId ?? null]
     );
 
     return result!;
+  }
+
+  /**
+   * Recurring Slots: Bucht dieselbe Uhrzeit an N aufeinanderfolgenden Wochen
+   * (z.B. "jeden Dienstag 14:00" fuer 4 Wochen). Alle Termine teilen eine
+   * recurrence_id, damit die Serie als Einheit verwaltet werden kann.
+   */
+  async bookRecurringAppointments(
+    doctorId: string,
+    patientName: string,
+    patientEmail: string,
+    startDate: string,
+    time: string,
+    weeks: number,
+    notes?: string
+  ): Promise<{ appointments: Appointment[]; recurrenceId: string; booked: number; failed: string[] }> {
+    if (weeks < 1 || weeks > 12) {
+      throw new AppError('weeks must be between 1 and 12', 400);
+    }
+    await this.getDoctorById(doctorId);
+
+    const recurrenceId = randomUUID();
+    const appointments: Appointment[] = [];
+    const failed: string[] = [];
+
+    // startDate ist 'YYYY-MM-DD' (UTC). Jede weitere Woche = +7 Tage (UTC),
+    // dadurch bleibt der Wochentag der Serie identisch (z.B. immer Dienstag).
+    const start = new Date(startDate + 'T00:00:00Z');
+
+    for (let i = 0; i < weeks; i++) {
+      const current = new Date(start);
+      current.setUTCDate(start.getUTCDate() + i * 7);
+      const dateStr = current.toISOString().slice(0, 10);
+
+      try {
+        const booked = await this.bookAppointment(
+          doctorId, patientName, patientEmail, dateStr, time, notes, recurrenceId
+        );
+        appointments.push(booked);
+      } catch {
+        failed.push(dateStr);
+      }
+    }
+
+    return { appointments, recurrenceId, booked: appointments.length, failed };
   }
 
   async getAppointments(patientName: string): Promise<Appointment[]> {
@@ -601,7 +661,7 @@ export class HealthService {
     );
   }
 
-  async cancelAppointment(appointmentId: string): Promise<Appointment> {
+  async cancelAppointment(appointmentId: string): Promise<{ appointment: Appointment; promoted: WaitlistEntry | null }> {
     const result = await queryOne<Appointment>(
       "UPDATE appointments SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *",
       [appointmentId]
@@ -611,7 +671,14 @@ export class HealthService {
       throw new AppError('Appointment not found', 404);
     }
 
-    return result;
+    // Warteliste: Nach Stornierung automatisch ersten Wartenden nachruecken
+    const promoted = await this.promoteFromWaitlist(
+      result.doctor_id,
+      result.appointment_date,
+      result.appointment_time.substring(0, 5)
+    );
+
+    return { appointment: result, promoted };
   }
 
   async confirmAppointment(appointmentId: string): Promise<Appointment> {
@@ -625,6 +692,115 @@ export class HealthService {
     }
 
     return result;
+  }
+
+  /** Status-Pipeline: Termin durchgefuehrt */
+  async completeAppointment(appointmentId: string): Promise<Appointment> {
+    const result = await queryOne<Appointment>(
+      "UPDATE appointments SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *",
+      [appointmentId]
+    );
+    if (!result) {
+      throw new AppError('Appointment not found', 404);
+    }
+    return result;
+  }
+
+  /** Status-Pipeline: Patient ohne Absage nicht erschienen */
+  async markNoShow(appointmentId: string): Promise<Appointment> {
+    const result = await queryOne<Appointment>(
+      "UPDATE appointments SET status = 'no-show', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *",
+      [appointmentId]
+    );
+    if (!result) {
+      throw new AppError('Appointment not found', 404);
+    }
+    return result;
+  }
+
+  /**
+   * Warteliste: Eintrag fuer einen belegten Slot anlegen.
+   * Idempotent: gleicher Patient + Slot wird nicht doppelt eingetragen.
+   */
+  async joinWaitlist(
+    doctorId: string,
+    patientName: string,
+    patientEmail: string,
+    date: string,
+    time: string
+  ): Promise<WaitlistEntry> {
+    const result = await queryOne<WaitlistEntry>(
+      `INSERT INTO appointment_waitlist (doctor_id, patient_name, patient_email, requested_date, requested_time, status)
+       VALUES ($1, $2, $3, $4, $5, 'waiting')
+       ON CONFLICT (doctor_id, requested_date, requested_time, patient_name)
+       DO UPDATE SET patient_email = EXCLUDED.patient_email, status = 'waiting',
+                     created_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [doctorId, patientName, patientEmail || null, date, time]
+    );
+    return result!;
+  }
+
+  /**
+   * Warteliste: Ersten wartenden Patienten fuer einen freigewordenen Slot buchen.
+   * Wird automatisch bei Stornierung aufgerufen (cancelAppointment).
+   */
+  async promoteFromWaitlist(
+    doctorId: string,
+    date: string,
+    time: string
+  ): Promise<WaitlistEntry | null> {
+    const waiting = await queryOne<WaitlistEntry>(
+      `SELECT * FROM appointment_waitlist
+       WHERE doctor_id = $1 AND requested_date = $2 AND requested_time = $3 AND status = 'waiting'
+       ORDER BY created_at ASC
+       LIMIT 1`,
+      [doctorId, date, time]
+    );
+    if (!waiting) return null;
+
+    // Slot ist nach Stornierung frei — sofort buchen (auch wenn andere
+    // zwischenzeitlich gebucht haben, schlaegt bookAppointment fehl und wir
+    // lassen den Eintrag fuer den naechsten Promote-Zyklus stehen).
+    try {
+      await this.bookAppointment(
+        doctorId,
+        waiting.patient_name,
+        waiting.patient_email || '',
+        waiting.requested_date,
+        waiting.requested_time.substring(0, 5),
+        'Automatisch von der Warteliste nachgerueckt'
+      );
+      await query(
+        "UPDATE appointment_waitlist SET status = 'promoted' WHERE id = $1",
+        [waiting.id]
+      );
+      return { ...waiting, status: 'promoted' };
+    } catch {
+      return null; // Slot wurde doch wieder belegt — kein Ruecken
+    }
+  }
+
+  /**
+   * Push-Benachrichtigung (Termin-Erinnerung): Liefert bevorstehende Termine
+   * eines Patienten innerhalb der naechsten X Stunden. Der Mobile-Client pollt
+   * diesen Endpoint und zeigt "Termin in 1 Stunde".
+   */
+  async getUpcomingAppointments(
+    patientEmail: string,
+    withinHours: number = 2
+  ): Promise<Appointment[]> {
+    return query<Appointment>(
+      `SELECT * FROM appointments
+       WHERE patient_email = $1
+         AND status IN ('pending', 'confirmed')
+         AND (appointment_date + appointment_time)::timestamp
+             BETWEEN CURRENT_TIMESTAMP
+             AND CURRENT_TIMESTAMP + ($2 || ' hours')::interval
+       ORDER BY appointment_date, appointment_time
+       LIMIT 10`,
+      [patientEmail, withinHours]
+    );
   }
 }
 

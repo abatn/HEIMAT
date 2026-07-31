@@ -113,6 +113,30 @@ export const bookAppointmentBodySchema = z.object({
   patientEmail: z.string().email('Invalid email format').max(255).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format: YYYY-MM-DD'),
   time: z.string().regex(/^\d{2}:\d{2}$/, 'Format: HH:MM'),
+  notes: z.string().max(1000).optional(),
+});
+
+export const bookRecurringAppointmentBodySchema = z.object({
+  doctorId: z.string().min(1, 'doctorId is required'),
+  patientName: z.string().min(1, 'patientName is required').max(255),
+  patientEmail: z.string().email('Invalid email format').max(255).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format: YYYY-MM-DD'),
+  time: z.string().regex(/^\d{2}:\d{2}$/, 'Format: HH:MM'),
+  weeks: z.number().int().min(1).max(12, 'weeks must be 1-12'),
+  notes: z.string().max(1000).optional(),
+});
+
+export const waitlistBodySchema = z.object({
+  doctorId: z.string().min(1, 'doctorId is required'),
+  patientName: z.string().min(1, 'patientName is required').max(255),
+  patientEmail: z.string().email('Invalid email format').max(255).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format: YYYY-MM-DD'),
+  time: z.string().regex(/^\d{2}:\d{2}$/, 'Format: HH:MM'),
+});
+
+export const upcomingAppointmentsQuerySchema = z.object({
+  patientEmail: z.string().email('Invalid email format'),
+  withinHours: z.string().optional().refine(v => !v || (!isNaN(parseInt(v)) && parseInt(v) > 0 && parseInt(v) <= 72), 'withinHours must be 1-72'),
 });
 
 // ---------------------------------------------------------------------------

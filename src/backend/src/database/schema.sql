@@ -112,11 +112,26 @@ CREATE TABLE IF NOT EXISTS appointments (
     patient_phone VARCHAR(50),
     appointment_date DATE NOT NULL,
     appointment_time TIME NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'confirmed', 'cancelled'
-    notes TEXT,
+    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'confirmed', 'completed', 'no-show', 'cancelled'
+    notes TEXT,                            -- Notiz-Feld (z.B. Symptome vorab lesbar)
+    recurrence_id UUID,                    -- Serien-Termine: gleiche ID fuer eine Recurring-Serie
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Warteliste (Slot voll → automatisch nachruecken bei Stornierung)
+CREATE TABLE IF NOT EXISTS appointment_waitlist (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    doctor_id UUID REFERENCES doctors(id),
+    patient_name VARCHAR(255) NOT NULL,
+    patient_email VARCHAR(255),
+    requested_date DATE NOT NULL,
+    requested_time TIME NOT NULL,
+    status VARCHAR(20) DEFAULT 'waiting', -- 'waiting' | 'promoted'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (doctor_id, requested_date, requested_time, patient_name)
+);
+CREATE INDEX IF NOT EXISTS idx_waitlist_slot ON appointment_waitlist(doctor_id, requested_date, requested_time);
 
 -- ============================================
 -- GTFS-ÖPNV-DATEN
@@ -258,6 +273,8 @@ CREATE INDEX IF NOT EXISTS idx_doctor_slots_day ON doctor_slots(day_of_week);
 CREATE INDEX IF NOT EXISTS idx_appointments_doctor ON appointments(doctor_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
+CREATE INDEX IF NOT EXISTS idx_appointments_recurrence ON appointments(recurrence_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_email ON appointments(patient_email);
 
 -- ============================================
 -- TALER EXCHANGE (real GNU Taler protocol integration)
@@ -475,6 +492,21 @@ END $$;
 -- mehr befuellt (INSERT nutzt wallet_priv_pkcs8). Drop ist idempotent (IF EXISTS).
 ALTER TABLE taler_wallets DROP COLUMN IF EXISTS wallet_priv;
 -- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.
+-- Recurrence-Spalte fuer Legacy-DBs (frische DBs haben sie bereits im CREATE TABLE).
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS recurrence_id UUID;
+-- Wartelisten-Tabelle fuer Legacy-DBs (frische DBs haben sie bereits im CREATE TABLE).
+CREATE TABLE IF NOT EXISTS appointment_waitlist (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    doctor_id UUID REFERENCES doctors(id),
+    patient_name VARCHAR(255) NOT NULL,
+    patient_email VARCHAR(255),
+    requested_date DATE NOT NULL,
+    requested_time TIME NOT NULL,
+    status VARCHAR(20) DEFAULT 'waiting', -- 'waiting' | 'promoted'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (doctor_id, requested_date, requested_time, patient_name)
+);
+CREATE INDEX IF NOT EXISTS idx_waitlist_slot ON appointment_waitlist(doctor_id, requested_date, requested_time);
 
 -- Cleanup: Berliner Seed-Aerzte entfernen (Phase: Ortsunabhaengigkeit).
 DELETE FROM doctors WHERE name IN (

@@ -9,6 +9,11 @@ import {
 } from '../middleware/schemas';
 import { healthService, Doctor } from '../services/healthService';
 import { requireAuth } from '../middleware/auth';
+import {
+  bookRecurringAppointmentBodySchema,
+  waitlistBodySchema,
+  upcomingAppointmentsQuerySchema,
+} from '../middleware/schemas';
 
 export const healthRouter = Router();
 
@@ -79,9 +84,38 @@ healthRouter.get('/doctors/:id/slots', validate(doctorSlotsQuerySchema, 'query')
 
 // POST /api/health/appointments
 healthRouter.post('/appointments', validate(bookAppointmentBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const { doctorId, patientName, patientEmail, date, time } = req.body;
-  const appointment = await healthService.bookAppointment(doctorId, patientName, patientEmail || '', date, time);
+  const { doctorId, patientName, patientEmail, date, time, notes } = req.body;
+  const appointment = await healthService.bookAppointment(doctorId, patientName, patientEmail || '', date, time, notes);
   res.json({ status: 'ok', appointment, message: 'Appointment booked.' });
+}));
+
+// POST /api/health/appointments/recurring — Serien-Termine (z.B. "jeden Dienstag 14:00")
+healthRouter.post('/appointments/recurring', validate(bookRecurringAppointmentBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
+  const { doctorId, patientName, patientEmail, startDate, time, weeks, notes } = req.body;
+  const result = await healthService.bookRecurringAppointments(
+    doctorId, patientName, patientEmail || '', startDate, time, weeks, notes
+  );
+  res.json({
+    status: 'ok',
+    ...result,
+    message: `Serien-Termin: ${result.booked} von ${weeks} Terminen gebucht${result.failed.length ? ` (fehlgeschlagen: ${result.failed.join(', ')})` : ''}.`,
+  });
+}));
+
+// POST /api/health/appointments/waitlist — Warteliste fuer belegten Slot
+healthRouter.post('/appointments/waitlist', validate(waitlistBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
+  const { doctorId, patientName, patientEmail, date, time } = req.body;
+  const entry = await healthService.joinWaitlist(doctorId, patientName, patientEmail || '', date, time);
+  res.json({ status: 'ok', entry, message: 'Auf Warteliste eingetragen — bei Stornierung rueckt der Termin automatisch nach.' });
+}));
+
+// GET /api/health/appointments/reminders?patientEmail=&withinHours=2 — Push-Erinnerung (Termin in X h)
+// MUSS VOR /appointments/:patientName definiert sein (Express-Route-Order, Gotcha #6)
+healthRouter.get('/appointments/reminders', validate(upcomingAppointmentsQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
+  const patientEmail = req.query.patientEmail as string;
+  const withinHours = req.query.withinHours ? parseInt(req.query.withinHours as string, 10) : 2;
+  const appointments = await healthService.getUpcomingAppointments(patientEmail, withinHours);
+  res.json({ status: 'ok', patientEmail, withinHours, appointments, count: appointments.length });
 }));
 
 // GET /api/health/appointments/:patientName
@@ -92,12 +126,31 @@ healthRouter.get('/appointments/:patientName', asyncHandler(async (req: Request,
 
 // PUT /api/health/appointments/:id/cancel
 healthRouter.put('/appointments/:id/cancel', asyncHandler(async (req: Request, res: Response) => {
-  const appointment = await healthService.cancelAppointment(req.params.id as string);
-  res.json({ status: 'ok', appointment, message: 'Appointment cancelled' });
+  const { appointment, promoted } = await healthService.cancelAppointment(req.params.id as string);
+  res.json({
+    status: 'ok',
+    appointment,
+    promoted,
+    message: promoted
+      ? 'Appointment cancelled. Wartelisten-Patient automatisch nachgerueckt.'
+      : 'Appointment cancelled',
+  });
 }));
 
 // PUT /api/health/appointments/:id/confirm
 healthRouter.put('/appointments/:id/confirm', asyncHandler(async (req: Request, res: Response) => {
   const appointment = await healthService.confirmAppointment(req.params.id as string);
   res.json({ status: 'ok', appointment, message: 'Appointment confirmed' });
+}));
+
+// PUT /api/health/appointments/:id/complete — Status-Pipeline: durchgefuehrt
+healthRouter.put('/appointments/:id/complete', asyncHandler(async (req: Request, res: Response) => {
+  const appointment = await healthService.completeAppointment(req.params.id as string);
+  res.json({ status: 'ok', appointment, message: 'Appointment completed' });
+}));
+
+// PUT /api/health/appointments/:id/no-show — Status-Pipeline: nicht erschienen
+healthRouter.put('/appointments/:id/no-show', asyncHandler(async (req: Request, res: Response) => {
+  const appointment = await healthService.markNoShow(req.params.id as string);
+  res.json({ status: 'ok', appointment, message: 'Appointment marked as no-show' });
 }));

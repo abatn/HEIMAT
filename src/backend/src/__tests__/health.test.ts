@@ -38,6 +38,7 @@ async function cleanupTestDoctors(): Promise<void> {
   try {
     // Echte Queries direkt auf dem Pool (kein App-Stack) — vermeidet supertest-Zirkel
     await pool.query("DELETE FROM appointments WHERE patient_name LIKE 'CI-Test-%'");
+    await pool.query("DELETE FROM appointment_waitlist WHERE patient_name LIKE 'CI-Test-%'");
     await pool.query("DELETE FROM doctor_slots WHERE doctor_id IN (SELECT id FROM doctors WHERE name LIKE 'CI-Test-%')");
     await pool.query("DELETE FROM doctors WHERE name LIKE 'CI-Test-%'");
   } catch {
@@ -253,6 +254,196 @@ describe('Health API', () => {
       const res = await request(app)
         .post('/api/health/appointments')
         .send({ doctorId: 'test' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should book with notes field (Notiz-Feld)', async () => {
+      if (!HAS_DB || !TEST_DOCTOR_ID) return;
+      // Donnerstag, 2025-12-18 (Wochentag 4) — Default-Slot Mo-Fr 08:00 vorhanden.
+      // BEWUSST NICHT 2025-12-15 08:00: Der Recurring-Test bucht dieselbe
+      // Slot-Kombination (startDate 2025-12-15, 08:00) und wuerde sonst kollidieren.
+      const res = await request(app)
+        .post('/api/health/appointments')
+        .send({
+          doctorId: TEST_DOCTOR_ID,
+          patientName: 'CI-Test-Notes',
+          patientEmail: 'notes@example.com',
+          date: '2025-12-18',
+          time: '08:00',
+          notes: 'Rueckenschmerzen seit 3 Tagen',
+        });
+
+      expect([200, 400]).toContain(res.status);
+      if (res.status === 200) {
+        expect(res.body.appointment).toHaveProperty('notes');
+      }
+    });
+  });
+
+  describe('POST /api/health/appointments/recurring (Serien-Termine)', () => {
+    it('should book a recurring series (3 Wochen)', async () => {
+      if (!HAS_DB || !TEST_DOCTOR_ID) return;
+      const res = await request(app)
+        .post('/api/health/appointments/recurring')
+        .send({
+          doctorId: TEST_DOCTOR_ID,
+          patientName: 'CI-Test-Recurring',
+          patientEmail: 'recurring@example.com',
+          startDate: '2025-12-15', // Montag
+          time: '08:00',
+          weeks: 3,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('recurrenceId');
+      expect(res.body).toHaveProperty('booked');
+      expect(res.body.booked).toBeGreaterThan(0);
+      expect(res.body.failed).toEqual([]);
+    });
+
+    it('should reject weeks > 12', async () => {
+      if (!HAS_DB) return;
+      const res = await request(app)
+        .post('/api/health/appointments/recurring')
+        .send({
+          doctorId: TEST_DOCTOR_ID ?? 'test',
+          patientName: 'CI-Test-Recurring-13',
+          patientEmail: 'recurring13@example.com',
+          startDate: '2025-12-15',
+          time: '08:00',
+          weeks: 13,
+        });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('POST /api/health/appointments/waitlist + Auto-Promotion', () => {
+    it('should join waitlist and auto-promote on cancel', async () => {
+      if (!HAS_DB || !TEST_DOCTOR_ID) return;
+      // 1. Termin buchen (Dienstag, 2025-12-16, Slot 08:00)
+      const book = await request(app)
+        .post('/api/health/appointments')
+        .send({
+          doctorId: TEST_DOCTOR_ID,
+          patientName: 'CI-Test-Waitlist-Booker',
+          patientEmail: 'booker@example.com',
+          date: '2025-12-16',
+          time: '08:00',
+        });
+      expect([200, 400]).toContain(book.status);
+      if (book.status !== 200) return; // Slot ggf. belegt — Test ist tolerant
+
+      // 2. Gleichen Slot belegen → 400 (belegt)
+      const duplicate = await request(app)
+        .post('/api/health/appointments')
+        .send({
+          doctorId: TEST_DOCTOR_ID,
+          patientName: 'CI-Test-Waitlist-Waiter',
+          patientEmail: 'waiter@example.com',
+          date: '2025-12-16',
+          time: '08:00',
+        });
+      expect(duplicate.status).toBe(400);
+
+      // 3. Auf Warteliste eintragen
+      const waitlist = await request(app)
+        .post('/api/health/appointments/waitlist')
+        .send({
+          doctorId: TEST_DOCTOR_ID,
+          patientName: 'CI-Test-Waitlist-Waiter',
+          patientEmail: 'waiter@example.com',
+          date: '2025-12-16',
+          time: '08:00',
+        });
+      expect(waitlist.status).toBe(200);
+      expect(waitlist.body.entry.status).toBe('waiting');
+
+      // 4. Stornieren → Wartelisten-Patient muss automatisch nachruecken
+      const cancel = await request(app)
+        .put(`/api/health/appointments/${book.body.appointment.id}/cancel`);
+      expect(cancel.status).toBe(200);
+      expect(cancel.body).toHaveProperty('promoted');
+      expect(cancel.body.promoted).not.toBeNull();
+
+      // 5. Wartelisten-Patient hat jetzt einen Termin
+      const appointments = await request(app)
+        .get('/api/health/appointments/CI-Test-Waitlist-Waiter');
+      expect(appointments.status).toBe(200);
+      expect(appointments.body.appointments.length).toBeGreaterThan(0);
+    }, 30000);
+  });
+
+  describe('PUT /api/health/appointments/:id (Status-Pipeline)', () => {
+    it('should confirm → complete → no-show pipeline', async () => {
+      if (!HAS_DB || !TEST_DOCTOR_ID) return;
+      // Termin buchen (Mittwoch, 2025-12-17, Slot 08:00)
+      const book = await request(app)
+        .post('/api/health/appointments')
+        .send({
+          doctorId: TEST_DOCTOR_ID,
+          patientName: 'CI-Test-Pipeline',
+          patientEmail: 'pipeline@example.com',
+          date: '2025-12-17',
+          time: '08:00',
+        });
+      expect([200, 400]).toContain(book.status);
+      if (book.status !== 200) return;
+      const appointmentId = book.body.appointment.id;
+
+      // pending → confirmed
+      const confirmed = await request(app)
+        .put(`/api/health/appointments/${appointmentId}/confirm`);
+      expect(confirmed.status).toBe(200);
+      expect(confirmed.body.appointment.status).toBe('confirmed');
+
+      // confirmed → completed
+      const completed = await request(app)
+        .put(`/api/health/appointments/${appointmentId}/complete`);
+      expect(completed.status).toBe(200);
+      expect(completed.body.appointment.status).toBe('completed');
+
+      // completed → no-show (Pipeline prueft kein striktes Ordering — Endzustand setzbar)
+      const noShow = await request(app)
+        .put(`/api/health/appointments/${appointmentId}/no-show`);
+      expect(noShow.status).toBe(200);
+      expect(noShow.body.appointment.status).toBe('no-show');
+
+      // 404 bei unbekannter ID
+      const missing = await request(app)
+        .put('/api/health/appointments/00000000-0000-0000-0000-000000000000/complete');
+      expect(missing.status).toBe(404);
+    }, 30000);
+  });
+
+  describe('GET /api/health/appointments/reminders (Push-Erinnerung)', () => {
+    it('should return upcoming appointments within hours', async () => {
+      if (!HAS_DB) return;
+      // Einen Termin direkt in die DB setzen, der in den naechsten 2h liegt.
+      // Datum UND Uhrzeit aus (CURRENT_TIMESTAMP + 30min) — sonst laeuft der Test
+      // zwischen 23:31-24:00 ueber Mitternacht und der Zeitstempel waere in der Vergangenheit.
+      await pool.query(
+        `INSERT INTO appointments (doctor_id, patient_name, patient_email, appointment_date, appointment_time, status)
+         VALUES ($1, 'CI-Test-Reminder', 'reminder@example.com',
+                 (CURRENT_TIMESTAMP + interval '30 minutes')::date,
+                 (CURRENT_TIMESTAMP + interval '30 minutes')::time,
+                 'confirmed')`,
+        [TEST_DOCTOR_ID]
+      );
+
+      const res = await request(app)
+        .get('/api/health/appointments/reminders?patientEmail=reminder@example.com&withinHours=2');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('appointments');
+      expect(res.body.appointments.length).toBeGreaterThan(0);
+    });
+
+    it('should return error without patientEmail', async () => {
+      if (!HAS_DB) return;
+      const res = await request(app)
+        .get('/api/health/appointments/reminders');
 
       expect(res.status).toBe(400);
     });
