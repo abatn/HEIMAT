@@ -129,10 +129,11 @@ void main() {
     });
 
     test('refresh() mit radiusKm bleibt stabil', () async {
+      // CI-Flaky-Fix: Backend-Overpass-Timeout (25s) + HTTP-Timeout (30s) = ~55s
       await provider.refresh(radiusKm: 10);
 
       expect(provider.isLoading, isFalse);
-    });
+    }, timeout: const Timeout(Duration(seconds: 90)));
     test('refresh() Doppel-Call: zweiter Aufruf wird sicher gedroppt',
         // 2x refresh() = potentiell 2x HTTP 30s = 60s → braucht >60s
         timeout: const Timeout(Duration(seconds: 90)), () async {

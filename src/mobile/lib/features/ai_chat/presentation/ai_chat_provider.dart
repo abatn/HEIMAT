@@ -116,8 +116,9 @@ class AiChatProvider extends ChangeNotifier {
         body['services'] = services;
       }
 
+      // Health-Triage (RAG + Ollama) braucht bis zu 60s Backend + Netzwerk-Latenz
       final data = await apiPost('/api/ai/chat', body,
-          timeout: const Duration(seconds: 90));
+          timeout: const Duration(seconds: 120));
 
       final response = ChatResponse.fromJson(data);
 
