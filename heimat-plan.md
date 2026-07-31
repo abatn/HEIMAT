@@ -459,6 +459,18 @@ Antwort mit Haftungsausschluss
 | On-Device NLP | TFLite MobileBERT (15-60MB) | ⏳ Phase 2 |
 | Lebenszeichen | Timer-basiert, kein Sensor-Tracking | 🟡 Phase 2 |
 
+#### FHIR/SMART-Scheduling — Decision: NOT NOW (2026-07-31)
+- **Evaluierung abgeschlossen**: HAPI FHIR (~500MB RAM), Medplum (~200MB + eigene DB/Auth), Firely Server (.NET) — alle zu schwer für Render Free-Tier (512MB) und zu große Migration für den Nutzen.
+- **HEIMAT-Äquivalent existiert bereits**: `doctor_slots` (≈ FHIR Schedule), `getAvailableSlots()` (≈ FHIR Slot), `appointments` (≈ FHIR Appointment). 1:1 funktional.
+- **Kein Interop-Benefit heute**: OSM/Overpass-Ärzte haben keine FHIR-Endpunkte. FHIR-Interop bringt erst Wert, wenn echte Praxis-Software (CompuGroup, SAP) angebunden wird → Phase 3+.
+- **Stattdessen: Bestehendes System FHIR-ähnlich erweitern** (geplant):
+  1. Appointment-Status-Pipeline: pending → confirmed → completed → no-show
+  2. Recurring Slots (Serien-Termine, z.B. "jeden Dienstag 14:00")
+  3. Warteliste (Slot voll → automatisch nachrücken)
+  4. Notiz-Feld am Appointment (Symptome vorab lesbar)
+  5. Termin-Erinnerung (Push, "Termin in 1 Stunde")
+- **Future**: FHIR-Adapter-Endpoint erst wenn echte Praxis-Anbindung relevant wird.
+
 #### Wichtige Regeln
 1. **Keine Pseudowissenschaft** — Jede Funktion muss auf publizierter Forschung basieren
 2. **Keine kommerziellen AI-APIs** — Nur Open Source (Ollama, TFLite, spaCy)
