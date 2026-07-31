@@ -38,7 +38,7 @@ export interface GuidelineChunk {
  */
 export async function searchGuidelines(
   symptoms: string,
-  limit: number = 3,
+  limit: number = 2,
 ): Promise<GuidelineChunk[]> {
   if (!symptoms || symptoms.trim().length === 0) return [];
 
@@ -80,18 +80,25 @@ export async function searchGuidelines(
 export function formatGuidelinesForPrompt(chunks: GuidelineChunk[]): string {
   if (chunks.length === 0) return '';
 
-  const header = '\n\n## MEDIZINISCHE RICHTLINIEN (DEGAM S3-Leitlinien)';
-  const disclaimer = '\n⚠️ Dies sind Orientierungshilfen, keine Diagnose. Bei Unsicherheit IMMER höher stufen.';
+  const header = '\n## LEITLINIEN (DEGAM)';
+  const disclaimer = '\n⚠️ Orientierung, keine Diagnose.';
+
+  // Max 600 Zeichen pro Chunk — kürzere Prompts = schnellere LLM-Antwort
+  const MAX_CHUNK_LEN = 600;
 
   const formatted = chunks
     .map(c => {
       const parts = [
-        `\n### ${c.topic} (${c.guideline_id})`,
+        `\n### ${c.topic}`,
         c.red_flags ? `\n🔴 ${c.red_flags}` : '',
         c.bereitschaft_advice ? `\n🟡 ${c.bereitschaft_advice}` : '',
         c.routine_advice ? `\n🟢 ${c.routine_advice}` : '',
       ].filter(Boolean);
-      return parts.join('');
+      const chunk = parts.join('');
+      // Truncate to MAX_CHUNK_LEN to keep prompt small for qwen2.5:3b
+      return chunk.length > MAX_CHUNK_LEN
+        ? chunk.substring(0, MAX_CHUNK_LEN) + '…'
+        : chunk;
     })
     .join('\n');
 

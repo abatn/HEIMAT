@@ -59,7 +59,7 @@ describe('OllamaService', () => {
       const service = new OllamaService();
       const status = await service.status();
       expect(status.available).toBe(false);
-      expect(status.model).toBe('llama3.1:8b');
+      expect(status.model).toBe('qwen2.5:3b');
       expect(status.message).toContain('nicht erreichbar');
     });
   });

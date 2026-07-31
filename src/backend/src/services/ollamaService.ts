@@ -179,6 +179,10 @@ export class OllamaService {
           model,
           messages,
           stream: false,
+          options: {
+            num_predict: 500,   // Max 500 Tokens Antwort — kürzer = schneller
+            temperature: 0.5,   // Deterministisch genug, aber nicht zu kreativ
+          },
         },
         { timeout: 60000 },
       );
