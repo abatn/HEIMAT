@@ -15,14 +15,17 @@ Future<Map<String, dynamic>> apiGet(String endpoint) async {
 }
 
 Future<Map<String, dynamic>> apiPost(
-    String endpoint, Map<String, dynamic> body) async {
+  String endpoint,
+  Map<String, dynamic> body, {
+  Duration timeout = const Duration(seconds: 30),
+}) async {
   final response = await _client
       .post(
         Uri.parse('$_baseUrl$endpoint'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(body),
       )
-      .timeout(const Duration(seconds: 30));
+      .timeout(timeout);
   return json.decode(response.body);
 }
 

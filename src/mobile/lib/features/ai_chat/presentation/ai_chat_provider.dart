@@ -117,7 +117,8 @@ class AiChatProvider extends ChangeNotifier {
         body['services'] = services;
       }
 
-      final data = await apiPost('/api/ai/chat', body);
+      final data = await apiPost('/api/ai/chat', body,
+          timeout: const Duration(seconds: 90));
 
       final response = ChatResponse.fromJson(data);
 
