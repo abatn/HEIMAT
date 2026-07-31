@@ -88,7 +88,7 @@ class ChatResponse {
     return ChatResponse(
       status: json['status'] as String? ?? 'error',
       response: json['response'] as String? ?? '',
-      model: json['model'] as String? ?? 'llama3.1:8b',
+      model: json['model'] as String? ?? 'qwen2.5:3b',
     );
   }
 

@@ -15,7 +15,7 @@ class AiChatProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   List<ChatMessage> _messages = [];
-  String _model = 'llama3.1:8b';
+  String _model = '';
   double? _currentLat;
   double? _currentLng;
 
@@ -107,7 +107,6 @@ class AiChatProvider extends ChangeNotifier {
     try {
       final body = <String, dynamic>{
         'message': text.trim(),
-        'model': _model,
       };
 
       // Service-Context anhängen (für Health AI, Wetter, etc.)
@@ -134,7 +133,7 @@ class AiChatProvider extends ChangeNotifier {
         _messages.add(ChatMessage.assistant(response.response));
 
         // Bei Fallback-Meldung: Hinweis auf Modell-Status
-        if (response.isFallback && _model == 'llama3.1:8b') {
+        if (response.isFallback) {
           _messages.add(ChatMessage.system(
             'Der KI-Assistent ist aktuell im Offline-Modus. '
             'Einige Funktionen sind eingeschränkt.',

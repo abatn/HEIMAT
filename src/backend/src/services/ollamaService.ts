@@ -144,12 +144,12 @@ export class OllamaService {
     if (this.detectPromise) {
       await Promise.race([this.detectPromise, new Promise(r => setTimeout(r, 5000))]);
     }
-    return this.detectedModel || 'llama3.1:8b';
+    return this.detectedModel || 'qwen2.5:3b';
   }
 
   // Sync-Version (fuer routes/ai.ts response-Feld) — gibt Fallback wenn Detect noch laeuft.
   getActiveModel(): string {
-    return this.detectedModel || 'llama3.1:8b';
+    return this.detectedModel || 'qwen2.5:3b';
   }
 
   // -----------------------------------------------------------------------
