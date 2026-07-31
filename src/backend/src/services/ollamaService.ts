@@ -47,11 +47,12 @@ const MODEL_PREFERENCES = ['qwen2.5:3b', 'phi3:3.8b', 'llama3.1:8b'];
 // ---------------------------------------------------------------------------
 
 const HEALTH_TRIAGE_PROMPT = `
-## Gesundheit — Symptom-Assessment & Triage
-Bei Symptomen: (1) Rückfragen: seit wann? Schmerzskala 1-10? Begleitsymptome? Auslöser?
-(2) Triage: NOTFALL (Brustschmerz, Atemnot, Bewusstlosigkeit, starke Blutung, Schlaganfall) → 112. BEREITSCHAFT (Fieber >39, Schmerzen 7+, akut nicht lebensbedrohlich) → 116117. ROUTINE (leichte Symptome, Vorsorge) → Hausarzt.
-(3) Klare Handlungsempfehlung fett markiert.
-Regeln: Keine Diagnose, keine Medikamente, bei Unsicherheit höher stufen. Einfühlsam bleiben.`;
+## Gesundheit — Triage
+Rückfragen: seit wann? Schmerzskala 1-10? Begleitsymptome?
+NOTFALL (Brustschmerz, Atemnot, Bewusstlosigkeit) → 112
+BEREITSCHAFT (Fieber >39, Schmerzen 7+) → 116117
+ROUTINE (leichte Symptome) → Hausarzt
+Regeln: Keine Diagnose, keine Medikamente.`;
 
 const DEFAULT_SYSTEM_PROMPT = `Du bist HEIMAT AI, ein hilfreicher Assistent für die HEIMAT Super App.
 Du kennst folgende Services:
@@ -236,19 +237,23 @@ export class OllamaService {
     options?: { model?: string; systemPrompt?: string },
   ): Promise<string> {
     // 1. Service-Kontexte parallel fetchen
-    const serviceContexts = await promptService.fetchServiceContexts(context);
+    // Bei Health Triage: NUR Health-Kontext (andere Services irrelevant fuer Triage)
+    const isHealthTriage = !!(context.health?.symptom);
+    const contextToFetch = isHealthTriage
+      ? { health: context.health }
+      : context;
+    const serviceContexts = await promptService.fetchServiceContexts(contextToFetch);
 
     // 2a. Basis-Prompt bestimmen (Default oder Custom)
     let basePrompt = options?.systemPrompt ?? this.systemPrompt;
 
     // 2b. Health-Triage-Prompt + RAG-Kontext INJEZIEREN wenn health-Context aktiv ist
-    //     (Symptom-Assessment + Triage + DEGAM-Leitlinien für den Health AI Agent)
     if (context.health) {
       basePrompt = buildHealthSystemPrompt(basePrompt);
 
       // RAG: DEGAM-Leitlinien basierend auf User-Symptomen abrufen
-      // Prompt-Size Guard: Bei >8k Zeichen RAG ueberspringen (qwen2.5:3b 32k Context)
-      if (context.health.symptom && basePrompt.length < 8000) {
+      // Prompt-Size Guard: Bei >6k Zeichen RAG ueberspringen (qwen2.5:3b 32k Context)
+      if (context.health.symptom && basePrompt.length < 6000) {
         const guidelineChunks = await ragService.searchGuidelines(context.health.symptom);
         if (guidelineChunks.length > 0) {
           const ragContext = ragService.formatGuidelinesForPrompt(guidelineChunks);
@@ -256,7 +261,7 @@ export class OllamaService {
           logger.info(`RAG: ${guidelineChunks.length} DEGAM-Leitlinien fuer Symptom "${context.health.symptom}" gefunden`);
         }
       } else if (context.health.symptom) {
-        logger.warn(`RAG uebersprungen: Prompt zu lang (${basePrompt.length} Zeichen > 8000)`);
+        logger.warn(`RAG uebersprungen: Prompt zu lang (${basePrompt.length} Zeichen > 6000)`);
       }
     }
 
@@ -266,7 +271,9 @@ export class OllamaService {
     if (serviceContexts.length > 0) {
       extendedPrompt +=
         SERVICE_CONTEXT_SEPARATOR +
-        'Hier sind die aktuellen Service-Daten, die du für deine Antwort nutzen solltest:' +
+        (isHealthTriage
+          ? 'Ärzte in der Nähe:'
+          : 'Service-Daten:') +
         SERVICE_CONTEXT_SEPARATOR +
         serviceContexts
           .map(sc => `[${sc.service.toUpperCase()}]: ${sc.text}`)
