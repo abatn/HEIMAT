@@ -269,6 +269,9 @@ CREATE INDEX IF NOT EXISTS idx_doctors_location ON doctors(latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_doctor_slots_doctor ON doctor_slots(doctor_id);
 CREATE INDEX IF NOT EXISTS idx_doctor_slots_day ON doctor_slots(day_of_week);
 
+-- Recurrence-Spalte fuer Legacy-DBs (MUSS VOR den Indizes stehen).
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS recurrence_id UUID;
+
 -- Appointments
 CREATE INDEX IF NOT EXISTS idx_appointments_doctor ON appointments(doctor_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
@@ -492,8 +495,6 @@ END $$;
 -- mehr befuellt (INSERT nutzt wallet_priv_pkcs8). Drop ist idempotent (IF EXISTS).
 ALTER TABLE taler_wallets DROP COLUMN IF EXISTS wallet_priv;
 -- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.
--- Recurrence-Spalte fuer Legacy-DBs (frische DBs haben sie bereits im CREATE TABLE).
-ALTER TABLE appointments ADD COLUMN IF NOT EXISTS recurrence_id UUID;
 -- Wartelisten-Tabelle fuer Legacy-DBs (frische DBs haben sie bereits im CREATE TABLE).
 CREATE TABLE IF NOT EXISTS appointment_waitlist (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
