@@ -39,10 +39,9 @@ services:
       # Render Frankfurt Outbound IPs (74.220.51.0/24 + 74.220.59.0/24) sind per
       # firewalld auf diesem Server freigeschaltet. Nur Render kann den Port 11434
       # erreichen (siehe server-firewall-config).
+      # Modell wird automatisch via GET /api/tags erkannt (kein OLLAMA_MODEL noetig).
       - key: OLLAMA_BASE_URL
         value: "http://158.180.18.110:11434"
-      - key: OLLAMA_MODEL
-        value: "qwen2.5:3b"
       # AUTO_MIGRATE entfaellt: Default ist jetzt "on" (Check in index.ts: !== 'false').
       # Lokales Dev: AUTO_MIGRATE=false um Migration zu ueberspringen.
       - key: REDIS_URL

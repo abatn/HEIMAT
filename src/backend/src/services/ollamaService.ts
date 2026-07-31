@@ -38,7 +38,9 @@ export interface OllamaStatus {
   message: string;
 }
 
-const DEFAULT_MODEL = externalServices.ollamaModel || 'llama3.1:8b';
+// Modell-Praeferenz-Reihenfolge (kleinere Modelle zuerst = schneller)
+// Wird bei Startup via GET /api/tags automatisch erkannt.
+const MODEL_PREFERENCES = ['qwen2.5:3b', 'phi3:3.8b', 'llama3.1:8b'];
 // ---------------------------------------------------------------------------
 // Health AI Agent — System-Prompt für Symptom-Assessment & Triage
 // (Phase X.10: Research-basiert, Ada-Health-artig, DEGAM-konform)
@@ -80,16 +82,61 @@ const SERVICE_CONTEXT_SEPARATOR = '\n\n---\n\n';
 
 export class OllamaService {
   private readonly baseUrl: string;
-  private readonly model: string;
+  private detectedModel: string | null = null;
   private readonly systemPrompt: string;
 
   constructor(
     private readonly http: AxiosInstance = axios,
-    options?: { baseUrl?: string; model?: string; systemPrompt?: string },
+    options?: { baseUrl?: string; systemPrompt?: string },
   ) {
     this.baseUrl = options?.baseUrl ?? externalServices.ollamaBaseUrl;
-    this.model = options?.model ?? DEFAULT_MODEL;
     this.systemPrompt = options?.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+    // Auto-Detect: Modell bei Startup erkenen (fire-and-forget)
+    this.detectAvailableModel().catch(() => {
+      logger.warn('Ollama Model-Auto-Detect fehlgeschlagen, nutze Fallback');
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // detectAvailableModel — Erkenne verfuegbare Modelle via GET /api/tags.
+  // Waehlt das kleinste/schnellste Modell aus MODEL_PREFERENCES.
+  // -----------------------------------------------------------------------
+  private async detectAvailableModel(): Promise<void> {
+    try {
+      const response = await this.http.get<{ models?: Array<{ name: string }> }>(
+        `${this.baseUrl}/api/tags`,
+        { timeout: 5000 },
+      );
+      const models = response.data?.models ?? [];
+      const modelNames = models.map((m: { name: string }) => m.name);
+
+      // Bevorzugtes Modell finden (kleinste zuerst)
+      for (const pref of MODEL_PREFERENCES) {
+        if (modelNames.some(name => name === pref || name.startsWith(pref))) {
+          this.detectedModel = pref;
+          logger.info(`Ollama Auto-Detect: Modell ${pref} gefunden (${modelNames.length} Modelle verfuegbar)`);
+          return;
+        }
+      }
+
+      // Kein Praeferenz-Modell gefunden — erstes verfuegbares nehmen
+      if (modelNames.length > 0) {
+        this.detectedModel = modelNames[0];
+        logger.info(`Ollama Auto-Detect: Kein Praeferenz-Modell, nutze ${modelNames[0]}`);
+      } else {
+        logger.warn('Ollama Auto-Detect: Keine Modelle gefunden');
+      }
+    } catch (error: unknown) {
+      const axiosError = error as { code?: string; message?: string };
+      logger.warn(`Ollama Auto-Detect fehlgeschlagen: ${axiosError.code ?? axiosError.message}`);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // getActiveModel — Gib das aktive Modell zurueck (detected oder fallback).
+  // -----------------------------------------------------------------------
+  private getActiveModel(): string {
+    return this.detectedModel || 'llama3.1:8b';
   }
 
   // -----------------------------------------------------------------------
@@ -114,7 +161,7 @@ export class OllamaService {
       const response = await this.http.post<OllamaChatResponse>(
         `${this.baseUrl}/api/chat`,
         {
-          model: options?.model ?? this.model,
+          model: options?.model ?? this.getActiveModel(),
           messages,
           stream: false,
         },
@@ -252,23 +299,24 @@ export class OllamaService {
       );
 
       const models = response.data?.models ?? [];
-      const hasDefaultModel = models.some(
-        (m: { name: string }) => m.name === this.model,
+      const activeModel = this.getActiveModel();
+      const hasActiveModel = models.some(
+        (m: { name: string }) => m.name === activeModel,
       );
 
       return {
         available: true,
-        model: this.model,
-        message: hasDefaultModel
-          ? `Ollama läuft. Modell ${this.model} ist verfügbar.`
-          : `Ollama läuft, aber Modell ${this.model} ist nicht geladen. Verfügbare Modelle: ${models.map((m: { name: string }) => m.name).join(', ') || 'keine'}`,
+        model: activeModel,
+        message: hasActiveModel
+          ? `Ollama laeuft. Modell ${activeModel} ist verfuegbar.`
+          : `Ollama laeuft, aber Modell ${activeModel} ist nicht geladen. Verfuegbare Modelle: ${models.map((m: { name: string }) => m.name).join(', ') || 'keine'}`,
       };
     } catch (error: unknown) {
       const axiosError = error as { code?: string; message?: string };
       const detail = axiosError.code ?? axiosError.message ?? String(error);
       return {
         available: false,
-        model: this.model,
+        model: this.getActiveModel(),
         message: `Ollama ist nicht erreichbar: ${detail}`,
       };
     }

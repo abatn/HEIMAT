@@ -102,8 +102,6 @@ export class ExternalServiceRegistry {
 
   /** Ollama Base-URL (lokaler AI-Assistent). Default: localhost:11434 */
   public readonly ollamaBaseUrl: string;
-  /** Ollama Modell-Name. Default: llama3.1:8b */
-  public readonly ollamaModel: string;
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
     // VALIDATE-URL-HELPER (Phase X.3b — NEEDS-FIX #2 resolution):
@@ -238,7 +236,7 @@ export class ExternalServiceRegistry {
       'OLLAMA_BASE_URL',
       'http://localhost:11434',
     );
-    this.ollamaModel = env.OLLAMA_MODEL || 'llama3.1:8b';
+
 
     // Mirror-Liste: comma-separated env-var oder 3-Default-Mirrors.
     // .filter(Boolean) schuetzt vor OVERPASS_MIRRORS="" → [''] Crash.
