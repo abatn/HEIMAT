@@ -38,7 +38,7 @@ export interface OllamaStatus {
   message: string;
 }
 
-const DEFAULT_MODEL = 'llama3.1:8b';
+const DEFAULT_MODEL = externalServices.ollamaModel || 'llama3.1:8b';
 // ---------------------------------------------------------------------------
 // Health AI Agent — System-Prompt für Symptom-Assessment & Triage
 // (Phase X.10: Research-basiert, Ada-Health-artig, DEGAM-konform)
@@ -118,7 +118,7 @@ export class OllamaService {
           messages,
           stream: false,
         },
-        { timeout: 120000 },
+        { timeout: 300000 },
       );
 
       if (response.data?.message?.content) {
