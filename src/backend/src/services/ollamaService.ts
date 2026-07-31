@@ -83,6 +83,7 @@ const SERVICE_CONTEXT_SEPARATOR = '\n\n---\n\n';
 export class OllamaService {
   private readonly baseUrl: string;
   private detectedModel: string | null = null;
+  private detectPromise: Promise<void> | null = null;
   private readonly systemPrompt: string;
 
   constructor(
@@ -91,8 +92,8 @@ export class OllamaService {
   ) {
     this.baseUrl = options?.baseUrl ?? externalServices.ollamaBaseUrl;
     this.systemPrompt = options?.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-    // Auto-Detect: Modell bei Startup erkenen (fire-and-forget)
-    this.detectAvailableModel().catch(() => {
+    // Auto-Detect: Modell bei Startup erkenen (cached promise)
+    this.detectPromise = this.detectAvailableModel().catch(() => {
       logger.warn('Ollama Model-Auto-Detect fehlgeschlagen, nutze Fallback');
     });
   }
@@ -134,7 +135,17 @@ export class OllamaService {
 
   // -----------------------------------------------------------------------
   // getActiveModel — Gib das aktive Modell zurueck (detected oder fallback).
+  // Wartet beim ersten Aufruf auf Auto-Detect (max 5s).
   // -----------------------------------------------------------------------
+  async getActiveModelAsync(): Promise<string> {
+    if (this.detectedModel) return this.detectedModel;
+    if (this.detectPromise) {
+      await Promise.race([this.detectPromise, new Promise(r => setTimeout(r, 5000))]);
+    }
+    return this.detectedModel || 'llama3.1:8b';
+  }
+
+  // Sync-Version (fuer routes/ai.ts response-Feld) — gibt Fallback wenn Detect noch laeuft.
   getActiveModel(): string {
     return this.detectedModel || 'llama3.1:8b';
   }
@@ -152,6 +163,8 @@ export class OllamaService {
     userMessage: string,
     options?: { model?: string; systemPrompt?: string },
   ): Promise<string> {
+    // Beim ersten Aufruf auf Auto-Detect warten (max 5s)
+    const model = options?.model ?? await this.getActiveModelAsync();
     const messages: ChatMessage[] = [
       { role: 'system', content: options?.systemPrompt ?? this.systemPrompt },
       { role: 'user', content: userMessage },
@@ -161,11 +174,11 @@ export class OllamaService {
       const response = await this.http.post<OllamaChatResponse>(
         `${this.baseUrl}/api/chat`,
         {
-          model: options?.model ?? this.getActiveModel(),
+          model,
           messages,
           stream: false,
         },
-        { timeout: 300000 },
+        { timeout: 60000 },
       );
 
       if (response.data?.message?.content) {
@@ -234,13 +247,16 @@ export class OllamaService {
       basePrompt = buildHealthSystemPrompt(basePrompt);
 
       // RAG: DEGAM-Leitlinien basierend auf User-Symptomen abrufen
-      if (context.health.symptom) {
+      // Prompt-Size Guard: Bei >8k Zeichen RAG ueberspringen (qwen2.5:3b 32k Context)
+      if (context.health.symptom && basePrompt.length < 8000) {
         const guidelineChunks = await ragService.searchGuidelines(context.health.symptom);
         if (guidelineChunks.length > 0) {
           const ragContext = ragService.formatGuidelinesForPrompt(guidelineChunks);
           basePrompt += ragContext;
-          logger.info(`RAG: ${guidelineChunks.length} DEGAM-Leitlinien für Symptom "${context.health.symptom}" gefunden`);
+          logger.info(`RAG: ${guidelineChunks.length} DEGAM-Leitlinien fuer Symptom "${context.health.symptom}" gefunden`);
         }
+      } else if (context.health.symptom) {
+        logger.warn(`RAG uebersprungen: Prompt zu lang (${basePrompt.length} Zeichen > 8000)`);
       }
     }
 
