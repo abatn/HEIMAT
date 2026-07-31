@@ -10,26 +10,30 @@ Future<Map<String, dynamic>> apiGet(String endpoint) async {
   final response = await _client.get(
     Uri.parse('$_baseUrl$endpoint'),
     headers: {'Content-Type': 'application/json'},
-  );
+  ).timeout(const Duration(seconds: 30));
   return json.decode(response.body);
 }
 
 Future<Map<String, dynamic>> apiPost(
     String endpoint, Map<String, dynamic> body) async {
-  final response = await _client.post(
-    Uri.parse('$_baseUrl$endpoint'),
-    headers: {'Content-Type': 'application/json'},
-    body: json.encode(body),
-  );
+  final response = await _client
+      .post(
+        Uri.parse('$_baseUrl$endpoint'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      )
+      .timeout(const Duration(seconds: 30));
   return json.decode(response.body);
 }
 
 Future<Map<String, dynamic>> apiPut(
     String endpoint, Map<String, dynamic> body) async {
-  final response = await _client.put(
-    Uri.parse('$_baseUrl$endpoint'),
-    headers: {'Content-Type': 'application/json'},
-    body: json.encode(body),
-  );
+  final response = await _client
+      .put(
+        Uri.parse('$_baseUrl$endpoint'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(body),
+      )
+      .timeout(const Duration(seconds: 30));
   return json.decode(response.body);
 }
