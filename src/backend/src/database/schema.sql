@@ -344,6 +344,29 @@ CREATE INDEX IF NOT EXISTS idx_taler_transactions_from ON taler_transactions(fro
 CREATE INDEX IF NOT EXISTS idx_taler_transactions_to ON taler_transactions(to_wallet_id);
 
 -- ============================================
+-- RAG: DEGAM-Leitlinien (Evidence-based Health AI)
+-- ============================================
+-- Vorausberechnete Embeddings via PostgreSQL tsvector (kein pgvector nötig).
+-- Deutsche Stemming eingebaut ('german' config). Keyword-Suche zur Laufzeit.
+-- Privacy: Nur Leitlinien-Text, keine Patientendaten.
+
+CREATE TABLE IF NOT EXISTS degam_guidelines (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    guideline_id VARCHAR(50) NOT NULL,   -- z.B. 'DEGAM-003'
+    topic VARCHAR(100) NOT NULL,          -- z.B. 'Brustschmerz'
+    red_flags TEXT,                        -- NOTFALL-Kriterien
+    routine_advice TEXT,                   -- ROUTINE-Empfehlung
+    bereitschaft_advice TEXT,              -- BEREITSCHAFT-Kriterien
+    chunk_text TEXT NOT NULL,              -- Kombinierter Text für Suche
+    search_vector tsvector GENERATED ALWAYS AS (
+      to_tsvector('german', topic || ' ' || chunk_text)
+    ) STORED,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_degam_search ON degam_guidelines USING GIN (search_vector);
+CREATE INDEX IF NOT EXISTS idx_degam_topic ON degam_guidelines(topic);
+
+-- ============================================
 -- ML: DELAY LOGGING (Verspätungsvorhersage)
 -- ============================================
 
@@ -454,36 +477,104 @@ ALTER TABLE taler_wallets DROP COLUMN IF EXISTS wallet_priv;
 -- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.
 
 -- Cleanup: Berliner Seed-Aerzte entfernen (Phase: Ortsunabhaengigkeit).
--- Alle Aerzte kommen jetzt live von Overpass — weltweit, standortunabhaengig.
--- Idempotent: DELETE wird nur ausgeführt wenn Seed-Daten vorhanden sind.
--- Cascade loescht zugehoerige doctor_slots automatisch.
 DELETE FROM doctors WHERE name IN (
-  'Praxis Dr. Katja Meißner',
-  'Gemeinschaftspraxis Dr. Weber & Dr. Klein',
-  'Hausarztpraxis am Prenzlauer Berg',
-  'Zahnarztpraxis Dr. Müller',
-  'Dental Clinic Berlin Mitte',
-  'Augenärztin Dr. Breitenbach',
-  'HNO-Praxis Dr. Schmidt',
-  'Hautarzt Praxis Helena Dröge',
-  'Kinderarztpraxis am Traveplatz',
-  'Praxis für Gynäkologie Dr. Ridha',
-  'Kardiologische Praxis Dr. Weber',
-  'Orthopädische Praxis Dr. Hofmann',
-  'Rückenzentrum am Markgrafenpark',
-  'Neurologie am Hackeschen Markt',
-  'Psychotherapie Praxis Dr. Hoffmann',
-  'Urologische Praxis Dr. Braun',
-  'Praxis für Pneumologie Dr. Atemweg',
-  'Chirurgische Gemeinschaftspraxis Dr. Meier',
-  'Internistische Praxis Dr. Koch',
-  'Praxis für Innere Medizin Dr. Internist',
-  'Sportarztpraxis Dr. Richter',
-  'Radiologie Berlin Mitte',
-  'Physiotherapie Zentrum Dr. Müller',
-  'Allergologie-Praxis Dr. Fischer',
-  'Praxis für Naturheilkunde Dr. Schmidt',
-  'Dr. Full',
-  'Dr. Test'
+  'Praxis Dr. Katja Meißner', 'Gemeinschaftspraxis Dr. Weber & Dr. Klein',
+  'Hausarztpraxis am Prenzlauer Berg', 'Zahnarztpraxis Dr. Müller',
+  'Dental Clinic Berlin Mitte', 'Augenärztin Dr. Breitenbach',
+  'HNO-Praxis Dr. Schmidt', 'Hautarzt Praxis Helena Dröge',
+  'Kinderarztpraxis am Traveplatz', 'Praxis für Gynäkologie Dr. Ridha',
+  'Kardiologische Praxis Dr. Weber', 'Orthopädische Praxis Dr. Hofmann',
+  'Rückenzentrum am Markgrafenpark', 'Neurologie am Hackeschen Markt',
+  'Psychotherapie Praxis Dr. Hoffmann', 'Urologische Praxis Dr. Braun',
+  'Praxis für Pneumologie Dr. Atemweg', 'Chirurgische Gemeinschaftspraxis Dr. Meier',
+  'Internistische Praxis Dr. Koch', 'Praxis für Innere Medizin Dr. Internist',
+  'Sportarztpraxis Dr. Richter', 'Radiologie Berlin Mitte',
+  'Physiotherapie Zentrum Dr. Müller', 'Allergologie-Praxis Dr. Fischer',
+  'Praxis für Naturheilkunde Dr. Schmidt', 'Dr. Full', 'Dr. Test'
 );
--- Ärzte werden dynamisch via Overpass + ensureDoctorInDb() angelegt.
+
+-- ============================================
+-- DEGAM LEITLINIEN SEED (Evidence-based Health AI)
+-- ============================================
+-- Idempotent: wird nur ausgeführt wenn Tabelle leer ist.
+-- Quelle: DEGAM S3-Leitlinien (degam.de), gekürzt auf essentielle Empfehlungen.
+-- Keine Diagnose, keine Medikamenten-Empfehlungen — nur Triage-Kriterien.
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM degam_guidelines LIMIT 1) THEN
+
+    INSERT INTO degam_guidelines (guideline_id, topic, red_flags, routine_advice, bereitschaft_advice, chunk_text) VALUES
+
+    -- 1. Brustschmerz (DEGAM S3 Leitlinie)
+    ('DEGAM-003', 'Brustschmerz',
+     'NOTFALL: Pl\u00f6tzlicher starker Brustschmerz, Atemnot, Kaltschwei\u00dfigkeit, Ausstrahlung in Arm/Kiefer, Bewusstseinsverlust, Zyanose. Sofort 112 rufen.',
+     'Routine: Muskul\u00e4re Ursachen h\u00e4ufig (Rippen, Muskeln). Druckschmerz an Rippen typisch f\u00fcr muskuloskelettale Ursache. Beobachtung \u00fcber 2-3 Tage.',
+     'BEREITSCHAFT: Schmerz bei Belastung, Luftnot bei Treppensteigen, Engef\fuhl. 116117 anrufen.',
+     'Brustschmerz Thorax Schmerzen Herz Angina pectoris Herzinfarkt Lungenembolie Rippen Muskeln'),
+
+    -- 2. Rückenschmerz (DEGAM S3 Leitlinie)
+    ('DEGAM-006', 'R\u00fcckenschmerzen',
+     'NOTFALL: Blasen-Mastdarm-St\u00f6rung, Sattelan\u00e4sthesie, progrediente Paresen, Fieber + R\u00fcckenschmerz, Unfalltrauma. 112 rufen.',
+     'Routine: Akute R\u00fcckenschmerzen sind meist unspezifisch (90%). Aktiv bleiben, Bettruhe vermeiden. NSAR f\u00fcr max. 3-5 Tage. Physiotherapie bei Chronifizierung.',
+     'BEREITSCHAFT: Schmerz >7/10, Ausstrahlung ins Bein (Ischias), Gef\fuhlst\u00f6rung im Bein. 116117.',
+     'R\u00fcckenschmerz LWS HWS BWS Hexenschuss Ischias Bandscheibe Wirbels\u00e4ule'),
+
+    -- 3. Kopfschmerz (DEGAM S1 Leitlinie)
+    ('DEGAM-008', 'Kopfschmerzen',
+     'NOTFALL: Pl\u00f6tzlich einsetzender st\u00e4rkster Kopfschmerz ("Vernichtungskopfschmerz"), Nackensteifigkeit, Fieber + Kopfschmerz, neurologische Ausf\u00e4lle, Bewusstseinstr\u00fcbung. 112.',
+     'Routine: Spannungskopfschmerz (beidseitig, dr\u00fcckend). Ausl\u00f6ser: Stress, Schlafmangel, Dehydrierung. Ausreichend trinken, Entspannung. Ibuprofen/Paracetamol bei Bedarf.',
+     'BEREITSCHAFT: Kopfschmerz >3 Tage, einseitig pochend (Migr\u00e4ne), Sehst\u00f6rungen, Übelkeit mit Erbrechen. 116117.',
+     'Kopfschmerz Migr\u00e4ne Spannungskopfschmerz Schwindel Übelkeit'),
+
+    -- 4. Fieber (DEGAM)
+    ('DEGAM-FIEBER', 'Fieber',
+     'NOTFALL: Fieber >40.5\u00b0C, Bewusstseinstr\u00fcbung, Atemnot, Hautausschlag (Petechien), Genickstarre, Krampfanfall. 112 rufen.',
+     'Routine: Fieber bis 39\u00b0C ist Abwehrreaktion. Viel trinken, sich schonen. Paracetamol/Ibuprofen zum Senken. Arzt wenn >3 Tage oder >39.5\u00b0C.',
+     'BEREITSCHAFT: Fieber >39\u00b0C seit >2 Tagen, Flankenschmerz, schmerzhaftes Wasserlassen, Atemnot. 116117.',
+     'Fieber Temperatur Infekt Erkältung Grippe'),
+
+    -- 5. Husten (DEGAM S3 Leitlinie)
+    ('DEGAM-HUSTEN', 'Husten',
+     'NOTFALL: Blutiger Auswurf (H\u00e4moptysis), Atemnot in Ruhe, Zyanose, Brustschmerz beim Atmen. 112 rufen.',
+     'Routine: Akuter Husten <3 Wochen oft viral. Honig ab 1 Jahr, viel trinken. Hustenstiller nur nachts bei Schlafst\u00f6rung. Antibiotika nur bei bak. Infekt.',
+     'BEREITSCHAFT: Husten >3 Wochen, eitriger Auswurf, Fieber >38.5\u00b0C, Atemnot bei Belastung. 116117.',
+     'Husten Bronchitis Erk\u00e4ltung Atemwege'),
+
+    -- 6. Bauchschmerz (DEGAM)
+    ('DEGAM-BAUCH', 'Bauchschmerzen',
+     'NOTFALL: Akutes Abdomen (bretthart), Peritonismus, H\u00e4matochezie/Schwarzer Stuhl, Kreislaufinstabilit\u00e4t. 112 rufen.',
+     'Routine: Oberbauchbeschwerden oft funktionell. Mittagessen/Magenprotektoren. Reizdarm: Ballaststoffe, Stressreduktion. 2 Wochen Beobachtung.',
+     'BEREITSCHAFT: Schmerz rechts unten (Appendizitis?), Erbrechen >24h, kein Stuhlgang seit 3+ Tagen, Fieber. 116117.',
+     'Bauchschmerz Magen Darm Bauch Kolik \u00dcbelkeit Erbrechen Durchfall'),
+
+    -- 7. Atemnot (DEGAM)
+    ('DEGAM-ATEMNOT', 'Atemnot',
+     'NOTFALL: Atemnot in Ruhe, Zyanose, Brustschmerz, Tachypnoe >30/min, SpO2 <90%. 112 rufen.',
+     'Routine: Atemnot bei Belastung nach Infekt normal f\u00fcr 2-3 Wochen. Atem\fcbungen, Ausdauer langsam steigern.',
+     'BEREITSCHAFT: Atemnot bei leichter Anstrengung, pfeifende Atmung (Asthma?), Bein\u00f6deme (Herzinsuffizienz?). 116117.',
+     'Atemnot Dyspnoe Luftnot Asthma'),
+
+    -- 8. Halsschmerz
+    ('DEGAM-HALS', 'Halsschmerzen',
+     'NOTFALL: Schluckunf\u00e4higkeit, Speichelfluss, einseitige Rachen-Schwellung (Peritonsillar-Abszess), Atemnot. 112.',
+     'Routine: 80% viral, selbstlimitierend (5-7 Tage). Lutschtabletten, warme Getr\u00e4nke, Ibuprofen. Antibiotika nur bei Centor-Score >=3.',
+     'BEREITSCHAFT: Fieber >38.5\u00b0C + Schluckbeschwerden >3 Tage, geschwollene Lymphknoten, wei\u00dfe Bel\u00e4ge. 116117.',
+     'Halsschmerz Pharyngitis Mandeln Rachen'),
+
+    -- 9. Hautausschlag
+    ('DEGAM-HAUT', 'Hautausschlag',
+     'NOTFALL: Petechien (nicht wegdr\u00fcckbar), Atemnot mit Schwellung (Anaphylaxie), rasch ausbreitende R\u00f6tung mit Fieber. 112.',
+     'Routine: Ekzeme, Kontaktekzeme, Nesselsucht oft harmlos. Feuchtigkeit, Cortison-Creme f\u00fcr 1-2 Wochen. Allergen-Kontakt vermeiden.',
+     'BEREITSCHAFT: Ausbreitender Ausschlag + Fieber, schmerzhafte Blasenbildung, Eiterbildung. 116117.',
+     'Hautausschlag Ekzem Nesselsucht Allergie Juckreiz'),
+
+    -- 10. Schlafstörungen
+    ('DEGAM-SCHLAF', 'Schlafst\u00f6rungen',
+     'NOTFALL: Schlafst\u00f6rung mit suizidalen Gedanken, schwere Depression. 112 oder psychiatrische Notfallambulanz.',
+     'Routine: Schlafhygiene: feste Aufstehzeit, kein Bildschirm 1h vorher, k\u00fchles Schlafzimmer. Melatonin kurzfristig m\u00f6glich. Keine Benzodiazepine.',
+     'BEREITSCHAFT: Schlafst\u00f6rung >4 Wochen, Tagesm\u00fcdigkeit mit Einschr\u00e4nkung Alltag, Schnarchen mit Atempausen (Schlafapnoe?). 116117.',
+     'Schlafst\u00f6rung Insomnie Schlaflosigkeit Ein- Durchschlafst\u00f6rung');
+
+  END IF;
+END $$;

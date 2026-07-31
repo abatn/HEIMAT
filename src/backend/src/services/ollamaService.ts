@@ -19,6 +19,7 @@ import axios, { AxiosInstance } from 'axios';
 import { externalServices } from '../config/externalServices';
 import { logger } from '../utils/logger';
 import { promptService, type ServiceContext } from './promptService';
+import { ragService } from './ragService';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -180,10 +181,20 @@ export class OllamaService {
     // 2a. Basis-Prompt bestimmen (Default oder Custom)
     let basePrompt = options?.systemPrompt ?? this.systemPrompt;
 
-    // 2b. Health-Triage-Prompt INJEZIEREN wenn health-Context aktiv ist
-    //     (Symptom-Assessment + Triage für den Health AI Agent)
+    // 2b. Health-Triage-Prompt + RAG-Kontext INJEZIEREN wenn health-Context aktiv ist
+    //     (Symptom-Assessment + Triage + DEGAM-Leitlinien für den Health AI Agent)
     if (context.health) {
       basePrompt = buildHealthSystemPrompt(basePrompt);
+
+      // RAG: DEGAM-Leitlinien basierend auf User-Symptomen abrufen
+      if (context.health.symptom) {
+        const guidelineChunks = await ragService.searchGuidelines(context.health.symptom);
+        if (guidelineChunks.length > 0) {
+          const ragContext = ragService.formatGuidelinesForPrompt(guidelineChunks);
+          basePrompt += ragContext;
+          logger.info(`RAG: ${guidelineChunks.length} DEGAM-Leitlinien für Symptom "${context.health.symptom}" gefunden`);
+        }
+      }
     }
 
     // 2c. Erweiterten System-Prompt mit Service-Daten bauen
