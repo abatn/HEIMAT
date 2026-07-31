@@ -101,8 +101,9 @@ Berlin-Seed entfernt. Alle Ärzte live von Overpass (OSM) — weltweit, standort
   2. **Recurring Slots** ✅ — `bookRecurringAppointments()` (Serien-Termine 1-12 Wochen, gemeinsame `recurrence_id`). Route: `POST /api/health/appointments/recurring`
   3. **Warteliste** ✅ — Tabelle `appointment_waitlist` + `joinWaitlist()`. Auto-Promotion: `cancelAppointment` → `promoteFromWaitlist` rückt ersten Wartenden nach. Route: `POST /api/health/appointments/waitlist`
   4. **Notiz-Feld** ✅ — `notes` in Buchung + Zod-Schema + Tests
-  5. **Termin-Erinnerung** ✅ — `getUpcomingAppointments()` → `GET /api/health/appointments/reminders?patientEmail=&withinHours=` (Backend; Flutter-Polling offen)
+  5. **Termin-Erinnerung** ✅ — `getUpcomingAppointments()` → `GET /api/health/appointments/reminders?patientEmail=&withinHours=` (Backend **+ Flutter-UI: Reminder-Banner + Warteliste-Aktion, Commit d1d0a58**)
 - **Tests**: 23/23 grün (health.test.ts, inkl. Waitlist-Promotion + Status-Pipeline + Recurring)
+- **Flutter-UI-Status (2026-07-31)**: Reminder-Banner („Termin in X") + Warteliste-Aktion in HealthScreen implementiert (Commit d1d0a58). CI-Fix f00c9cc: `_StubHealth` Constructor-Arg in `app_smoke_test.dart` (HealthProvider-AuthService-Change) — **Flutter CI + Deploy Web wieder grün** (2026-07-31).
 - **Future**: FHIR-Adapter-Endpoint erst wenn echte Praxis-Anbindung relevant wird.
 
 ### Finance: Demo user status (Juli 2026)
