@@ -1,6 +1,6 @@
 # HEIMAT 2.0 – AI-Implementierungsplan
 
-> **Stand:** 2026-07-29 | **Letztes Update:** Health AI Agent Phasen (Symptom-Assessment, Triage, Lebenszeichen)
+> **Stand:** 2026-07-31 | **Letztes Update:** DEGAM-RAG implementiert (Commit 2537e48) + FHIR-Decision NOT NOW + 5 Appointment-Verbesserungen (Commit 01f91a4 + d1d0a58)
 > **Forschung:** Wissenschaftlich fundierte Health-AI-Punkte aus Recherche (Ada Health, TriageBench, DEGAM, Ollama, On-Device TFLite)
 
 ---
@@ -79,28 +79,33 @@
 |---------|-------|--------|-------|
 | Service-Prompts (Job, Events, Hotels, Bürgeramt) | `promptService.ts` | ✅ **Fertig** | 5 |
 | Cross-Service Chat-Kontext | `ollamaService.ts` | ✅ **Fertig** | 3 |
-| RAG mit DEGAM-Leitlinien | Neu: `ragService.ts` | ⏳ Geplant | 5 |
+| RAG mit DEGAM-Leitlinien | Neu: `ragService.ts` | ✅ **Fertig** (Commit 2537e48) | healthTriage 6 |
 
 **Meilenstein:** AI versteht Zusammenhänge: "Morgen 10 Uhr Arzt in Berlin" → Route + Wetter + Parken.
 
 ---
 
-## ⏳ Phase AI-Health-5: DEGAM-RAG + FHIR-Terminbuchung (Vision)
+## 🟢 Phase AI-Health-5: DEGAM-RAG + Terminbuchung (umgesetzt statt FHIR)
 
 **Ziel:** Faktenbasierte medizinische Antworten + Terminbuchung.
 
 | Aufgabe | Tool | Status | Tests |
 |---------|------|--------|-------|
-| DEGAM-Leitlinien als Vektordatenbank | Qdrant/Chroma | ⏳ Vision | – |
-| FHIR-Scheduling-Integration | Open Reception | ⏳ Vision | – |
+| DEGAM-Leitlinien RAG (statt Vektordatenbank) | `ragService.ts` + PostgreSQL tsvector | ✅ **Fertig** (Commit 2537e48) | 5 |
+| FHIR-Scheduling-Integration | ❌ **NOT NOW** (2026-07-31) | – | – |
+| **5 Appointment-Verbesserungen statt FHIR** | `healthService.ts` + Flutter-UI | ✅ **Fertig** (Commit 01f91a4 + d1d0a58) | 23 |
 | Medizinische Haftungsstrategie | Legal | ⏳ Vision | – |
 
-**Meilenstein:** AI kann mit klinischen Leitlinien antworten und direkt Termine buchen.
+**FHIR-Decision (2026-07-31):** HAPI FHIR (~500MB), Medplum (~200MB), Firely (.NET) zu schwer für Render Free (512MB) + kein Interop-Benefit (OSM-Ärzte haben keine FHIR-Endpunkte). HEIMAT-Äquivalent existiert: `doctor_slots` ≈ Schedule, `getAvailableSlots()` ≈ Slot, `appointments` ≈ Appointment.
 
-**⚠️ Blockiert durch:**
-- DEGAM-Leitlinien sind nur als PDF verfügbar (kein maschinenlesbares Format)
-- Deutsche Praxen haben keine offene FHIR-Schnittstelle
-- Open Reception (BMBF) muss erst Praxis-Partnerschaften aufbauen
+**Stattdessen implementiert:**
+1. Status-Pipeline: pending → confirmed → completed → no-show (`PUT /appointments/:id/complete` + `/no-show`)
+2. Recurring Slots: Serien-Termine 1-12 Wochen (`POST /appointments/recurring`)
+3. Warteliste: `appointment_waitlist` + Auto-Promotion bei Stornierung (`POST /appointments/waitlist`)
+4. Notiz-Feld: `notes` in Buchung
+5. Termin-Erinnerung: `GET /appointments/reminders` + Flutter-Reminder-Banner (Commit d1d0a58)
+
+**Meilenstein:** AI kann mit klinischen Leitlinien antworten und Termine buchen (inkl. Warteliste + Erinnerung).
 
 ---
 
@@ -112,7 +117,7 @@
 | **AI-Health-2** | Lebenszeichen Check-in | 🟡 2-3 Tage | Timer-Service Backend |
 | **AI-Health-3** | On-Device TFLite | 🟢 **Phase AI-5 fertig** | TFLite-Modell |
 | **AI-Health-4** | Cross-Service Assistant | 🟢 **Phase AI-4 fertig** | – |
-| **AI-Health-5** | DEGAM-RAG + FHIR | ⏳ Offen (extern blockiert) | Lizenz + Praxis-APIs |
+| **AI-Health-5** | DEGAM-RAG + Terminbuchung | 🟢 **Fertig 2026-07-31** | tsvector + 5 Appointment-Verbesserungen |
 
 ---
 
@@ -125,4 +130,4 @@
 | **NLP** | spaCy | MIT | ✅ | ⏳ Optional |
 | **Vektordatenbank** | Qdrant/Chroma | Apache 2.0 | ❌ | ⏳ Vision |
 | **Symptom-Checker** | MedPrompt | MIT | ❌ | ⏳ Forschung |
-| **FHIR-Scheduling** | Open Reception | AGPL | ❌ | ⏳ Vision |
+| **FHIR-Scheduling** | Open Reception | AGPL | ❌ | ❌ **NOT NOW** (Decision 2026-07-31) |

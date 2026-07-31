@@ -1,6 +1,6 @@
 # HEIMAT 2.0 — Systemarchitektur
 
-> **Stand:** 2026-07-27 | **Letzter Commit:** `5c69ea6`
+> **Stand:** 2026-07-31 | **Letzter Commit:** `d1d0a58`
 > **Ziel:** Vollständige Dokumentation der Systemarchitektur, Datenflüsse und Komponenten.
 > **Lizenz:** AGPL v3
 
@@ -97,7 +97,9 @@ main.dart
   ├── HealthProvider (ChangeNotifier)
   │     ├── searchDoctors(specialty, location) → Overpass + DB
   │     ├── bookAppointment(doctorId, date, time) → POST
-  │     └── getAppointments() → GET /api/health/appointments
+  │     ├── getAppointments() → GET /api/health/appointments
+  │     ├── loadUpcomingAppointments() → GET /api/health/appointments/reminders (Termin-Erinnerung)
+  │     └── joinWaitlist(doctorId, name, email, date, time) → POST /api/health/appointments/waitlist
   │
   └── MiniProgramProvider (ChangeNotifier)
         ├── 10 Standard-Mini-Programme (Registry)
@@ -131,7 +133,9 @@ MainScreen (BottomNavigationBar)
   ├── Index 3: Gesundheit 🏥 (HealthScreen)
   │     ├── Fachrichtungs-Filter (Chip-UI)
   │     ├── Arzt-Karten (Name, Fachrichtung, Adresse)
-  │     └── Terminbuchung (Bottom Sheet)
+  │     ├── Terminbuchung (Bottom Sheet)
+  │     ├── Termin-Erinnerung (Banner "Termin in X", pollt /appointments/reminders)
+  │     └── Warteliste (bei belegtem Slot → SnackBar-Action, Auto-Promotion)
   │
   └── Index 4: Apps 📱 (MiniProgramLauncherScreen)
         ├── Suche + Kategorie-Filter (Pillen)
@@ -213,9 +217,14 @@ Fehlerfall (Backend offline):
 | `POST` | `/api/health/doctors` | Zod | HealthService | Supabase |
 | `GET` | `/api/health/doctors/:id/slots` | Zod | HealthService | Supabase |
 | `POST` | `/api/health/appointments` | Zod | HealthService | Supabase |
+| `POST` | `/api/health/appointments/recurring` | Zod | HealthService | Supabase (Serien-Termine 1-12 Wo) |
+| `POST` | `/api/health/appointments/waitlist` | Zod | HealthService | Supabase |
+| `GET` | `/api/health/appointments/reminders` | Zod | HealthService | Supabase (LEFT JOIN doctors → doctor_name) |
 | `GET` | `/api/health/appointments/:name` | — | HealthService | Supabase |
-| `PUT` | `/api/health/appointments/:id/cancel` | — | HealthService | Supabase |
+| `PUT` | `/api/health/appointments/:id/cancel` | — | HealthService | Supabase (Auto-Promotion Warteliste) |
 | `PUT` | `/api/health/appointments/:id/confirm` | — | HealthService | Supabase |
+| `PUT` | `/api/health/appointments/:id/complete` | — | HealthService | Supabase (Status-Pipeline) |
+| `PUT` | `/api/health/appointments/:id/no-show` | — | HealthService | Supabase (Status-Pipeline) |
 | `POST` | `/api/admin/migrate` | `ADMIN_KEY` | migrate.ts | Supabase |
 | `GET` | `/api/admin/gtfs-status` | `ADMIN_KEY` | GtfsService | Supabase |
 | `GET` | `/api/ai/home` | — | AiHomeService | — |
@@ -261,7 +270,7 @@ Fehlerfall (Backend offline):
 | **TalerService** | `services/talerService.ts` | GNU Taler Exchange Client, Reserve-Erstellung, Wallet-Bindung, dynamische Currency |
 | **FinanceService** | `services/financeService.ts` | Wallet-CRUD, Transaktionen, Purse-System, fund-local |
 | **MobilityService** | `services/mobilityService.ts` | Overpass-Stops, Nominatim-Geocoding, OSRM-Routing, transitous-Departures |
-| **HealthService** | `services/healthService.ts` | Overpass-Ärzte, DB-Arzt-Registrierung, Terminbuchung, Slots |
+| **HealthService** | `services/healthService.ts` | Overpass-Ärzte, DB-Arzt-Registrierung, Terminbuchung, Slots, Status-Pipeline (complete/no-show), Recurring Slots, Warteliste + Auto-Promotion, Termin-Erinnerung, DEGAM-RAG (ragService) |
 | **AuthService** | `services/authService.ts` | JWT-Generierung/Verifikation, bcryptjs-Passwort-Hashing, User-CRUD |
 | **GtfsService** | `services/gtfsService.ts` | GTFS-Daten-Status, Stop-Suche, Routen-Query |
 | **RaptorService** | `services/raptorService.ts` | RAPTOR-Routing-Engine (In-Memory, opt-in via ENABLE_RAPTOR) |
@@ -387,7 +396,7 @@ User klickt auf 🌬️ Luftqualität im Apps-Tab
 
 ## 5. Datenbank (Supabase PostgreSQL)
 
-### 5.1 Tabellen (16 Stück, 24 Indizes)
+### 5.1 Tabellen (18 Stück, 28 Indizes)
 
 | Tabelle | Zweck | Spalten |
 |---------|-------|---------|
@@ -398,7 +407,11 @@ User klickt auf 🌬️ Luftqualität im Apps-Tab
 | `reserve_history` | Reserve-Änderungen | id, reserve_id, balance_delta, reason, created_at |
 | `doctors` | Ärzte | id, name, specialty, address, lat, lng, phone, email |
 | `doctor_slots` | Termin-Slots | id, doctor_id, date, time, is_booked |
-| `appointments` | Termine | id, slot_id, patient_name, patient_email, status |
+| `appointments` | Termine | id, doctor_id, patient_name, patient_email, date, time, status (pending/confirmed/completed/no-show/cancelled), notes, recurrence_id |
+| `appointment_waitlist` | Warteliste | id, doctor_id, patient_name, patient_email, requested_date, requested_time, status (waiting/promoted) |
+| `degam_guidelines` | DEGAM-Leitlinien (RAG) | id, guideline_id, topic, red_flags, routine_advice, bereitschaft_advice, chunk_text, search_vector (tsvector) |
+| `checkin_settings` | Lebenszeichen-Einstellungen | id, user_id, is_active, interval_hours, emergency_contact, last_ping_at |
+| `checkin_events` | Check-in Historie | id, user_id, event_type, escalation_stage, details |
 | `stops` | Haltestellen (Cache) | id, name, lat, lng, type |
 | `gtfs_stops` | GTFS-Haltestellen | stop_id, name, lat, lng, zone_id |
 | `gtfs_routes` | GTFS-Linien | route_id, short_name, long_name, type, color |
@@ -529,6 +542,7 @@ Git Push → main
 | Mobilität (Karte/Routen/Stops) | 1 | MVP | `e00105d` |
 | Finanzen (Wallet/Senden/Aufladen) | 2 | 2026-07-25 | `cfb0561` JWT-Header |
 | Gesundheit (Ärzte/Termine) | 3 | MVP | `f389001` UX |
+| Termin-Erinnerung + Warteliste | 3 | 2026-07-31 | `d1d0a58` Reminder-Banner, `01f91a4` Backend |
 | Dashboard (Greeting/Stats/Actions) | 0 | 2026-07-27 | `8aad85f` Quick-Actions-Fix |
 | Mini-Program-Container | 4 | 2026-07-27 | `92ec307` |
 | Wetter (DWD/Open-Meteo) | 4→Apps | 2026-07-27 | `0d75f1f` 429-Retry |

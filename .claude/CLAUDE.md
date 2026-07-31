@@ -319,10 +319,11 @@ CI: Code gepuscht (78a371d), Flutter CI Pipeline (analyze + test + smoke) automa
 
 ### TODOs (Health AI)
 - 🟢 **Phase AI-Health-1 (Symptom + Triage + Arzt):** ✅ Fertig (promptService.ts, ollamaService.ts)
-- 🟡 **Phase AI-Health-2 (Lebenszeichen):** Timer-Check-in Backend + Mobile (geplant)
+- 🟢 **Phase AI-Health-2 (Lebenszeichen):** ✅ Fertig (checkinService.ts, 14+ Tests)
 - 🟢 **Phase AI-Health-3 (On-Device TFLite):** ✅ Fertig (OnDeviceSentimentClassifier)
 - 🟢 **Phase AI-Health-4 (Cross-Service):** ✅ Fertig (promptService fetchServiceContexts)
-- ⏳ **Phase AI-Health-5 (DEGAM-RAG + FHIR):** Extern blockiert (Lizenz, Praxis-APIs)
+- 🟢 **Phase AI-Health-5 (DEGAM-RAG):** ✅ Fertig (Commit 2537e48 — ragService.ts via PostgreSQL tsvector, 10 Seed-Leitlinien, injiziert in Ollama-Prompt)
+- ✅ **FHIR/SMART-Scheduling: Decision NOT NOW (2026-07-31)** — HAPI/Medplum/Firely zu schwer für Render Free (512MB); HEIMAT-Äquivalent (doctor_slots/appointments) existiert. **Stattdessen: 5 Appointment-Verbesserungen implementiert (Commit 01f91a4 + d1d0a58)**: Status-Pipeline (complete/no-show), Recurring Slots, Warteliste mit Auto-Promotion, Notiz-Feld, Termin-Erinnerung (Reminder-Banner in Flutter-UI). 23/23 Backend-Tests grün.
 
 ---
 
