@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { query, queryOne } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -54,6 +54,24 @@ interface WaitlistEntry {
   requested_date: string;
   requested_time: string;
   status: string; // 'waiting' | 'promoted'
+}
+
+/**
+ * Erzeugt eine deterministische UUID aus einer OSM-Node-ID.
+ * Nutzt SHA-256 Hash → UUID v5-Format (8-4-4-4-12 hex).
+ * Garantiert: gleiche OSM-ID → immer gleiche UUID. Keine DB-Migration nötig.
+ */
+function osmIdToUuid(osmId: number): string {
+  const hash = createHash('sha256').update(`heimat-osm-${osmId}`).digest('hex');
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    // Version 5 nibble
+    (parseInt(hash.slice(12, 14), 16) & 0x0f | 0x50).toString(16) + hash.slice(14, 16),
+    // Variant 10xx
+    (parseInt(hash.slice(16, 18), 16) & 0x3f | 0x80).toString(16) + hash.slice(18, 20),
+    hash.slice(20, 32),
+  ].join('-');
 }
 
 export class HealthService {
@@ -197,7 +215,7 @@ export class HealthService {
     const address = [street, number ? number : '', postcode, city].filter(Boolean).join(', ');
 
     return {
-      id: `osm_${el.id}`,
+      id: osmIdToUuid(el.id),
       name: tags.name || tags['name:de'] || 'Praxis',
       specialty: this.classifySpecialty(tags, tags.name || tags['name:de'] || ''),
       address: address || '', // leer → wird später via Reverse-Geocoding gefüllt
@@ -404,27 +422,16 @@ export class HealthService {
   }
 
   async getDoctorById(id: string): Promise<Doctor> {
-    // OSM-Ärzte: Versuche DB-Eintrag zu finden (wurde via ensureDoctorInDb angelegt)
-    if (id.startsWith('osm_')) {
-      // 1. Schon in DB? (dynamisch angelegt bei vorheriger Buchung)
-      const cached = await queryOne<Doctor>(
-        'SELECT * FROM doctors WHERE id = $1',
-        [id]
-      );
-      if (cached) return { ...cached, source: 'db' };
-
-      // 2. Noch nicht in DB — Arzt existiert nur in Overpass-Karte
-      throw new AppError(
-        'OSM-Arzt noch nicht in Datenbank. Bitte zuerst Arztprofil in der App laden (speichert ihn automatisch).',
-        404
-      );
-    }
+    // DB-Query — funktioniert für DB-Ärzte UND OSM-Ärzte (deterministische UUID)
     const doctor = await queryOne<Doctor>(
       'SELECT * FROM doctors WHERE id = $1',
       [id]
     );
     if (!doctor) {
-      throw new AppError('Doctor not found', 404);
+      throw new AppError(
+        'Arzt nicht in Datenbank. Bitte zuerst Arztprofil laden (POST /doctors/ensure).',
+        404
+      );
     }
     return { ...doctor, source: 'db' };
   }
@@ -539,10 +546,8 @@ export class HealthService {
   }
 
   async getAvailableSlots(doctorId: string, date: string): Promise<string[]> {
-    if (doctorId.startsWith('osm_')) {
-      return []; // OSM-Ärzte haben keine Slots
-    }
-
+    // Arzt nicht in DB? → leere Slots (keine spezielle OSM-Prüfung nötig,
+    // da deterministische UUIDs das Schema vereinheitlichen)
     const dateObj = new Date(date);
     const dayOfWeek = dateObj.getDay();
 

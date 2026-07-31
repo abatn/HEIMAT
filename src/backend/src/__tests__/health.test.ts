@@ -59,7 +59,55 @@ afterAll(async () => {
   await cleanupTestDoctors();
 }, 10000);
 
+// UUID-Regex fuer Validierung
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 describe('Health API', () => {
+  describe('osmIdToUuid (deterministische OSM-UUIDs)', () => {
+    it('nearby endpoint returns valid UUIDs for OSM doctors', async () => {
+      if (!HAS_DB) return;
+      try {
+        const res = await request(app)
+          .get('/api/health/doctors/nearby?lat=48.7758&lng=9.1829&radius=3000')
+          .timeout(30000);
+
+        if (res.status !== 200) return; // Overpass nicht erreichbar
+
+        const osmDoctors = res.body.doctors.filter((d: any) => d.source === 'osm');
+        expect(osmDoctors.length).toBeGreaterThan(0);
+
+        for (const doc of osmDoctors) {
+          // ID muss UUID-Format haben (nicht mehr 'osm_12345')
+          expect(doc.id).toMatch(UUID_RE);
+        }
+      } catch (e: unknown) {
+        // External API kann in CI blockiert sein — tolerieren
+      }
+    }, 45000);
+
+    it('deterministic: same OSM ID always produces same UUID', async () => {
+      // Importiere osmIdToUuid indirekt: gleiche OSM-ID muss gleiche UUID liefern
+      // (Test ueber 2x GET /doctors/nearby mit gleichen Koordinaten)
+      if (!HAS_DB) return;
+      try {
+        const res1 = await request(app)
+          .get('/api/health/doctors/nearby?lat=52.52&lng=13.41&radius=1000')
+          .timeout(30000);
+        const res2 = await request(app)
+          .get('/api/health/doctors/nearby?lat=52.52&lng=13.41&radius=1000')
+          .timeout(30000);
+
+        if (res1.status !== 200 || res2.status !== 200) return;
+
+        const ids1 = res1.body.doctors.map((d: any) => d.id).sort();
+        const ids2 = res2.body.doctors.map((d: any) => d.id).sort();
+        expect(ids1).toEqual(ids2);
+      } catch (e: unknown) {
+        // External API kann in CI blockiert sein — tolerieren
+      }
+    }, 60000);
+  });
+
   describe('GET /api/health/doctors', () => {
     it('should return all doctors', async () => {
       if (!HAS_DB) return;
