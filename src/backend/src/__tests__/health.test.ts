@@ -108,6 +108,76 @@ describe('Health API', () => {
     }, 60000);
   });
 
+  describe('POST /api/health/doctors/ensure (OSM-Buchbarkeit)', () => {
+    it('requires auth and stores a live doctor contact profile without fake slots', async () => {
+      const doctorId = '11111111-1111-5111-8111-111111111111';
+      const email = `ci-osm-${Date.now()}@heimat.de`;
+      let registered = false;
+      try {
+        const unauthenticated = await request(app)
+          .post('/api/health/doctors/ensure')
+          .send({ id: doctorId, name: 'OSM Testpraxis' });
+        expect(unauthenticated.status).toBe(401);
+
+        if (!HAS_DB) return;
+
+        const registration = await request(app)
+          .post('/api/auth/register')
+          .send({
+            email,
+            password: 'Test1234!',
+            displayName: 'CI OSM Test',
+          });
+        expect(registration.status).toBe(201);
+        registered = true;
+
+        const token = registration.body.accessToken as string;
+        const ensured = await request(app)
+          .post('/api/health/doctors/ensure')
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            id: doctorId,
+            name: 'OSM Testpraxis',
+            specialty: 'Allgemeinmedizin',
+            address: 'OSM-Teststraße 1',
+            latitude: 52.52,
+            longitude: 13.405,
+          });
+
+        expect(ensured.status).toBe(200);
+        expect(ensured.body.dbId).toBe(doctorId);
+
+        const doctor = await request(app)
+          .get(`/api/health/doctors/${doctorId}`);
+        expect(doctor.status).toBe(200);
+        expect(doctor.body.doctor.website).toBeNull();
+        expect(doctor.body.doctor.booking_url).toBeNull();
+
+        const slots = await request(app)
+          .get(`/api/health/doctors/${doctorId}/slots?date=2025-12-15`);
+        expect(slots.status).toBe(200);
+        expect(slots.body.slots).toEqual([]);
+      } catch (error: unknown) {
+        // Ephemeral CI database containers can disappear between the initial
+        // probe and the request. Do not report infrastructure as a product
+        // regression; real HTTP assertion failures still fail the test above.
+        const message = error instanceof Error ? error.message : String(error);
+        if (!/ECONNREFUSED|ECONNRESET|connection terminated/i.test(message)) {
+          throw error;
+        }
+      } finally {
+        try {
+          await pool.query('DELETE FROM doctors WHERE id = $1', [doctorId]);
+          if (registered) {
+            await pool.query('DELETE FROM users WHERE email = $1', [email]);
+          }
+        } catch {
+          // Cleanup is best effort when the test database is unavailable.
+        }
+      }
+    }, 30000);
+  });
+
   describe('GET /api/health/doctors', () => {
     it('should return all doctors', async () => {
       if (!HAS_DB) return;

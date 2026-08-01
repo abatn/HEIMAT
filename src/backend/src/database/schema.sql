@@ -86,6 +86,8 @@ CREATE TABLE IF NOT EXISTS doctors (
     address TEXT NOT NULL,
     phone VARCHAR(50),
     email VARCHAR(255),
+    website TEXT,
+    booking_url TEXT,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -494,6 +496,11 @@ END $$;
 -- Legacy-Spalte `wallet_priv` (NOT NULL vom alten Schema) droppen - sie wird nicht
 -- mehr befuellt (INSERT nutzt wallet_priv_pkcs8). Drop ist idempotent (IF EXISTS).
 ALTER TABLE taler_wallets DROP COLUMN IF EXISTS wallet_priv;
+-- Externe Praxis-Kontakte fuer OSM-/DB-Arzte. Keine URLs werden automatisch
+-- aus Domains abgeleitet; nur explizit gelieferte Links werden gespeichert.
+ALTER TABLE doctors ADD COLUMN IF NOT EXISTS website TEXT;
+ALTER TABLE doctors ADD COLUMN IF NOT EXISTS booking_url TEXT;
+
 -- Doctor-Slots werden automatisch bei Arzt-Registrierung generiert.
 -- Wartelisten-Tabelle fuer Legacy-DBs (frische DBs haben sie bereits im CREATE TABLE).
 CREATE TABLE IF NOT EXISTS appointment_waitlist (

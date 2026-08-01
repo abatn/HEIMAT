@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
@@ -99,6 +100,24 @@ class _HealthScreenState extends State<HealthScreen> {
             location.latitude,
             location.longitude,
           );
+    }
+  }
+
+  Future<void> _openExternal(String rawUrl, String failureMessage) async {
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https' || uri.scheme == 'tel' || uri.scheme == 'mailto')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failureMessage)),
+        );
+      }
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failureMessage)),
+      );
     }
   }
 
@@ -221,6 +240,7 @@ class _HealthScreenState extends State<HealthScreen> {
     required String label,
     required IconData icon,
     TextInputType? keyboardType,
+    ValueChanged<String>? onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -238,20 +258,48 @@ class _HealthScreenState extends State<HealthScreen> {
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
         keyboardType: keyboardType,
+        onChanged: onChanged,
       ),
     );
   }
 
+  String _nextBookingDate() {
+    final now = DateTime.now();
+    var date = DateTime(now.year, now.month, now.day);
+    // Nur der lokale HEIMAT-Anfrage-Flow nutzt verwaltete Slots.
+    while (date.weekday > DateTime.friday) {
+      date = date.add(const Duration(days: 1));
+    }
+    return date.toIso8601String().substring(0, 10);
+  }
+
   Future<void> _showBookingSheet(Doctor doctor) async {
-    // OSM-Arzt: zuerst in DB speichern (ensureDoctor) damit Terminbuchung geht
+    // OSM is discovery only. External booking/contact actions are rendered
+    // directly on the doctor card; never open a local slot flow for OSM.
     if (doctor.source == 'osm') {
-      final saved = await context.read<HealthProvider>().ensureDoctor(doctor);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Bitte für diese Praxis den offiziellen Kontakt in der Arztkarte verwenden.'),
+        ),
+      );
+      return;
+    }
+
+    final health = context.read<HealthProvider>();
+    final initialDate = _nextBookingDate();
+    final dateController = TextEditingController(text: initialDate);
+
+    // Legacy-/Fallback-Schutz: OSM-Kontakte werden normalerweise über die
+    // externen Aktionen auf der Karte geöffnet, nicht über diesen Flow.
+    if (doctor.source == 'osm') {
+      final saved = await health.ensureDoctor(doctor);
       if (!mounted) return;
       if (!saved) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-                'Arzt konnte nicht gespeichert werden. Bitte erneut versuchen.'),
+                'Für diesen OSM-Arzt gibt es keinen verwalteten HEIMAT-Slot. Bitte Praxiswebsite oder Telefon nutzen.'),
             duration: Duration(seconds: 3),
           ),
         );
@@ -259,11 +307,26 @@ class _HealthScreenState extends State<HealthScreen> {
       }
     }
 
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final dateController = TextEditingController(
-        text: DateTime.now().toIso8601String().substring(0, 10));
-    String? selectedTime;
+    // Slots für den initial angezeigten Tag laden (nur lokale HEIMAT-Arzte).
+    await health.loadSlots(doctor.id, dateController.text);
+    if (!mounted) return;
+
+    final nameController = TextEditingController(
+      text: health.currentUserName ?? '',
+    );
+    final emailController = TextEditingController(
+      text: health.currentUserEmail ?? '',
+    );
+    final selectedTimeNotifier = ValueNotifier<String?>(null);
+    final canSubmitNotifier = ValueNotifier<bool>(false);
+
+    void updateCanSubmit() {
+      canSubmitNotifier.value =
+          selectedTimeNotifier.value != null && nameController.text.trim().isNotEmpty;
+    }
+
+    nameController.addListener(updateCanSubmit);
+    selectedTimeNotifier.addListener(updateCanSubmit);
 
     showHeimatBottomSheet(
       context,
@@ -271,69 +334,93 @@ class _HealthScreenState extends State<HealthScreen> {
       footer: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          // ignore: unnecessary_null_comparison
-          onPressed: (selectedTime != null && nameController.text.isNotEmpty)
-              ? () async {
-                  Navigator.pop(context);
-                  final ok =
-                      await context.read<HealthProvider>().bookAppointment(
-                            doctor.id,
-                            nameController.text.trim(),
-                            emailController.text.trim(),
-                            dateController.text,
-                            selectedTime!,
-                          );
-                  if (mounted) {
-                    // Nach erfolgreicher Buchung Reminder-Liste aktualisieren
-                    if (ok) {
-                      context.read<HealthProvider>().loadUpcomingAppointments();
-                    }
-                    final snackBar = SnackBar(
-                      content: Text(ok
-                          ? 'Termin gebucht: ${dateController.text} $selectedTime'
-                          : 'Buchung fehlgeschlagen — ggf. Slot belegt. Warteliste verfügbar.'),
-                      backgroundColor:
-                          ok ? AppColors.success : AppColors.warning,
-                      action: ok
-                          ? null
-                          : SnackBarAction(
-                              label: 'Warteliste',
-                              textColor: Colors.white,
-                              onPressed: () async {
-                                final joined = await context
-                                    .read<HealthProvider>()
-                                    .joinWaitlist(
-                                      doctor.id,
-                                      nameController.text.trim(),
-                                      emailController.text.trim(),
-                                      dateController.text,
-                                      selectedTime!,
-                                    );
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(joined
-                                          ? 'Auf Warteliste — Sie rücken bei Stornierung automatisch nach.'
-                                          : 'Warteliste fehlgeschlagen — bitte erneut versuchen.'),
-                                      backgroundColor: joined
-                                          ? AppColors.success
-                                          : AppColors.error,
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                  }
-                }
-              : null,
-          child: const Text('Termin buchen'),
+          onPressed: () async {
+            if (!canSubmitNotifier.value || selectedTimeNotifier.value == null) {
+              return;
+            }
+            final selected = selectedTimeNotifier.value!;
+            Navigator.pop(context);
+            final ok = await context.read<HealthProvider>().bookAppointment(
+                  doctor.id,
+                  nameController.text.trim(),
+                  emailController.text.trim(),
+                  dateController.text,
+                  selected,
+                );
+            if (mounted) {
+              if (ok) {
+                await context.read<HealthProvider>().loadUpcomingAppointments();
+              }
+              final snackBar = SnackBar(
+                content: Text(ok
+                    ? 'Terminanfrage gespeichert: ${dateController.text} $selected'
+                    : 'Anfrage fehlgeschlagen — ggf. Slot belegt. Warteliste verfügbar.'),
+                backgroundColor: ok ? AppColors.success : AppColors.warning,
+                action: ok
+                    ? null
+                    : SnackBarAction(
+                        label: 'Warteliste',
+                        textColor: Colors.white,
+                        onPressed: () async {
+                          final joined = await context.read<HealthProvider>().joinWaitlist(
+                                doctor.id,
+                                nameController.text.trim(),
+                                emailController.text.trim(),
+                                dateController.text,
+                                selected,
+                              );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(joined
+                                    ? 'Auf Warteliste — Sie rücken bei Stornierung automatisch nach.'
+                                    : 'Warteliste fehlgeschlagen — bitte erneut versuchen.'),
+                                backgroundColor:
+                                    joined ? AppColors.success : AppColors.error,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+              );
+              ScaffoldMessenger.of(context).showSnackBar(snackBar);
+            }
+          },
+          child: ValueListenableBuilder<bool>(
+            valueListenable: canSubmitNotifier,
+            builder: (_, canSubmit, __) => Text(
+              canSubmit ? 'Termin buchen' : 'Name + Zeit auswählen',
+            ),
+          ),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Doctor header
+          if (doctor.source == 'osm')
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.warning.withOpacity(0.25)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'OSM entdeckt die Praxis. Für echte Termine bitte den offiziellen Kontakt nutzen; HEIMAT zeigt hier keine erfundene Verfügbarkeit.',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // Doctor header
           Container(
             width: double.infinity,
@@ -405,8 +492,14 @@ class _HealthScreenState extends State<HealthScreen> {
           const SizedBox(height: 12),
           _buildGradientField(
             controller: dateController,
-            label: 'Datum',
+            label: 'Datum (YYYY-MM-DD)',
             icon: Icons.calendar_today,
+            onChanged: (date) async {
+              if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) {
+                selectedTimeNotifier.value = null;
+                await health.loadSlots(doctor.id, date);
+              }
+            },
           ),
           const SizedBox(height: 16),
           const Text('Verfügbare Zeiten',
@@ -443,21 +536,26 @@ class _HealthScreenState extends State<HealthScreen> {
                   final label = slot.endTime.isNotEmpty
                       ? '${slot.startTime}-${slot.endTime}'
                       : slot.startTime;
-                  final isSelected = selectedTime == slot.startTime;
-                  return ChoiceChip(
-                    label: Text(label),
-                    selected: isSelected,
-                    selectedColor: AppColors.primary,
-                    backgroundColor: AppColors.surface,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    side: BorderSide(
-                      color: isSelected ? AppColors.primary : AppColors.border,
-                    ),
-                    onSelected: (_) {
-                      setState(() => selectedTime = slot.startTime);
+                  return ValueListenableBuilder<String?>(
+                    valueListenable: selectedTimeNotifier,
+                    builder: (_, selectedTime, __) {
+                      final isSelected = selectedTime == slot.startTime;
+                      return ChoiceChip(
+                        label: Text(label),
+                        selected: isSelected,
+                        selectedColor: AppColors.primary,
+                        backgroundColor: AppColors.surface,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? AppColors.primary : AppColors.border,
+                        ),
+                        onSelected: (_) {
+                          selectedTimeNotifier.value = slot.startTime;
+                        },
+                      );
                     },
                   );
                 }).toList(),
@@ -618,6 +716,7 @@ class _HealthScreenState extends State<HealthScreen> {
                         doctor: doc,
                         specialtyIcon: _specialtyIcon(doc.specialty),
                         onBook: () => _showBookingSheet(doc),
+                        onOpenExternal: _openExternal,
                       );
                     },
                   ),
@@ -1165,11 +1264,13 @@ class _DoctorCard extends StatefulWidget {
   final Doctor doctor;
   final IconData specialtyIcon;
   final VoidCallback onBook;
+  final Future<void> Function(String url, String failureMessage) onOpenExternal;
 
   const _DoctorCard({
     required this.doctor,
     required this.specialtyIcon,
     required this.onBook,
+    required this.onOpenExternal,
   });
 
   @override
@@ -1183,7 +1284,10 @@ class _DoctorCardState extends State<_DoctorCard> {
   Widget build(BuildContext context) {
     final doc = widget.doctor;
     final isOsm = doc.source == 'osm';
-    final hasPhone = doc.phone.isNotEmpty;
+    final hasPhone = doc.phone.trim().isNotEmpty;
+    final hasEmail = doc.email.trim().isNotEmpty;
+    final hasBookingUrl = doc.bookingUrl.trim().isNotEmpty;
+    final hasWebsite = doc.website.trim().isNotEmpty;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -1301,92 +1405,97 @@ class _DoctorCardState extends State<_DoctorCard> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Action buttons: Call + Book/OSM badge
+              // Reale Kontaktwege zuerst: OSM ist nur die Entdeckungsschicht.
+              // Kein URL-Raten und keine künstlichen OSM-Slots als echte Termine.
               Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // Call button (für ALLE Ärzte mit Telefon)
-                  if (hasPhone)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
+                  if (hasBookingUrl)
+                    ElevatedButton.icon(
+                      onPressed: () => widget.onOpenExternal(
+                        doc.bookingUrl,
+                        'Online-Terminseite konnte nicht geöffnet werden.',
                       ),
-                      child: IconButton(
-                        icon: const Icon(Icons.phone_outlined,
-                            size: 18, color: AppColors.success),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  const Icon(Icons.phone,
-                                      size: 16, color: Colors.white),
-                                  const SizedBox(width: 8),
-                                  Text(doc.phone,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600)),
-                                ],
-                              ),
-                              duration: const Duration(seconds: 4),
-                              action: SnackBarAction(
-                                label: 'OK',
-                                textColor: Colors.white,
-                                onPressed: () {},
-                              ),
-                            ),
-                          );
-                        },
-                        padding: const EdgeInsets.all(8),
-                        constraints: const BoxConstraints(
-                          minWidth: 36,
-                          minHeight: 36,
-                        ),
-                        tooltip: 'Anrufen: ${doc.phone}',
-                      ),
-                    ),
-                  // Book button (nur für DB-Ärzte)
-                  if (!isOsm)
-                    ElevatedButton(
-                      onPressed: widget.onBook,
+                      icon: const Icon(Icons.event_available, size: 16),
+                      label: const Text('Online-Termin',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
-                      child: const Text('Termin',
-                          style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
-                  // OSM badge
+                  if (hasWebsite)
+                    TextButton.icon(
+                      onPressed: () => widget.onOpenExternal(
+                        doc.website,
+                        'Praxiswebsite konnte nicht geöffnet werden.',
+                      ),
+                      icon: const Icon(Icons.language, size: 16),
+                      label: const Text('Website', style: TextStyle(fontSize: 11)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  if (hasPhone)
+                    IconButton(
+                      icon: const Icon(Icons.phone_outlined,
+                          size: 18, color: AppColors.success),
+                      onPressed: () => widget.onOpenExternal(
+                        'tel:${doc.phone.replaceAll(RegExp(r'[^0-9+()]'), '')}',
+                        'Telefon-App konnte nicht geöffnet werden.',
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      tooltip: 'Praxis anrufen: ${doc.phone}',
+                    ),
+                  if (hasEmail)
+                    IconButton(
+                      icon: const Icon(Icons.email_outlined,
+                          size: 18, color: AppColors.primary),
+                      onPressed: () => widget.onOpenExternal(
+                        'mailto:${doc.email}',
+                        'E-Mail-App konnte nicht geöffnet werden.',
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      tooltip: 'Praxis mailen: ${doc.email}',
+                    ),
+                  // Nur von HEIMAT verwaltete DB-Ärzte haben einen lokalen
+                  // Anfrage-Flow. Bei OSM wird nichts als echter Termin behauptet.
+                  if (!isOsm)
+                    OutlinedButton(
+                      onPressed: widget.onBook,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('HEIMAT-Anfrage',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                    ),
+                  if (isOsm && !hasBookingUrl && !hasWebsite && !hasPhone && !hasEmail)
+                    const Text(
+                      'Kein Kontakt in OSM',
+                      style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                    ),
                   if (isOsm)
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.secondary.withOpacity(0.15),
-                            AppColors.secondary.withOpacity(0.05),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: AppColors.secondary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: AppColors.secondary.withOpacity(0.2)),
+                        border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
                       ),
                       child: const Text(
-                        'OSM',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.secondary,
-                        ),
+                        'OSM entdeckt',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
+                            color: AppColors.secondary),
                       ),
                     ),
                 ],

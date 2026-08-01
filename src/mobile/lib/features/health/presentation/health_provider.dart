@@ -11,6 +11,9 @@ class Doctor {
   final String specialty;
   final String address;
   final String phone;
+  final String email;
+  final String website;
+  final String bookingUrl;
   final String source; // 'db' | 'osm'
   final double? distanceKm; // Entfernung vom User-Standort
   final double? latitude;
@@ -22,6 +25,9 @@ class Doctor {
     required this.specialty,
     required this.address,
     required this.phone,
+    this.email = '',
+    this.website = '',
+    this.bookingUrl = '',
     this.source = 'db',
     this.distanceKm,
     this.latitude,
@@ -35,6 +41,9 @@ class Doctor {
       specialty: json['specialty'] ?? '',
       address: json['address'] ?? '',
       phone: json['phone'] ?? '',
+      email: (json['email'] ?? '').toString(),
+      website: (json['website'] ?? '').toString(),
+      bookingUrl: (json['bookingUrl'] ?? json['booking_url'] ?? '').toString(),
       source: json['source'] ?? 'db',
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
       latitude: (json['latitude'] as num?)?.toDouble(),
@@ -154,6 +163,8 @@ class HealthProvider extends ChangeNotifier {
   double? get lastLat => _lastLat;
   double? get lastLng => _lastLng;
   List<UpcomingAppointment> get upcomingAppointments => _upcomingAppointments;
+  String? get currentUserEmail => _authService.email;
+  String? get currentUserName => _authService.displayName;
 
   /// Specialty-Filter client-side anwenden (instant, kein HTTP-Call).
   /// Die vollständige Ärzteliste wird bei searchDoctors() geladen,
@@ -271,11 +282,15 @@ class HealthProvider extends ChangeNotifier {
       final response = await http
           .post(
             Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              ..._authService.authHeaders,
+              'Content-Type': 'application/json',
+            },
             body: json.encode({
               'doctorId': doctorId,
               'patientName': patientName,
-              'patientEmail': patientEmail,
+              if (patientEmail.trim().isNotEmpty)
+                'patientEmail': patientEmail.trim(),
               'date': date,
               'time': time,
             }),
@@ -351,7 +366,8 @@ class HealthProvider extends ChangeNotifier {
             body: json.encode({
               'doctorId': doctorId,
               'patientName': patientName,
-              'patientEmail': patientEmail,
+              if (patientEmail.trim().isNotEmpty)
+                'patientEmail': patientEmail.trim(),
               'date': date,
               'time': time,
             }),
@@ -374,15 +390,21 @@ class HealthProvider extends ChangeNotifier {
       final response = await http
           .post(
             Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              ..._authService.authHeaders,
+              'Content-Type': 'application/json',
+            },
             body: json.encode({
               'id': doctor.id,
               'name': doctor.name,
               'specialty': doctor.specialty,
               'address': doctor.address,
-              'phone': doctor.phone,
-              'latitude': doctor.latitude,
-              'longitude': doctor.longitude,
+              if (doctor.phone.trim().isNotEmpty) 'phone': doctor.phone,
+              if (doctor.email.trim().isNotEmpty) 'email': doctor.email,
+              if (doctor.website.trim().isNotEmpty) 'website': doctor.website,
+              if (doctor.bookingUrl.trim().isNotEmpty) 'bookingUrl': doctor.bookingUrl,
+              if (doctor.latitude != null) 'latitude': doctor.latitude,
+              if (doctor.longitude != null) 'longitude': doctor.longitude,
             }),
           )
           .timeout(const Duration(seconds: 15));

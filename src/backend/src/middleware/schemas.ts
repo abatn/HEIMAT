@@ -76,6 +76,14 @@ export const aiPersonalRouteBodySchema = z.object({
 // Health
 // ---------------------------------------------------------------------------
 
+const externalHttpUrlSchema = z.string()
+  .url('Invalid external URL')
+  .max(2000)
+  .refine(value => {
+    const protocol = new URL(value).protocol;
+    return protocol === 'http:' || protocol === 'https:';
+  }, 'Only http:// and https:// URLs are allowed');
+
 export const doctorsQuerySchema = z.object({
   specialty: z.string().max(100).optional(),
   location: z.string().max(200).optional(),
@@ -88,12 +96,27 @@ export const doctorsNearbyQuerySchema = z.object({
   specialty: z.string().max(100).optional(),
 });
 
+export const ensureDoctorBodySchema = z.object({
+  id: z.string().min(1, 'id is required'),
+  name: z.string().min(1, 'name is required').max(255),
+  specialty: z.string().max(100).optional(),
+  address: z.string().max(500).optional(),
+  phone: z.string().max(50).optional(),
+  email: z.string().email('Invalid email format').max(255).optional(),
+  website: externalHttpUrlSchema.optional(),
+  bookingUrl: externalHttpUrlSchema.optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+});
+
 export const registerDoctorBodySchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
   specialty: z.string().min(1, 'Specialty is required').max(100),
   address: z.string().min(1, 'Address is required').max(500),
   phone: z.string().max(50).optional(),
   email: z.string().email('Invalid email format').max(255).optional(),
+  website: externalHttpUrlSchema.optional(),
+  bookingUrl: externalHttpUrlSchema.optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   slots: z.array(z.object({

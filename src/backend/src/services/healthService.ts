@@ -12,6 +12,10 @@ export interface Doctor {
   address: string;
   phone: string;
   email: string;
+  /** Explicit OSM website URL; never inferred from the domain. */
+  website?: string;
+  /** Explicit online appointment URL from OSM booking tags. */
+  bookingUrl?: string;
   latitude: number;
   longitude: number;
   source: string; // 'db' | 'osm'
@@ -23,6 +27,48 @@ interface OverpassElement {
   lat: number;
   lon: number;
   tags?: Record<string, string>;
+}
+
+/**
+ * Keeps only explicitly tagged, safe web URLs from OSM.
+ * We deliberately do not guess `/booking` paths from a practice domain.
+ */
+export function normalizeExternalUrl(value: string | undefined): string {
+  const candidate = value?.trim();
+  if (!candidate) return '';
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+function firstExternalUrl(tags: Record<string, string>, keys: string[]): string {
+  for (const key of keys) {
+    const url = normalizeExternalUrl(tags[key]);
+    if (url) return url;
+  }
+  return '';
+}
+
+export function extractExternalLinks(tags: Record<string, string>): {
+  website?: string;
+  bookingUrl?: string;
+} {
+  const website = firstExternalUrl(tags, ['website', 'contact:website', 'url']);
+  const bookingUrl = firstExternalUrl(tags, [
+    'website:booking',
+    'appointment:website',
+    'booking:website',
+    'contact:booking',
+    'contact:appointment',
+    'booking',
+  ]);
+  return {
+    ...(website ? { website } : {}),
+    ...(bookingUrl ? { bookingUrl } : {}),
+  };
 }
 
 interface DoctorSlot {
@@ -214,6 +260,7 @@ export class HealthService {
     const postcode = tags['addr:postcode'] || '';
     const address = [street, number ? number : '', postcode, city].filter(Boolean).join(', ');
 
+    const externalLinks = extractExternalLinks(tags);
     return {
       id: osmIdToUuid(el.id),
       name: tags.name || tags['name:de'] || 'Praxis',
@@ -221,6 +268,7 @@ export class HealthService {
       address: address || '', // leer → wird später via Reverse-Geocoding gefüllt
       phone: tags.phone || tags['contact:phone'] || tags['phone:mobile'] || '',
       email: tags.email || tags['contact:email'] || '',
+      ...externalLinks,
       latitude: el.lat,
       longitude: el.lon,
       source: 'osm',
@@ -438,23 +486,27 @@ export class HealthService {
 
   /**
    * Stellt sicher, dass ein Overpass-Arzt in der DB existiert.
-   * Wird aufgerufen wenn der User auf einen OSM-Arzt tippt → auto-save
-   * mit Default-Slots (Mo-Fr 8-12, 13-17). Danach ist Terminbuchung moeglich.
-   * Ortsun unabhaengig: funktioniert fuer JEDEN Ort weltweit.
+   * Wird aufgerufen, wenn der User ein OSM-Kontaktprofil öffnet. Die
+   * expliziten Website-/Buchungsdaten werden idempotent gespeichert; keine
+   * Verfügbarkeit wird erfunden.
    */
   async ensureDoctorInDb(doctor: Doctor): Promise<string> {
-    // Schon in DB?
-    const existing = await queryOne<{ id: string }>(
-      'SELECT id FROM doctors WHERE id = $1',
-      [doctor.id]
-    );
-    if (existing) return existing.id;
-
-    // In DB anlegen (on-demand, standortunabhängig)
+    // OSM-Arzt idempotent als Kontaktprofil speichern. Es werden keine
+    // Default-Slots angelegt, weil OSM keine Praxisverfügbarkeit liefert.
     const result = await queryOne<{ id: string }>(
-      `INSERT INTO doctors (id, name, specialty, address, phone, email, latitude, longitude)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+      `INSERT INTO doctors (id, name, specialty, address, phone, email, website, booking_url, latitude, longitude)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       ON CONFLICT (id) DO UPDATE SET
+         name = EXCLUDED.name,
+         specialty = EXCLUDED.specialty,
+         address = EXCLUDED.address,
+         phone = EXCLUDED.phone,
+         email = EXCLUDED.email,
+         website = EXCLUDED.website,
+         booking_url = EXCLUDED.booking_url,
+         latitude = EXCLUDED.latitude,
+         longitude = EXCLUDED.longitude,
+         updated_at = CURRENT_TIMESTAMP
        RETURNING id`,
       [
         doctor.id,
@@ -463,33 +515,18 @@ export class HealthService {
         doctor.address || '',
         doctor.phone || '',
         doctor.email || '',
+        doctor.website || null,
+        doctor.bookingUrl || null,
         doctor.latitude || null,
         doctor.longitude || null,
       ]
     );
 
-    // Default-Slots erstellen (Mo-Fr 8:00-12:00, 13:00-17:00)
+    // OSM liefert keine Kalender-/Verfügbarkeitsdaten. Daher werden hier
+    // bewusst KEINE HEIMAT-Slots erzeugt: Der echte Buchungsweg ist nur ein
+    // expliziter bookingUrl/website/phone-Kontakt aus der Praxisquelle.
     const doctorDbId = result!.id;
-    for (let day = 1; day <= 5; day++) {
-      await query(
-        `INSERT INTO doctor_slots (doctor_id, day_of_week, start_time, end_time)
-         SELECT $1, $2, $3, $4
-         WHERE NOT EXISTS (
-           SELECT 1 FROM doctor_slots WHERE doctor_id = $1 AND day_of_week = $2
-         )`,
-        [doctorDbId, day, '08:00', '12:00']
-      );
-      await query(
-        `INSERT INTO doctor_slots (doctor_id, day_of_week, start_time, end_time)
-         SELECT $1, $2, $3, $4
-         WHERE NOT EXISTS (
-           SELECT 1 FROM doctor_slots WHERE doctor_id = $1 AND day_of_week = $2 AND start_time = $3
-         )`,
-        [doctorDbId, day, '13:00', '17:00']
-      );
-    }
-
-    logger.info(`OSM-Arzt ${doctor.name} (${doctor.id}) dynamisch in DB angelegt — Terminbuchung jetzt moeglich`);
+    logger.info(`OSM-Arzt ${doctor.name} (${doctor.id}) als Kontaktprofil gespeichert`);
     return doctorDbId;
   }
 
@@ -499,13 +536,15 @@ export class HealthService {
     address: string;
     phone?: string;
     email?: string;
+    website?: string;
+    bookingUrl?: string;
     latitude?: number;
     longitude?: number;
     slots?: Array<{ day_of_week: number; start_time: string; end_time: string }>;
   }): Promise<Doctor> {
     const result = await queryOne<Doctor>(
-      `INSERT INTO doctors (name, specialty, address, phone, email, latitude, longitude)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO doctors (name, specialty, address, phone, email, website, booking_url, latitude, longitude)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         data.name,
@@ -513,6 +552,8 @@ export class HealthService {
         data.address,
         data.phone || null,
         data.email || null,
+        data.website || null,
+        data.bookingUrl || null,
         data.latitude || null,
         data.longitude || null,
       ]

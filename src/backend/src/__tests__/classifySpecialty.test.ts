@@ -10,7 +10,32 @@
 //   - Fallback auf Allgemeinmedizin bei fehlenden Keywords
 // ---------------------------------------------------------------------------
 
-import { healthService } from '../services/healthService';
+import {
+  healthService,
+  extractExternalLinks,
+  normalizeExternalUrl,
+} from '../services/healthService';
+
+describe('OSM external contact links', () => {
+  test('uses explicit booking tag before website and never guesses URLs', () => {
+    expect(extractExternalLinks({
+      website: 'https://praxis.example',
+      'appointment:website': 'https://termin.example/book',
+    })).toEqual({
+      website: 'https://praxis.example/',
+      bookingUrl: 'https://termin.example/book',
+    });
+  });
+
+  test('supports contact aliases and rejects non-http URLs', () => {
+    expect(extractExternalLinks({
+      'contact:website': 'https://praxis.example/info',
+      'contact:booking': 'javascript:alert(1)',
+    })).toEqual({ website: 'https://praxis.example/info' });
+    expect(normalizeExternalUrl('tel:+4930123')).toBe('');
+    expect(normalizeExternalUrl('not-a-url')).toBe('');
+  });
+});
 
 describe('classifySpecialty() — aus OSM-Name (häufigster Fall)', () => {
   test('Augenarzt aus Namen "Augenärztin Breitenbach"', () => {

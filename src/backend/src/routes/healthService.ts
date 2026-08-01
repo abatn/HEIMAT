@@ -6,6 +6,7 @@ import {
   registerDoctorBodySchema,
   doctorSlotsQuerySchema,
   bookAppointmentBodySchema,
+  ensureDoctorBodySchema,
 } from '../middleware/schemas';
 import { healthService, Doctor } from '../services/healthService';
 import { requireAuth } from '../middleware/auth';
@@ -45,30 +46,29 @@ healthRouter.get('/doctors/:id', asyncHandler(async (req: Request, res: Response
 }));
 
 // POST /api/health/doctors/ensure — OSM-Arzt in DB ueberfuehren (on-demand, standortunabhaengig)
-healthRouter.post('/doctors/ensure', requireAuth, asyncHandler(async (req: Request, res: Response) => {
-  const { id, name, specialty, address, phone, email, latitude, longitude } = req.body;
-  if (!id || !name) {
-    res.status(400).json({ status: 'error', message: 'id and name are required' });
-    return;
-  }
+healthRouter.post('/doctors/ensure', requireAuth, validate(ensureDoctorBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
+  const { id, name, specialty, address, phone, email, website, bookingUrl, latitude, longitude } = req.body;
   const doctor: Doctor = {
     id, name, specialty: specialty || 'Allgemeinmedizin',
     address: address || '', phone: phone || '', email: email || '',
+    website: website || undefined, bookingUrl: bookingUrl || undefined,
     latitude: latitude || 0, longitude: longitude || 0, source: 'osm',
   };
   const dbId = await healthService.ensureDoctorInDb(doctor);
-  res.json({ status: 'ok', dbId, message: 'Arzt in DB gespeichert — Terminbuchung jetzt verfuegbar.' });
+  res.json({ status: 'ok', dbId, message: 'Praxis-Kontaktprofil in HEIMAT gespeichert.' });
 }));
 
 // POST /api/health/doctors — Arzt registrieren (mit optionalen Slots)
 healthRouter.post('/doctors', validate(registerDoctorBodySchema, 'body'), asyncHandler(async (req: Request, res: Response) => {
-  const { name, specialty, address, phone, email, latitude, longitude, slots } = req.body;
+  const { name, specialty, address, phone, email, website, bookingUrl, latitude, longitude, slots } = req.body;
   const doctor = await healthService.registerDoctor({
     name,
     specialty,
     address,
     phone,
     email,
+    website,
+    bookingUrl,
     latitude,
     longitude,
     slots: slots || undefined,
