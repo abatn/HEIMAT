@@ -345,11 +345,40 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - **Flutter-UI-Status (2026-07-31)**: Reminder-Banner („Termin in X") + Warteliste-Aktion in HealthScreen implementiert (Commit d1d0a58). CI-Fix f00c9cc: `_StubHealth` Constructor-Arg in `app_smoke_test.dart` (HealthProvider-AuthService-Change) — **Flutter CI + Deploy Web wieder grün** (2026-07-31).
 - **Future**: FHIR-Adapter-Endpoint erst wenn echte Praxis-Anbindung relevant wird.
 
+### ✅ Health Triage Auto-Detect (2026-08-01)
+
+**Architektur:** WHO ICD-API v2 (OAuth2) → Deterministische Rules-Engine (ICD-11 + Keywords) → Ollama Fallback.
+
+| Komponente | Datei | Status |
+|-----------|-------|--------|
+| WHO ICD-API Client | `whoIcdService.ts` | ✅ OAuth2 Token-Caching, `/api/search?q=symptom` |
+| Deterministische Rules | `triageRulesService.ts` | ✅ 18 Unit-Tests, 100% Coverage |
+| Ollama Integration | `ollamaService.ts` | ✅ `chatWithContext()` — WHO ICD → Rules → Ollama |
+| **Auto-Detect (FIX)** | `routes/ai.ts` | ✅ `detectHealthSymptom()` — Word-Boundary Regex |
+| Env-Vars | Render Dashboard | ✅ `WHO_ICD_CLIENT_ID` + `WHO_ICD_CLIENT_SECRET` gesetzt |
+
+**Triage-Level:**
+- **NOTFALL (112)**: Brustschmerz, Atemnot, Bewusstlosigkeit, Schlaganfall, Blutung, Krampfanfall, Anaphylaxie
+- **BEREITSCHAFT (116117)**: Fieber >39°, starke Schmerzen, blutiger Durchfall, Infektion, starke Kopfschmerzen
+- **ROUTINE (Hausarzt)**: Leichte bis mäßige Symptome
+
+**Auto-Detect (FIX 2026-08-01):** `detectHealthSymptom()` in `routes/ai.ts` erkennt medizinische Keywords in User-Nachrichten OHNE `services`-Objekt. Verwendet Word-Boundary Regex (`\b`) um False-Positives zu vermeiden (z.B. `\bblut\b` matcht NICHT `Blumen`). Temperatur-Regex auf Fieber-Bereich (38-59 Grad) beschränkt.
+
+**Live-Verifikation (2026-08-01):**
+- `"Ich habe starke Kopfschmerzen"` → **ROUTINE → Hausarzt** ✅
+- `"Ich habe starke Brustschmerzen"` → **🚨 NOTFALL → 112** ✅
+- `"Hallo"` → Normale KI-Antwort (kein Triage) ✅
+
 ### ❌ Was fehlt (echte Lücken)
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
 - Auto-Migration health-check Tool (`npm run migrate:status`)
 - Health-Provider-Tests fehlen (searchDoctors + loadSlots + bookAppointment)
+
+**Known Issues:**
+- `lat: 0, lng: 0` Hack im Health Context — Triage braucht keine Koordinaten, könnte aber bei zukünftigen Erweiterungen Probleme machen
+- Keyword-Drift: `detectHealthSymptom()` in `routes/ai.ts` und `triageRulesService.ts` haben separate Keyword-Listen — könnten auseinanderdriften
+- Fehlende medizinische Fine-Tuning-Modelle (Med42-v2, BioMistral) — aktuell nur `qwen2.5:3b` (General Purpose)
 
 ### ✅ Phase Q: Quality-Pass (2026-07-27, Commit 78a371d, CI grün via ea29e63)
 
