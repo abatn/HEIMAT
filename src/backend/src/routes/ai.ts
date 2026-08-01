@@ -14,28 +14,79 @@ const VALID_SERVICES = new Set<string>(['weather', 'air', 'waste', 'health', 'jo
 // --- Auto-Detect Health Triage ---
 // Erkennt Symptome in User-Nachrichten OHNE services-Objekt.
 // Trigger: Medizinische Keywords -> chatWithContext() mit health.symptom
-const HEALTH_SYMPTOM_KEYWORDS = [
-  'schmerz', 'schmerzen', 'kopfweh', 'kopfschmerz', 'migraene',
-  'fieber', ' temperatur', '39 grad', '40 grad',
-  'atemnot', 'atmung', 'keine luft', 'ersticken',
-  'brustschmerz', 'brustenge', 'herzen',
-  'durchfall', 'erbrechen', 'ubelkeit', 'bauchschmerz',
-  'rueckenschmerz', 'wirbelsaeule', 'gelenk',
-  'husten', 'halsschmerz', 'schluckbeschwerd',
-  'ausschlag', 'jucken', 'pusteln', 'rotaugen',
-  'blut', 'blutung', 'wunde',
-  'bewusstlos', 'ohnmacht', 'schwindel',
-  'krampf', 'zittern',
-  'infekt', 'erkält', 'erkaelt', 'gripp',
-  'brennen', 'stechen', 'druck',
-  'verletzung', 'unfall', 'gefallen',
+// Verwendet Word-Boundary Regex um False-Positives zu vermeiden
+// (z.B. 'blut' matcht NICHT 'Blumen', 'druck' matcht NICHT 'Druckerei')
+const HEALTH_SYMPTOM_PATTERNS: Array<{ regex: RegExp; label: string }> = [
+  // Schmerzen (spezifisch)
+  { regex: /\bschmerz(?:en|haft|ige[nr]?)?\b/i, label: 'Schmerz' },
+  { regex: /\bkopfschmerz(?:en)?\b/i, label: 'Kopfschmerz' },
+  { regex: /\bkopfweh\b/i, label: 'Kopfweh' },
+  { regex: /\bmigraene\b/i, label: 'Migraene' },
+  { regex: /\bbrustschmerz(?:en)?\b/i, label: 'Brustschmerz' },
+  { regex: /\bbauchschmerz(?:en)?\b/i, label: 'Bauchschmerz' },
+  { regex: /\brueckenschmerz(?:en)?\b/i, label: 'Rueckenschmerz' },
+  { regex: /\bwirbelsaeule\b/i, label: 'Wirbelsaeule' },
+  { regex: /\bgelenk(?:schmerz(?:en)?)?\b/i, label: 'Gelenk' },
+  // Fieber
+  { regex: /\bfieber\b/i, label: 'Fieber' },
+  { regex: /\b(3[89]|4[0-9]|5[0-9])\s*grad\b/i, label: 'Temperatur' },
+  { regex: /\bschüttelfrost\b/i, label: 'Schuettelfrost' },
+  // Atemwege
+  { regex: /\batemnot\b/i, label: 'Atemnot' },
+  { regex: /\batmung\b/i, label: 'Atmung' },
+  { regex: /\berstick(?:en|ung)?\b/i, label: 'Erstickung' },
+  { regex: /\bkeine\s+luft\b/i, label: 'Keine Luft' },
+  { regex: /\bhusten\b/i, label: 'Husten' },
+  { regex: /\bhalsschmerz(?:en)?\b/i, label: 'Halsschmerz' },
+  { regex: /\bschluckbeschwerd(?:en)?\b/i, label: 'Schluckbeschwerden' },
+  // Herz/Kreislauf
+  { regex: /\bbrustenge\b/i, label: 'Brustenge' },
+  { regex: /\bherzen\b/i, label: 'Herzen' },
+  { regex: /\bherzrhythmus\b/i, label: 'Herzrhythmus' },
+  // Magen-Darm
+  { regex: /\bdurchfall\b/i, label: 'Durchfall' },
+  { regex: /\berbrechen\b/i, label: 'Erbrechen' },
+  { regex: /\buebelkeit\b/i, label: 'Uebelkeit' },
+  // Neuro
+  { regex: /\bbewusstlos\b/i, label: 'Bewusstlos' },
+  { regex: /\bohnmacht\b/i, label: 'Ohnmacht' },
+  { regex: /\bschwindel\b/i, label: 'Schwindel' },
+  { regex: /\bkrampf(?:e)?\b/i, label: 'Krampf' },
+  { regex: /\bzittern\b/i, label: 'Zittern' },
+  // Haut
+  { regex: /\bausschlag\b/i, label: 'Ausschlag' },
+  { regex: /\bjucken\b/i, label: 'Jucken' },
+  { regex: /\bpusteln\b/i, label: 'Pusteln' },
+  { regex: /\brotaugen\b/i, label: 'Rotaugen' },
+  // Blut (nur als Wort, NICHT in 'Blumen' etc.)
+  { regex: /\bblut(?:ig|ung|druck)?\b/i, label: 'Blut' },
+  { regex: /\bwunde\b/i, label: 'Wunde' },
+  // Infektion
+  { regex: /\binfekt(?:ion)?\b/i, label: 'Infektion' },
+  { regex: /\berkältung\b/i, label: 'Erkaeltung' },
+  { regex: /\bgrippe\b/i, label: 'Grippe' },
+  // Verletzung + Schmerzarten
+  { regex: /\bbrennen\b/i, label: 'Brennen' },
+  { regex: /\bstechen\b/i, label: 'Stechen' },
+  { regex: /\bgefallen\b/i, label: 'Gefallen' },
+  { regex: /\bverletzung\b/i, label: 'Verletzung' },
+  { regex: /\bunfall\b/i, label: 'Unfall' },
 ];
 
-/** Erkennt ob eine Nachricht ein Gesundheitssymptom enthaelt. */
+/**
+ * Erkennt ob eine Nachricht ein Gesundheitssymptom enthaelt.
+ * Nutzt Word-Boundary Regex um False-Positives zu vermeiden.
+ *
+ * False-Positive-Beispiele die vermieden werden:
+ *   - 'blut' matcht NICHT 'Blumen'
+ *   - 'druck' matcht NICHT 'Druckerei'
+ *   - 'brennen' matcht NICHT 'Brennnessel'
+ *   - 'stechen' matcht NICHT 'Stechpalme'
+ */
 function detectHealthSymptom(message: string): string | null {
-  const lower = message.toLowerCase();
-  for (const keyword of HEALTH_SYMPTOM_KEYWORDS) {
-    if (lower.includes(keyword)) {
+  for (const { regex, label } of HEALTH_SYMPTOM_PATTERNS) {
+    if (regex.test(message)) {
+      logger.debug(`Health Triage Auto-Detect: "${label}" matcht in "${message.substring(0, 50)}"`);
       return message.trim();
     }
   }
