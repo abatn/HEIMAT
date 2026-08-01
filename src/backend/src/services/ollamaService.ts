@@ -286,7 +286,7 @@ export class OllamaService {
         return this.buildTriageResponse(userMessage, triageResult);
       }
 
-      return triageText + '\n\n---\n\n' + ollamaResponse;
+      return ollamaResponse;
     }
 
     // ---- STANDARD PATH: Non-Triage (alle Services parallel fetchen) ----

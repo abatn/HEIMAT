@@ -247,8 +247,8 @@ export class ExternalServiceRegistry {
     );
 
     // WHO ICD-API: OAuth2 Client Credentials (optional)
-    this.whoIcdClientId = env.WHO_ICD_CLIENT_ID ?? '';
-    this.whoIcdClientSecret = env.WHO_ICD_CLIENT_SECRET ?? '';
+    this.whoIcdClientId = env.WHO_ICD_CLIENT_ID || '';
+    this.whoIcdClientSecret = env.WHO_ICD_CLIENT_SECRET || '';
 
 
     // Mirror-Liste: comma-separated env-var oder 3-Default-Mirrors.

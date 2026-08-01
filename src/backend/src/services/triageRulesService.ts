@@ -146,24 +146,26 @@ export function evaluateTriage(
   let bestLevel: TriageLevel = 'ROUTINE'; // Default: Hausarzt
   let bestConfidence = 0.3; // Niedrige Basis-Konfidenz
   let bestRecommendation = 'Ruhe bewahren und Hausarzt aufsuchen.';
+  let notfallFound = false;
 
   // --- Schritt 1: Keyword-basierte Triage ---
+  // NOTFALL: Sofort abbrechen, keine weiteren Keywords pruefen
   for (const [keywords, description] of NOTFALL_KEYWORDS) {
     for (const keyword of keywords) {
       if (lowerText.includes(keyword)) {
         matchedKeywords.push(keyword);
-        if (bestLevel !== 'NOTFALL') {
-          bestLevel = 'NOTFALL';
-          bestConfidence = 0.9;
-          bestRecommendation = `Sofort 112 anrufen! ${description}`;
-        }
+        bestLevel = 'NOTFALL';
+        bestConfidence = 0.9;
+        bestRecommendation = `Sofort 112 anrufen! ${description}`;
+        notfallFound = true;
         break;
       }
     }
+    if (notfallFound) break;
   }
 
   // Nur BEREITSCHAFT pruefen wenn noch kein NOTFALL gefunden
-  if (bestLevel !== 'NOTFALL') {
+  if (!notfallFound) {
     for (const [keywords, description] of BEREITSCHAFT_KEYWORDS) {
       for (const keyword of keywords) {
         if (lowerText.includes(keyword)) {

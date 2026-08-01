@@ -172,7 +172,7 @@ export class WhoIcdService {
         headers: {
           'Authorization': `Bearer ${token}`,
           'API-Version': API_VERSION,
-          'Accept': 'application/json',
+          'Accept': 'application/json, application/ld+json',
           'Accept-Language': 'de,en',
         },
         timeout: 10000,
