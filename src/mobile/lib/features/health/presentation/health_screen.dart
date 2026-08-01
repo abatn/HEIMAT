@@ -1,7 +1,15 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+// Bedingter Import: `web_url_opener_web.dart` wird ausschließlich auf
+// Flutter Web kompiliert (siehe `dart.library.js_interop`). Auf nativen
+// Plattformen kommt der Stub zum Einsatz, der `openInWebTab` als no-op
+// bereitstellt — die Aufrufer-Branch `_openExternal` führt dann den
+// Mobile-Fallback (Clipboard + SnackBar) aus.
+import '../../../core/utils/web_url_opener_stub.dart'
+    if (dart.library.js_interop) '../../../core/utils/web_url_opener_web.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/heimat_bottom_sheet.dart';
@@ -105,7 +113,11 @@ class _HealthScreenState extends State<HealthScreen> {
 
   Future<void> _openExternal(String rawUrl, String failureMessage) async {
     final uri = Uri.tryParse(rawUrl);
-    if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https' || uri.scheme == 'tel' || uri.scheme == 'mailto')) {
+    if (uri == null ||
+        !(uri.scheme == 'http' ||
+            uri.scheme == 'https' ||
+            uri.scheme == 'tel' ||
+            uri.scheme == 'mailto')) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(failureMessage)),
@@ -113,10 +125,26 @@ class _HealthScreenState extends State<HealthScreen> {
       }
       return;
     }
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
+    if (kIsWeb) {
+      // Web: via bedingten Import (`openInWebTab`) einen neuen Tab öffnen —
+      // entspricht der bisherigen launchUrl(..., externalApplication)-
+      // Semantik ohne Native-Plugin-Abhängigkeit. Auf Mobile ist diese
+      // Funktion ein no-op (Stub), sodass der Clipboard-Fallback greift.
+      await openInWebTab(uri.toString());
+      return;
+    }
+    // Mobile-Fallback: App-Runtime darf keine URL garantiert öffnen.
+    // Wir legen den Link in die Zwischenablage und sagen dem User, was
+    // er tun soll. So bleibt der „echte Praxis-Kontakt“ weiterhin
+    // nachvollziehbar, ohne Mock-Termine vorzuspielen.
+    await Clipboard.setData(ClipboardData(text: uri.toString()));
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(failureMessage)),
+        const SnackBar(
+          content: Text(
+            'Link in Zwischenablage kopiert — bitte in deinem Browser bzw. der Telefon-App öffnen.',
+          ),
+        ),
       );
     }
   }
