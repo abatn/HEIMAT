@@ -349,8 +349,8 @@ class _HealthScreenState extends State<HealthScreen> {
     final canSubmitNotifier = ValueNotifier<bool>(false);
 
     void updateCanSubmit() {
-      canSubmitNotifier.value =
-          selectedTimeNotifier.value != null && nameController.text.trim().isNotEmpty;
+      canSubmitNotifier.value = selectedTimeNotifier.value != null &&
+          nameController.text.trim().isNotEmpty;
     }
 
     nameController.addListener(updateCanSubmit);
@@ -363,7 +363,8 @@ class _HealthScreenState extends State<HealthScreen> {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () async {
-            if (!canSubmitNotifier.value || selectedTimeNotifier.value == null) {
+            if (!canSubmitNotifier.value ||
+                selectedTimeNotifier.value == null) {
               return;
             }
             final selected = selectedTimeNotifier.value!;
@@ -390,21 +391,23 @@ class _HealthScreenState extends State<HealthScreen> {
                         label: 'Warteliste',
                         textColor: Colors.white,
                         onPressed: () async {
-                          final joined = await context.read<HealthProvider>().joinWaitlist(
-                                doctor.id,
-                                nameController.text.trim(),
-                                emailController.text.trim(),
-                                dateController.text,
-                                selected,
-                              );
+                          final joined =
+                              await context.read<HealthProvider>().joinWaitlist(
+                                    doctor.id,
+                                    nameController.text.trim(),
+                                    emailController.text.trim(),
+                                    dateController.text,
+                                    selected,
+                                  );
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(joined
                                     ? 'Auf Warteliste — Sie rücken bei Stornierung automatisch nach.'
                                     : 'Warteliste fehlgeschlagen — bitte erneut versuchen.'),
-                                backgroundColor:
-                                    joined ? AppColors.success : AppColors.error,
+                                backgroundColor: joined
+                                    ? AppColors.success
+                                    : AppColors.error,
                               ),
                             );
                           }
@@ -443,7 +446,8 @@ class _HealthScreenState extends State<HealthScreen> {
                   Expanded(
                     child: Text(
                       'OSM entdeckt die Praxis. Für echte Termine bitte den offiziellen Kontakt nutzen; HEIMAT zeigt hier keine erfundene Verfügbarkeit.',
-                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.textSecondary),
                     ),
                   ),
                 ],
@@ -574,11 +578,13 @@ class _HealthScreenState extends State<HealthScreen> {
                         selectedColor: AppColors.primary,
                         backgroundColor: AppColors.surface,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          color:
+                              isSelected ? Colors.white : AppColors.textPrimary,
                           fontWeight: FontWeight.w500,
                         ),
                         side: BorderSide(
-                          color: isSelected ? AppColors.primary : AppColors.border,
+                          color:
+                              isSelected ? AppColors.primary : AppColors.border,
                         ),
                         onSelected: (_) {
                           selectedTimeNotifier.value = slot.startTime;
@@ -1446,12 +1452,15 @@ class _DoctorCardState extends State<_DoctorCard> {
                       ),
                       icon: const Icon(Icons.event_available, size: 16),
                       label: const Text('Online-Termin',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                          style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w600)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
                     ),
@@ -1462,9 +1471,11 @@ class _DoctorCardState extends State<_DoctorCard> {
                         'Praxiswebsite konnte nicht geöffnet werden.',
                       ),
                       icon: const Icon(Icons.language, size: 16),
-                      label: const Text('Website', style: TextStyle(fontSize: 11)),
+                      label:
+                          const Text('Website', style: TextStyle(fontSize: 11)),
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
@@ -1478,7 +1489,8 @@ class _DoctorCardState extends State<_DoctorCard> {
                         'Telefon-App konnte nicht geöffnet werden.',
                       ),
                       padding: const EdgeInsets.all(8),
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      constraints:
+                          const BoxConstraints(minWidth: 36, minHeight: 36),
                       tooltip: 'Praxis anrufen: ${doc.phone}',
                     ),
                   if (hasEmail)
@@ -1490,7 +1502,8 @@ class _DoctorCardState extends State<_DoctorCard> {
                         'E-Mail-App konnte nicht geöffnet werden.',
                       ),
                       padding: const EdgeInsets.all(8),
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      constraints:
+                          const BoxConstraints(minWidth: 36, minHeight: 36),
                       tooltip: 'Praxis mailen: ${doc.email}',
                     ),
                   // Nur von HEIMAT verwaltete DB-Ärzte haben einen lokalen
@@ -1500,29 +1513,41 @@ class _DoctorCardState extends State<_DoctorCard> {
                       onPressed: widget.onBook,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 7),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       child: const Text('HEIMAT-Anfrage',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                          style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w600)),
                     ),
-                  if (isOsm && !hasBookingUrl && !hasWebsite && !hasPhone && !hasEmail)
+                  if (isOsm &&
+                      !hasBookingUrl &&
+                      !hasWebsite &&
+                      !hasPhone &&
+                      !hasEmail)
                     const Text(
                       'Kein Kontakt in OSM',
-                      style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 10, color: AppColors.textSecondary),
                     ),
                   if (isOsm)
                     Container(
                       margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.secondary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+                        border: Border.all(
+                            color: AppColors.secondary.withOpacity(0.2)),
                       ),
                       child: const Text(
                         'OSM entdeckt',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.secondary),
                       ),
                     ),

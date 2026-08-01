@@ -402,7 +402,8 @@ class HealthProvider extends ChangeNotifier {
               if (doctor.phone.trim().isNotEmpty) 'phone': doctor.phone,
               if (doctor.email.trim().isNotEmpty) 'email': doctor.email,
               if (doctor.website.trim().isNotEmpty) 'website': doctor.website,
-              if (doctor.bookingUrl.trim().isNotEmpty) 'bookingUrl': doctor.bookingUrl,
+              if (doctor.bookingUrl.trim().isNotEmpty)
+                'bookingUrl': doctor.bookingUrl,
               if (doctor.latitude != null) 'latitude': doctor.latitude,
               if (doctor.longitude != null) 'longitude': doctor.longitude,
             }),
