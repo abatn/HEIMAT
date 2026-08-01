@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { getDashboardContext, getPersonalizedContext } from '../services/aiHomeService';
 import { ollamaService } from '../services/ollamaService';
 import { promptService, type ServiceName } from '../services/promptService';
+import { logger } from '../utils/logger';
 
 export const aiRouter = Router();
 
@@ -9,6 +10,37 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
   (req: Request, res: Response, next: NextFunction) => { Promise.resolve(fn(req, res, next)).catch(next); };
 
 const VALID_SERVICES = new Set<string>(['weather', 'air', 'waste', 'health', 'job', 'events', 'hotels', 'buergeramt']);
+
+// --- Auto-Detect Health Triage ---
+// Erkennt Symptome in User-Nachrichten OHNE services-Objekt.
+// Trigger: Medizinische Keywords -> chatWithContext() mit health.symptom
+const HEALTH_SYMPTOM_KEYWORDS = [
+  'schmerz', 'schmerzen', 'kopfweh', 'kopfschmerz', 'migraene',
+  'fieber', ' temperatur', '39 grad', '40 grad',
+  'atemnot', 'atmung', 'keine luft', 'ersticken',
+  'brustschmerz', 'brustenge', 'herzen',
+  'durchfall', 'erbrechen', 'ubelkeit', 'bauchschmerz',
+  'rueckenschmerz', 'wirbelsaeule', 'gelenk',
+  'husten', 'halsschmerz', 'schluckbeschwerd',
+  'ausschlag', 'jucken', 'pusteln', 'rotaugen',
+  'blut', 'blutung', 'wunde',
+  'bewusstlos', 'ohnmacht', 'schwindel',
+  'krampf', 'zittern',
+  'infekt', 'erkält', 'erkaelt', 'gripp',
+  'brennen', 'stechen', 'druck',
+  'verletzung', 'unfall', 'gefallen',
+];
+
+/** Erkennt ob eine Nachricht ein Gesundheitssymptom enthaelt. */
+function detectHealthSymptom(message: string): string | null {
+  const lower = message.toLowerCase();
+  for (const keyword of HEALTH_SYMPTOM_KEYWORDS) {
+    if (lower.includes(keyword)) {
+      return message.trim();
+    }
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // AI Home Dashboard — kontextualisierte Daten für die Startseite
@@ -79,6 +111,27 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
     res.status(400).json({
       status: 'error',
       error: 'message darf maximal 2000 Zeichen lang sein',
+    });
+    return;
+  }
+
+  // --- Health Triage Auto-Detect ---
+  // Erkenne Symptome in der Nachricht OHNE services-Objekt.
+  // Trigger: Medizinische Keywords -> chatWithContext() mit health.symptom
+  const detectedSymptom = detectHealthSymptom(message);
+  if (detectedSymptom) {
+    logger.info(`Health Triage Auto-Detect: "${detectedSymptom.substring(0, 50)}"`);
+    const healthContext: import('../services/promptService').ServiceContext = { health: { lat: 0, lng: 0, symptom: detectedSymptom } };
+    const response = await ollamaService.chatWithContext(
+      message.trim(),
+      healthContext,
+      { model, systemPrompt },
+    );
+    res.json({
+      status: 'ok',
+      response,
+      model: model ?? ollamaService.getActiveModel(),
+      services_used: ['health'],
     });
     return;
   }
