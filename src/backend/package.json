@@ -40,7 +40,7 @@
     "natural": "^8.1.1",
     "pg": "^8.11.3",
     "pg-copy-streams": "^7.0.0",
-    "raptor-journey-planner": "^2.3.1",
+    "raptor-journey-planner": "^3.0.0",
     "redis": "^6.1.0",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
