@@ -279,10 +279,62 @@ TriageBench
 - User muss Check-in **bewusst aktivieren** (Opt-in)
 - Bei Gesundheits-Kontext: adaptive Timer-Verkürzung
 
+### Health Triage Integration — Live (2026-08-01)
+
+**Architektur:** WHO ICD-API v2 (OAuth2) → Deterministische Rules-Engine (ICD-11 + Keywords) → Ollama Fallback.
+
+```
+User: "Ich habe Kopfschmerzen"
+  ↓
+routes/ai.ts: detectHealthSymptom() — Word-Boundary Regex
+  ↓ (match)
+ollamaService.chatWithContext() mit health.symptom
+  ↓
+whoIcdService.searchBySymptom() → ICD-11 Codes (1-3s)
+  ↓
+triageRulesService.evaluateTriage() — deterministisch (<1ms)
+  ↓ (confidence >= 0.7)
+buildTriageResponse() → NOTFALL / BEREITSCHAFT / ROUTINE
+```
+
+**Triage-Level:**
+| Level | Telefon | Keywords (Beispiele) |
+|-------|---------|---------------------|
+| NOTFALL | 112 | Brustschmerz, Atemnot, Bewusstlosigkeit, Schlaganfall, Blutung, Krampfanfall, Anaphylaxie |
+| BEREITSCHAFT | 116117 | Fieber >39°, starke Schmerzen, blutiger Durchfall, Infektion, starke Kopfschmerzen |
+| ROUTINE | Hausarzt | Leichte bis mäßige Symptome (Erkältung, Husten, leichte Schmerzen) |
+
+**Dateien:**
+| Datei | Zweck |
+|-------|-------|
+| `routes/ai.ts` | `detectHealthSymptom()` — Auto-Detect via Word-Boundary Regex |
+| `whoIcdService.ts` | OAuth2 Client für WHO ICD-API v2 (Env-Vars: `WHO_ICD_CLIENT_ID`, `WHO_ICD_CLIENT_SECRET`) |
+| `triageRulesService.ts` | Deterministische Triage-Regeln (ICD-11 + Keywords, 18 Unit-Tests, 100% Coverage) |
+| `ollamaService.ts` | `chatWithContext()` — WHO ICD → Rules → Ollama Fallback |
+| `externalServices.ts` | WHO_ICD_CLIENT_ID/SECRET env vars |
+
+**Auto-Detect (Word-Boundary Regex):**
+`detectHealthSymptom()` erkennt medizinische Keywords in User-Nachrichten OHNE `services`-Objekt. Verwendet `\b` Word-Boundary um False-Positives zu vermeiden:
+- `\bblut\b` matcht NICHT "Blumen" ✅
+- `\bdruck\b` matcht NICHT "Druckerei" ✅
+- `\bbrennen\b` matcht NICHT "Brennnessel" ✅
+- Temperatur-Regex auf Fieber-Bereich (38-59 Grad) beschränkt
+
+**Live-Verifikation (2026-08-01):**
+- `"Ich habe starke Kopfschmerzen"` → **ROUTINE → Hausarzt** ✅
+- `"Ich habe 39.5 Grad Fieber mit Schüttelfrost"` → **⚠️ BEREITSCHAFT → 116117** ✅
+- `"Ich habe starke Brustschmerzen"` → **🚨 NOTFALL → 112** ✅
+- `"Ich kaufe Blumen und Druckpapier"` → Kein Triage (False-Positive vermieden) ✅
+
+**Known Issues:**
+- `lat: 0, lng: 0` Hack im Health Context — Triage braucht keine Koordinaten
+- Keyword-Drift: `detectHealthSymptom()` und `triageRulesService` haben separate Listen
+- Fehlende medizinische Fine-Tuning-Modelle (Med42-v2, BioMistral)
+
 ### Aktuelle Health AI Endpoints
 | Methode | Pfad | Beschreibung |
 |---------|------|-------------|
-| `POST` | `/api/ai/chat` | Chat mit Service-Kontext (Gesundheit, Wetter, etc.) |
+| `POST` | `/api/ai/chat` | Chat mit Auto-Detect (Symptome → Triage) |
 | `GET` | `/api/ai/status` | Ollama-Verbindungsstatus |
 | `GET` | `/api/ai/service-prompt` | Service-spezifische Prompts |
 | `GET` | `/api/health/doctors` | Overpass-Arztsuche |
