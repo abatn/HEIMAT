@@ -49,7 +49,7 @@ const NOTFALL_KEYWORDS: Array<[string[], string]> = [
   [['brustschmerz', 'brustschmerzen', 'brustenge', 'herzinfarkt', 'herzrhythmus', 'herzklopfen', 'blutdruck abgefallen', 'kreislauf zusammenbricht'], 'Herz-/Kreislauf-Notfall'],
   [['atemnot', 'atmung nicht moeglich', 'erstick', 'luftröhre verengt', 'pneumothorax'], 'Atemwegs-Notfall'],
   [['bewusstlos', 'bewusstsein verloren', 'ohnmacht', 'nicht ansprechbar', 'koma'], 'Bewusstseinsstoerung'],
-  [['schlaganfall', 'gesicht laehmung', 'arm laehmung', 'sprache stoerung', 'halbseitig laehmung'], 'Schlaganfall-Verdacht'],
+  [['schlaganfall', 'gesicht laehmung', 'gesichtslähmung', 'arm laehmung', 'armlähmung', 'sprache stoerung', 'sprachstörung', 'halbseitig laehmung', 'halbseitige lähmung', 'halbseitig gelähmt'], 'Schlaganfall-Verdacht'],
   [['blutung', 'starke blutung', 'blut verliert', 'arterielle blutung', 'nach unfall blut'], 'Starke Blutung'],
   [['krampf', 'anfall', 'epilepsie', 'grand mal', 'tonisch-klonisch'], 'Krampfanfall'],
   [['anaphylaxie', 'anaphylaktisch', 'schwellung hals', 'schwellung gesicht', 'bienenstich allergie'], 'Anaphylaxie'],
@@ -62,7 +62,7 @@ const NOTFALL_KEYWORDS: Array<[string[], string]> = [
 const BEREITSCHAFT_KEYWORDS: Array<[string[], string]> = [
   [['fieber', 'temperatur', '39', '40', 'hohe temperatur', 'schüttelfrost'], 'Fieber (hohe Temperatur)'],
   [['starker schmerz', 'schmerzen 7', 'schmerzen 8', 'schmerzen 9', 'schmerzen 10', 'uneraschlich'], 'Starke Schmerzen'],
-  [['durchfall stark', 'durchfall blutig', 'erbrechen blut', 'erbrechen stark', 'dehydriert'], 'Magen-Darm (schwer)'],
+  [['durchfall stark', 'durchfall blutig', 'blutiger durchfall', 'blut im stuhl', 'erbrechen blut', 'erbrechen stark', 'dehydriert'], 'Magen-Darm (schwer)'],
   [['infektion', 'eiter', 'wunde entzuendet', 'roter strich', 'limphgefaessentzuendung'], 'Infektion (entzuendet)'],
   [['kopfschmerz stark', 'migraene', 'kopfschmerz nicht weg', 'klafterkopfschmerz'], 'Starke Kopfschmerzen'],
   [['rueckenschmerz stark', 'wirbelsaeule schmerz', 'ischiasschmerz', 'hexenschuss'], 'Starke Rueckenschmerzen'],
