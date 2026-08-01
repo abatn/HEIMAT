@@ -49,6 +49,9 @@ export interface ExternalServiceEnv {
   ABFALL_SRH_PRIMARY_URL?: string;
   // --- Ollama AI (Phase AI-1) ---
   OLLAMA_BASE_URL?: string;
+  // --- WHO ICD-API v2 (Health Triage) ---
+  WHO_ICD_CLIENT_ID?: string;
+  WHO_ICD_CLIENT_SECRET?: string;
   // --- Allgemein ---
   HEIMAT_USER_AGENT?: string;
 }
@@ -102,6 +105,12 @@ export class ExternalServiceRegistry {
 
   /** Ollama Base-URL (lokaler AI-Assistent). Default: localhost:11434 */
   public readonly ollamaBaseUrl: string;
+
+  /** WHO ICD-API v2 Client-ID (OAuth2). Leer = ICD-API deaktiviert. */
+  public readonly whoIcdClientId: string;
+
+  /** WHO ICD-API v2 Client-Secret (OAuth2). Leer = ICD-API deaktiviert. */
+  public readonly whoIcdClientSecret: string;
 
   constructor(env: NodeJS.ProcessEnv = process.env) {
     // VALIDATE-URL-HELPER (Phase X.3b — NEEDS-FIX #2 resolution):
@@ -237,6 +246,10 @@ export class ExternalServiceRegistry {
       'http://localhost:11434',
     );
 
+    // WHO ICD-API: OAuth2 Client Credentials (optional)
+    this.whoIcdClientId = env.WHO_ICD_CLIENT_ID ?? '';
+    this.whoIcdClientSecret = env.WHO_ICD_CLIENT_SECRET ?? '';
+
 
     // Mirror-Liste: comma-separated env-var oder 3-Default-Mirrors.
     // .filter(Boolean) schuetzt vor OVERPASS_MIRRORS="" → [''] Crash.
@@ -285,10 +298,11 @@ export class ExternalServiceRegistry {
     abfallBerlinPrimaryUrl: string;
     abfallBerlinFallbackUrl: string;
     abfallMuenchenPrimaryUrl: string;
-    abfallHamburgPrimaryUrl: string;
-    ollamaBaseUrl: string;
-    envOverridesActive: string[];
-  } {
+    abfallHamburgPrimaryUrl: string;      ollamaBaseUrl: string;
+      whoIcdClientId: string;
+      whoIcdClientSecret: string;
+      envOverridesActive: string[];
+    } {
     const activeOverrides: string[] = [];
     if (process.env.NOMINATIM_URL) activeOverrides.push('NOMINATIM_URL');
     if (process.env.OSRM_URL) activeOverrides.push('OSRM_URL');
@@ -321,6 +335,8 @@ export class ExternalServiceRegistry {
       abfallMuenchenPrimaryUrl: this.abfallMuenchenPrimaryUrl,
       abfallHamburgPrimaryUrl: this.abfallHamburgPrimaryUrl,
       ollamaBaseUrl: this.ollamaBaseUrl,
+      whoIcdClientId: this.whoIcdClientId ? '(set)' : '(empty)',
+      whoIcdClientSecret: this.whoIcdClientSecret ? '(set)' : '(empty)',
       envOverridesActive: activeOverrides,
     };
   }

@@ -20,6 +20,8 @@ import { externalServices } from '../config/externalServices';
 import { logger } from '../utils/logger';
 import { promptService, type ServiceContext } from './promptService';
 import { ragService } from './ragService';
+import { whoIcdService } from './whoIcdService';
+import { triageRulesService, type TriageResult } from './triageRulesService';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -239,16 +241,52 @@ export class OllamaService {
   ): Promise<string> {
     const isHealthTriage = !!(context.health?.symptom);
 
-    // ---- FAST PATH: Health Triage (kein Overpass, kein RAG, minimaler Prompt) ----
-    // Overpass (15-20s) + RAG (1-2s) + langer Prompt (CPU-Verarbeitung) machten
-    // die Triage 79s lang. Stattdessen: minimaler Prompt direkt an Ollama.
+    // ---- FAST PATH: Health Triage ----
+    // Strategie: WHO ICD-API -> deterministische Rules -> Ollama Fallback
+    // Kein Overpass (15-20s), kein RAG (1-2s), kein langer Prompt.
     if (isHealthTriage) {
-      const triagePrompt = HEALTH_TRIAGE_PROMPT;
-      logger.info(`Health Triage: direkter Ollama-Call (kein Overpass, kein RAG)`);
-      return this.chat(userMessage, {
+      const symptom = context.health?.symptom ?? userMessage;
+      logger.info(`Health Triage: WHO ICD-API + Rules-Engine (kein Ollama noetig)`);
+
+      // 1. WHO ICD-API: Symptom -> ICD-11 Codes (1-3s)
+      let icdCodes: string[] = [];
+      if (whoIcdService.isConfigured()) {
+        try {
+          const icdResult = await whoIcdService.searchBySymptom(symptom, 3);
+          if (icdResult.success) {
+            icdCodes = icdResult.entities.map(e => e.code);
+            logger.info(`Health Triage: ICD-11 Codes: ${icdCodes.join(', ')}`);
+          }
+        } catch (e) {
+          logger.warn(`WHO ICD-API Fehler (Fallback auf Keywords): ${e}`);
+        }
+      }
+
+      // 2. Deterministische Rules-Engine (kein LLM, <1ms)
+      const triageResult = triageRulesService.evaluateTriage(symptom, icdCodes);
+
+      // 3. Formatierung fuer User-Antwort
+      const triageText = triageRulesService.formatTriageForPrompt(triageResult);
+
+      // 4. Ollama als optionaler Enhancer (nicht noetig fuer Triage)
+      // Bei hohem Konfidenz-Level (0.7+) brauchen wir kein LLM
+      if (triageResult.confidence >= 0.7) {
+        return this.buildTriageResponse(userMessage, triageResult);
+      }
+
+      // Bei niedriger Konfidenz: Ollama als Fallback
+      logger.info(`Health Triage: Niedrige Konfidenz (${triageResult.confidence}), nutze Ollama als Fallback`);
+      const ollamaResponse = await this.chat(userMessage, {
         model: options?.model,
-        systemPrompt: triagePrompt,
+        systemPrompt: HEALTH_TRIAGE_PROMPT + triageText,
       });
+
+      // Wenn Ollama auch nichts Brauchbares liefert, Rules-Result verwenden
+      if (ollamaResponse === FALLBACK_MESSAGE) {
+        return this.buildTriageResponse(userMessage, triageResult);
+      }
+
+      return triageText + '\n\n---\n\n' + ollamaResponse;
     }
 
     // ---- STANDARD PATH: Non-Triage (alle Services parallel fetchen) ----
@@ -290,6 +328,34 @@ export class OllamaService {
     }
 
     return ollamaResponse;
+  }
+
+  // -----------------------------------------------------------------------
+  // buildTriageResponse — Formatierte Triage-Antwort aus Rules-Engine.
+  // -----------------------------------------------------------------------
+  private buildTriageResponse(userMessage: string, result: TriageResult): string {
+    const emoji = result.level === 'NOTFALL' ? '🚨'
+      : result.level === 'BEREITSCHAFT' ? '⚠️'
+      : 'ℹ️';
+
+    const lines = [
+      `${emoji} **HEIMAT Triage-Ergebnis**`,
+      '',
+      `**Stufe: ${result.level}**`,
+      `**📞 ${result.phoneNumber}**`,
+      '',
+      result.recommendation,
+      '',
+      '---',
+      '',
+      '⚠️ *Dies ist keine medizinische Diagnose. Bei Unsicherheit wähle 112 oder den ärztlichen Bereitschaftsdienst 116117.*',
+    ];
+
+    if (result.icdCodes.length > 0) {
+      lines.splice(-2, 0, `🏥 ICD-11: ${result.icdCodes.join(', ')}`);
+    }
+
+    return lines.join('\n');
   }
 
   // -----------------------------------------------------------------------
