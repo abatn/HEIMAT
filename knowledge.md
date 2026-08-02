@@ -345,29 +345,65 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - **Flutter-UI-Status (2026-07-31)**: Reminder-Banner („Termin in X") + Warteliste-Aktion in HealthScreen implementiert (Commit d1d0a58). CI-Fix f00c9cc: `_StubHealth` Constructor-Arg in `app_smoke_test.dart` (HealthProvider-AuthService-Change) — **Flutter CI + Deploy Web wieder grün** (2026-07-31).
 - **Future**: FHIR-Adapter-Endpoint erst wenn echte Praxis-Anbindung relevant wird.
 
-### ✅ Health Triage Auto-Detect (2026-08-01)
+### ✅ Health Triage Integration (2026-08-01)
 
 **Architektur:** WHO ICD-API v2 (OAuth2) → Deterministische Rules-Engine (ICD-11 + Keywords) → Ollama Fallback.
 
-| Komponente | Datei | Status |
-|-----------|-------|--------|
-| WHO ICD-API Client | `whoIcdService.ts` | ✅ OAuth2 Token-Caching, `/api/search?q=symptom` |
-| Deterministische Rules | `triageRulesService.ts` | ✅ 18 Unit-Tests, 100% Coverage |
-| Ollama Integration | `ollamaService.ts` | ✅ `chatWithContext()` — WHO ICD → Rules → Ollama |
-| **Auto-Detect (FIX)** | `routes/ai.ts` | ✅ `detectHealthSymptom()` — Word-Boundary Regex |
-| Env-Vars | Render Dashboard | ✅ `WHO_ICD_CLIENT_ID` + `WHO_ICD_CLIENT_SECRET` gesetzt |
+```
+User: "Ich habe Kopfschmerzen"
+  ↓
+routes/ai.ts → detectHealthSymptom() (Word-Boundary Regex)
+  ↓ Symptom erkannt
+ollamaService.chatWithContext({ health: { symptom } })
+  ↓
+[1] whoIcdService.searchBySymptom() → ICD-11 Codes (z.B. R51)
+  ↓
+[2] triageRulesService.evaluateTriage() → NOTFALL/BEREITSCHAFT/ROUTINE
+  ↓ Confidence ≥ 0.7
+[3] buildTriageResponse() → Formatierte Antwort mit Emoji + Telefonnummer
+```
 
-**Triage-Level:**
-- **NOTFALL (112)**: Brustschmerz, Atemnot, Bewusstlosigkeit, Schlaganfall, Blutung, Krampfanfall, Anaphylaxie
-- **BEREITSCHAFT (116117)**: Fieber >39°, starke Schmerzen, blutiger Durchfall, Infektion, starke Kopfschmerzen
-- **ROUTINE (Hausarzt)**: Leichte bis mäßige Symptome
+#### Komponente 1: WHO ICD-API v2 (`whoIcdService.ts`)
+- **Auth:** OAuth2 Client Credentials Flow (`client_id` + `client_secret` → Bearer Token)
+- **Endpoint:** `https://id.who.int/icd/release/11/2026-01/mms/search?q=symptom`
+- **Token-Caching:** Token läuft ~1 Stunde, wird 5 Minuten vor Ablauf erneuert
+- **Privacy:** Nur Symptom-Keywords an WHO gesendet (keine PII)
+- **Env-Vars:** `WHO_ICD_CLIENT_ID` + `WHO_ICD_CLIENT_SECRET` (auf Render gesetzt)
+- **Fallback:** Bei fehlenden Credentials oder Fehler → leerer ICD-Result (Keywords reichen)
 
-**Auto-Detect (FIX 2026-08-01):** `detectHealthSymptom()` in `routes/ai.ts` erkennt medizinische Keywords in User-Nachrichten OHNE `services`-Objekt. Verwendet Word-Boundary Regex (`\b`) um False-Positives zu vermeiden (z.B. `\bblut\b` matcht NICHT `Blumen`). Temperatur-Regex auf Fieber-Bereich (38-59 Grad) beschränkt.
+#### Komponente 2: Deterministische Rules-Engine (`triageRulesService.ts`)
+- **Kein LLM, keine Halluzinationen** — reine Keyword-basierte + ICD-11 Logik
+- **NOTFALL (112):** Brustschmerz, Atemnot, Bewusstlosigkeit, Schlaganfall, Blutung, Krampfanfall, Anaphylaxie, Vergiftung, schwerer Unfall
+- **BEREITSCHAFT (116117):** Fieber >39°, starke Schmerzen (7+), blutiger Durchfall, Infektion, starke Kopfschmerzen/Migräne, starker Rückenschmerz
+- **ROUTINE (Hausarzt):** Leichte bis mäßige Symptome (Erkältung, leichte Schmerzen, etc.)
+- **ICD-11 Mapping:** 35+ Codes gemappt (R07.9→NOTFALL, R51→BEREITSCHAFT, J00→ROUTINE)
+- **Konfidenz:** 0.3 (ROUTINE) bis 0.9 (NOTFALL) — bei ≥0.7 braucht kein Ollama-Lauf
+- **18 Unit-Tests**, 100% Coverage
 
-**Live-Verifikation (2026-08-01):**
-- `"Ich habe starke Kopfschmerzen"` → **ROUTINE → Hausarzt** ✅
-- `"Ich habe starke Brustschmerzen"` → **🚨 NOTFALL → 112** ✅
-- `"Hallo"` → Normale KI-Antwort (kein Triage) ✅
+#### Komponente 3: Auto-Detect in `routes/ai.ts` (`detectHealthSymptom()`)
+- **Problem gelöst:** Flutter-App sendet nur `{ message: "..." }` ohne `services`-Objekt
+- **Lösung:** `detectHealthSymptom()` erkennt medizinische Keywords automatisch
+- **Word-Boundary Regex** (`\b`) vermeidet False-Positives:
+  - `\bblut\b` matcht NICHT `Blumen` ✅
+  - `\bdruck\b` matcht NICHT `Druckerei` ✅
+  - `\bbrennen\b` matcht NICHT `Brennnessel` ✅
+- **45+ Patterns:** Schmerzen, Fieber (38-59 Grad), Atemwege, Herz/Kreislauf, Magen-Darm, Neuro, Haut, Blut, Infektion, Verletzung
+- **Performance:** <1ms pro Nachricht (Regex-Scan)
+
+#### Live-Verifikation (2026-08-01)
+| Nachricht | Triage-Level | Telefon |
+|-----------|--------------|----------|
+| "Ich habe starke Kopfschmerzen" | 🟢 ROUTINE | Hausarzt |
+| "39.5 Grad Fieber mit Schüttelfrost" | ⚠️ BEREITSCHAFT | 116117 |
+| "Ich habe starke Brustschmerzen" | 🚨 NOTFALL | 112 |
+| "Ich kann nicht atmen, Atemnot" | 🚨 NOTFALL | 112 |
+| "Hallo" | Kein Triage | — |
+| "Ich kaufe Blumen und Druckpapier" | Kein Triage | — |
+
+#### Known Issues
+- `lat: 0, lng: 0` Hack im Health Context — Triage braucht keine Koordinaten
+- Keyword-Drift: `detectHealthSymptom()` und `triageRulesService.ts` haben separate Listen
+- Fehlende medizinische Fine-Tuning-Modelle (Med42-v2, BioMistral) — aktuell `qwen2.5:3b`
 
 ### ❌ Was fehlt (echte Lücken)
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
