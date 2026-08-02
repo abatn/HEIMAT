@@ -153,18 +153,26 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 
 13. **Phase 23 Roundtrip ✅ Live (2026-07-25):** Finance-JWT-Integration abgeschlossen. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün am 2026-07-25. security.test.ts Regression-Lock aktiv (Commit 3414aea). Konkret: (a) Mobile `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 HTTP-Calls. (b) Backend `GET /api/finance/wallet` Route neu (Commit e00105d). (c) Schema `wallet_priv` Legacy-Spalte per `ALTER TABLE DROP COLUMN IF EXISTS` verloren. (d) Ungeschützter `POST /api/migrate` entfernt (Commit 25ac7ab); nur `/api/admin/migrate` mit `X-Admin-Key` Header bleibt. (e) `src/backend/src/scripts/migrate.ts` (Node.js) läuft im `preDeployCommand` nach `buildCommand` (Commit e7fcd85) — wendet `dist/database/schema.sql` automatisch auf Production-DB an. (f) `src/backend/src/__tests__/security.test.ts` (Commit 3414aea) regresssion-locked dass POST /api/migrate 404 retourniert (sonst 200 mit Schema-loaded-Body). (g) Backend-CI Run #30173698956 für e7fcd85 grün (Lint/Test/Build).
 
-### Phase Q Recap — Stand 2026-07-27
-**Commits dieser Phase:** `78a371d` (Refactor + 11 AuthLock-Tests) und `ea29e63` (CI-Format-Fix für 2 Test-Files). Architektur-Drift zwischen Production und Test aufgelöst, CI grün am 2026-07-27.
+### ✅ Phase Q: Quality-Pass — AuthGate-Extraktion (2026-07-27)
 
-| Schritt | Datei | Was geändert |
-|---------|-------|--------------|
-| 1 | `lib/core/auth/auth_gate.dart` (NEU) | AuthGate extrahiert, `authenticated` Parameter required → kein silent-default-widget |
-| 2 | `lib/main.dart` (EDIT) | Inline `class AuthGate` 11-zeilen-Block entfernt; Route: `AuthGate(authenticated: const MainScreen())` |
-| 3 | `test/auth_gate_test.dart` (REWRITE) | Importiert echtes AuthGate via package; 2 Tests → 5 Tests (unauth/auth/transition/loading/partial-auth) |
-| 4 | `test/auth_integration_test.dart` (NEU) | `_FakeAuthProvider extends AuthProvider` + `_MockMainWithLogout` Stub; 6 Tests (Cold-Start/Login/Popup-Logout/Cycle/AUTH-LOCK/RegisterScreen) |
-| – | **Total** | **4 Dateien, 11 neue authlock-regression-Tests, ~470 Lines new code** |
+**Commits:** `78a371d` (Refactor + 11 AuthLock-Tests) + `ea29e63` (CI-Format-Fix). Architektur-Drift zwischen Production und Test aufgelöst.
 
-**Lessons in Freebuffs knowledge.md "Lessons-Learned" Section bereits verriegelt:** `pumpAndSettle()` verboten, Stub-Erbschaft-Pattern gegenüber Mockito bevorzugt, AuthGate-Required-Parameter-Pattern.
+**4 Dateien, 11 neue Tests, ~470 Lines:**
+
+| # | Datei | Änderung |
+|---|-------|----------|
+| 1 | `lib/core/auth/auth_gate.dart` (NEU) | Pure Routing-Widget, `authenticated` Parameter required → kein silent-default-widget |
+| 2 | `lib/main.dart` (EDIT) | Inline `class AuthGate` (11 Zeilen) entfernt; Route: `AuthGate(authenticated: const MainScreen())` |
+| 3 | `test/auth_gate_test.dart` (REWRITE) | Importiert echtes AuthGate via package; 2→5 Tests (unauth/auth/transition/loading/partial-auth) |
+| 4 | `test/auth_integration_test.dart` (NEU) | `_FakeAuthProvider` + `_MockMainWithLogout` Stub; 6 Tests (Cold-Start/Login/Popup-Logout/Cycle/AUTH-LOCK/RegisterScreen) |
+
+**Lessons-Learned:**
+- `pumpAndSettle()` **VERBOTEN** — infinite-Animation-Hang. Stattdessen `tester.pump(100ms)` Intervalle.
+- `SharedPreferences.setMockInitialValues({})` in JEDEM setUp() für Test-Isolation.
+- Stub-Vererbung > Mockito-build_runner — kein Generator-Overhead.
+- AuthGate-Required-Parameter-Pattern: explicit `authenticated:` injection verhindert silent-default-widget-bugs.
+
+**Validation:** Code-Reviewer 9/9 PASS, Static drift-check (1 AuthGate-Declaration), Unused-Imports Audit (22/22). CI grün (`78a371d`).
 
 ## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
 
@@ -416,27 +424,7 @@ ollamaService.chatWithContext({ health: { symptom } })
 - Keyword-Drift: `detectHealthSymptom()` in `routes/ai.ts` und `triageRulesService.ts` haben separate Keyword-Listen — könnten auseinanderdriften
 - Fehlende medizinische Fine-Tuning-Modelle (Med42-v2, BioMistral) — aktuell nur `qwen2.5:3b` (General Purpose)
 
-### ✅ Phase Q: Quality-Pass (2026-07-27, Commit 78a371d, CI grün via ea29e63)
 
-**AuthGate-Extraktion + 11 neue authlock-regression-Tests:**
-
-1. **`lib/core/auth/auth_gate.dart` NEU**: Pure Routing-Widget mit required `authenticated` Parameter. Single Source of Truth für auth-Routen-Entscheidung. main.dart injiziert MainScreen; Tests injizieren Mock-Widget. Eliminiert Drift zwischen Production und Test.
-2. **`main.dart` EDIT**: Inline `class AuthGate extends StatelessWidget` Block entfernt (war 11 Zeilen). Route '/' jetzt `AuthGate(authenticated: const MainScreen())`.
-3. **`test/auth_gate_test.dart` REWRITE**: Importiert echtes AuthGate via package-Pfad (keine inline Copy mehr). 5 Tests: unauth→LoginScreen, auth→MockMain, transition logout→LoginScreen, loading-state, partial-auth (token ohne user_id edge case).
-4. **`test/auth_integration_test.dart` NEU**: `_FakeAuthProvider extends AuthProvider` (Stub-Vererbungs-Pattern, mirror zu `_StubFinance` in `app_smoke_test.dart`). `_MockMainWithLogout` mit PopupMenuButton Logout-Spiegel. 6 Tests: Cold-Start, Login transition, Logout via PopupTap, Login-Logout-Login cycle, AUTH-LOCK state-injection, RegisterScreen Top-Level.
-
-**Lessons-Learned (für Future-Tests):**
-- `pumpAndSettle()` **VERBOTEN** im Mobile-Test-Code — infinite-Animation-Hang hält Tests für immer auf (siehe Phase E Wetter-Flicker). Stattdessen `tester.pump(Duration(milliseconds: 100))` mit 100-200ms Intervallen.
-- `SharedPreferences.setMockInitialValues({})` in JEDEM setUp() für Test-Isolation.
-- Stub-Vererbung > Mockito-build_runner — kein Generator-Overhead, kein hidden Magic.
-- AuthGate-Required-Parameter-Pattern: explicit `authenticated:` injection verhindert silent-default-widget-bugs (keine versteckte Render-Verzweigung wenn Caller vergisst zu spezifizieren).
-
-**Validation:**
-- Code-Reviewer-minimax-m3: 9/9 Fragen PASS (Q1-Q9); 5 minor feedback (non-blocker).
-- Static drift-check: nur 1 AuthGate-Declaration gesamt im Repo (in `auth_gate.dart`).
-- Unused-Imports Audit: alle 22 Imports in `main.dart` werden verwendet.
-
-CI: Code gepusht (`78a371d`), Flutter CI Pipeline (analyze + test + smoke) läuft automatisch.
 
 
 
