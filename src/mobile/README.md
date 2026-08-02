@@ -28,3 +28,7 @@ flutter run
 ```bash
 flutter test
 ```
+
+## Status
+
+Deployed via GitHub Pages: https://abatn.github.io/HEIMAT/

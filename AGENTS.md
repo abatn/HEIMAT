@@ -339,6 +339,14 @@ ollamaService.chatWithContext({ health: { symptom } })
 - Keyword-Drift: `detectHealthSymptom()` in `routes/ai.ts` und `triageRulesService.ts` haben separate Keyword-Listen — könnten auseinanderdriften
 - Fehlende medizinische Fine-Tuning-Modelle (Med42-v2, BioMistral) — aktuell nur `qwen2.5:3b` (General Purpose)
 
+### Aktuelle Health AI Endpoints
+| Methode | Pfad | Beschreibung |
+|---------|------|-------------|
+| `POST` | `/api/ai/chat` | Chat mit Auto-Detect (Symptome → Triage) |
+| `GET` | `/api/ai/status` | Ollama-Verbindungsstatus |
+| `GET` | `/api/ai/service-prompt` | Service-spezifische Prompts |
+| `GET` | `/api/health/doctors` | Overpass-Arztsuche |
+
 ---
 
 ## HEIMAT Architecture Rules (Phase X, 2026-07-28, Commit b80b07d + 0d7ef3d)
