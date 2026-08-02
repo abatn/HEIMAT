@@ -408,11 +408,6 @@ ollamaService.chatWithContext({ health: { symptom } })
 | "Hallo" | Kein Triage | — |
 | "Ich kaufe Blumen und Druckpapier" | Kein Triage | — |
 
-#### Known Issues
-- `lat: 0, lng: 0` Hack im Health Context — Triage braucht keine Koordinaten
-- Keyword-Drift: `detectHealthSymptom()` und `triageRulesService.ts` haben separate Listen
-- Fehlende medizinische Fine-Tuning-Modelle (Med42-v2, BioMistral) — aktuell `qwen2.5:3b`
-
 ### ❌ Was fehlt (echte Lücken)
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
