@@ -52,7 +52,7 @@
 | # | Dimension | v2.0 | v3.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|--------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
-| 2 | **Phasen-Fortschritt** | 40% (4/10) | 50% (5/10) | +10% gestiegen | <24% | ✅ OK |
+| 2 | **Phasen-Fortschritt** | 40% (4/10) | 55% (5.5/10) | +10% gestiegen | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 120 Calls | 120 Calls | — stabil | — | ✅ OK |
