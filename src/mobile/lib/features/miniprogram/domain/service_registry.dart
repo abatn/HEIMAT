@@ -8,6 +8,7 @@ import '../../mobility/presentation/mobility_screen.dart';
 import '../../finance/presentation/finance_screen.dart';
 import '../../health/presentation/health_screen_with_tabs.dart';
 import '../../checkin/presentation/checkin_screen.dart';
+import '../../jobs/job_screen.dart';
 import '../presentation/coming_soon_screen.dart';
 import 'service_definition.dart';
 
@@ -30,7 +31,8 @@ import 'service_definition.dart';
 /// - ✅ `mobility` → Native Flutter (Mobilität — 2026-07-29)
 /// - ✅ `finance` → Native Flutter (Finanzen — 2026-07-29)
 /// - ✅ `health` → Native Flutter (Gesundheit — 2026-07-29)
-/// - ⏳ futai, events, jobs, hotels, buergeramt → ComingSoonScreen-Placeholder (Migration in Phase D/E)
+/// - ✅ `jobs` → Native Flutter (Job-Suche via Arbeitnow — Phase D, 2026-08-03)
+/// - ⏳ futai, events, hotels, buergeramt → ComingSoonScreen-Placeholder (Migration in Phase D/E)
 class ServiceRegistry {
   ServiceRegistry._();
   static final ServiceRegistry instance = ServiceRegistry._();
@@ -190,14 +192,9 @@ class ServiceRegistry {
         id: 'jobs',
         name: 'Job-Suche',
         category: 'Karriere',
-        description: 'Stellenangebote der Bundesagentur für Arbeit.',
+        description: 'Stellenangebote aus Deutschland (Arbeitnow API).',
         searchTags: const ['stelle', 'arbeit', 'karriere', 'job', 'ba'],
-        nativeBuilder: (_) => const ComingSoonScreen(
-          serviceName: 'Job-Suche',
-          description: 'Stellenangebote der Bundesagentur für Arbeit.',
-          category: 'Karriere',
-          searchTags: ['stelle', 'arbeit', 'karriere', 'job', 'ba'],
-        ),
+        nativeBuilder: (_) => const JobScreen(),
       ),
       'hotels': ServiceDefinition(
         id: 'hotels',

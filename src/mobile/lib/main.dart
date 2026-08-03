@@ -23,6 +23,7 @@ import 'features/weather/weather_provider.dart';
 import 'features/air_quality/air_quality_provider.dart';
 import 'features/waste/presentation/waste_provider.dart';
 import 'features/ev_charging/presentation/ev_charging_provider.dart';
+import 'features/jobs/job_provider.dart';
 import 'features/parking/presentation/parking_provider.dart';
 import 'features/ai_chat/presentation/ai_chat_provider.dart';
 import 'features/checkin/presentation/checkin_provider.dart';
@@ -82,6 +83,8 @@ class HeimatApp extends StatelessWidget {
               ),
               // Phase AI-2: AI Chat als 5. nativer Flutter-Service.
               ChangeNotifierProvider(create: (_) => AiChatProvider()),
+              // Phase D: Job-Suche (Arbeitnow API).
+              ChangeNotifierProvider(create: (_) => JobProvider()),
               // Phase AI-Health-3: Lebenszeichen Check-in (2026-07-29).
               ChangeNotifierProvider(
                 create: (_) =>
