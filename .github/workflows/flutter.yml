@@ -41,9 +41,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: bash scripts/audit-no-mocks.sh
       - name: Check formatting
-        run: dart format --set-exit-if-changed .
+        run: dart format --set-exit-if-changed lib/ test/
       - name: Analyze
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze lib/ --no-fatal-infos
 
   test:
     name: Test

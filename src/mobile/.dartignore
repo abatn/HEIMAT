@@ -1,0 +1,16 @@
+# Flutter SDK — nicht formatieren/analysieren
+flutter/
+
+# Generierte Dateien
+.dart_tool/
+build/
+.packages
+pubspec.lock
+
+# Plattform-spezifisch
+android/
+ios/
+linux/
+macos/
+windows/
+web/
