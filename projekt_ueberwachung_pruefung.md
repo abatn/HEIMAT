@@ -103,11 +103,11 @@
 | # | Dimension | v2.0 | v3.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|--------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
-| 2 | **Phasen-Fortschritt** | 30% (3/10) | 30% (3/10) | — stabil | <24% | ✅ OK |
+| 2 | **Phasen-Fortschritt** | 40% (4/10) | 50% (3/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 120 Calls | 120 Calls | — stabil | — | ✅ OK |
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase-B-Abschluss (Abfallkalender + Luftqualität)
+**Nächste Messung:** Bei Phase-D-Abschluss (Abfallkalender + Luftqualität)
