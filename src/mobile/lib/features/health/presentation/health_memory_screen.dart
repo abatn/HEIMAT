@@ -53,11 +53,15 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _showStats ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              _showStats
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
               size: 20,
             ),
             onPressed: () => setState(() => _showStats = !_showStats),
-            tooltip: _showStats ? 'Statistiken ausblenden' : 'Statistiken einblenden',
+            tooltip: _showStats
+                ? 'Statistiken ausblenden'
+                : 'Statistiken einblenden',
           ),
         ],
       ),
@@ -85,64 +89,68 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          // 1. Statistik-Header (optional)
-          if (_showStats) _buildStatsHeader(),
+      body: _buildContent(),
+    );
+  }
 
-          // 2. Filter-Leiste
-          _buildFilterBar(),
+  Widget _buildContent() {
+    return Column(
+      children: [
+        // 1. Statistik-Header (optional)
+        if (_showStats) _buildStatsHeader(),
 
-          const Divider(height: 1, color: AppColors.border),
+        // 2. Filter-Leiste
+        _buildFilterBar(),
 
-          // 3. Symptom-Liste
-          Expanded(
-            child: Consumer<HealthMemoryProvider>(
-              builder: (context, provider, _) {
-                if (provider.isLoading && provider.memories.isEmpty) {
-                  return _buildSkeleton();
-                }
-                if (provider.error != null && provider.memories.isEmpty) {
-                  return SingleChildScrollView(
-                    child: Center(
-                      child: EmptyState(
-                        icon: Icons.error_outline,
-                        title: 'Fehler',
-                        description: provider.error!,
-                        action: ElevatedButton(
-                          onPressed: _loadData,
-                          child: const Text('Erneut versuchen'),
-                        ),
+        const Divider(height: 1, color: AppColors.border),
+
+        // 3. Symptom-Liste
+        Expanded(
+          child: Consumer<HealthMemoryProvider>(
+            builder: (context, provider, _) {
+              if (provider.isLoading && provider.memories.isEmpty) {
+                return _buildSkeleton();
+              }
+              if (provider.error != null && provider.memories.isEmpty) {
+                return SingleChildScrollView(
+                  child: Center(
+                    child: EmptyState(
+                      icon: Icons.error_outline,
+                      title: 'Fehler',
+                      description: provider.error!,
+                      action: ElevatedButton(
+                        onPressed: _loadData,
+                        child: const Text('Erneut versuchen'),
                       ),
                     ),
-                  );
-                }
-
-                final filtered = _applyFilter(provider.memories);
-                if (filtered.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async => _loadData(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final entry = filtered[index];
-                      return _MemoryCard(
-                        entry: entry,
-                        onResolve: () => _resolveMemory(entry),
-                        onDelete: () => _deleteMemory(entry),
-                      );
-                    },
                   ),
                 );
-              },
-            ),
+              }
+
+              final filtered = _applyFilter(provider.memories);
+              if (filtered.isEmpty) {
+                return _buildEmptyState();
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async => _loadData(),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final entry = filtered[index];
+                    return _MemoryCard(
+                      entry: entry,
+                      onResolve: () => _resolveMemory(entry),
+                      onDelete: () => _deleteMemory(entry),
+                    );
+                  },
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -207,7 +215,7 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
               Row(
                 children: [
                   _StatCard(
-                    icon: Icons.active_assistant,
+                    icon: Icons.play_circle_outline,
                     label: 'Aktiv',
                     value: '${stats.activeSymptoms}',
                     color: AppColors.warning,
@@ -237,7 +245,8 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.warning.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.warning.withOpacity(0.25)),
+                    border:
+                        Border.all(color: AppColors.warning.withOpacity(0.25)),
                   ),
                   child: Row(
                     children: [
@@ -275,7 +284,7 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
         children: [
           _FilterChip(
             label: 'Aktiv',
-            icon: Icons.active_assistant,
+            icon: Icons.play_circle_outline,
             isSelected: _selectedFilter == _MemoryFilter.active,
             onTap: () => setState(() => _selectedFilter = _MemoryFilter.active),
           ),
@@ -284,7 +293,8 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
             label: 'Gelöst',
             icon: Icons.check_circle_outline,
             isSelected: _selectedFilter == _MemoryFilter.resolved,
-            onTap: () => setState(() => _selectedFilter = _MemoryFilter.resolved),
+            onTap: () =>
+                setState(() => _selectedFilter = _MemoryFilter.resolved),
           ),
           const SizedBox(width: 8),
           _FilterChip(
@@ -302,7 +312,8 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
   // Empty State
   // ====================================================================
   Widget _buildEmptyState() {
-    final hasAnyMemories = context.read<HealthMemoryProvider>().memories.isNotEmpty;
+    final hasAnyMemories =
+        context.read<HealthMemoryProvider>().memories.isNotEmpty;
 
     if (hasAnyMemories) {
       return const Center(
@@ -473,8 +484,7 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eintrag löschen?'),
-        content: Text(
-            'Möchtest du "${entry.symptomText}" wirklich löschen?'),
+        content: Text('Möchtest du "${entry.symptomText}" wirklich löschen?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -621,7 +631,8 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
                         children: [
                           const Text('1',
                               style: TextStyle(
-                                  fontSize: 12, color: AppColors.textSecondary)),
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary)),
                           Expanded(
                             child: Slider(
                               value: severity.toDouble(),
@@ -637,7 +648,8 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
                           ),
                           const Text('10',
                               style: TextStyle(
-                                  fontSize: 12, color: AppColors.textSecondary)),
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary)),
                           const SizedBox(width: 8),
                           Container(
                             width: 36,
@@ -736,8 +748,9 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
                                   content: Text(success
                                       ? 'Symptom gespeichert'
                                       : 'Fehler beim Speichern'),
-                                  backgroundColor:
-                                      success ? AppColors.success : AppColors.error,
+                                  backgroundColor: success
+                                      ? AppColors.success
+                                      : AppColors.error,
                                 ),
                               );
                             }
@@ -745,7 +758,8 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.3),
+                      disabledBackgroundColor:
+                          AppColors.textSecondary.withOpacity(0.3),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1029,9 +1043,8 @@ class _MemoryCardState extends State<_MemoryCard> {
                               child: Text(
                                 entry.symptomText,
                                 maxLines: _isExpanded ? null : 2,
-                                overflow: _isExpanded
-                                    ? null
-                                    : TextOverflow.ellipsis,
+                                overflow:
+                                    _isExpanded ? null : TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -1120,7 +1133,8 @@ class _MemoryCardState extends State<_MemoryCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ICD-Codes
-                    if (entry.icdCodes != null && entry.icdCodes!.isNotEmpty) ...[
+                    if (entry.icdCodes != null &&
+                        entry.icdCodes!.isNotEmpty) ...[
                       _DetailRow(
                         icon: Icons.local_hospital_outlined,
                         label: 'ICD-11',
@@ -1186,7 +1200,8 @@ class _MemoryCardState extends State<_MemoryCard> {
                               label: const Text('Als gelöst markieren'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.success,
-                                side: const BorderSide(color: AppColors.success),
+                                side:
+                                    const BorderSide(color: AppColors.success),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),

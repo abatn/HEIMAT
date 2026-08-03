@@ -10,7 +10,7 @@ import '../parking_dto.dart';
 /// **Kein SharedPreferences-Cache:** Backend hat 24h-Cache (parkingService).
 /// **Location:** LocationService-getrieben (kein hardcoded Berlin-Default).
 ///
-/// **Architektur (Mirror zu EvChargingProvider / AirQualityProvider):**
+/// **Architektur (Mirror zu EvChargingProvider):**
 /// - init(): lädt Standort + Deferred-Fetch
 /// - refresh(): live-Daten vom Backend
 /// - Location: dynamisch via LocationService
@@ -41,39 +41,64 @@ class ParkingProvider extends ChangeNotifier {
   double get radiusKm => _radiusKm;
 
   // ------------------------------------------------------------------
-  // Init
+  // Init — Standort laden + ggf. deferred fetch
   // ------------------------------------------------------------------
   Future<void> init() async {
+    notifyListeners();
+    unawaited(_tryUpdateLocation());
+  }
+
+  Future<void> _tryUpdateLocation() async {
     try {
-      final location = await LocationService.getCurrentLocation();
-      _lat = location.latitude;
-      _lng = location.longitude;
-      _locationName = location.name;
-      await refresh();
-    } catch (e) {
-      _error = StandortFehlerText;
-      notifyListeners();
+      final pos = await LocationService.getCurrentLocation().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => null,
+      );
+      if (pos != null) {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+        notifyListeners();
+        unawaited(refresh());
+      }
+    } catch (_) {
+      // silently ignore — kein Standort verfügbar
     }
   }
 
+  /// Manuelle Standort-Setzung (z.B. aus Karten-Tap)
+  void setLocation(double lat, double lng, {String name = ''}) {
+    _lat = lat;
+    _lng = lng;
+    _locationName = name;
+    notifyListeners();
+    unawaited(refresh());
+  }
+
   // ------------------------------------------------------------------
-  // Refresh
+  // refresh — Live-Fetch vom Backend
   // ------------------------------------------------------------------
-  Future<void> refresh() async {
+  Future<void> refresh({double? radiusKm}) async {
     if (_isLoading) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await ApiClient.get(
-        '/api/parking/spots?lat=$_lat&lng=$_lng&radius_km=$_radiusKm',
-      );
-      final data = ParkingResponse.fromJson(response);
-      _spots = data.spots;
+      final rkm = radiusKm ?? _radiusKm;
+      final qs = 'lat=$_lat&lng=$_lng&radius_km=$rkm';
+      final data = await apiGet('/api/parking/spots?$qs');
+
+      if (data['status'] != 'ok') {
+        throw Exception(
+          data['message']?.toString() ?? 'Backend lieferte Fehler-Status',
+        );
+      }
+
+      final response = ParkingResponse.fromJson(data);
+      _spots = response.spots;
       _lastUpdated = DateTime.now();
     } catch (e) {
-      _error = 'Parkplätze konnten nicht geladen werden: $e';
+      _error = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -85,7 +110,7 @@ class ParkingProvider extends ChangeNotifier {
   // ------------------------------------------------------------------
   Future<void> setRadius(double km) async {
     _radiusKm = km;
-    await refresh();
+    await refresh(radiusKm: km);
   }
 }
 

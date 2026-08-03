@@ -92,63 +92,62 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
 
   Widget _buildContent() {
     return Column(
-        children: [
-          // Interaktions-Warnung (wenn vorhanden)
-          _buildInteractionsWarning(),
+      children: [
+        // Interaktions-Warnung (wenn vorhanden)
+        _buildInteractionsWarning(),
 
-          // Filter-Leiste
-          _buildFilterBar(),
+        // Filter-Leiste
+        _buildFilterBar(),
 
-          const Divider(height: 1, color: AppColors.border),
+        const Divider(height: 1, color: AppColors.border),
 
-          // Medikamenten-Liste
-          Expanded(
-            child: Consumer<HealthMedicationsProvider>(
-              builder: (context, provider, _) {
-                if (provider.isLoading && provider.medications.isEmpty) {
-                  return _buildSkeleton();
-                }
-                if (provider.error != null && provider.medications.isEmpty) {
-                  return SingleChildScrollView(
-                    child: Center(
-                      child: EmptyState(
-                        icon: Icons.error_outline,
-                        title: 'Fehler',
-                        description: provider.error!,
-                        action: ElevatedButton(
-                          onPressed: () => provider.loadMedications(),
-                          child: const Text('Erneut versuchen'),
-                        ),
+        // Medikamenten-Liste
+        Expanded(
+          child: Consumer<HealthMedicationsProvider>(
+            builder: (context, provider, _) {
+              if (provider.isLoading && provider.medications.isEmpty) {
+                return _buildSkeleton();
+              }
+              if (provider.error != null && provider.medications.isEmpty) {
+                return SingleChildScrollView(
+                  child: Center(
+                    child: EmptyState(
+                      icon: Icons.error_outline,
+                      title: 'Fehler',
+                      description: provider.error!,
+                      action: ElevatedButton(
+                        onPressed: () => provider.loadMedications(),
+                        child: const Text('Erneut versuchen'),
                       ),
                     ),
-                  );
-                }
-
-                final filtered = _applyFilter(provider.medications);
-                if (filtered.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async => provider.loadMedications(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final med = filtered[index];
-                      return _MedicationCard(
-                        medication: med,
-                        onDeactivate: () => _deactivateMedication(med),
-                        onDelete: () => _deleteMedication(med),
-                      );
-                    },
                   ),
                 );
-              },
-            ),
+              }
+
+              final filtered = _applyFilter(provider.medications);
+              if (filtered.isEmpty) {
+                return _buildEmptyState();
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async => provider.loadMedications(),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    final med = filtered[index];
+                    return _MedicationCard(
+                      medication: med,
+                      onDeactivate: () => _deactivateMedication(med),
+                      onDelete: () => _deleteMedication(med),
+                    );
+                  },
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

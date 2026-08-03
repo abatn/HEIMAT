@@ -59,9 +59,11 @@ class _ParkingScreenState extends State<ParkingScreen> {
             return EmptyState(
               icon: Icons.error_outline,
               title: 'Fehler',
-              message: provider.error!,
-              actionLabel: 'Erneut versuchen',
-              onAction: () => provider.refresh(),
+              description: provider.error!,
+              action: TextButton(
+                onPressed: () => provider.refresh(),
+                child: const Text('Erneut versuchen'),
+              ),
             );
           }
 
@@ -69,9 +71,11 @@ class _ParkingScreenState extends State<ParkingScreen> {
             return EmptyState(
               icon: Icons.local_parking,
               title: 'Keine Parkplätze gefunden',
-              message: 'In deiner Nähe wurden keine Parkplätze gefunden.',
-              actionLabel: 'Aktualisieren',
-              onAction: () => provider.refresh(),
+              description: 'In deiner Nähe wurden keine Parkplätze gefunden.',
+              action: TextButton(
+                onPressed: () => provider.refresh(),
+                child: const Text('Aktualisieren'),
+              ),
             );
           }
 
@@ -165,7 +169,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
       selected: selected,
       onSelected: (_) => onTap(),
       selectedColor: AppColors.primary.withOpacity(0.2),
-      checkColor: AppColors.primary,
+      
     );
   }
 
