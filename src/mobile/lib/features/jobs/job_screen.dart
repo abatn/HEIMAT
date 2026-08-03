@@ -120,7 +120,8 @@ class _JobScreenState extends State<JobScreen> {
                   controller: _locationController,
                   decoration: InputDecoration(
                     hintText: 'Ort (optional)',
-                    prefixIcon: const Icon(Icons.location_on_outlined, size: 20),
+                    prefixIcon:
+                        const Icon(Icons.location_on_outlined, size: 20),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -156,7 +157,8 @@ class _JobScreenState extends State<JobScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.work_outline, size: 64, color: AppColors.textSecondary),
+                Icon(Icons.work_outline,
+                    size: 64, color: AppColors.textSecondary),
                 SizedBox(height: 16),
                 Text(
                   'Wonach suchst du?',
@@ -451,8 +453,7 @@ class _JobScreenState extends State<JobScreen> {
                         label: Text(type, style: const TextStyle(fontSize: 12)),
                         backgroundColor: AppColors.surface,
                         padding: EdgeInsets.zero,
-                        materialTapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       );
                     }).toList(),
                   ),

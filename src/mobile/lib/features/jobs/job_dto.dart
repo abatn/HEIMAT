@@ -36,10 +36,9 @@ class JobListing {
       description: json['description']?.toString() ?? '',
       remote: json['remote'] == true,
       url: json['url']?.toString() ?? '',
-      tags: (json['tags'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+              [],
       jobTypes: (json['job_types'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
