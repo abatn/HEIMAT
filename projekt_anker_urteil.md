@@ -6,7 +6,7 @@
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)
 3. **Durchgeführte Tests:** 547 Backend-Tests
    - CI (mit Postgres): 547/547 bestanden (100%)
-   - Lokal (ohne Postgres): 396/547 bestanden (72%) — 134 Umgebungsfehler
+   - Lokal (ohne Postgres): 413/547 bestanden (75.5%) — 134 Umgebungsfehler
    - Health AI Agent: 147/147 bestanden (100%)
    - Parking Unit-Tests: 10/10 bestanden (100%)
    - Klassifikation: 0 echte Bugs, 0 flaky, 134 Umgebungsprobleme
@@ -18,7 +18,7 @@
 8. **Flutter-Dateien:** 84 Dart-Dateien, 22 Testdateien
 9. **Backend-Dateien:** 98 TypeScript-Dateien, 34 Testdateien
 10. **Deployments:** GitHub Pages (Flutter Web) + Render (Backend) — beide grün
-11. **Feedback-Loop-Status:** Funktioniert. CI-Metrik (100%) ist korrekt. Lokale Testrate (72%) ist verzerrt durch fehlende DB.
+11. **Feedback-Loop-Status:** Funktioniert. CI-Metrik (100%) ist korrekt. Lokale Testrate (75.5%) ist verzerrt durch fehlende DB.
 
 ---
 
@@ -34,13 +34,13 @@
   "Besser" bedeutet in HEIMAT 2.0 — gemessen an den 11 Ankerzahlen:
 
   1. **Funktionaler Fortschritt:** Die App kann mehr als gestern — mehr Services,
-     mehr Endpunkte, mehr Features. Gemessen an abgeschlossenen Phasen (3/10 → 4/10)
-     und deployten Funktionen (3 → 4 Services). NICHT gemessen an Gesamtzahl
+     mehr Endpunkte, mehr Features. Gemessen an abgeschlossenen Phasen (5.5/10 = 55%)
+     und deployten Funktionen (5+ Services live). NICHT gemessen an Gesamtzahl
      der Commits (599) — diese ist ein Output, kein Outcome.
 
   2. **Stabilität:** Der CI bleibt grün. Known Bugs werden behoben, neue
      Regressionen entstehen nicht. Gemessen an CI-Testergebnissen (100% mit Postgres)
-     und Security-Regression-Locks. NICHT an lokaler Testrate (72%) — das ist
+     und Security-Regression-Locks. NICHT an lokaler Testrate (75.5%) — das ist
      ein Infrastruktur-Problem, kein Code-Problem.
 
   3. **Echtheit:** Keine Mocks, keine Simulationen, keine Fake-Daten.
@@ -52,7 +52,7 @@
   4. **Geschwindigkeit:** Features werden in Tagen gebaut, nicht Monaten.
      599 Commits in 23 Tagen. Aber: Geschwindigkeit ist kein Selbstzweck.
      Gemessen an Commit-Velocity (>27/Tag = gut) und Phasen-Timing
-     (30% Phasen nach 23 Tagen = gut).
+     (55% Phasen nach 23 Tagen = sehr gut).
 
   5. **Keine Rückschritte:** Bekannte Bugs bleiben gefixt. Security-Löcher
      bleiben geschlossen. Das Projekt bewegt sich nur vorwärts.
@@ -66,15 +66,14 @@
   - Eine lokale Testrate die ein Umgebungsproblem misst statt Code-Qualität
 
   **NEU in Version 3.0 — "Besser" ist also:**
-  Der nächste funktionsfähige Schritt in Richtung einer vollständigen Super App —
-  getrieben von ECHTEN Metriken (CI-Testrate 100%, nicht lokale 72%),
+  Der nächste funktionsfähige Schritt in Richtung einer vollständigen Super App —     getrieben von ECHTEN Metriken (CI-Testrate 100%, nicht lokale 75.5%),
   echten Deployments, und echten Nutzern (sobald vorhanden).
   Keine Theorie, keine Planung, keine Mocks, keine verzerrten Metriken.
 
   **Kernformel (Version 3.0):**
   > "Besser" = CI-Testrate 100% UND Phasen-Fortschritt steigend UND
   > keine Regressionen UND Mock-Verbot eingehalten UND echte APIs statt Mocks.
-  > Die lokale Testrate (72%) ist kein Maßstab — sie misst Postgres-Verfügbarkeit,
+  > Die lokale Testrate (75.5%) ist kein Maßstab — sie misst Postgres-Verfügbarkeit,
   > nicht Code-Qualität.
 
 ---
@@ -91,4 +90,4 @@
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase-D-Abschluss (Abfallkalender + Luftqualität)
+**Nächste Messung:** Bei Phase-D-Abschluss (Events + Hotels + Bürgeramt)

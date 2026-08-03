@@ -5,7 +5,7 @@
 - **Welche Daten werden täglich/wöchentlich erhoben?**
   - **Täglich (bei jedem Commit/CI-Lauf):**
     - Flutter CI: `dart format` → `flutter analyze` → `flutter test` → Build (Web + Android)
-    - Backend CI: `npm run lint` → `npm test` (386/537 Tests bestanden) → `npx tsc --noEmit`
+    - Backend CI: `npm run lint` → `npm test` (547/547 Tests bestanden) → `npx tsc --noEmit`
     - Deploy-Status: GitHub Pages (Flutter Web) + Render (Backend)
   - **Wöchentlich:**
     - Dependabot-Patches (auto-approve + auto-merge via `dependabot-auto-merge.yml`)
@@ -15,7 +15,7 @@
 - **Wie wird die Abweichung vom Plan gemessen?**
   - **Phasen-Tracking in AGENTS.md:** Jede Phase hat klaren Status (✅/⏳/❌)
   - **CI-Gates als Tor:** Kein Merge ohne grünen CI (Flutter: format+analyze+test, Backend: lint+test+tsc)
-  - **Test-Coverage als Proxy:** 537 Backend-Tests, 22 Flutter-Testdateien
+  - **Test-Coverage als Proxy:** 547 Backend-Tests, 22 Flutter-Testdateien
 
 - **Abweichung >20% — numerische Definition**
   Die Schwelle von 20% bezieht sich auf **drei unabhängige Metriken**, die jeweils
@@ -26,17 +26,17 @@
   |--------|----------|--------------|---------------------------|
   | **Test-Passrate** | 100% (nur DB-Fehler erlaubt) | <80% echte Failures | Sofortige Analyse: echte Bugs vs Umgebung |
   | **Commit-Velocity** | ~34 Commits/Tag (Durchschnitt 23 Tage) | <27 Commits/Tag (Fall unter 80%) | Prüfung: Blockiert jemand? Braucht jemand Hilfe? |
-  | **Phasen-Fortschritt** | 4/10 abgeschlossen (40%) | <24% (2/10 nach 60% der Zeit) | Strategische Neubewertung: Zu viele Phasen? Falsche Reihenfolge? |
+  | **Phasen-Fortschritt** | 5.5/10 abgeschlossen (55%) | <24% (2/10 nach 60% der Zeit) | Strategische Neubewertung: Zu viele Phasen? Falsche Reihenfolge? |
 
   **Warum drei Metriken?**
   - Test-Passrate misst **Code-Qualität**
   - Commit-Velocity misst **Entwicklungsgeschwindigkeit**
   - Phasen-Fortschritt misst **projektkritischen Fortschritt**
 
-  **Nicht als Metrik:** Die Gesamtzahl der Tests (537) — diese kann steigen ohne
+  **Nicht als Metrik:** Die Gesamtzahl der Tests (547) — diese kann steigen ohne
   dass die Qualität steigt (mehr Tests ≠ besser). Relevant ist die Passrate.
 
-- **Klassifikation der 28% fehlgeschlagenen Tests (134/537)**
+- **Klassifikation der 24.5% fehlgeschlagenen Tests (134/547)**
 
   | Kategorie | Anzahl | Anteil | Beschreibung |
   |-----------|--------|--------|-------------|
@@ -54,13 +54,13 @@
 
   **Erkenntnis:** Die 28% sind kein Qualitätsproblem, sondern ein
   Infrastruktur-Problem. In der CI-Pipeline (GitHub Actions) wird Postgres
-  15-alpine aufgespinnt — dort sind alle 537 Tests grün. Lokal fehlt die DB.
+  15-alpine aufgespinnt — dort sind alle 547 Tests grün. Lokal fehlt die DB.
 
 - **Frage: Bilden die Daten noch die Realität ab? (Check)**
-  - ✅ CI-Status spiegelt Code-Qualität wider (lokale 72% = verzerrt durch fehlende DB)
+  - ✅ CI-Status spiegelt Code-Qualität wider (lokale 75.5% = verzerrt durch fehlende DB)
   - ✅ Commit-Log zeigt tatsächliche Entwicklung (599 Commits, kein Bloated-Merge)
   - ✅ Deploy-Status ist verifizierbar (heimat-backend.onrender.com erreichbar)
-  - ⚠️ Test-Coverage ist lokal verzerrt: 134 Fehlschläge durch fehlende DB, nicht durch Bugs
+  - ⚠️ Test-Coverage ist lokal verzerrt: 134 Fehlschläge (24.5%) durch fehlende DB, nicht durch Bugs
   - ✅ CI-Pipeline (GitHub Actions) liefert korrekte 100%-Passrate mit Postgres
 
 - **Wer korrigiert bei Abweichung?**
@@ -92,4 +92,4 @@
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase-D-Abschluss (Abfallkalender + Luftqualität)
+**Nächste Messung:** Bei Phase-D-Abschluss (Events + Hotels + Bürgeramt)

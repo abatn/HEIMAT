@@ -4,16 +4,16 @@
 
 - **Was wird überwacht? (Kennzahlen)**
   - **Code-Qualität:**
-    - Backend-Test-Passrate (lokal): 386/537 (72%) — 100% davon Umgebungsprobleme
-    - Backend-Test-Passrate (CI mit Postgres): 537/537 (100%) — korrekte Messung
+    - Backend-Test-Passrate (lokal): 413/547 (75.5%) — 100% davon Umgebungsprobleme
+    - Backend-Test-Passrate (CI mit Postgres): 547/547 (100%) — korrekte Messung
     - Health AI Agent Tests: 137/137 (100%) — alle grün
     - Flutter-Analyse: 0 Errors (bei grünem CI)
     - TypeScript-Kompilierung: `tsc --noEmit` = 0 Errors
     - Dart-Format: `dart format --set-exit-if-changed` = 0 Abweichungen
   - **Betriebskennzahlen:**
     - Commit-Velocity: ~34 Commits/Tag (599 Commits / 23 Tage)
-    - Phasen-Fortschritt: Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅ (3/10 = 30%)
-    - Offene Phasen: B (Luft/Abfall), C (Ladestationen/Parken), D (Futai/Jobs/Events), E (Hotels/Bürgeramt)
+    - Phasen-Fortschritt: Phase A ✅, B ✅, C ✅, Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅ — 5.5/10 (55%)
+    - Offene Phasen: D (Events/Hotels/Bürgeramt), E (restliche Services)
   - **Infrastruktur:**
     - Backend: heimat-backend.onrender.com (Render Free Tier, Node 20)
     - DB: Supabase (Supavisor Pooler, IPv4-force)
@@ -46,14 +46,14 @@
   - Prüfschleife → Zielschleife: FHIR-Entscheidung (unten → oben) hat funktioniert
 
   **Was hakt:**
-  - **Lokale Testmetrik (72%) ist verzerrt.** Die Betriebsschleife liefert eine
+  - **Lokale Testmetrik (75.5%) ist verzerrt.** Die Betriebsschleife liefert eine
     falsche Zahl an die Überwachungsschleife. Die Überwachungsschleife trackt
-    72%, aber die PRÜFSCHLEIFE (Mock-Verbot) verhindert, dass man die 134
-    Fehler durch Mocks "repariert". Das ist korrekt — aber die Zahl 72%
+    75.5%, aber die PRÜFSCHLEIFE (Mock-Verbot) verhindert, dass man die 134
+    Fehler durch Mocks "repariert". Das ist korrekt — aber die Zahl 75.5%
     selbst ist falsch, weil sie ein Umgebungsproblem misst, kein Code-Problem.
 
   **Kernproblem:** Die Betriebsschleife misst die falsche Metrik lokal.
-  In CI (GitHub Actions mit Postgres) ist die Passrate 100%. Lokal ist sie 72%.
+  In CI (GitHub Actions mit Postgres) ist die Passrate 100%. Lokal ist sie 75.5%.
   Die Überwachungsschleife sollte nur die CI-Metrik tracken, nicht die lokale.
 
 ---
@@ -63,7 +63,7 @@
 **Letzte Aktualisierung:** 2026-08-03 | Version 3.0
 
 - **Welche Zahlen werden geprüft?**
-  - Backend-Test-Ergebnisse (CI: 537/537 = 100%, lokal: 386/537 = 72%)
+  - Backend-Test-Ergebnisse (CI: 547/547 = 100%, lokal: 413/547 = 75.5%)
   - Health AI Agent Tests: 137/137 (100%)
   - TypeScript-Fehler (0 — wird bei jedem CI-Lauf geprüft)
   - Flutter-Analyse-Fehler (0 — wird bei jedem CI-Lauf geprüft)
@@ -94,7 +94,7 @@
   - **0 flaky Tests** — verifiziert durch: Alle Fehler sind reproduzierbar,
     keine zeitabhängigen Fehler.
   - **134 Umgebungsprobleme** — verifiziert durch: Lokal fehlt Postgres.
-    In CI (GitHub Actions mit `postgres:15-alpine`) sind alle 537 Tests grün.
+    In CI (GitHub Actions mit `postgres:15-alpine`) sind alle 547 Tests grün.
 
 ---
 
@@ -110,4 +110,4 @@
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase-D-Abschluss (Abfallkalender + Luftqualität)
+**Nächste Messung:** Bei Phase-D-Abschluss (Events + Hotels + Bürgeramt)
