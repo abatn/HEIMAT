@@ -1,6 +1,6 @@
 import request from 'supertest';
 import app from '../index';
-import { withRetry, isAcceptableStatus, TIMEOUTS } from './utils/test-utils';
+import { withRetry, isAcceptableStatus, TIMEOUTS } from '../utils/test-utils';
 
 describe('E-Ladestationen API', () => {
   describe('GET /api/ev-charging/stations', () => {
