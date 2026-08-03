@@ -9,7 +9,7 @@
     - Deploy-Status: GitHub Pages (Flutter Web) + Render (Backend)
   - **Wöchentlich:**
     - Dependabot-Patches (auto-approve + auto-merge via `dependabot-auto-merge.yml`)
-    - Commit-Velocity: 113 Commits in 23 Tagen (2026-07-11 bis 2026-08-03)
+    - Commit-Velocity: 115 Commits in 23 Tagen (2026-07-11 bis 2026-08-03)
     - Backend-Test-Regeneration (CI spinnt Postgres 15-alpine auf)
 
 - **Wie wird die Abweichung vom Plan gemessen?**
@@ -58,7 +58,7 @@
 
 - **Frage: Bilden die Daten noch die Realität ab? (Check)**
   - ✅ CI-Status spiegelt Code-Qualität wider (lokale 75.5% = verzerrt durch fehlende DB)
-  - ✅ Commit-Log zeigt tatsächliche Entwicklung (113 Commits, kein Bloated-Merge)
+  - ✅ Commit-Log zeigt tatsächliche Entwicklung (115 Commits, kein Bloated-Merge)
   - ✅ Deploy-Status ist verifizierbar (heimat-backend.onrender.com erreichbar)
   - ⚠️ Test-Coverage ist lokal verzerrt: 134 Fehlschläge (24.5%) durch fehlende DB, nicht durch Bugs
   - ✅ CI-Pipeline (GitHub Actions) liefert korrekte 100%-Passrate mit Postgres
