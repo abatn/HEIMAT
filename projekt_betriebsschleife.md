@@ -26,7 +26,7 @@
   |--------|----------|--------------|---------------------------|
   | **Test-Passrate** | 100% (nur DB-Fehler erlaubt) | <80% echte Failures | Sofortige Analyse: echte Bugs vs Umgebung |
   | **Commit-Velocity** | ~34 Commits/Tag (Durchschnitt 23 Tage) | <27 Commits/Tag (Fall unter 80%) | Prüfung: Blockiert jemand? Braucht jemand Hilfe? |
-  | **Phasen-Fortschritt** | 5.5/10 abgeschlossen (55%) | <24% (2/10 nach 60% der Zeit) | Strategische Neubewertung: Zu viele Phasen? Falsche Reihenfolge? |
+  | **Phasen-Fortschritt** | 6/10 abgeschlossen (60%) | <24% (2/10 nach 60% der Zeit) | Strategische Neubewertung: Zu viele Phasen? Falsche Reihenfolge? |
 
   **Warum drei Metriken?**
   - Test-Passrate misst **Code-Qualität**

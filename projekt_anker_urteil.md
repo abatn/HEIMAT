@@ -34,7 +34,7 @@
   "Besser" bedeutet in HEIMAT 2.0 — gemessen an den 11 Ankerzahlen:
 
   1. **Funktionaler Fortschritt:** Die App kann mehr als gestern — mehr Services,
-     mehr Endpunkte, mehr Features. Gemessen an abgeschlossenen Phasen (5.5/10 = 55%)
+     mehr Endpunkte, mehr Features. Gemessen an abgeschlossenen Phasen (6/10 = 60%)
      und deployten Funktionen (5+ Services live). NICHT gemessen an Gesamtzahl
      der Commits (599) — diese ist ein Output, kein Outcome.
 
@@ -52,7 +52,7 @@
   4. **Geschwindigkeit:** Features werden in Tagen gebaut, nicht Monaten.
      599 Commits in 23 Tagen. Aber: Geschwindigkeit ist kein Selbstzweck.
      Gemessen an Commit-Velocity (>27/Tag = gut) und Phasen-Timing
-     (55% Phasen nach 23 Tagen = sehr gut).
+     (60% Phasen nach 23 Tagen = sehr gut).
 
   5. **Keine Rückschritte:** Bekannte Bugs bleiben gefixt. Security-Löcher
      bleiben geschlossen. Das Projekt bewegt sich nur vorwärts.

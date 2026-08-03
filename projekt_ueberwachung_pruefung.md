@@ -12,7 +12,7 @@
     - Dart-Format: `dart format --set-exit-if-changed` = 0 Abweichungen
   - **Betriebskennzahlen:**
     - Commit-Velocity: ~34 Commits/Tag (599 Commits / 23 Tage)
-    - Phasen-Fortschritt: Phase A ✅, B ✅, C ✅, Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅ — 5.5/10 (55%)
+    - Phasen-Fortschritt: Phase A ✅, B ✅, C ✅, Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅ — 6/10 (60%)
     - Offene Phasen: D (Events/Hotels/Bürgeramt), E (restliche Services)
   - **Infrastruktur:**
     - Backend: heimat-backend.onrender.com (Render Free Tier, Node 20)
