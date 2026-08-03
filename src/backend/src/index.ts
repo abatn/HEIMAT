@@ -30,6 +30,7 @@ import { mentalHealthRouter } from './routes/mentalHealth';
 import { preventionRouter } from './routes/prevention';
 import { followUpRouter } from './routes/followUp';
 import { jobsRouter } from './routes/jobs';
+import { dailyBriefingRouter } from './routes/dailyBriefing';
 import { checkinService } from './services/checkinService';
 import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
@@ -78,6 +79,7 @@ app.use('/api/health/mental', mentalHealthRouter);
 app.use('/api/health/prevention', preventionRouter);
 app.use('/api/health/followups', followUpRouter);
 app.use('/api/jobs', jobsRouter);
+app.use('/api/daily-briefing', dailyBriefingRouter);
 
 // Lebenszeichen Check-in Eskalations-Timer starten (nur in Produktion)
 if (process.env.NODE_ENV !== 'test') {
