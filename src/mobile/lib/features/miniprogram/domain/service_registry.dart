@@ -2,6 +2,7 @@ import '../../weather/weather_screen.dart';
 import '../../air_quality/air_quality_screen.dart';
 import '../../waste/waste_screen.dart';
 import '../../ev_charging/presentation/ev_charging_screen.dart';
+import '../../parking/presentation/parking_screen.dart';
 import '../../ai_chat/presentation/ai_chat_screen.dart';
 import '../../mobility/presentation/mobility_screen.dart';
 import '../../finance/presentation/finance_screen.dart';
@@ -112,6 +113,14 @@ class ServiceRegistry {
         description: 'E-Ladestationen in deiner Nähe — OpenStreetMap Overpass.',
         searchTags: const ['ladestation', 'laden', 'ev', 'elektro', 'strom'],
         nativeBuilder: (_) => const EvChargingScreen(),
+      ),
+      'parking': ServiceDefinition(
+        id: 'parking',
+        name: 'Parkplätze',
+        category: 'Mobilität',
+        description: 'Parkplätze in deiner Nähe — OpenStreetMap Overpass.',
+        searchTags: const ['parken', 'parkplatz', 'garage', 'tiefgarage', 'parkhaus'],
+        nativeBuilder: (_) => const ParkingScreen(),
       ),
 
       // ===== Echte native Services =====

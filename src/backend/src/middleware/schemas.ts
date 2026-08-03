@@ -267,6 +267,16 @@ export const evChargingStationsQuerySchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Parken (Phase C-2)
+// ---------------------------------------------------------------------------
+
+export const parkingSpotsQuerySchema = z.object({
+  lat: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= -90 && parseFloat(v) <= 90, 'Invalid latitude'),
+  lng: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= -180 && parseFloat(v) <= 180, 'Invalid longitude'),
+  radius_km: z.string().optional().refine(v => !v || (!isNaN(parseFloat(v)) && parseFloat(v) > 0 && parseFloat(v) <= 20), 'Radius must be 1-20 km'),
+});
+
+// ---------------------------------------------------------------------------
 // Health AI Agent Phase 2: Mental Health, Prävention, Nachsorge
 // ---------------------------------------------------------------------------
 
