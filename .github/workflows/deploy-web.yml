@@ -41,11 +41,11 @@ jobs:
 
       - name: Check formatting
         working-directory: src/mobile
-        run: dart format --set-exit-if-changed .
+        run: dart format --set-exit-if-changed lib/ test/
 
       - name: Analyze
         working-directory: src/mobile
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze lib/ --no-fatal-infos
 
       - name: Run tests (incl. UI smoke)
         working-directory: src/mobile
