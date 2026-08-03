@@ -166,9 +166,27 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
+  // --- Route-Level Timeout (15s) ---
+  // Verhindert dass der Client auf eine Antwort wartet die zu lange dauert.
+  // Bei Timeout: Schneller Fallback mit Service-Daten (wenn vorhanden).
+  const ROUTE_TIMEOUT_MS = 15000;
+  let responseSent = false;
+  const timeoutId = setTimeout(() => {
+    if (!responseSent) {
+      responseSent = true;
+      logger.warn(`AI Chat Timeout nach ${ROUTE_TIMEOUT_MS}ms — sende Fallback`);
+      // Schneller Fallback: Cross-Service-Daten wenn vorhanden, sonst generischer Text
+      if (services && typeof services === 'object' && Object.keys(services).length > 0) {
+        const fallbackText = `⏱️ Die KI-Assistent-Antwort dauert zu lange. Hier sind die aktuellen Daten:\n\n${Object.entries(services).map(([k, v]) => `📊 ${k}: ${JSON.stringify(v)}`).join('\n')}`;
+        res.json({ status: 'timeout', response: fallbackText, model: 'timeout' });
+      } else {
+        res.json({ status: 'timeout', response: '⏱️ KI-Assistent ist langsam. Bitte versuche es erneut oder stelle eine kürzere Frage.', model: 'timeout' });
+      }
+    }
+  }, ROUTE_TIMEOUT_MS);
+
+  try {
   // --- Health Triage Auto-Detect ---
-  // Erkenne Symptome in der Nachricht OHNE services-Objekt.
-  // Trigger: Medizinische Keywords -> chatWithContext() mit health.symptom
   const detectedSymptom = detectHealthSymptom(message);
   if (detectedSymptom) {
     logger.info(`Health Triage Auto-Detect: "${detectedSymptom.substring(0, 50)}"`);
@@ -178,17 +196,20 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
       healthContext,
       { model, systemPrompt },
     );
-    res.json({
-      status: 'ok',
-      response,
-      model: model ?? ollamaService.getActiveModel(),
-      services_used: ['health'],
-    });
+    if (!responseSent) {
+      responseSent = true;
+      clearTimeout(timeoutId);
+      res.json({
+        status: 'ok',
+        response,
+        model: model ?? ollamaService.getActiveModel(),
+        services_used: ['health'],
+      });
+    }
     return;
   }
 
-  // Cross-Service Chat (Phase AI-4): Wenn services-Objekt vorhanden,
-  // nutze chatWithContext() für daten-angereicherte Antwort.
+  // Cross-Service Chat
   if (services && typeof services === 'object' && Object.keys(services).length > 0) {
     const response = await ollamaService.chatWithContext(
       message.trim(),
@@ -196,28 +217,43 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
       { model, systemPrompt },
     );
 
-    const isFallback = response.startsWith('Hier sind die aktuellen Daten');
-
-    res.json({
-      status: isFallback ? 'context' : 'ok',
-      response,
-      model: model ?? ollamaService.getActiveModel(),
-      services_used: Object.keys(services),
-    });
+    if (!responseSent) {
+      responseSent = true;
+      clearTimeout(timeoutId);
+      const isFallback = response.startsWith('Hier sind die aktuellen Daten');
+      res.json({
+        status: isFallback ? 'context' : 'ok',
+        response,
+        model: model ?? ollamaService.getActiveModel(),
+        services_used: Object.keys(services),
+      });
+    }
     return;
   }
 
-  // Standard-Chat (ohne Service-Kontext)
+  // Standard-Chat
   const response = await ollamaService.chat(message.trim(), {
     model,
     systemPrompt,
   });
 
-  res.json({
-    status: response === ollamaService.getFallbackMessage() ? 'fallback' : 'ok',
-    response,
-    model: model ?? ollamaService.getActiveModel(),
-  });
+  if (!responseSent) {
+    responseSent = true;
+    clearTimeout(timeoutId);
+    res.json({
+      status: response === ollamaService.getFallbackMessage() ? 'fallback' : 'ok',
+      response,
+      model: model ?? ollamaService.getActiveModel(),
+    });
+  }
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (!responseSent) {
+      responseSent = true;
+      logger.error(`AI Chat Error: ${err}`);
+      res.json({ status: 'error', response: '⚠️ Fehler beim KI-Assistenten. Bitte versuche es erneut.', model: 'error' });
+    }
+  }
 }));
 
 // ---------------------------------------------------------------------------

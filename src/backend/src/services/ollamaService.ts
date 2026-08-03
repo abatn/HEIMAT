@@ -371,11 +371,11 @@ export class OllamaService {
           messages,
           stream: false,
           options: {
-            num_predict: 200,   // Max 200 Tokens (~150 Wörter) — kürzer = schneller
+            num_predict: 100,   // Max 100 Tokens (~75 Wörter) — kürzer = schneller
             temperature: 0.3,   // Deterministisch — Triage braucht Präzision
           },
         },
-        { timeout: 60000 },
+        { timeout: 30000 },
       );
 
       if (response.data?.message?.content) {
