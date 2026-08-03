@@ -673,39 +673,98 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Triage-Vorschau
-                      if (selectedTriageLevel != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: _triageColor(selectedTriageLevel!)
-                                .withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _triageColor(selectedTriageLevel!)
-                                  .withOpacity(0.25),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                _triageEmoji(selectedTriageLevel!),
-                                style: const TextStyle(fontSize: 20),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
+                      // Triage-Einschaetzung (manuell waehlbar)
+                      const Text(
+                        'Dringlichkeit (optional)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          for (final level in [
+                            'ROUTINE',
+                            'BEREITSCHAFT',
+                            'NOTFALL'
+                          ])
+                            GestureDetector(
+                              onTap: () {
+                                setSheetState(() {
+                                  selectedTriageLevel =
+                                      selectedTriageLevel == level
+                                          ? null
+                                          : level;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: selectedTriageLevel == level
+                                      ? _triageColor(level).withOpacity(0.15)
+                                      : AppColors.surface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: selectedTriageLevel == level
+                                        ? _triageColor(level)
+                                        : AppColors.border,
+                                  ),
+                                ),
                                 child: Text(
-                                  selectedTriageLevel!,
+                                  '${_triageEmoji(level)} $level',
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: _triageColor(selectedTriageLevel!),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: selectedTriageLevel == level
+                                        ? _triageColor(level)
+                                        : AppColors.textSecondary,
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Triage-Vorschau
+                      if (selectedTriageLevel != null) ...[
+                        Builder(builder: (ctx) {
+                          final level = selectedTriageLevel ?? 'ROUTINE';
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _triageColor(level).withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _triageColor(level).withOpacity(0.25),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  _triageEmoji(level),
+                                  style: const TextStyle(fontSize: 20),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    _triageDescription(level),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: _triageColor(level),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
                         const SizedBox(height: 16),
                       ],
                     ],
@@ -841,6 +900,19 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
         return '🟢';
       default:
         return '❓';
+    }
+  }
+
+  String _triageDescription(String level) {
+    switch (level) {
+      case 'NOTFALL':
+        return 'Sofort 112 anrufen — lebensbedrohlich';
+      case 'BEREITSCHAFT':
+        return 'Aerztliche Anlaufstelle kontaktieren (116117)';
+      case 'ROUTINE':
+        return 'Hausarzt-Termin vereinbaren';
+      default:
+        return level;
     }
   }
 }
