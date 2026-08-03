@@ -76,7 +76,14 @@ export class UserMedicationsService {
     );
 
     // Sofort Interaktions-Check mit anderen aktiven Medikamenten
-    const interactions = await this.checkInteractions(userId, [input.name]);
+    // active_ingredient优先 (ASS matcht in medication_interactions), sonst name
+    const checkName = input.active_ingredient || input.name;
+    const existingMeds = await this.getMedications(userId, { active_only: true });
+    const existingNames = existingMeds.medications
+      .map(m => m.active_ingredient || m.name)
+      .filter(n => n !== checkName);
+    const allDrugs = [...new Set([checkName, ...existingNames])];
+    const interactions = await this.checkInteractions(userId, allDrugs);
 
     logger.info(`Medikament hinzugefügt: ${input.name} für User ${userId}`);
     return { medication: result!, interactions };
