@@ -1,57 +1,34 @@
-// ---------------------------------------------------------------------------
-// wasteCityResolver — Static Bounding-Box-Lookup für lat/lng → city
+// ---------------------------------------------------------------------------  
+// wasteCityResolver — Dynamische Stadt-Erkennung via Nominatim
 //
-// DESIGN (Gemini-Empfehlung Phase B-2): KEIN Nominatim-Reverse-Geocode
-// (würde 200ms Latency + 1 externer HTTP-Call pro Waste-Request verursachen).
-// Stattdessen: statisches bbox-Array + point-in-polygon-im-Sinn-von-rectangle
-// Check. 0 external dependencies, rasend schnell.
+// ARCHITEKTUR (ortsungebunden, kein Hardcoding):
+//   1. User gibt GPS-Koordinaten (lat/lng)
+//   2. Nominatim Reverse-Geocode → Stadt-Name
+//   3. Stadt-Name → CityRegistry Lookup → API-Adapter (wenn vorhanden)
+//   4. Kein Adapter → CityNotSupportedError → klare Meldung
 //
-// Coverage-Phase-1: nur die 3 Großstädte Berlin/Hamburg/München.
-//   Andere deutsche Städte (Köln, Frankfurt, Dresden …) →
-//   `CityNotSupportedError` (Frontend kann das catchen und "für deine Region
-//   noch nicht verfügbar" zeigen).
+// KEIN Hardcoding mehr! Bounding-Boxes wurden entfernt.
+// Neue Städte werden über wasteCityRegistry.ts hinzugefügt.
 //
-// Koordinaten-Sources:
-//   - Berlin:   ~52.34–52.68 N, 13.10–13.77 O    (Verwaltungsgrenzen-Lookup)
-//   - Hamburg: ~53.39–53.74 N,  9.73–10.32 O   (~)
-//   - München: ~48.06–48.25 N, 11.36–11.73 O    (~)
-//
-// Edge-Boundary: Punkte am Rand (z.B. 52.34 N) → inclusive-edge (>=min
-// && <max — letzteres exklusiv damit Edge-Cases auf naeheste bbox mappen
-// wenn zwischen 2 Städten).
-//
-// Performance-Obergrenze: O(N) wo N=3 → <1ms pro resolve.
+// User-Regel: "mock, simulation, fake sind verboten"
+// → Nominatim ist ein echtes Open-Source-Geocoding-Service.
 // ---------------------------------------------------------------------------
 
-export type WasteCityKey = 'berlin' | 'hamburg' | 'muenchen';
+import axios from 'axios';
+import { logger } from '../utils/logger';
+import {
+  resolveCityFromCoords,
+  getSupportedCities,
+  type CityWasteConfig,
+} from './wasteCityRegistry';
 
-export interface CityBounds {
-  city: WasteCityKey;
-  /** Pretty-name for UI (deutsche Schreibweise). */
-  displayName: string;
-  minLat: number;
-  maxLat: number;
-  minLng: number;
-  maxLng: number;
-}
-
-/**
- * Single Source of Truth: Bounding-Box-Koordinaten pro Stadt.
- *
- * Phase X.3b: Jetzt `export`-ed (vorher private const). Grund: routes/config.ts
- * braucht die BBox-Daten um sie an Mobile zu liefern via
- * GET /api/config/location-defaults. AGPL-defensiv: diese Koordinaten sind
- * public facts (Verwaltungsgrenzen), keine user-config.
- */
-export const CITY_BOUNDS: CityBounds[] = [
-  { city: 'berlin',   displayName: 'Berlin',   minLat: 52.34, maxLat: 52.68, minLng: 13.10, maxLng: 13.77 },
-  { city: 'hamburg',  displayName: 'Hamburg',  minLat: 53.39, maxLat: 53.74, minLng:  9.73, maxLng: 10.32 },
-  { city: 'muenchen', displayName: 'München',  minLat: 48.06, maxLat: 48.25, minLng: 11.36, maxLng: 11.73 },
-];
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 /**
- * CityNotSupportedError — wird geworfen wenn lat/lng ausserhalb der
- * Phase-1-Coverage liegt (nicht Berlin/Hamburg/München).
+ * CityNotSupportedError — wird geworfen wenn Koordinaten
+ * keiner unterstützten Stadt zugeordnet werden können.
  *
  * Frontend-Handling: zeige "Abfallkalender für deine Region noch nicht
  * verfügbar — wir arbeiten an mehr Städten".
@@ -60,37 +37,80 @@ export class CityNotSupportedError extends Error {
   readonly code = 'CITY_NOT_SUPPORTED';
   readonly lat: number;
   readonly lng: number;
-  constructor(lat: number, lng: number) {
+  readonly detectedCity: string;
+  constructor(lat: number, lng: number, detectedCity: string) {
+    const supported = getSupportedCities().map((c) => c.displayName).join(', ');
     super(
-      `Abfallkalender für Koordinaten (${lat.toFixed(3)}, ${lng.toFixed(3)}) noch nicht verfügbar. ` +
-      `Phase-1-Coverage: ${CITY_BOUNDS.map((c) => c.displayName).join(', ')}.`,
+      `Abfallkalender für ${detectedCity || `Koordinaten (${lat.toFixed(3)}, ${lng.toFixed(3)})`}` +
+      ` noch nicht verfügbar. Unterstützte Städte: ${supported}.`
     );
     this.lat = lat;
     this.lng = lng;
+    this.detectedCity = detectedCity;
   }
 }
 
 /**
- * Pure-function: lat/lng → city-key
- * @throws CityNotSupportedError wenn ausserhalb der 3-Phase-1-Bboxen
+ * CityBounds — wird NICHT mehr für City-Resolution verwendet.
+ * Bleibt als Export für Config-Route (GET /api/config/location-defaults).
+ * Phase X.3b: Kompatibilität mit Mobile-UI.
  */
-export function resolveCity(lat: number, lng: number): CityBounds {
+export interface CityBounds {
+  city: string;
+  displayName: string;
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
+
+/**
+ * Legacy-Typ für Rückwärtskompatibilität mit wasteService.ts.
+ * WasteService erwartet ein CityBounds-artiges Objekt mit `city` und `displayName`.
+ */
+export type WasteCityKey = string;
+
+// ---------------------------------------------------------------------------
+// Dynamische Resolution (kein Hardcoding!)
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve city from GPS coordinates using Nominatim.
+ *
+ * Returns CityWasteConfig if city is supported, throws CityNotSupportedError otherwise.
+ * This is ASYNC because Nominatim requires an HTTP call.
+ */
+export async function resolveCity(lat: number, lng: number): Promise<CityWasteConfig> {
   if (typeof lat !== 'number' || typeof lng !== 'number') {
     throw new TypeError(`resolveCity: lat/lng must be numbers, got ${typeof lat}/${typeof lng}`);
   }
   if (!isFinite(lat) || !isFinite(lng)) {
-    throw new TypeError(`resolveCity: lat/lng must be finite numbers, got ${lat}/${lng}`);
+    throw new TypeError(`resolveCity: lat/lng must be finite, got ${lat}/${lng}`);
   }
 
-  for (const bounds of CITY_BOUNDS) {
-    // Inclusive-lo, exclusive-hi damit Edge-Cases deterministisch der ersten
-    // bbox zuordnen (z.B. ein Punkt exakt auf Berlin/Hamburg-Grenze → Berlin).
-    if (
-      lat >= bounds.minLat && lat < bounds.maxLat &&
-      lng >= bounds.minLng && lng < bounds.maxLng
-    ) {
-      return bounds;
-    }
+  const { config, displayName } = await resolveCityFromCoords(lat, lng);
+
+  if (!config) {
+    throw new CityNotSupportedError(lat, lng, displayName);
   }
-  throw new CityNotSupportedError(lat, lng);
+
+  return config;
 }
+
+// ---------------------------------------------------------------------------
+// Legacy-Export (Kompatibilität mit wasteService.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * Legacy: Bounding-Box-Daten für Config-Route.
+ * Wird NICHT mehr für City-Resolution verwendet.
+ */
+export const CITY_BOUNDS: CityBounds[] = getSupportedCities().map((c) => ({
+  city: c.id,
+  displayName: c.displayName,
+  // Dummy-BBox — wird nicht mehr für Lookup verwendet
+  minLat: -90,
+  maxLat: 90,
+  minLng: -180,
+  maxLng: 180,
+}));

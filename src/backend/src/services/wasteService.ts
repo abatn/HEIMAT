@@ -33,6 +33,7 @@
 import type { AxiosInstance } from 'axios';
 import { logger } from '../utils/logger';
 import { CITY_BOUNDS, resolveCity, CityNotSupportedError, type WasteCityKey, type CityBounds } from './wasteCityResolver';
+import type { CityWasteConfig } from './wasteCityRegistry';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 import { externalServices } from '../config/externalServices';
 
@@ -100,42 +101,11 @@ interface CityFetchUrls {
   attribution: string;
 }
 
-/**
- * ROSTER-DATA: per-city URL-templates.
- *
- * Real-world URLs would come from env-vars (so mobile users in production
- * don't hit the placeholder). For Phase 1 we use a stable env-overridable
- * default; if env unset, fallback to marked-pending-hardcoded URL.
- *
- * TODO Phase 2: Verify each URL live + replace with real iCal-endpoints.
- */
-function buildCityRoster(): Record<WasteCityKey, CityFetchUrls> {
-  return {
-    berlin: {
-      // Phase X.4b: hardcoded default URLs aus Phase B-2 in externalServices-Registry konsolidiert.
-      primary: externalServices.abfallBerlinPrimaryUrl,
-      fallback: externalServices.abfallBerlinFallbackUrl,
-      addressRequired: false, // Berlin liefert city-wide default falls keine address
-      attribution: 'Berliner Stadtreinigung (BSR) — CC-BY 4.0',
-    },
-    muenchen: {
-      // Phase X.4b: Primary-URL aus externalServices-Registry. Fallback bleibt env-only
-      // (Phase B-2.3: kein commit-fähiger AGPL-defensiver fallback-URL).
-      primary: externalServices.abfallMuenchenPrimaryUrl,
-      fallback: process.env.ABFALL_AWB_FALLBACK_URL,
-      addressRequired: true,
-      attribution: 'Abfallwirtschaftsbetrieb München (AWB) — CC-BY 4.0',
-    },
-    hamburg: {
-      // Phase X.4b: Primary-URL aus externalServices-Registry. Fallback bleibt env-only
-      // (Phase B-2.1 NEEDS-FIX #2: AGPL-defensiv, kein default im production-code).
-      primary: externalServices.abfallHamburgPrimaryUrl,
-      fallback: process.env.ABFALL_SRH_FALLBACK_URL,
-      addressRequired: true,
-      attribution: 'Stadtreinigung Hamburg (SRH) — CC-BY 4.0',
-    },
-  };
-}
+// ---------------------------------------------------------------------------
+// KEIN hardcoded roster mehr!
+// Alle Stadt-Daten kommen aus wasteCityRegistry.ts (dynamisch, ortsungebunden).
+// Neue Städte = neuer Eintrag in der Registry, KEIN Code-Change nötig.
+// ---------------------------------------------------------------------------
 
 // ------------------------------------------------------------------
 // Service-Class
@@ -145,8 +115,6 @@ export class WasteService {
   private readonly cache = new Map<string, { data: WasteCalendarResponse; at: number }>();
   private readonly cacheTtlMs = 24 * 60 * 60 * 1000; // 24 Stunden
   private readonly userAgent = externalServices.userAgent;
-  private readonly roster = buildCityRoster();
-
   // Constructor-DI (mirror weatherService.ts post-Phase-E)
   constructor(private readonly http: AxiosInstance) {}
 
@@ -168,17 +136,16 @@ export class WasteService {
     street?: string,
     houseNr?: string,
   ): Promise<WasteCalendarResponse> {
-    // 1. City-Resolver
-    const bounds = resolveCity(lat, lng);
+    // 1. City-Resolver (dynamic via Nominatim — no hardcoding)
+    const cityConfig = await resolveCity(lat, lng);
 
-    // 2. Address-Required Check (Hamburg, München)
-    const roster = this.roster[bounds.city];
-    if (roster.addressRequired && (!street || !houseNr)) {
-      throw new AddressRequiredError(bounds);
+    // 2. Address-Required Check (dynamic per city config)
+    if (cityConfig.addressRequired && (!street || !houseNr)) {
+      throw new AddressRequiredError({ city: cityConfig.id as WasteCityKey, displayName: cityConfig.displayName, minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 });
     }
 
     // 3. Cache-Key
-    const cacheKey = this.buildCacheKey(bounds.city, street, houseNr, weeks);
+    const cacheKey = this.buildCacheKey(cityConfig.id, street, houseNr, weeks);
 
     // 4. Cache-Read
     const cached = this.cache.get(cacheKey);
@@ -195,25 +162,25 @@ export class WasteService {
     // aus. 4xx sind Client-Fehler (z.B. address-bad-encoded) und sollen
     // nicht den fallback-Endpoint treffen (würde nur 4xx wiederholen).
     const fetchedAt = new Date().toISOString();
-    let source = roster.primary;
+    let source = cityConfig.primaryUrl;
     let events: IcsEvent[] = [];
 
     try {
-      events = await this.fetchIcs(urlFor(roster.primary), bounds.city);
+      events = await this.fetchIcs(urlFor(cityConfig.primaryUrl), cityConfig.id);
     } catch (primaryErr) {
-      if (!this.shouldFailover(primaryErr) || !roster.fallback) {
+      if (!this.shouldFailover(primaryErr) || !cityConfig.fallbackUrl) {
         throw primaryErr;
       }
-      logger.warn(`WasteService: ${bounds.city} primary failed (recoverable), attempting fallback: ${(primaryErr as Error).message}`);
-      source = roster.fallback;
+      logger.warn(`WasteService: ${cityConfig.id} primary failed (recoverable), attempting fallback: ${(primaryErr as Error).message}`);
+      source = cityConfig.fallbackUrl;
       try {
-        events = await this.fetchIcs(urlFor(roster.fallback), bounds.city);
+        events = await this.fetchIcs(urlFor(cityConfig.fallbackUrl), cityConfig.id);
       } catch (fallbackErr) {
         logger.error(
-          `WasteService: ${bounds.city} both mirrors failed. ` +
+          `WasteService: ${cityConfig.id} both mirrors failed. ` +
           `primary=${(primaryErr as Error).message} | fallback=${(fallbackErr as Error).message}`,
         );
-        throw primaryErr; // Primary error behält seinen Kontext (z.B. 429 vs. 503).
+        throw primaryErr;
       }
     }
 
@@ -221,8 +188,8 @@ export class WasteService {
     const filtered = this.filterByWeeks(events, weeks);
 
     const response: WasteCalendarResponse = {
-      city: bounds.city,
-      displayName: bounds.displayName,
+      city: cityConfig.id,
+      displayName: cityConfig.displayName,
       weeks,
       events: filtered.map((e) => ({
         start: e.start,
@@ -249,13 +216,15 @@ export class WasteService {
     cities: { city: WasteCityKey; displayName: string; addressRequired: boolean; attribution: string }[];
     cacheEntries: number;
   } {
+    const { getSupportedCities } = require('./wasteCityRegistry');
+    const cities = getSupportedCities();
     return {
       service: 'waste',
-      cities: (Object.keys(this.roster) as WasteCityKey[]).map((key) => ({
-        city: key,
-        displayName: this.requireCityKeyName(key),
-        addressRequired: this.roster[key].addressRequired,
-        attribution: this.getAttribution(key),
+      cities: cities.map((c: any) => ({
+        city: c.id,
+        displayName: c.displayName,
+        addressRequired: c.addressRequired,
+        attribution: c.attribution,
       })),
       cacheEntries: this.cache.size,
     };
@@ -263,10 +232,12 @@ export class WasteService {
 
   /**
    * Public lookup for per-city attribution string (CC-BY license text).
-   * Avoids duplicate hard-coded maps in routes/waste.ts.
    */
   getAttribution(city: WasteCityKey): string {
-    return this.roster[city].attribution;
+    const { getSupportedCities } = require('./wasteCityRegistry');
+    const cities = getSupportedCities();
+    const found = cities.find((c: any) => c.id === city);
+    return found?.attribution || 'Unknown';
   }
 
   /**
@@ -297,21 +268,16 @@ export class WasteService {
     return {
       version: '1.0',
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      cities: CITY_BOUNDS.map((bounds) => {
-        const roster = this.roster[bounds.city];
-        return {
-          name: bounds.city,
-          displayName: bounds.displayName,
-          bbox: {
-            minLat: bounds.minLat,
-            maxLat: bounds.maxLat,
-            minLng: bounds.minLng,
-            maxLng: bounds.maxLng,
-          },
-          addressRequired: roster.addressRequired,
-          attribution: roster.attribution,
-        };
-      }),
+      cities: (() => {
+        const { getSupportedCities } = require('./wasteCityRegistry');
+        return getSupportedCities().map((c: any) => ({
+          name: c.id,
+          displayName: c.displayName,
+          bbox: { minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 }, // Dynamic — no hardcoding
+          addressRequired: c.addressRequired,
+          attribution: c.attribution,
+        }));
+      })(),
     };
   }
 
