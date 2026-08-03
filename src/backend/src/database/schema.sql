@@ -640,6 +640,92 @@ BEGIN
 END $$;
 
 -- ============================================
+-- HEALTH AI PHASE 2 (Mental Health, Prävention, Nachsorge)
+-- ============================================
+
+-- PHQ-9 Responses (Depressions-Screening)
+CREATE TABLE IF NOT EXISTS phq9_responses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    -- PHQ-9 Antworten (0=Überhaupt nicht, 1=Mehrtage, 2=Mehr als die Hälfte, 3=Fast täglich)
+    q1_lustlos INTEGER CHECK (q1_lustlos BETWEEN 0 AND 3),
+    q2_niedergeschlagen INTEGER CHECK (q2_niedergeschlagen BETWEEN 0 AND 3),
+    q3_schlafprobleme INTEGER CHECK (q3_schlafprobleme BETWEEN 0 AND 3),
+    q4_muedigkeit INTEGER CHECK (q4_muedigkeit BETWEEN 0 AND 3),
+    q5_appetit INTEGER CHECK (q5_appetit BETWEEN 0 AND 3),
+    q6_schlecht INTEGER CHECK (q6_schlecht BETWEEN 0 AND 3),
+    q7_konzentration INTEGER CHECK (q7_konzentration BETWEEN 0 AND 3),
+    q8_bewegung INTEGER CHECK (q8_bewegung BETWEEN 0 AND 3),
+    q9_selbstverletzung INTEGER CHECK (q9_selbstverletzung BETWEEN 0 AND 3),
+    total_score INTEGER,
+    severity VARCHAR(20),
+    ai_analysis TEXT,
+    ai_recommendation TEXT,
+    additional_notes TEXT,
+    location_lat DECIMAL(10, 8),
+    location_lng DECIMAL(11, 8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_phq9_user ON phq9_responses(user_id);
+CREATE INDEX IF NOT EXISTS idx_phq9_date ON phq9_responses(created_at DESC);
+
+-- Prevention Recommendations (Vorsorge-Empfehlungen)
+CREATE TABLE IF NOT EXISTS prevention_recommendations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    category VARCHAR(50),
+    title VARCHAR(255),
+    description TEXT,
+    priority VARCHAR(20),
+    based_on VARCHAR(100),
+    relevant_until DATE,
+    is_completed BOOLEAN DEFAULT false,
+    completed_at TIMESTAMP,
+    doctor_id UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_prevention_user ON prevention_recommendations(user_id);
+CREATE INDEX IF NOT EXISTS idx_prevention_active ON prevention_recommendations(user_id, is_completed);
+
+-- Post-Appointment Follow-ups (Nachsorge)
+CREATE TABLE IF NOT EXISTS post_appointment_followups (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    appointment_id UUID,
+    doctor_id UUID,
+    followup_date DATE NOT NULL,
+    followup_type VARCHAR(50),
+    responded BOOLEAN DEFAULT false,
+    response_text TEXT,
+    response_severity INTEGER,
+    ai_analysis TEXT,
+    needs_followup BOOLEAN DEFAULT false,
+    next_followup_date DATE,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_followup_user ON post_appointment_followups(user_id);
+CREATE INDEX IF NOT EXISTS idx_followup_pending ON post_appointment_followups(status, followup_date);
+
+-- Erweiterung user_health_profile für Phase 2
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_health_profile' AND column_name = 'last_checkup_date') THEN
+        ALTER TABLE user_health_profile ADD COLUMN last_checkup_date DATE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_health_profile' AND column_name = 'next_checkup_date') THEN
+        ALTER TABLE user_health_profile ADD COLUMN next_checkup_date DATE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_health_profile' AND column_name = 'risk_factors') THEN
+        ALTER TABLE user_health_profile ADD COLUMN risk_factors TEXT[];
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_health_profile' AND column_name = 'family_history_detailed') THEN
+        ALTER TABLE user_health_profile ADD COLUMN family_history_detailed JSONB;
+    END IF;
+END $$;
+
+-- ============================================
 -- DEGAM LEITLINIEN SEED (Evidence-based Health AI)
 -- ============================================
 -- Idempotent: wird nur ausgeführt wenn Tabelle leer ist.

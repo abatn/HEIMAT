@@ -25,6 +25,9 @@ import { configRouter } from './routes/config';
 import { checkinRouter } from './routes/checkin';
 import { healthMemoryRouter } from './routes/healthMemory';
 import { healthMedicationsRouter } from './routes/healthMedications';
+import { mentalHealthRouter } from './routes/mentalHealth';
+import { preventionRouter } from './routes/prevention';
+import { followUpRouter } from './routes/followUp';
 import { checkinService } from './services/checkinService';
 import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
@@ -68,6 +71,9 @@ app.use('/api/config', configRouter);
 app.use('/api/checkin', checkinRouter);
 app.use('/api/health/memory', healthMemoryRouter);
 app.use('/api/health/medications', healthMedicationsRouter);
+app.use('/api/health/mental', mentalHealthRouter);
+app.use('/api/health/prevention', preventionRouter);
+app.use('/api/health/followups', followUpRouter);
 
 // Lebenszeichen Check-in Eskalations-Timer starten (nur in Produktion)
 if (process.env.NODE_ENV !== 'test') {

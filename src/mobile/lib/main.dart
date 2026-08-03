@@ -25,6 +25,11 @@ import 'features/waste/presentation/waste_provider.dart';
 import 'features/ev_charging/presentation/ev_charging_provider.dart';
 import 'features/ai_chat/presentation/ai_chat_provider.dart';
 import 'features/checkin/presentation/checkin_provider.dart';
+import 'features/health/presentation/health_memory_provider.dart';
+import 'features/health/presentation/health_medications_provider.dart';
+import 'features/health/presentation/mental_health_provider.dart';
+import 'features/health/presentation/prevention_provider.dart';
+import 'features/health/presentation/followup_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +82,23 @@ class HeimatApp extends StatelessWidget {
               ChangeNotifierProvider(
                 create: (_) =>
                     CheckinProvider(auth.authService)..refreshStatus(),
+              ),
+              // Phase Health AI Agent: Gedächtnis + Medikamente.
+              ChangeNotifierProvider(
+                create: (_) => HealthMemoryProvider(auth.authService),
+              ),
+              ChangeNotifierProvider(
+                create: (_) => HealthMedicationsProvider(auth.authService),
+              ),
+              // Phase Health AI Agent Phase 2: Mental Health + Prävention + Nachsorge.
+              ChangeNotifierProvider(
+                create: (_) => MentalHealthProvider(auth.authService),
+              ),
+              ChangeNotifierProvider(
+                create: (_) => PreventionProvider(auth.authService),
+              ),
+              ChangeNotifierProvider(
+                create: (_) => FollowUpProvider(auth.authService),
               ),
             ],
             child: MaterialApp(

@@ -267,6 +267,50 @@ export const evChargingStationsQuerySchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Health AI Agent Phase 2: Mental Health, Prävention, Nachsorge
+// ---------------------------------------------------------------------------
+
+export const phq9AnswersSchema = z.object({
+  q1_lustlos: z.number().int().min(0).max(3),
+  q2_niedergeschlagen: z.number().int().min(0).max(3),
+  q3_schlafprobleme: z.number().int().min(0).max(3),
+  q4_muedigkeit: z.number().int().min(0).max(3),
+  q5_appetit: z.number().int().min(0).max(3),
+  q6_schlecht: z.number().int().min(0).max(3),
+  q7_konzentration: z.number().int().min(0).max(3),
+  q8_bewegung: z.number().int().min(0).max(3),
+  q9_selbstverletzung: z.number().int().min(0).max(3),
+});
+
+export const createPhq9BodySchema = z.object({
+  answers: phq9AnswersSchema,
+  additional_notes: z.string().max(1000).optional(),
+  location: z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  }).optional(),
+});
+
+export const phq9HistoryQuerySchema = z.object({
+  limit: z.string().optional().refine(v => !v || (!isNaN(parseInt(v)) && parseInt(v) > 0), 'Limit must be positive'),
+});
+
+export const preventionGenerateBodySchema = z.object({}).passthrough();
+
+export const completePreventionBodySchema = z.object({
+  doctor_id: z.string().uuid().optional(),
+});
+
+export const respondFollowUpBodySchema = z.object({
+  text: z.string().min(1, 'response text is required').max(2000),
+  severity: z.number().int().min(1).max(10),
+});
+
+export const followUpHistoryQuerySchema = z.object({
+  limit: z.string().optional().refine(v => !v || (!isNaN(parseInt(v)) && parseInt(v) > 0), 'Limit must be positive'),
+});
+
+// ---------------------------------------------------------------------------
 // Admin
 // ---------------------------------------------------------------------------
 
