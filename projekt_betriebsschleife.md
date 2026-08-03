@@ -9,7 +9,7 @@
     - Deploy-Status: GitHub Pages (Flutter Web) + Render (Backend)
   - **Wöchentlich:**
     - Dependabot-Patches (auto-approve + auto-merge via `dependabot-auto-merge.yml`)
-    - Commit-Velocity: 599 Commits in 23 Tagen (2026-07-11 bis 2026-08-03)
+    - Commit-Velocity: 107 Commits in 23 Tagen (2026-07-11 bis 2026-08-03)
     - Backend-Test-Regeneration (CI spinnt Postgres 15-alpine auf)
 
 - **Wie wird die Abweichung vom Plan gemessen?**
@@ -25,7 +25,7 @@
   | Metrik | Baseline | 20%-Schwelle | Aktion bei Überschreitung |
   |--------|----------|--------------|---------------------------|
   | **Test-Passrate** | 100% (nur DB-Fehler erlaubt) | <80% echte Failures | Sofortige Analyse: echte Bugs vs Umgebung |
-  | **Commit-Velocity** | ~34 Commits/Tag (Durchschnitt 23 Tage) | <27 Commits/Tag (Fall unter 80%) | Prüfung: Blockiert jemand? Braucht jemand Hilfe? |
+  | **Commit-Velocity** | ~15 Commits/Tag (Durchschnitt 23 Tage) | <27 Commits/Tag (Fall unter 80%) | Prüfung: Blockiert jemand? Braucht jemand Hilfe? |
   | **Phasen-Fortschritt** | 6/10 abgeschlossen (60%) | <24% (2/10 nach 60% der Zeit) | Strategische Neubewertung: Zu viele Phasen? Falsche Reihenfolge? |
 
   **Warum drei Metriken?**
@@ -58,7 +58,7 @@
 
 - **Frage: Bilden die Daten noch die Realität ab? (Check)**
   - ✅ CI-Status spiegelt Code-Qualität wider (lokale 75.5% = verzerrt durch fehlende DB)
-  - ✅ Commit-Log zeigt tatsächliche Entwicklung (599 Commits, kein Bloated-Merge)
+  - ✅ Commit-Log zeigt tatsächliche Entwicklung (107 Commits, kein Bloated-Merge)
   - ✅ Deploy-Status ist verifizierbar (heimat-backend.onrender.com erreichbar)
   - ⚠️ Test-Coverage ist lokal verzerrt: 134 Fehlschläge (24.5%) durch fehlende DB, nicht durch Bugs
   - ✅ CI-Pipeline (GitHub Actions) liefert korrekte 100%-Passrate mit Postgres

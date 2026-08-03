@@ -10,8 +10,8 @@
    - Health AI Agent: 147/147 bestanden (100%)
    - Parking Unit-Tests: 10/10 bestanden (100%)
    - Klassifikation: 0 echte Bugs, 0 flaky, 134 Umgebungsprobleme
-4. **Commits:** 599 (seit 2026-07-11, 23 Tage = ~34/Tag)
-5. **Phasen abgeschlossen:** 6 von ~10 (Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Phase C ✅, Phase D (Jobs+AI): E-Ladestationen + Parken ✅)
+4. **Commits:** 107 (seit 2026-07-11, 23 Tage = ~15/Tag)
+5. **Phasen abgeschlossen:** 6 von ~10 (Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Phase C ✅, Phase D (Jobs+AI): E-Ladestationen + Parken ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅, AI Chat Timeout gefixt ✅)
    - HealthProvider-Tests: 25/25 bestanden (searchDoctors, loadSlots, bookAppointment, DTO-Parsing)
 6. **Services live:** 3 (Mobilität, Gesundheit, Finanzen) von geplanten 13
 7. **API-Endpunkte:** 19 Route-Dateien, 109 Endpunkte (davon 45 Health-Endpunkte, 1 Parken-Endpunkt)
@@ -36,7 +36,7 @@
   1. **Funktionaler Fortschritt:** Die App kann mehr als gestern — mehr Services,
      mehr Endpunkte, mehr Features. Gemessen an abgeschlossenen Phasen (6/10 = 60%)
      und deployten Funktionen (5+ Services live). NICHT gemessen an Gesamtzahl
-     der Commits (599) — diese ist ein Output, kein Outcome.
+     der Commits (107) — diese ist ein Output, kein Outcome.
 
   2. **Stabilität:** Der CI bleibt grün. Known Bugs werden behoben, neue
      Regressionen entstehen nicht. Gemessen an CI-Testergebnissen (100% mit Postgres)
@@ -50,7 +50,7 @@
      sogar das Mock-Verbot (Tests brauchen echte DB, keine Mocks).
 
   4. **Geschwindigkeit:** Features werden in Tagen gebaut, nicht Monaten.
-     599 Commits in 23 Tagen. Aber: Geschwindigkeit ist kein Selbstzweck.
+     107 Commits in 23 Tagen. Aber: Geschwindigkeit ist kein Selbstzweck.
      Gemessen an Commit-Velocity (>27/Tag = gut) und Phasen-Timing
      (60% Phasen nach 23 Tagen = sehr gut).
 
