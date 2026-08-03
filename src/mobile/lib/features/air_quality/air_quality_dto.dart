@@ -4,6 +4,32 @@
 /// AQI-Level/Color Mapping (backend/src/services/airQualityService.ts hat
 /// EAQI_LEVELS Array). Flutter parsiert nur die fertigen Werte.
 
+/// AirQualityTipDto — Intelligenter Health-Tipp
+class AirQualityTipDto {
+  final String icon;
+  final String text;
+  final String priority;
+  final String category;
+
+  const AirQualityTipDto({
+    required this.icon,
+    required this.text,
+    required this.priority,
+    required this.category,
+  });
+
+  factory AirQualityTipDto.fromJson(Map<String, dynamic> json) {
+    return AirQualityTipDto(
+      icon: json['icon'] as String? ?? '💡',
+      text: json['text'] as String? ?? '',
+      priority: json['priority'] as String? ?? 'low',
+      category: json['category'] as String? ?? 'health',
+    );
+  }
+
+  bool get isHighPriority => priority == 'high';
+}
+
 /// AirQualityForecastResponse — Root-Container für /api/air-quality/forecast
 class AirQualityForecastResponse {
   final String status;
@@ -11,6 +37,7 @@ class AirQualityForecastResponse {
   final List<HourlyAirQualityDto> hourly;
   final AirQualityLocationDto location;
   final String source;
+  final List<AirQualityTipDto> tips;
 
   const AirQualityForecastResponse({
     required this.status,
@@ -18,6 +45,7 @@ class AirQualityForecastResponse {
     required this.hourly,
     required this.location,
     required this.source,
+    this.tips = const [],
   });
 
   factory AirQualityForecastResponse.fromJson(Map<String, dynamic> json) {
@@ -36,6 +64,9 @@ class AirQualityForecastResponse {
       location: AirQualityLocationDto.fromJson(
           json['location'] as Map<String, dynamic>? ?? {}),
       source: json['source'] as String? ?? '',
+      tips: (json['tips'] as List<dynamic>? ?? const [])
+          .map((e) => AirQualityTipDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

@@ -1,6 +1,61 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { airQualityService } from '../services/airQualityService';
 import { logger } from '../utils/logger';
+import type { AirQualityData } from '../services/airQualityService';
+
+// ---------------------------------------------------------------------------
+// Intelligent Air Quality Tips — Pure Rule-Engine
+//
+// EU AQI Scale:
+//   0-20:  Gut 🟢 — Sport draußen uneingeschränkt möglich
+//   20-40: Befriedigend 🟡 — empfindliche Personen beachten
+//   40-60: Mässig 🟠 — empfindliche Personen einschränken
+//   60-80: Schlecht 🔴 — Ausdauersport vermeiden
+//   80-100: Sehr schlecht 🟤 — Aufenthalte draußen einschränken
+//   100+:  Extrem ⚫ — Aufenthalte draußen vermeiden
+// ---------------------------------------------------------------------------
+
+interface AirQualityTip {
+  icon: string;
+  text: string;
+  priority: 'high' | 'medium' | 'low';
+  category: 'health' | 'activity' | 'children' | 'elderly';
+}
+
+function generateAirQualityTips(data: AirQualityData): AirQualityTip[] {
+  const tips: AirQualityTip[] = [];
+  const aqi = data.current.europeanAqi;
+  const pm25 = data.current.pm25;
+  const pm10 = data.current.pm10;
+
+  if (aqi == null) return tips;
+
+  // AQI-basierte Health-Tipps
+  if (aqi <= 20) {
+    tips.push({ icon: '🌿', text: 'Ausgezeichnete Luftqualität! Perfekt für Sport und Aktivitäten draußen.', priority: 'low', category: 'activity' });
+  } else if (aqi <= 40) {
+    tips.push({ icon: '👍', text: 'Gute Luft. Empfindliche Personen können problemlos draußen sein.', priority: 'low', category: 'activity' });
+  } else if (aqi <= 60) {
+    tips.push({ icon: '⚠️', text: 'Mässige Luftqualität. Empfindliche Personen sollten längere Aufenthalte draußen vermeiden.', priority: 'medium', category: 'health' });
+    tips.push({ icon: '🧒', text: 'Kinder und Asthmatiker: outdoor-Aktivitäten kürzen.', priority: 'medium', category: 'children' });
+  } else if (aqi <= 80) {
+    tips.push({ icon: '🔴', text: 'Schlechte Luft! Ausdauersport draußen vermeiden.', priority: 'high', category: 'activity' });
+    tips.push({ icon: '🫁', text: 'Bei Atemwegsproblemen: Fenster geschlossen halten.', priority: 'high', category: 'health' });
+  } else if (aqi <= 100) {
+    tips.push({ icon: '🟤', text: 'Sehr schlechte Luft! Aufenthalte draußen einschränken.', priority: 'high', category: 'health' });
+    tips.push({ icon: '👴', text: 'Ältere Menschen und Risikogruppen: drinnen bleiben.', priority: 'high', category: 'elderly' });
+  } else {
+    tips.push({ icon: '⚫', text: 'Extreme Luftverschmutzung! Aufenthalte draußen vermeiden.', priority: 'high', category: 'health' });
+    tips.push({ icon: '🚨', text: 'Bei gesundheitlichen Beschwerden: Arzt aufsuchen.', priority: 'high', category: 'health' });
+  }
+
+  // PM2.5 spezifisch (kleine Partikel = tief in die Lunge)
+  if (pm25 != null && pm25 > 25) {
+    tips.push({ icon: '😷', text: 'Hohe Feinstaubbelastung (PM2.5) — Maske empfohlen bei Aufenthalten draußen.', priority: 'high', category: 'health' });
+  }
+
+  return tips.slice(0, 4);
+}
 
 export const airQualityRouter = Router();
 
@@ -26,11 +81,13 @@ airQualityRouter.get('/current', asyncHandler(async (req: Request, res: Response
 
   try {
     const data = await airQualityService.getAirQuality(lat, lng);
+    const tips = generateAirQualityTips(data);
     res.json({
       status: 'ok',
       airQuality: data.current,
       location: data.location,
       source: data.source,
+      tips,
     });
   } catch (e: unknown) {
     const errMsg = e instanceof Error ? e.message : String(e);
@@ -62,12 +119,14 @@ airQualityRouter.get('/forecast', asyncHandler(async (req: Request, res: Respons
 
   try {
     const data = await airQualityService.getAirQuality(lat, lng);
+    const tips = generateAirQualityTips(data);
     res.json({
       status: 'ok',
       current: data.current,
       hourly: data.hourly,
       location: data.location,
       source: data.source,
+      tips,
     });
   } catch (e: unknown) {
     const errMsg = e instanceof Error ? e.message : String(e);

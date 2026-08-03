@@ -97,6 +97,11 @@ class _AirQualityScreenState extends State<AirQualityScreen> {
         _buildHeader(p),
         const SizedBox(height: 12),
         AqiRingCard(current: f.current, isStale: p.isStale),
+        // Intelligente Health-Tipps
+        if (f.tips.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _buildAirQualityTips(f.tips),
+        ],
         const SizedBox(height: 14),
         if (f.hourly.isNotEmpty) ...[
           HourlyAQIStrip(hourly: f.hourly),
@@ -164,6 +169,72 @@ class _AirQualityScreenState extends State<AirQualityScreen> {
     if (diff.inSeconds < 60) return 'gerade eben';
     if (diff.inMinutes < 60) return 'vor ${diff.inMinutes} Min';
     return 'vor ${diff.inHours} Std';
+  }
+
+  /// Intelligente Air Quality Health-Tipps
+  Widget _buildAirQualityTips(List<AirQualityTipDto> tips) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withOpacity(0.08),
+            AppColors.primary.withOpacity(0.03),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.15),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.health_and_safety, size: 16, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(
+                'Gesundheitsempfehlungen',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final tip in tips) ...[
+            if (tip != tips.first) const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tip.icon, style: const TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    tip.text,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: tip.isHighPriority
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                      fontWeight: tip.isHighPriority
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildAttribution(AirQualityForecastResponse f) {
