@@ -257,6 +257,106 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 // ---------------------------------------------------------------------------
+// AI Chat Stream — POST /api/ai/chat/stream (SSE)
+//
+// Server-Sent Events Endpoint für token-by-token Antworten.
+// Ollama streamt Tokens — wir pipen sie als SSE events durch.
+//
+// Response: text/event-stream mit JSON events:
+//   data: {"token": "Hallo"}
+//   data: {"token": " Wie"}
+//   data: {"done": true, "model": "qwen2.5:3b"}
+// ---------------------------------------------------------------------------
+
+aiRouter.post('/chat/stream', asyncHandler(async (req: Request, res: Response) => {
+  const { message, model, systemPrompt } = req.body as ChatRequestBody;
+
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    res.status(400).json({ status: 'error', error: 'message ist erforderlich' });
+    return;
+  }
+
+  // SSE Headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  // Heartbeat every 15s to prevent proxy timeout
+  const heartbeat = setInterval(() => {
+    res.write(':heartbeat\n\n');
+  }, 15000);
+
+  try {
+    const activeModel = model ?? await ollamaService.getActiveModelAsync();
+    const messages: import('../services/ollamaService').ChatMessage[] = [
+      { role: 'system', content: systemPrompt ?? 'Du bist HEIMAT AI. Antworte kurz auf Deutsch.' },
+      { role: 'user', content: message.trim() },
+    ];
+
+    const response = await fetch(`${ollamaService['baseUrl']}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: activeModel,
+        messages,
+        stream: true,
+        options: { num_predict: 100, temperature: 0.3 },
+      }),
+    });
+
+    if (!response.ok) {
+      res.write(`data: ${JSON.stringify({ error: `Ollama HTTP ${response.status}` })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      clearInterval(heartbeat);
+      res.end();
+      return;
+    }
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const chunk = JSON.parse(line);
+            if (chunk.message?.content) {
+              res.write(`data: ${JSON.stringify({ token: chunk.message.content })}\n\n`);
+            }
+            if (chunk.done) {
+              res.write(`data: ${JSON.stringify({ done: true, model: chunk.model ?? activeModel })}\n\n`);
+            }
+          } catch {
+            // Skip malformed JSON lines
+          }
+        }
+      }
+    }
+
+    res.write('data: [DONE]\n\n');
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error(`AI Chat Stream Error: ${msg}`);
+    res.write(`data: ${JSON.stringify({ error: msg })}\n\n`);
+    res.write('data: [DONE]\n\n');
+  } finally {
+    clearInterval(heartbeat);
+    res.end();
+  }
+}));
+
+// ---------------------------------------------------------------------------
 // AI Status — GET /api/ai/status
 //
 // Prueft ob Ollama laeuft und das Default-Modell verfuegbar ist.
