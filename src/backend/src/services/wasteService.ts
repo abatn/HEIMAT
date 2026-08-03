@@ -33,7 +33,7 @@
 import type { AxiosInstance } from 'axios';
 import { logger } from '../utils/logger';
 import { CITY_BOUNDS, resolveCity, CityNotSupportedError, type WasteCityKey, type CityBounds } from './wasteCityResolver';
-import type { CityWasteConfig } from './wasteCityRegistry';
+import { type CityWasteConfig, getSupportedCities } from './wasteCityRegistry';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 import { externalServices } from '../config/externalServices';
 
@@ -224,12 +224,11 @@ export class WasteService {
     cities: { city: WasteCityKey; displayName: string; addressRequired: boolean; attribution: string }[];
     cacheEntries: number;
   } {
-    const { getSupportedCities } = require('./wasteCityRegistry');
     const cities = getSupportedCities();
     return {
       service: 'waste',
-      cities: cities.map((c: any) => ({
-        city: c.id,
+      cities: cities.map((c: CityWasteConfig) => ({
+        city: c.id as WasteCityKey,
         displayName: c.displayName,
         addressRequired: c.addressRequired,
         attribution: c.attribution,
@@ -242,9 +241,8 @@ export class WasteService {
    * Public lookup for per-city attribution string (CC-BY license text).
    */
   getAttribution(city: WasteCityKey): string {
-    const { getSupportedCities } = require('./wasteCityRegistry');
     const cities = getSupportedCities();
-    const found = cities.find((c: any) => c.id === city);
+    const found = cities.find((c: CityWasteConfig) => c.id === city);
     return found?.attribution || 'Unknown';
   }
 
@@ -276,16 +274,13 @@ export class WasteService {
     return {
       version: '1.0',
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      cities: (() => {
-        const { getSupportedCities } = require('./wasteCityRegistry');
-        return getSupportedCities().map((c: any) => ({
-          name: c.id,
-          displayName: c.displayName,
-          bbox: { minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 }, // Dynamic — no hardcoding
-          addressRequired: c.addressRequired,
-          attribution: c.attribution,
-        }));
-      })(),
+      cities: getSupportedCities().map((c: CityWasteConfig) => ({
+        name: c.id as WasteCityKey,
+        displayName: c.displayName,
+        bbox: { minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 }, // Dynamic — no hardcoding
+        addressRequired: c.addressRequired,
+        attribution: c.attribution,
+      })),
     };
   }
 
