@@ -154,19 +154,19 @@ beforeEach(() => {
 describe('wasteCityResolver — Bounding-Box-Mapping', () => {
   it('Berlin (BERLIN_TEST.lat, BERLIN_TEST.lng) → berlin', async () => {
     const b = await resolveCity(BERLIN_TEST.lat, BERLIN_TEST.lng);
-    expect(b.city).toBe('berlin');
+    expect(b.id).toBe('berlin');
     expect(b.displayName).toBe('Berlin');
   });
 
   it('Hamburg (HAMBURG_TEST.lat, HAMBURG_TEST.lng) → hamburg', async () => {
     const b = await resolveCity(HAMBURG_TEST.lat, HAMBURG_TEST.lng);
-    expect(b.city).toBe('hamburg');
+    expect(b.id).toBe('hamburg');
     expect(b.displayName).toBe('Hamburg');
   });
 
   it('München (MUENCHEN_TEST.lat, MUENCHEN_TEST.lng) → muenchen', async () => {
     const b = await resolveCity(MUENCHEN_TEST.lat, MUENCHEN_TEST.lng);
-    expect(b.city).toBe('muenchen');
+    expect(b.id).toBe('muenchen');
     expect(b.displayName).toBe('München');
   });
 
