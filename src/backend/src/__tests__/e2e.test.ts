@@ -13,6 +13,7 @@
 
 import request from 'supertest';
 import app from '../index';
+import { withRetry, isAcceptableStatus, TIMEOUTS } from './test-utils';
 
 describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
   const testEmail = `e2e-${Date.now()}@heimat.de`;
@@ -33,47 +34,44 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
   });
 
   describe('2. Mobilität (Overpass + transitous.org)', () => {
-    // Retry-Helper fuer flaky external APIs (Overpass常常 429/503/Timeout in CI)
-    const withRetry = async (fn: () => Promise<request.Response>, retries = 2, delayMs = 2000): Promise<request.Response> => {
-      for (let i = 0; i <= retries; i++) {
-        try {
-          const res = await Promise.race([
-            fn(),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000)),
-          ]);
-          return res;
-        } catch (err) {
-          if (i === retries) throw err;
-          await new Promise(r => setTimeout(r, delayMs));
-        }
-      }
-      throw new Error('unreachable');
-    };
-
     it('sollte Haltestellen in der Nähe laden', async () => {
-      const res = await withRetry(() =>
-        request(app).get('/api/mobility/stops?lat=52.5200&lng=13.4050&radius=1000')
+      const res = await withRetry(
+        () =>
+          request(app).get(
+            '/api/mobility/stops?lat=52.5200&lng=13.4050&radius=1000',
+          ),
+        { name: 'e2e-mobility-stops', timeoutMs: TIMEOUTS.overpass },
       );
-      // Echter Overpass-API-Call: manchmal 503/429 wenn upstream nicht erreichbar.
-      expect([200, 429, 502, 503]).toContain(res.status);
+
+      expect(isAcceptableStatus(res.status)).toBe(true);
       if (res.status === 200) {
         expect(Array.isArray(res.body.stops)).toBe(true);
       }
-    }, 90000);
+    }, TIMEOUTS.overpass);
 
     it('sollte Geocoding durchführen', async () => {
-      const res = await withRetry(() =>
-        request(app).get('/api/mobility/geocode?address=Alexanderplatz%20Berlin')
+      const res = await withRetry(
+        () =>
+          request(app).get(
+            '/api/mobility/geocode?address=Alexanderplatz%20Berlin',
+          ),
+        { name: 'e2e-mobility-geocode', timeoutMs: TIMEOUTS.nominatim },
       );
-      expect([200, 429, 500]).toContain(res.status);
-    }, 90000);
+
+      expect(isAcceptableStatus(res.status)).toBe(true);
+    }, TIMEOUTS.nominatim);
 
     it('sollte Abfahrten laden', async () => {
-      const res = await withRetry(() =>
-        request(app).get('/api/mobility/departures?lat=52.5200&lng=13.4050')
+      const res = await withRetry(
+        () =>
+          request(app).get(
+            '/api/mobility/departures?lat=52.5200&lng=13.4050',
+          ),
+        { name: 'e2e-mobility-departures', timeoutMs: TIMEOUTS.transit },
       );
-      expect([200, 429, 502, 503]).toContain(res.status);
-    }, 90000);
+
+      expect(isAcceptableStatus(res.status)).toBe(true);
+    }, TIMEOUTS.transit);
 
     it('sollte RAPTOR-Status zurückgeben', async () => {
       const res = await request(app).get('/api/mobility/raptor/status');
@@ -121,23 +119,31 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
 
   describe('4. Finanzen (echter GNU Taler Exchange — Bank-Wire-Workflow)', () => {
     it('sollte echte Exchange-Konfiguration laden', async () => {
-      const res = await request(app).get('/api/finance/taler/config');
-      expect([200, 502, 503]).toContain(res.status);
+      const res = await withRetry(
+        () => request(app).get('/api/finance/taler/config'),
+        { name: 'e2e-taler-config', timeoutMs: TIMEOUTS.exchange },
+      );
+
+      expect(isAcceptableStatus(res.status)).toBe(true);
       if (res.status === 200) {
         expect(res.body.currency).toBe('KUDOS');
         expect(res.body.master_public_key).toMatch(/^[A-Z0-9]{52,60}$/);
         expect(JSON.stringify(res.body)).not.toMatch(/Simulator/i);
       }
-    }, 60000);
+    }, TIMEOUTS.exchange);
 
     it('sollte Exchange-Health-Probe liefern', async () => {
-      const res = await request(app).get('/api/finance/taler/status');
-      expect([200, 502, 503]).toContain(res.status);
+      const res = await withRetry(
+        () => request(app).get('/api/finance/taler/status'),
+        { name: 'e2e-taler-status', timeoutMs: TIMEOUTS.exchange },
+      );
+
+      expect(isAcceptableStatus(res.status)).toBe(true);
       if (res.status === 200) {
         expect(res.body.reachable).toBe(true);
         expect(res.body.base_url).toBe('https://exchange.demo.taler.net/');
       }
-    }, 60000);
+    }, TIMEOUTS.exchange);
 
     it('sollte Wallet mit echter Ed25519-Identität erstellen', async () => {
       const res = await request(app)

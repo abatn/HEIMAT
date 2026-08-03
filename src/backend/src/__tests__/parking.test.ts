@@ -1,13 +1,19 @@
 import request from 'supertest';
 import app from '../index';
+import { withRetry, isAcceptableStatus, TIMEOUTS } from './test-utils';
 
 describe('Parken API', () => {
   describe('GET /api/parking/spots', () => {
     it('should return live parking spots or 503 if OpenStreetMap unreachable', async () => {
-      const res = await request(app)
-        .get('/api/parking/spots?lat=52.5200&lng=13.4050&radius_km=2');
+      const res = await withRetry(
+        () =>
+          request(app).get(
+            '/api/parking/spots?lat=52.5200&lng=13.4050&radius_km=2',
+          ),
+        { name: 'parking-spots', timeoutMs: TIMEOUTS.overpass },
+      );
 
-      expect([200, 503]).toContain(res.status);
+      expect(isAcceptableStatus(res.status)).toBe(true);
       if (res.status === 200) {
         expect(res.body).toHaveProperty('spots');
         expect(Array.isArray(res.body.spots)).toBe(true);
@@ -23,17 +29,22 @@ describe('Parken API', () => {
           expect(spot).toHaveProperty('attribution', 'OpenStreetMap');
         }
       }
-    }, 120000);
+    }, TIMEOUTS.overpass);
 
     it('should accept default radius when radius_km is omitted', async () => {
-      const res = await request(app)
-        .get('/api/parking/spots?lat=52.5200&lng=13.4050');
+      const res = await withRetry(
+        () =>
+          request(app).get(
+            '/api/parking/spots?lat=52.5200&lng=13.4050',
+          ),
+        { name: 'parking-default-radius', timeoutMs: TIMEOUTS.overpass },
+      );
 
-      expect([200, 503]).toContain(res.status);
+      expect(isAcceptableStatus(res.status)).toBe(true);
       if (res.status === 200) {
         expect(res.body).toHaveProperty('radius_km', 2);
       }
-    }, 120000);
+    }, TIMEOUTS.overpass);
 
     it('should return error without coordinates', async () => {
       const res = await request(app).get('/api/parking/spots');
@@ -41,20 +52,23 @@ describe('Parken API', () => {
     });
 
     it('should return error with invalid coordinates', async () => {
-      const res = await request(app)
-        .get('/api/parking/spots?lat=abc&lng=xyz');
+      const res = await request(app).get(
+        '/api/parking/spots?lat=abc&lng=xyz',
+      );
       expect(res.status).toBe(400);
     });
 
     it('should return error with radius_km out of range', async () => {
-      const res = await request(app)
-        .get('/api/parking/spots?lat=52.52&lng=13.41&radius_km=100');
+      const res = await request(app).get(
+        '/api/parking/spots?lat=52.52&lng=13.41&radius_km=100',
+      );
       expect(res.status).toBe(400);
     });
 
     it('should return error with negative radius_km', async () => {
-      const res = await request(app)
-        .get('/api/parking/spots?lat=52.52&lng=13.41&radius_km=-5');
+      const res = await request(app).get(
+        '/api/parking/spots?lat=52.52&lng=13.41&radius_km=-5',
+      );
       expect(res.status).toBe(400);
     });
   });

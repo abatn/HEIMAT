@@ -1,16 +1,19 @@
 import request from 'supertest';
 import app from '../index';
+import { withRetry, isAcceptableStatus, TIMEOUTS } from './test-utils';
 
 describe('E-Ladestationen API', () => {
   describe('GET /api/ev-charging/stations', () => {
-    // Timeout 120s weil 3 Overpass-Mirrors mit je 25s Axios-Timeout sequentiell
-    // probiert werden (75s worst-case). In CI ohne Overpass-Zugriff muessen alle
-    // 3 fehlschlagen bevor der Service 503 retourniert (den der Test erwartet).
     it('should return live stations or 503 if OpenStreetMap unreachable', async () => {
-      const res = await request(app)
-        .get('/api/ev-charging/stations?lat=52.5200&lng=13.4050&radius_km=5');
+      const res = await withRetry(
+        () =>
+          request(app).get(
+            '/api/ev-charging/stations?lat=52.5200&lng=13.4050&radius_km=5',
+          ),
+        { name: 'ev-charging', timeoutMs: TIMEOUTS.overpass },
+      );
 
-      expect([200, 503]).toContain(res.status);
+      expect(isAcceptableStatus(res.status)).toBe(true);
       if (res.status === 200) {
         expect(res.body).toHaveProperty('stations');
         expect(Array.isArray(res.body.stations)).toBe(true);
@@ -28,17 +31,22 @@ describe('E-Ladestationen API', () => {
           expect(Array.isArray(station.sockets)).toBe(true);
         }
       }
-    }, 120000);
+    }, TIMEOUTS.overpass);
 
     it('should accept default radius when radius_km is omitted', async () => {
-      const res = await request(app)
-        .get('/api/ev-charging/stations?lat=52.5200&lng=13.4050');
+      const res = await withRetry(
+        () =>
+          request(app).get(
+            '/api/ev-charging/stations?lat=52.5200&lng=13.4050',
+          ),
+        { name: 'ev-charging-default', timeoutMs: TIMEOUTS.overpass },
+      );
 
-      expect([200, 503]).toContain(res.status);
+      expect(isAcceptableStatus(res.status)).toBe(true);
       if (res.status === 200) {
         expect(res.body).toHaveProperty('radius_km', 5);
       }
-    }, 120000);
+    }, TIMEOUTS.overpass);
 
     it('should return error without coordinates', async () => {
       const res = await request(app).get('/api/ev-charging/stations');
@@ -46,20 +54,23 @@ describe('E-Ladestationen API', () => {
     });
 
     it('should return error with invalid coordinates', async () => {
-      const res = await request(app)
-        .get('/api/ev-charging/stations?lat=abc&lng=xyz');
+      const res = await request(app).get(
+        '/api/ev-charging/stations?lat=abc&lng=xyz',
+      );
       expect(res.status).toBe(400);
     });
 
     it('should return error with radius_km out of range', async () => {
-      const res = await request(app)
-        .get('/api/ev-charging/stations?lat=52.52&lng=13.41&radius_km=100');
+      const res = await request(app).get(
+        '/api/ev-charging/stations?lat=52.52&lng=13.41&radius_km=100',
+      );
       expect(res.status).toBe(400);
     });
 
     it('should return error with negative radius_km', async () => {
-      const res = await request(app)
-        .get('/api/ev-charging/stations?lat=52.52&lng=13.41&radius_km=-5');
+      const res = await request(app).get(
+        '/api/ev-charging/stations?lat=52.52&lng=13.41&radius_km=-5',
+      );
       expect(res.status).toBe(400);
     });
   });
