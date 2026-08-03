@@ -102,7 +102,7 @@ class AirQualityProvider extends ChangeNotifier {
         return;
       }
       final data =
-          await apiGet('/api/air-quality/forecast?lat=$_lat&lng=$_lng');
+          await apiGet('/api/air-quality/current?lat=$_lat&lng=$_lng');
       if (data['status'] != 'ok') {
         throw Exception(
           data['message']?.toString() ?? 'Backend lieferte Fehler-Status',

@@ -21,15 +21,18 @@ class AirQualityForecastResponse {
   });
 
   factory AirQualityForecastResponse.fromJson(Map<String, dynamic> json) {
+    // API liefert airQuality (current) + hourly (optional)
+    final airQuality = json['airQuality'] as Map<String, dynamic>? ?? json['current'] as Map<String, dynamic>? ?? {};
+    final hourlyRaw = json['hourly'] as List<dynamic>? ?? const [];
+    
     return AirQualityForecastResponse(
       status: json['status'] as String? ?? 'unknown',
-      current: CurrentAirQualityDto.fromJson(
-          json['current'] as Map<String, dynamic>),
-      hourly: (json['hourly'] as List<dynamic>? ?? const [])
+      current: CurrentAirQualityDto.fromJson(airQuality),
+      hourly: hourlyRaw
           .map((e) => HourlyAirQualityDto.fromJson(e as Map<String, dynamic>))
           .toList(),
       location: AirQualityLocationDto.fromJson(
-          json['location'] as Map<String, dynamic>),
+          json['location'] as Map<String, dynamic>? ?? {}),
       source: json['source'] as String? ?? '',
     );
   }
