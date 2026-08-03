@@ -10,6 +10,32 @@
 ///
 /// **Responsibility:** Pure dataclasses, kein Flutter-Import.
 
+/// WeatherTipDto — Intelligenter Tipp basierend auf Wetterdaten
+class WeatherTipDto {
+  final String icon;
+  final String text;
+  final String priority; // 'high', 'medium', 'low'
+  final String category; // 'activity', 'health', 'clothing', 'transport'
+
+  const WeatherTipDto({
+    required this.icon,
+    required this.text,
+    required this.priority,
+    required this.category,
+  });
+
+  factory WeatherTipDto.fromJson(Map<String, dynamic> json) {
+    return WeatherTipDto(
+      icon: json['icon'] as String? ?? '💡',
+      text: json['text'] as String? ?? '',
+      priority: json['priority'] as String? ?? 'low',
+      category: json['category'] as String? ?? 'activity',
+    );
+  }
+
+  bool get isHighPriority => priority == 'high';
+}
+
 /// ForecastResponse — Root-Container für /api/weather/forecast
 class WeatherForecastResponse {
   final String status;
@@ -18,6 +44,7 @@ class WeatherForecastResponse {
   final List<DailyForecastDto> daily;
   final LocationDto location;
   final String source;
+  final List<WeatherTipDto> tips;
 
   const WeatherForecastResponse({
     required this.status,
@@ -26,6 +53,7 @@ class WeatherForecastResponse {
     required this.daily,
     required this.location,
     required this.source,
+    this.tips = const [],
   });
 
   factory WeatherForecastResponse.fromJson(Map<String, dynamic> json) {
@@ -41,6 +69,9 @@ class WeatherForecastResponse {
           .toList(),
       location: LocationDto.fromJson(json['location'] as Map<String, dynamic>),
       source: json['source'] as String? ?? '',
+      tips: (json['tips'] as List<dynamic>? ?? const [])
+          .map((e) => WeatherTipDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

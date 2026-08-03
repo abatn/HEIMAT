@@ -6,7 +6,7 @@ import '../../core/widgets/skeleton_loader.dart';
 import '../../core/widgets/empty_state.dart';
 import '../ai/local_sentiment_classifier.dart';
 import '../home/presentation/home_provider.dart';
-import 'weather_dto.dart';
+import 'weather_dto.dart'; // WeatherTipDto is in weather_dto.dart
 import 'weather_provider.dart';
 import 'widgets/alert_banner.dart';
 import 'widgets/cross_service_insight_card.dart';
@@ -148,6 +148,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
           _buildSentimentRow(p.sentiment!),
         ],
         const SizedBox(height: 16),
+        // Intelligente Wetter-Tipps
+        if (f.tips.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _buildWeatherTips(f.tips),
+        ],
+        const SizedBox(height: 16),
         if (f.hourly.isNotEmpty) HourlyForecastStrip(hourly: f.hourly),
         const SizedBox(height: 16),
         if (f.daily.isNotEmpty) WeeklyOutlookGrid(daily: f.daily),
@@ -287,6 +293,72 @@ class _WeatherScreenState extends State<WeatherScreen> {
     if (diff.inSeconds < 60) return 'gerade eben';
     if (diff.inMinutes < 60) return 'vor ${diff.inMinutes} Min';
     return 'vor ${diff.inHours} Std';
+  }
+
+  /// Intelligente Wetter-Tipps — kontextbezogene Empfehlungen
+  Widget _buildWeatherTips(List<WeatherTipDto> tips) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withOpacity(0.08),
+            AppColors.primary.withOpacity(0.03),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.15),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline, size: 16, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(
+                'Empfehlungen',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final tip in tips) ...[
+            if (tip != tips.first) const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tip.icon, style: const TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    tip.text,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: tip.isHighPriority
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                      fontWeight: tip.isHighPriority
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildAttribution(f) {

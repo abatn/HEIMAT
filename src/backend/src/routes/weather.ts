@@ -2,6 +2,77 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { weatherService } from '../services/weatherService';
 import { generateAlerts } from '../services/weatherAlertsService';
 import { logger } from '../utils/logger';
+import type { WeatherData } from '../services/weatherService';
+
+// ---------------------------------------------------------------------------
+// Intelligent Weather Tips — Pure Rule-Engine
+//
+// Erzeugt kontextbezogene Empfehlungen basierend auf Wetterdaten.
+// Keine externen API-Calls, keine AI — reine Logik.
+// ---------------------------------------------------------------------------
+
+interface WeatherTip {
+  icon: string;
+  text: string;
+  priority: 'high' | 'medium' | 'low';
+  category: 'activity' | 'health' | 'clothing' | 'transport';
+}
+
+function generateWeatherTips(data: WeatherData): WeatherTip[] {
+  const tips: WeatherTip[] = [];
+  const c = data.current;
+  const temp = c.temperature;
+  const wind = c.windSpeed;
+  const rain = c.precipitation;
+  // WMO Weather Codes: 50-67 = Regen, 70-77 = Schnee, 80-82 = Schauer
+  const isRaining = c.weatherCode >= 50 && c.weatherCode <= 82;
+  const uvIndex = c.uvIndex;
+
+  // Temperatur-basierte Tipps
+  if (temp < 0) {
+    tips.push({ icon: '🥶', text: 'Eisig kalt! Warm anziehen, Mütze und Handschuhe nicht vergessen.', priority: 'high', category: 'clothing' });
+  } else if (temp < 5) {
+    tips.push({ icon: '🧣', text: 'Kalt! Jacke, Schal und ggf. Mütze empfohlen.', priority: 'high', category: 'clothing' });
+  } else if (temp < 15) {
+    tips.push({ icon: '🧥', text: 'Kühlere Temperaturen — eine leichte Jacke ist sinnvoll.', priority: 'medium', category: 'clothing' });
+  } else if (temp > 30) {
+    tips.push({ icon: '☀️', text: 'Heiß! Viel trinken und Sonnenschutz nicht vergessen.', priority: 'high', category: 'health' });
+  } else if (temp > 25) {
+    tips.push({ icon: '😎', text: 'Angenehm warm — perfekt für Aktivitäten draußen!', priority: 'low', category: 'activity' });
+  }
+
+  // Regen-Tipps
+  if (isRaining) {
+    tips.push({ icon: '☔', text: 'Es regnet gerade — Regenjacke oder Schirm mitnehmen!', priority: 'high', category: 'clothing' });
+  } else if (rain > 0.5) {
+    tips.push({ icon: '🌧️', text: 'Leichter Regen erwartet — Schirm einpacken.', priority: 'medium', category: 'clothing' });
+  }
+
+  // Wind-Tipps
+  if (wind > 40) {
+    tips.push({ icon: '💨', text: 'Starker Wind! Vorsicht bei Fahrrad und offenem Regenschirm.', priority: 'high', category: 'transport' });
+  } else if (wind > 25) {
+    tips.push({ icon: '🌬️', text: 'Windig — leichte Jacke schützt vor Windchill.', priority: 'medium', category: 'clothing' });
+  }
+
+  // Aktivitäts-Tipps
+  if (!isRaining && temp >= 15 && temp <= 28 && wind < 25) {
+    tips.push({ icon: '🚴', text: 'Perfektes Wetter für eine Runde draußen!', priority: 'low', category: 'activity' });
+  }
+
+  // UV-Tipp
+  if (uvIndex != null && uvIndex > 6) {
+    tips.push({ icon: '🧴', text: 'Hoher UV-Index — Sonnenschutz verwenden!', priority: 'medium', category: 'health' });
+  }
+
+  // Tageszeit-basierte Tipps
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 9 && !isRaining && temp >= 10) {
+    tips.push({ icon: '🌅', text: 'Guter Morgen für eine Frühsport-Einheit!', priority: 'low', category: 'activity' });
+  }
+
+  return tips.slice(0, 5); // Max 5 Tipps für UI-Klarheit
+}
 
 export const weatherRouter = Router();
 
@@ -63,6 +134,7 @@ weatherRouter.get('/forecast', asyncHandler(async (req: Request, res: Response) 
 
   try {
     const data = await weatherService.getWeather(lat, lng);
+    const tips = generateWeatherTips(data);
     res.json({
       status: 'ok',
       current: data.current,
@@ -70,6 +142,7 @@ weatherRouter.get('/forecast', asyncHandler(async (req: Request, res: Response) 
       daily: data.daily,
       location: data.location,
       source: data.source,
+      tips,
     });
   } catch (e: unknown) {
     const errMsg = e instanceof Error ? e.message : String(e);
