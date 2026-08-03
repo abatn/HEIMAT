@@ -135,6 +135,8 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 
 5. **Postgres DECIMAL → Flutter:** `pg` returns DECIMAL as strings. Use `double.parse(json['lat'].toString())` in providers — calling `.toDouble()` on the string throws `Dynamic call of null` (known crash).
 
+5b. **Postgres DECIMAL/COUNT → Backend:** `pg` returns DECIMAL and COUNT(*) as strings (e.g. `"7"` not `7`). Jest matchers like `toBeGreaterThanOrEqual()` fail with `"received value must be a number or bigint"`. Fix: cast with `Number(value)` in the service layer, or `parseFloat()` in tests. Applies to: COUNT(*), DECIMAL, NUMERIC columns. Example: `total_entries: Number(total?.count ?? 0)`.
+
 6. **Route order in Express:** Define `/stops/search` BEFORE `/stops/:id` or Express captures `id="search"` and the search route 500s.
 
 7. **Journey query params:** Backend expects `?from_lat=&from_lng=&to_lat=&to_lng=`. Flutter was sending `?from=lat,lng` — fixed in `mobility_provider.dart`, regression-prone.

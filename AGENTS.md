@@ -78,6 +78,7 @@ Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `'toDouble' Dynamic call of null` on latitude/longitude | Postgres DECIMAL → Node pg passes string → Flutter `.toDouble()` on null | `double.parse(json['latitude'].toString())` in providers |
+| `received value must be a number or bigint` in Jest tests | Postgres COUNT(*)/DECIMAL returns strings (e.g. `"7"`), Jest `toBeGreaterThanOrEqual()` expects number | Cast in service: `Number(result?.count ?? 0)`. Also DECIMAL columns like `location_lat` return strings — use `Number()` in tests or services. |
 | "Haltestellen konnten nicht geladen werden" | Helmet CORS blocks API | Index.ts has permissive helmet config |
 | `GET /stops/search` returns 500 "invalid input syntax for type uuid" | Express matches `/stops/search` as `/stops/:id` with `id="search"` | Define `/stops/search` before `/stops/:id` in `mobility.ts` |
 | Journey search empty | Frontend sends `?from=lat,lng`, backend expects `?from_lat=&from_lng=` | Fix query params in `mobility_provider.dart` |

@@ -120,6 +120,22 @@ double.parse(json['latitude'].toString())
 
 Betroffene Dateien: `mobility_provider.dart`, `finance_provider.dart`, `health_provider.dart`
 
+### DECIMAL/COUNT → String in Backend-Jest (PostgreSQL → Node)
+
+**Symptom:** `received value must be a number or bigint` in Jest tests. PostgreSQL `pg` driver returns `COUNT(*)`, `DECIMAL`, and `NUMERIC` columns as strings (e.g. `"7"` not `7`). Jest matchers like `toBeGreaterThanOrEqual()` fail.
+
+**Fix in Services:**
+```typescript
+total_entries: Number(total?.count ?? 0)
+```
+
+**Fix in Tests (DECIMAL columns):**
+```typescript
+expect(Number(result.location_lat)).toBe(52.52);
+```
+
+Betroffene Dateien: `healthMemoryService.ts`, `userMedicationsService.ts`, `mentalHealthService.ts`
+
 ### CORS/helmet blockiert API-Responses
 
 **Fix in `src/backend/src/index.ts`:**
