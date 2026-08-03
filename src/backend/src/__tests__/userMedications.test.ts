@@ -218,8 +218,7 @@ describe('UserMedicationsService', () => {
       expect(result).toBeDefined();
       expect(result.hasSevereInteraction).toBe(true);
       expect(result.interactions).toBeDefined();
-      expect(result.interactions).toBeDefined();
-      expect(Array.isArray(result.interactions.interactions)).toBe(true);
+      expect(Array.isArray(result.interactions)).toBe(true);
       expect(result.interactions.length).toBeGreaterThanOrEqual(1);
       expect(result.interactions[0].severity).toBe('schwerwiegend');
     });
