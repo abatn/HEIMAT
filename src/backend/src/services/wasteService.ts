@@ -139,6 +139,14 @@ export class WasteService {
     // 1. City-Resolver (dynamic via Nominatim — no hardcoding)
     const cityConfig = await resolveCity(lat, lng);
 
+    // 1b. Check if primary URL is empty (deactivated city)
+    if (!cityConfig.primaryUrl) {
+      throw new Error(
+        `Abfallkalender für ${cityConfig.displayName} ist derzeit nicht verfügbar. ` +
+        `Die externe API hat sich geändert. Wir arbeiten an einer Lösung.`
+      );
+    }
+
     // 2. Address-Required Check (dynamic per city config)
     if (cityConfig.addressRequired && (!street || !houseNr)) {
       throw new AddressRequiredError({ city: cityConfig.id as WasteCityKey, displayName: cityConfig.displayName, minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 });

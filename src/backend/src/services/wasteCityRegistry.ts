@@ -38,6 +38,13 @@ export interface CityWasteConfig {
   attribution: string;
   /** Nominatim-Keywords für Matching (Lowercase) */
   nominatimKeywords: string[];
+  /** Optional: Schedule-ID-Resolver für APIs die eine ID brauchen (z.B. BSR) */
+  scheduleIdResolver?: {
+    /** URL-Template für Schedule-ID-Lookup (z.B. BSR Adresssuche) */
+    lookupUrl: string;
+    /** URL-Template für iCal-Download mit Schedule-ID */
+    icalUrlTemplate: string;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -45,13 +52,18 @@ export interface CityWasteConfig {
 // ---------------------------------------------------------------------------
 
 const CITY_REGISTRY: CityWasteConfig[] = [
+  // BSR Berlin: Temporär deaktiviert — neue API erfordert Schedule-ID
+  // die nicht öffentlich per Adresse aufgelöst werden kann.
+  // Status: https://github.com/abatn/HEIMAT/issues/XXX
+  // TODO: BSR API erneut prüfen sobald öffentliches Lookup verfügbar ist.
+  // Aktuell: Zeige klare Meldung "BSR-API nicht verfügbar" statt 404-Fehler.
   {
     id: 'berlin',
     displayName: 'Berlin',
     adapter: 'bsr',
-    primaryUrl: externalServices.abfallBerlinPrimaryUrl,
-    fallbackUrl: externalServices.abfallBerlinFallbackUrl,
-    addressRequired: false,
+    primaryUrl: '', // Deaktiviert — BSR API erfordert Schedule-ID
+    fallbackUrl: undefined,
+    addressRequired: true,
     attribution: 'Berliner Stadtreinigung (BSR) — CC-BY 4.0',
     nominatimKeywords: ['berlin'],
   },
