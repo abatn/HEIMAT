@@ -52,7 +52,7 @@ export interface ServiceContext {
   weather?: { lat: number; lng: number };
   air?: { lat: number; lng: number };
   waste?: { lat: number; lng: number; street?: string; houseNr?: string };
-  health?: { lat: number; lng: number; radius?: number; specialty?: string; symptom?: string };
+  health?: { lat: number; lng: number; radius?: number; specialty?: string; symptom?: string; userId?: string };
   job?: { query?: string; location?: string };
   events?: { location?: string; date?: string };
   hotels?: { city?: string; budget?: number; checkin?: string; checkout?: string };

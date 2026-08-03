@@ -23,6 +23,8 @@ import { wasteRouter } from './routes/waste';
 import { evChargingRouter } from './routes/evCharging';
 import { configRouter } from './routes/config';
 import { checkinRouter } from './routes/checkin';
+import { healthMemoryRouter } from './routes/healthMemory';
+import { healthMedicationsRouter } from './routes/healthMedications';
 import { checkinService } from './services/checkinService';
 import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
@@ -64,6 +66,8 @@ app.use('/api/waste', wasteRouter);
 app.use('/api/ev-charging', evChargingRouter);
 app.use('/api/config', configRouter);
 app.use('/api/checkin', checkinRouter);
+app.use('/api/health/memory', healthMemoryRouter);
+app.use('/api/health/medications', healthMedicationsRouter);
 
 // Lebenszeichen Check-in Eskalations-Timer starten (nur in Produktion)
 if (process.env.NODE_ENV !== 'test') {

@@ -2238,3 +2238,77 @@ Dependabot bumped `typescript` `~5.6.3` → `^7.0.2` und `@typescript-eslint/*` 
 `dependabot-auto-merge.yml` merged minor-updates automatisch. Mehrere parallel gemergte Updates (TS 5→7, eslint 6→8, zod 3→4, etc.) erzeugen inkompatible Abhängigkeitsketten.
 
 **Fix:** Kein Code-Fix — erfordert Process-Änderung. `dependabot-auto-merge.yml` sollte keine semver-minor für Dev-Dependencies automatisch mergen, oder einen `needs: [ci]` Gate hinzufügen.
+
+---
+
+## Health AI Agent — Erweiterte Architektur (2026-08-03)
+
+> **STATUS:** 📋 Diskussionsphase — KEINE Code-Änderungen ohne explizite Freigabe!
+> **Skill-Datei:** `.claude/skills/heimat-health-ai.md`
+
+### Vision
+
+Ein intelligenter Health AI Agent, der:
+- **Gespräche führt** (nicht nur Keywords matcht)
+- **Differentialdiagnosen** liefert (nicht nur eine Antwort)
+- **Gedächtnis hat** (Symptom-Verlauf über Tage/Wochen)
+- **Kontext versteht** (Uhrzeit, Alter, Vorerkrankungen, Saison)
+- **Prävention** empfiehlt (nicht nur akute Behandlung)
+
+### Features (nach User-Freigabe)
+
+| # | Feature | Priorität | Phase |
+|---|---------|-----------|-------|
+| 1 | **Gedächtnis** — Symptome über Tage/Wochen speichern | 🔴 Muss | Phase 1 |
+| 2 | **Voice-Input** — Spracheingabe für Symptome | 🔴 Muss | Phase 1 |
+| 3 | **Foto-Analyse** — Hautausschlag, Rötung fotografieren | 🟡 Nice-to-have | Nach Anfrage |
+| 4 | **Medikamente** — User gibt Medikamente ein → Interaktionscheck | 🔴 Muss | Phase 1 |
+| 5 | **Mental Health** — Depressions-Screening einbauen | 🔴 Muss | Phase 2 |
+| 6 | **Prävention** — Alters-/Risiko-basierte Vorsorge | 🔴 Muss | Phase 2 |
+| 7 | **Nachsorge** — Post-Termin-Follow-up | 🔴 Muss | Phase 2 |
+| 8 | **Notfall-Kontext** — Uhrzeit/Allein-sein berücksichtigen | 🔴 Muss | Phase 1 |
+
+### Architektur
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    HEIMAT Health AI Agent                        │
+├─────────────────────────────────────────────────────────────────┤
+│  INPUT (Text, Voice, Foto, Kontext)                             │
+├─────────────────────────────────────────────────────────────────┤
+│  OLLAMA GESPRÄCHS-MANAGER                                       │
+│  ├── Multi-Turn Dialogue (Gedächtnis)                           │
+│  ├── Nachfragen-Engine (Wo? Seit wann? Begleitsymptome?)        │
+│  ├── Differentialdiagnose (nicht nur eine Antwort)              │
+│  └── Kontext-Switch (Notfall? Routine? Prävention?)            │
+├─────────────────────────────────────────────────────────────────┤
+│  WHO ICD-11 VALIDIERUNG                                         │
+│  ├── Symptom → ICD-Code Mapping                                 │
+│  ├── ICD-Code → Fachrichtung Mapping                            │
+│  └── Differentialdiagnose (mehrere ICD-Codes möglich)          │
+├─────────────────────────────────────────────────────────────────┤
+│  INTELLIGENZ-SCHICHT                                            │
+│  ├── Gedächtnis (Symptom-Verlauf über Zeit)                     │
+│  ├── Profil-Awareness (Alter, Geschlecht, Risiken)              │
+│  ├── Saisonale Awareness (Pollen, Grippe-Season)                │
+│  ├── Medikamenten-Interaktion                                   │
+│  └── Notfall-Kontext (Uhrzeit, Allein-sein, Vorerkrankungen)   │
+├─────────────────────────────────────────────────────────────────┤
+│  OUTPUT (Triage, Differentialdiagnose, Fachrichtung, Arzt)      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Phasen
+
+| Phase | Features | Tage |
+|-------|----------|------|
+| **Phase 1** | Gedächtnis, Voice-Input, Medikamente, Notfall-Kontext | 5-7 |
+| **Phase 2** | Mental Health, Prävention, Nachsorge | 5-7 |
+| **Phase 3** | Foto-Analyse, Erweiterte Differentialdiagnose | 3-5 |
+
+### Nächste Schritte
+
+1. **Diskussion abschließen** — User bestätigt Architektur
+2. **Detailliertes Design** — API-Schemas, DB-Tabellen, UI-Mockups
+3. **Proof of Concept** — Einzelne Features testen
+4. **Phasenweise Implementierung** — Phase 1 → Phase 2 → Phase 3

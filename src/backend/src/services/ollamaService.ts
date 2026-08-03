@@ -22,6 +22,8 @@ import { promptService, type ServiceContext } from './promptService';
 import { ragService } from './ragService';
 import { whoIcdService } from './whoIcdService';
 import { triageRulesService, type TriageResult } from './triageRulesService';
+import { healthMemoryService } from './healthMemoryService';
+import { userMedicationsService } from './userMedicationsService';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -79,6 +81,15 @@ const FALLBACK_MESSAGE =
 const SERVICE_CONTEXT_SEPARATOR = '\n\n---\n\n';
 
 
+
+export interface HealthContextWithMemory {
+  symptom?: string;
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  specialty?: string;
+  userId?: string;
+}
 
 export class OllamaService {
   private readonly baseUrl: string;
@@ -148,6 +159,44 @@ export class OllamaService {
   // Sync-Version (fuer routes/ai.ts response-Feld) — gibt Fallback wenn Detect noch laeuft.
   getActiveModel(): string {
     return this.detectedModel || 'qwen2.5:3b';
+  }
+
+  // -----------------------------------------------------------------------
+  // getMemoryContext — Lade Symptom-Verlauf für Ollama-Kontext.
+  // -----------------------------------------------------------------------
+  private async getMemoryContext(userId: string): Promise<string> {
+    try {
+      const context = await healthMemoryService.getRecentForContext(userId, 5);
+      return context;
+    } catch (e) {
+      logger.warn(`Memory-Kontext konnte nicht geladen werden: ${e}`);
+      return '';
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // getMedicationContext — Lade aktuelle Medikamente für Ollama-Kontext.
+  // -----------------------------------------------------------------------
+  private async getMedicationContext(userId: string): Promise<string> {
+    try {
+      const context = await userMedicationsService.getMedicationsForContext(userId);
+      
+      // Auch Interaktionen laden
+      const interactions = await userMedicationsService.checkUserInteractions(userId);
+      
+      let result = context;
+      if (interactions.hasSevereInteraction) {
+        result += '\n\n⚠️ WARNUNG: Schwerwiegende Interaktionen gefunden!';
+        for (const inter of interactions.interactions.filter(i => i.severity === 'schwerwiegend')) {
+          result += `\n- ${inter.drug_a} + ${inter.drug_b}: ${inter.description}`;
+        }
+      }
+      
+      return result;
+    } catch (e) {
+      logger.warn(`Medikamenten-Kontext konnte nicht geladen werden: ${e}`);
+      return '';
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -240,6 +289,7 @@ export class OllamaService {
     options?: { model?: string; systemPrompt?: string },
   ): Promise<string> {
     const isHealthTriage = !!(context.health?.symptom);
+    const userId = context.health?.userId;
 
     // ---- FAST PATH: Health Triage ----
     // Strategie: WHO ICD-API -> deterministische Rules -> Ollama Fallback
@@ -268,7 +318,26 @@ export class OllamaService {
       // 3. Formatierung fuer User-Antwort
       const triageText = triageRulesService.formatTriageForPrompt(triageResult);
 
-      // 4. Ollama als optionaler Enhancer (nicht noetig fuer Triage)
+      // 4. Gedächtnis- und Medikamenten-Kontext laden (wenn userId vorhanden)
+      let memoryContext = '';
+      let medicationContext = '';
+      if (userId) {
+        [memoryContext, medicationContext] = await Promise.all([
+          this.getMemoryContext(userId),
+          this.getMedicationContext(userId),
+        ]);
+      }
+
+      // 5. Erweiterten Triage-Prompt bauen
+      let enhancedTriagePrompt = HEALTH_TRIAGE_PROMPT + triageText;
+      if (memoryContext) {
+        enhancedTriagePrompt += `\n\nVorherige Symptome des Users:\n${memoryContext}`;
+      }
+      if (medicationContext) {
+        enhancedTriagePrompt += `\n\nAktuelle Medikamente:\n${medicationContext}`;
+      }
+
+      // 6. Ollama als optionaler Enhancer (nicht noetig fuer Triage)
       // Bei hohem Konfidenz-Level (0.7+) brauchen wir kein LLM
       if (triageResult.confidence >= 0.7) {
         return this.buildTriageResponse(userMessage, triageResult);
@@ -278,7 +347,7 @@ export class OllamaService {
       logger.info(`Health Triage: Niedrige Konfidenz (${triageResult.confidence}), nutze Ollama als Fallback`);
       const ollamaResponse = await this.chat(userMessage, {
         model: options?.model,
-        systemPrompt: HEALTH_TRIAGE_PROMPT + triageText,
+        systemPrompt: enhancedTriagePrompt,
       });
 
       // Wenn Ollama auch nichts Brauchbares liefert, Rules-Result verwenden
@@ -298,6 +367,21 @@ export class OllamaService {
     // Health-Kontext ohne Symptom (z.B. Ärztesuche) — erweiterten Prompt bauen
     if (context.health && !isHealthTriage) {
       basePrompt = buildHealthSystemPrompt(basePrompt);
+      
+      // Gedächtnis- und Medikamenten-Kontext hinzufügen
+      if (userId) {
+        const [memoryCtx, medCtx] = await Promise.all([
+          this.getMemoryContext(userId),
+          this.getMedicationContext(userId),
+        ]);
+        
+        if (memoryCtx) {
+          basePrompt += `\n\nVorherige Symptome des Users:\n${memoryCtx}`;
+        }
+        if (medCtx) {
+          basePrompt += `\n\nAktuelle Medikamente:\n${medCtx}`;
+        }
+      }
     }
 
     // Service-Daten anhängen

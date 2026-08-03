@@ -96,6 +96,71 @@ export const doctorsNearbyQuerySchema = z.object({
   specialty: z.string().max(100).optional(),
 });
 
+// ---------------------------------------------------------------------------
+// Health AI Agent: Memory & Medications
+// ---------------------------------------------------------------------------
+
+export const healthMemoryQuerySchema = z.object({
+  limit: z.string().optional().refine(v => !v || (!isNaN(parseInt(v)) && parseInt(v) > 0), 'Limit must be positive'),
+  symptom: z.string().max(100).optional(),
+  days: z.string().optional().refine(v => !v || (!isNaN(parseInt(v)) && parseInt(v) > 0), 'Days must be positive'),
+  resolved: z.string().optional().refine(v => v === 'true' || v === 'false', 'Resolved must be true or false'),
+});
+
+export const createHealthMemoryBodySchema = z.object({
+  symptom_text: z.string().min(1, 'symptom_text is required').max(1000),
+  symptom_category: z.string().max(100).optional(),
+  severity: z.number().int().min(1).max(10).optional(),
+  duration: z.string().max(50).optional(),
+  triage_level: z.enum(['NOTFALL', 'BEREITSCHAFT', 'ROUTINE']).optional(),
+  triage_confidence: z.number().min(0).max(1).optional(),
+  icd_codes: z.array(z.string()).optional(),
+  location: z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  }).optional(),
+  weather_condition: z.string().max(50).optional(),
+  season: z.enum(['fruehling', 'sommer', 'herbst', 'winter']).optional(),
+  medications_used: z.array(z.string()).optional(),
+});
+
+export const resolveHealthMemoryBodySchema = z.object({
+  doctor_visit: z.boolean().optional(),
+  doctor_id: z.string().uuid().optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export const userMedicationsQuerySchema = z.object({
+  active_only: z.string().optional().refine(v => v === 'true' || v === 'false', 'active_only must be true or false'),
+});
+
+export const createMedicationBodySchema = z.object({
+  name: z.string().min(1, 'name is required').max(255),
+  active_ingredient: z.string().max(255).optional(),
+  dosage: z.string().max(100).optional(),
+  frequency: z.string().max(100).optional(),
+  category: z.string().max(100).optional(),
+  is_prescription: z.boolean().optional(),
+  start_date: z.string().optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export const updateMedicationBodySchema = z.object({
+  name: z.string().max(255).optional(),
+  active_ingredient: z.string().max(255).optional(),
+  dosage: z.string().max(100).optional(),
+  frequency: z.string().max(100).optional(),
+  category: z.string().max(100).optional(),
+  is_prescription: z.boolean().optional(),
+  is_active: z.boolean().optional(),
+  end_date: z.string().optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export const checkInteractionsBodySchema = z.object({
+  drugs: z.array(z.string().min(1)).min(2, 'At least 2 drugs required'),
+});
+
 export const ensureDoctorBodySchema = z.object({
   id: z.string().min(1, 'id is required'),
   name: z.string().min(1, 'name is required').max(255),

@@ -534,6 +534,112 @@ DELETE FROM doctors WHERE name IN (
 );
 
 -- ============================================
+-- HEALTH AI AGENT (Gedächtnis, Medikamente, Profil)
+-- ============================================
+
+-- Health Memory (Symptom-Verlauf)
+CREATE TABLE IF NOT EXISTS health_memory (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    symptom_text TEXT NOT NULL,
+    symptom_category VARCHAR(100),
+    severity INTEGER CHECK (severity BETWEEN 1 AND 10),
+    duration VARCHAR(50),
+    triage_level VARCHAR(20),
+    triage_confidence REAL,
+    icd_codes TEXT[],
+    location_lat DECIMAL(10, 8),
+    location_lng DECIMAL(11, 8),
+    time_of_day INTEGER CHECK (time_of_day BETWEEN 0 AND 23),
+    weather_condition VARCHAR(50),
+    season VARCHAR(20),
+    medications_used TEXT[],
+    is_resolved BOOLEAN DEFAULT false,
+    resolved_at TIMESTAMP,
+    doctor_visit BOOLEAN DEFAULT false,
+    doctor_id UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_health_memory_user ON health_memory(user_id);
+CREATE INDEX IF NOT EXISTS idx_health_memory_symptom ON health_memory(symptom_category);
+CREATE INDEX IF NOT EXISTS idx_health_memory_created ON health_memory(created_at);
+CREATE INDEX IF NOT EXISTS idx_health_memory_user_date ON health_memory(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_health_memory_resolved ON health_memory(is_resolved) WHERE is_resolved = false;
+
+-- User Medications (Medikamentenliste)
+CREATE TABLE IF NOT EXISTS user_medications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    active_ingredient VARCHAR(255),
+    dosage VARCHAR(100),
+    frequency VARCHAR(100),
+    category VARCHAR(100),
+    is_prescription BOOLEAN DEFAULT false,
+    start_date DATE,
+    end_date DATE,
+    is_active BOOLEAN DEFAULT true,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_medications_user ON user_medications(user_id);
+CREATE INDEX IF NOT EXISTS idx_medications_active ON user_medications(user_id, is_active) WHERE is_active = true;
+
+-- Medication Interactions (Bekannte Interaktionen)
+CREATE TABLE IF NOT EXISTS medication_interactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    drug_a VARCHAR(255) NOT NULL,
+    drug_b VARCHAR(255) NOT NULL,
+    severity VARCHAR(20) NOT NULL CHECK (severity IN ('schwerwiegend', 'mittel', 'leicht')),
+    description TEXT NOT NULL,
+    recommendation TEXT NOT NULL,
+    source VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (drug_a, drug_b)
+);
+CREATE INDEX IF NOT EXISTS idx_interactions_drug_a ON medication_interactions(drug_a);
+CREATE INDEX IF NOT EXISTS idx_interactions_drug_b ON medication_interactions(drug_b);
+
+-- User Health Profile (Gesundheitsprofil)
+CREATE TABLE IF NOT EXISTS user_health_profile (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL UNIQUE,
+    birth_date DATE,
+    gender VARCHAR(20),
+    weight_kg DECIMAL(5,1),
+    height_cm DECIMAL(5,1),
+    is_smoker BOOLEAN DEFAULT false,
+    is_pregnant BOOLEAN DEFAULT false,
+    chronic_conditions TEXT[],
+    allergies TEXT[],
+    family_history TEXT[],
+    insurance_type VARCHAR(50),
+    preferred_language VARCHAR(10),
+    preferred_gender_doctor VARCHAR(20),
+    needs_accessibility BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_health_profile_user ON user_health_profile(user_id);
+
+-- Seed: Bekannte Medikamenten-Interaktionen
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM medication_interactions LIMIT 1) THEN
+        INSERT INTO medication_interactions (drug_a, drug_b, severity, description, recommendation, source) VALUES
+        ('ASS', 'Ibuprofen', 'schwerwiegend', 'ASS + Ibuprofen: Erhoehtes Blutungsrisiko.', 'Vermeiden Sie die Kombination.', 'BfArM'),
+        ('Marcumar', 'ASS', 'schwerwiegend', 'Marcumar + ASS: Erhoehtes Blutungsrisiko.', 'Kombination vermeiden.', 'BfArM'),
+        ('Metformin', 'Kontrastmittel', 'schwerwiegend', 'Metformin + iodhaltige Kontrastmittel: Laktazidose-Risiko.', 'Metformin 48h vor und nach Kontrastmittel absetzen.', 'DEGAM'),
+        ('Ibuprofen', 'Ramipril', 'mittel', 'Ibuprofen kann blutdrucksenkende Wirkung abschwaechen.', 'Blutdruck engmaschig kontrollieren.', 'ABDA'),
+        ('Paracetamol', 'Alkohol', 'mittel', 'Paracetamol + Alkohol: Erhoehtes Leberschaeden-Risiko.', 'Alkohol waehrend Einnahme meiden.', 'BfArM'),
+        ('Ibuprofen', 'Paracetamol', 'leicht', 'Kombination in der Regel sicher.', 'Im Wechsel einnehmen.', 'DEGAM');
+    END IF;
+END $$;
+
+-- ============================================
 -- DEGAM LEITLINIEN SEED (Evidence-based Health AI)
 -- ============================================
 -- Idempotent: wird nur ausgeführt wenn Tabelle leer ist.
