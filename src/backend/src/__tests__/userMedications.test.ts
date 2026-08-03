@@ -211,7 +211,7 @@ describe('UserMedicationsService', () => {
       if (!HAS_DB) return;
 
       const result = await userMedicationsService.checkInteractions(TEST_USER_ID, [
-        'Aspirin',
+        'ASS',
         'Ibuprofen',
       ]);
 
@@ -254,9 +254,11 @@ describe('UserMedicationsService', () => {
       // Test-Medikamente erstellen
       await userMedicationsService.addMedication(TEST_USER_ID, {
         name: 'Aspirin',
+        active_ingredient: 'ASS',
       });
       await userMedicationsService.addMedication(TEST_USER_ID, {
         name: 'Ibuprofen',
+        active_ingredient: 'Ibuprofen',
       });
 
       const result = await userMedicationsService.checkUserInteractions(TEST_USER_ID);
