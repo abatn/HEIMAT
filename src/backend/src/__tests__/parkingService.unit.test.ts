@@ -172,20 +172,26 @@ describe('ParkingService Unit Tests', () => {
     });
 
     it('should try multiple mirrors on failure', async () => {
+      // Mirror 1 fails twice (2 retries), Mirror 2 succeeds on first try
       mockedAxios.post
         .mockRejectedValueOnce(new Error('Mirror 1 down'))
+        .mockRejectedValueOnce(new Error('Mirror 1 down retry'))
         .mockResolvedValueOnce(mockOverpassResponse);
 
       const spots = await service.getNearbySpots(52.52, 13.41, 2);
       expect(spots).toHaveLength(2);
-      expect(mockedAxios.post).toHaveBeenCalledTimes(2);
+      expect(mockedAxios.post).toHaveBeenCalledTimes(3);
     });
 
     it('should throw AppError when all mirrors fail', async () => {
+      // 3 Mirrors × 2 Retries = 6 mocked failures
       mockedAxios.post
         .mockRejectedValueOnce(new Error('Mirror 1 down'))
+        .mockRejectedValueOnce(new Error('Mirror 1 down retry'))
         .mockRejectedValueOnce(new Error('Mirror 2 down'))
-        .mockRejectedValueOnce(new Error('Mirror 3 down'));
+        .mockRejectedValueOnce(new Error('Mirror 2 down retry'))
+        .mockRejectedValueOnce(new Error('Mirror 3 down'))
+        .mockRejectedValueOnce(new Error('Mirror 3 down retry'));
 
       await expect(service.getNearbySpots(52.52, 13.41, 2))
         .rejects.toThrow('Parkplatz-Dienst nicht verfuegbar');
