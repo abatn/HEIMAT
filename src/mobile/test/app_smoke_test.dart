@@ -182,19 +182,22 @@ void main() {
 
   group('HealthScreenWithTabs', () {
     testWidgets('shows health screen with tabs', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
+      await tester
+          .pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(HealthScreenWithTabs), findsOneWidget);
     });
 
     testWidgets('shows tab bar', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
+      await tester
+          .pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(TabBar), findsOneWidget);
     });
 
     testWidgets('shows tab views', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
+      await tester
+          .pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(TabBarView), findsOneWidget);
     });
