@@ -48,9 +48,17 @@ HEIMAT 2.0 ist eine datenschutzkonforme, kostenfreie Super App für den deutsche
 - Privacy-by-Design
 
 ### Gesundheit
-- Ärzte weltweit via OpenStreetMap Overpass (standortunabhängig, keine Seed-Daten)
-- 25 Specialty-Kategorien mit classifySpecialty() (52 Unit-Tests)
-- Terminbuchung: OSM-Ärzte werden bei Buchung automatisch in DB gespeichert
+- **Ärzte weltweit** via OpenStreetMap Overpass (standortunabhängig, keine Seed-Daten)
+- **25 Specialty-Kategorien** mit classifySpecialty() (52 Unit-Tests)
+- **Terminbuchung**: OSM-Ärzte werden bei Buchung automatisch in DB gespeichert
+- **Health AI Agent** (Phase 1+2):
+  - 🧠 **Gedächtnis** — Symptom-Verlauf über Tage/Wochen speichern
+  - 💊 **Medikamente** — Medikamentenverwaltung + Interaktions-Check
+  - 🧘 **Mental Health** — PHQ-9 Depressions-Screening (9 Fragen, Score 0-27)
+  - 🛡️ **Prävention** — Profil-basierte Vorsorge-Empfehlungen
+  - 📋 **Nachsorge** — Post-Termin Follow-up mit AI-Analyse
+  - 🚨 **Health Triage** — WHO ICD-API v2 + Rules Engine + Ollama Fallback
+- **137 Tests** (42 Unit + 95 Integration)
 - Keine TI-Anbindung, keine Patientendaten
 
 ### Mini-Programme (Apps-Tab)
@@ -170,6 +178,9 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | CI-Fix-Runde 2 | ✅ **Grün** | `withOpacity` (Flutter 3.24.5), `unnecessary_non_null_assertion` entfernt, Conditional Imports korrigiert |
 | **Phase C-1: E-Ladestationen Backend** | ✅ **Live (2026-07-28)** | **`GET /api/ev-charging/stations?lat=&lng=&radius_km=` aus OpenStreetMap Overpass; 3 Mirror-Fallbacks; 24h In-Memory-Cache; ODbL-Attribution; 6 Tests** |
 | **Phase X.1: IFrame-Elimination** | ✅ **Live (2026-07-28)** | **Alle Mini-Programme nativ via `ServiceRegistry.nativeBuilder`; KEIN WebView, kein `dart:html`; `+16` neue Tests (12 service_registry + 4 coming_soon_screen); Total: ~193 Tests** |
+| **Health AI Agent Phase 1** | ✅ **Live (2026-08-03)** | **Gedächtnis + Medikamente: Backend Services + API-Endpunkte + Flutter DTOs/Provider/Screens + 63 Tests** |
+| **Health AI Agent Phase 2** | ✅ **Live (2026-08-03)** | **Mental Health (PHQ-9) + Prävention + Nachsorge: Backend Services + API-Endpunkte + Flutter DTOs/Provider/Screens + 74 Tests** |
+| **HealthScreen Integration** | ✅ **Live (2026-08-03)** | **HealthScreenWithTabs mit 6 Tabs: Ärzte + Verlauf + Medikamente + Mental + Vorsorge + Nachsorge** |
 
 ## 🚀 HEIMAT Expansion — Neue Services
 

@@ -13,7 +13,7 @@ import 'features/finance/presentation/finance_provider.dart';
 import 'features/health/presentation/health_provider.dart';
 import 'features/mobility/presentation/mobility_screen.dart';
 import 'features/finance/presentation/finance_screen.dart';
-import 'features/health/presentation/health_screen.dart';
+import 'features/health/presentation/health_screen_with_tabs.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/home/presentation/home_provider.dart';
 import 'features/miniprogram/presentation/miniprogram_provider.dart';
@@ -162,7 +162,7 @@ class _MainScreenState extends State<MainScreen> {
             onNavigateTab: (index) => setState(() => _currentIndex = index)),
         const MobilityScreen(),
         const FinanceScreen(),
-        const HealthScreen(),
+        const HealthScreenWithTabs(),
         const LaunchpadScreen(),
       ];
 

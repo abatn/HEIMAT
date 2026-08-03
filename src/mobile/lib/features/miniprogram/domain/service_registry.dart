@@ -5,7 +5,7 @@ import '../../ev_charging/presentation/ev_charging_screen.dart';
 import '../../ai_chat/presentation/ai_chat_screen.dart';
 import '../../mobility/presentation/mobility_screen.dart';
 import '../../finance/presentation/finance_screen.dart';
-import '../../health/presentation/health_screen.dart';
+import '../../health/presentation/health_screen_with_tabs.dart';
 import '../../checkin/presentation/checkin_screen.dart';
 import '../presentation/coming_soon_screen.dart';
 import 'service_definition.dart';
@@ -136,8 +136,7 @@ class ServiceRegistry {
         name: 'Gesundheit',
         category: 'Alltag',
         description: 'Ärzte-Suche & Online-Terminbuchung.',
-        searchTags: const ['arzt', 'praxis', 'termin', 'medizin', 'doc'],
-        nativeBuilder: (_) => const HealthScreen(),
+        searchTags: const ['arzt', 'praxis', 'termin', 'medizin', 'doc'],         nativeBuilder: (_) => const HealthScreenWithTabs(),
       ),
 
       'checkin': ServiceDefinition(

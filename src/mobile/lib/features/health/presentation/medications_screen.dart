@@ -13,7 +13,8 @@ import 'health_medications_provider.dart';
 /// 3. Interaktions-Check (bei ≥2 Medikamenten)
 /// 4. Medikament deaktivieren/löschen
 class MedicationsScreen extends StatefulWidget {
-  const MedicationsScreen({super.key});
+  final bool isEmbedded;
+  const MedicationsScreen({super.key, this.isEmbedded = false});
 
   @override
   State<MedicationsScreen> createState() => _MedicationsScreenState();
@@ -32,6 +33,9 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isEmbedded) {
+      return _buildContent();
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Meine Medikamente'),
@@ -82,7 +86,12 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
           ),
         ),
       ),
-      body: Column(
+      body: _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
+    return Column(
         children: [
           // Interaktions-Warnung (wenn vorhanden)
           _buildInteractionsWarning(),

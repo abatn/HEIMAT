@@ -80,6 +80,85 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 - Auth-Routing-Bug Regression-Test in `auth_screens_test.dart` (Hash-Routing-Pattern `Navigator.pushNamedAndRemoveUntil('/', …)`)
 - Auto-Migration health-check Tool — kein `npm run migrate:status` für CI-Inspektion „ist DB-Schema aktuell?"
 
+## Health AI Agent — Phase 1+2 Implementiert (2026-08-03)
+
+### Status
+✅ **Phase 1+2 abgeschlossen** — 137 Tests (42 Unit + 95 Integration), Backend + Flutter vollständig implementiert.
+
+### Phase 1: Gedächtnis + Medikamente
+
+| Komponente | Datei | Beschreibung |
+|------------|-------|--------------|
+| HealthMemoryService | `services/healthMemoryService.ts` | CRUD für Symptom-Verlauf |
+| UserMedicationsService | `services/userMedicationsService.ts` | CRUD + Interaktionscheck |
+| HealthMemory Routes | `routes/healthMemory.ts` | 5 API-Endpunkte |
+| HealthMedications Routes | `routes/healthMedications.ts` | 5 API-Endpunkte |
+| HealthMemory DTO | `health_memory_dto.dart` | Flutter DTOs |
+| HealthMedications DTO | `health_medications_dto.dart` | Flutter DTOs |
+| HealthMemory Provider | `health_memory_provider.dart` | Flutter Provider |
+| HealthMedications Provider | `health_medications_provider.dart` | Flutter Provider |
+| HealthMemoryScreen | `health_memory_screen.dart` | Symptom-Verlauf UI |
+| MedicationsScreen | `medications_screen.dart` | Medikamentenverwaltung UI |
+
+### Phase 2: Mental Health + Prävention + Nachsorge
+
+| Komponente | Datei | Beschreibung |
+|------------|-------|--------------|
+| MentalHealthService | `services/mentalHealthService.ts` | PHQ-9 Screening (9 Fragen, Score 0-27) |
+| PreventionService | `services/preventionService.ts` | Profil-basierte Vorsorge-Empfehlungen |
+| FollowUpService | `services/followUpService.ts` | Post-Termin Follow-up |
+| MentalHealth Routes | `routes/mentalHealth.ts` | 5 API-Endpunkte |
+| Prevention Routes | `routes/prevention.ts` | 5 API-Endpunkte |
+| FollowUp Routes | `routes/followUp.ts` | 5 API-Endpunkte |
+| MentalHealth DTO | `mental_health_dto.dart` | Flutter DTOs |
+| Prevention DTO | `prevention_dto.dart` | Flutter DTOs |
+| FollowUp DTO | `followup_dto.dart` | Flutter DTOs |
+| MentalHealth Provider | `mental_health_provider.dart` | Flutter Provider |
+| Prevention Provider | `prevention_provider.dart` | Flutter Provider |
+| FollowUp Provider | `followup_provider.dart` | Flutter Provider |
+| MentalHealthScreen | `mental_health_screen.dart` | PHQ-9 Screening UI |
+| PreventionScreen | `prevention_screen.dart` | Vorsorge-Empfehlungen UI |
+| FollowUpScreen | `followup_screen.dart` | Nachsorge Follow-up UI |
+
+### HealthScreen Integration
+
+- **HealthScreenWithTabs** — Ersetzt HealthScreen als Haupt-Screen mit 6 Tabs
+- **Tabs:** Ärzte + Verlauf + Medikamente + Mental + Vorsorge + Nachsorge
+- **isEmbedded-Parameter** — Alle Phase-2-Screens unterstützen eingebettete Darstellung
+- **Vollständige Ärzte-Tab** — AI Chat, Specialty-Filter, Doctor-Liste, Lebenszeichen, Termin-Erinnerung
+
+### API-Endpunkte (15 neue)
+
+```
+POST   /api/health/mental/phq9           → PHQ-9 Screening
+GET    /api/health/mental/phq9/history   → Verlauf
+GET    /api/health/mental/stats          → Statistiken
+GET    /api/health/mental/crisis         → Notfall-Kontakte
+GET    /api/health/mental/questions      → PHQ-9 Fragen
+
+GET    /api/health/prevention           → Aktive Empfehlungen
+POST   /api/health/prevention/generate  → Empfehlungen generieren
+PUT    /api/health/prevention/:id       → Als erledigt markieren
+GET    /api/health/prevention/history   → Verlauf
+GET    /api/health/prevention/stats     → Statistiken
+
+GET    /api/health/followups              → Offene Follow-ups
+POST   /api/health/followups/:id/respond  → User antwortet
+GET    /api/health/followups/history      → Verlauf
+GET    /api/health/followups/stats        → Statistiken
+POST   /api/health/followups/check        → Cron-Job (Admin)
+```
+
+### Datenbank (4 neue Tabellen)
+
+```sql
+health_memory               -- Symptom-Verlauf (Gedächtnis)
+user_medications            -- Medikamente des Users
+phq9_responses              -- PHQ-9 Screening-Ergebnisse
+prevention_recommendations  -- Vorsorge-Empfehlungen
+post_appointment_followups  -- Nachsorge Follow-ups
+```
+
 ## Phase Q: Quality-Pass — Stand 2026-07-27 (Commit 78a371d, CI grün via ea29e63)
 
 **Quality-Pass vor Phase-26-Weiterführung: AuthLock-Vertrag über 11 neue Tests verriegelt.**

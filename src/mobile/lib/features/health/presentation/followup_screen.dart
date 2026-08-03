@@ -13,7 +13,8 @@ import 'followup_provider.dart';
 /// 3. Verlauf anzeigen
 /// 4. Statistiken
 class FollowUpScreen extends StatefulWidget {
-  const FollowUpScreen({super.key});
+  final bool isEmbedded;
+  const FollowUpScreen({super.key, this.isEmbedded = false});
 
   @override
   State<FollowUpScreen> createState() => _FollowUpScreenState();
@@ -39,6 +40,9 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isEmbedded) {
+      return _buildContent();
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Nachsorge'),
@@ -56,8 +60,12 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
           ),
         ],
       ),
-      body: _showHistory ? _buildHistoryView() : _buildPendingView(),
+      body: _buildContent(),
     );
+  }
+
+  Widget _buildContent() {
+    return _showHistory ? _buildHistoryView() : _buildPendingView();
   }
 
   // ====================================================================

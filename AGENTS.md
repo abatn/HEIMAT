@@ -385,47 +385,91 @@ audit-no-mocks.sh enforced in Backend + Flutter CI (Commit 82047ad). Verboten: `
 
 ---
 
-## Health AI Agent — Erweiterte Architektur (2026-08-03)
+## Health AI Agent — Implementiert (2026-08-03)
 
-> **STATUS:** 📋 Diskussionsphase — KEINE Code-Änderungen ohne explizite Freigabe!
+> **STATUS:** ✅ Phase 1+2 implementiert und getestet (137 Tests)
 > **Skill-Datei:** `.claude/skills/heimat-health-ai.md`
 
-### Vision
+### Architektur
 
-Ein intelligenter Health AI Agent, der:
-- **Gespräche führt** (nicht nur Keywords matcht)
-- **Differentialdiagnosen** liefert (nicht nur eine Antwort)
-- **Gedächtnis hat** (Symptom-Verlauf über Tage/Wochen)
-- **Kontext versteht** (Uhrzeit, Alter, Vorerkrankungen, Saison)
-- **Prävention** empfiehlt (nicht nur akute Behandlung)
+```
+Flutter HealthScreenWithTabs (6 Tabs)
+  → Backend API (/api/health/*)
+      → HealthMemoryService (Gedächtnis)
+      → UserMedicationsService (Medikamente + Interaktionen)
+      → MentalHealthService (PHQ-9 + Ollama)
+      → PreventionService (Vorsorge-Empfehlungen)
+      → FollowUpService (Nachsorge)
+      → Health Triage (WHO ICD + Rules Engine + Ollama)
+```
 
-### Features (nach User-Freigabe)
+### Phase 1 Features (✅ Abgeschlossen)
 
-| # | Feature | Priorität | Phase |
-|---|---------|-----------|-------|
-| 1 | **Gedächtnis** — Symptome über Tage/Wochen speichern | 🔴 Muss | Phase 1 |
-| 2 | **Voice-Input** — Spracheingabe für Symptome | 🔴 Muss | Phase 1 |
-| 3 | **Foto-Analyse** — Hautausschlag, Rötung fotografieren | 🟡 Nice-to-have | Nach Anfrage |
-| 4 | **Medikamente** — User gibt Medikamente ein → Interaktionscheck | 🔴 Muss | Phase 1 |
-| 5 | **Mental Health** — Depressions-Screening einbauen | 🔴 Muss | Phase 2 |
-| 6 | **Prävention** — Alters-/Risiko-basierte Vorsorge | 🔴 Muss | Phase 2 |
-| 7 | **Nachsorge** — Post-Termin-Follow-up | 🔴 Muss | Phase 2 |
-| 8 | **Notfall-Kontext** — Uhrzeit/Allein-sein berücksichtigen | 🔴 Muss | Phase 1 |
+| Feature | Backend | Flutter | Tests |
+|---------|---------|---------|-------|
+| **Gedächtnis** — Symptom-Verlauf speichern | `healthMemoryService.ts` + `healthMemory.ts` | `health_memory_dto.dart` + `health_memory_provider.dart` + `health_memory_screen.dart` | 14 Integration + 0 Unit |
+| **Medikamente** — Verwaltung + Interaktionscheck | `userMedicationsService.ts` + `healthMedications.ts` | `health_medications_dto.dart` + `health_medications_provider.dart` + `medications_screen.dart` | 15 Integration + 0 Unit |
 
-### Phasen
+### Phase 2 Features (✅ Abgeschlossen)
 
-| Phase | Features | Tage |
-|-------|----------|------|
-| **Phase 1** | Gedächtnis, Voice-Input, Medikamente, Notfall-Kontext | 5-7 |
-| **Phase 2** | Mental Health, Prävention, Nachsorge | 5-7 |
-| **Phase 3** | Foto-Analyse, Erweiterte Differentialdiagnose | 3-5 |
+| Feature | Backend | Flutter | Tests |
+|---------|---------|---------|-------|
+| **Mental Health** — PHQ-9 Screening | `mentalHealthService.ts` + `mentalHealth.ts` | `mental_health_dto.dart` + `mental_health_provider.dart` + `mental_health_screen.dart` | 12 Integration + 18 Unit |
+| **Prävention** — Vorsorge-Empfehlungen | `preventionService.ts` + `prevention.ts` | `prevention_dto.dart` + `prevention_provider.dart` + `prevention_screen.dart` | 12 Integration + 12 Unit |
+| **Nachsorge** — Post-Termin Follow-up | `followUpService.ts` + `followUp.ts` | `followup_dto.dart` + `followup_provider.dart` + `followup_screen.dart` | 10 Integration + 12 Unit |
 
-### Nächste Schritte
+### API-Endpunkte (15 neue)
 
-1. **Diskussion abschließen** — User bestätigt Architektur
-2. **Detailliertes Design** — API-Schemas, DB-Tabellen, UI-Mockups
-3. **Proof of Concept** — Einzelne Features testen
-4. **Phasenweise Implementierung** — Phase 1 → Phase 2 → Phase 3
+#### Mental Health
+```
+POST   /api/health/mental/phq9           → PHQ-9 Screening (9 Fragen, Score 0-27)
+GET    /api/health/mental/phq9/history   → Verlauf laden
+GET    /api/health/mental/stats          → Statistiken (Trend, Risk Level)
+GET    /api/health/mental/crisis         → Notfall-Kontakte (112, Telefonseelsorge)
+GET    /api/health/mental/questions      → PHQ-9 Fragen (Referenz)
+```
+
+#### Prävention
+```
+GET    /api/health/prevention           → Aktive Empfehlungen
+POST   /api/health/prevention/generate  → Ollama generiert Empfehlungen
+PUT    /api/health/prevention/:id       → Als erledigt markieren
+GET    /api/health/prevention/history   → Verlauf
+GET    /api/health/prevention/stats     → Statistiken
+```
+
+#### Nachsorge
+```
+GET    /api/health/followups              → Offene Follow-ups
+POST   /api/health/followups/:id/respond  → User antwortet
+GET    /api/health/followups/history      → Verlauf
+GET    /api/health/followups/stats        → Statistiken
+POST   /api/health/followups/check        → Cron-Job (Admin)
+```
+
+### Datenbank (4 neue Tabellen)
+
+```sql
+health_memory          -- Symptom-Verlauf (Gedächtnis)
+user_medications       -- Medikamente des Users
+phq9_responses         -- PHQ-9 Screening-Ergebnisse
+prevention_recommendations  -- Vorsorge-Empfehlungen
+post_appointment_followups  -- Nachsorge Follow-ups
+```
+
+### Flutter Integration
+
+- **HealthScreenWithTabs** — Ersetzt HealthScreen als Haupt-Screen mit 6 Tabs
+- **isEmbedded-Parameter** — Alle Phase-2-Screens unterstützen eingebettete Darstellung
+- **Provider-Registrierung** — 5 neue Provider in main.dart
+
+### Offene Tasks
+
+| Task | Priorität |
+|------|-----------|
+| Voice-Input (Spracheingabe) | 🟡 Phase 3 |
+| Foto-Analyse (Hautausschlag) | 🟡 Phase 3 |
+| Erweiterte Differentialdiagnose | 🟡 Phase 3 |
 
 ---
 

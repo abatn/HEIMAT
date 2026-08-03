@@ -14,7 +14,8 @@ import 'health_memory_provider.dart';
 /// 4. Neues Symptom hinzufügen (Bottom Sheet)
 /// 5. Filter nach Status (aktiv/gelöst/alle)
 class HealthMemoryScreen extends StatefulWidget {
-  const HealthMemoryScreen({super.key});
+  final bool isEmbedded;
+  const HealthMemoryScreen({super.key, this.isEmbedded = false});
 
   @override
   State<HealthMemoryScreen> createState() => _HealthMemoryScreenState();
@@ -40,6 +41,9 @@ class _HealthMemoryScreenState extends State<HealthMemoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isEmbedded) {
+      return _buildContent();
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Symptom-Verlauf'),

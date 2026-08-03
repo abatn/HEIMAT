@@ -13,7 +13,8 @@ import 'prevention_provider.dart';
 /// 3. Fortschritt anzeigen
 /// 4. Erledigte Empfehlungen
 class PreventionScreen extends StatefulWidget {
-  const PreventionScreen({super.key});
+  final bool isEmbedded;
+  const PreventionScreen({super.key, this.isEmbedded = false});
 
   @override
   State<PreventionScreen> createState() => _PreventionScreenState();
@@ -39,6 +40,9 @@ class _PreventionScreenState extends State<PreventionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isEmbedded) {
+      return _buildContent();
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vorsorge-Empfehlungen'),
@@ -80,8 +84,12 @@ class _PreventionScreenState extends State<PreventionScreen> {
           ),
         ),
       ),
-      body: _showCompleted ? _buildCompletedView() : _buildActiveView(),
+      body: _buildContent(),
     );
+  }
+
+  Widget _buildContent() {
+    return _showCompleted ? _buildCompletedView() : _buildActiveView();
   }
 
   // ====================================================================

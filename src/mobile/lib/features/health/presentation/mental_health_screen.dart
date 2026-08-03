@@ -13,7 +13,8 @@ import 'mental_health_provider.dart';
 /// 3. Notfall-Kontakte
 /// 4. Statistiken
 class MentalHealthScreen extends StatefulWidget {
-  const MentalHealthScreen({super.key});
+  final bool isEmbedded;
+  const MentalHealthScreen({super.key, this.isEmbedded = false});
 
   @override
   State<MentalHealthScreen> createState() => _MentalHealthScreenState();
@@ -42,6 +43,9 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isEmbedded) {
+      return _buildContent();
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mentale Gesundheit'),
@@ -64,8 +68,12 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
           ),
         ],
       ),
-      body: _showHistory ? _buildHistoryView() : _buildScreeningView(),
+      body: _buildContent(),
     );
+  }
+
+  Widget _buildContent() {
+    return _showHistory ? _buildHistoryView() : _buildScreeningView();
   }
 
   // ====================================================================
