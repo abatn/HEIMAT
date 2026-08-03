@@ -107,7 +107,7 @@ export class UserMedicationsService {
 
     return {
       medications,
-      activeCount: activeCount?.count ?? 0,
+      activeCount: Number(activeCount?.count ?? 0),
     };
   }
 

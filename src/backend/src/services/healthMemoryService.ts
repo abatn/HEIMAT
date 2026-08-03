@@ -267,7 +267,7 @@ export class HealthMemoryService {
     );
 
     // Häufigste Kategorien
-    const categoryFrequency = await query<{ category: string; count: number }>(
+    const categoryFrequencyRaw = await query<{ category: string; count: number }>(
       `SELECT symptom_category as category, COUNT(*) as count
        FROM health_memory 
        WHERE user_id = $1 AND symptom_category IS NOT NULL
@@ -276,11 +276,12 @@ export class HealthMemoryService {
        LIMIT 5`,
       [userId]
     );
+    const categoryFrequency = categoryFrequencyRaw.map(c => ({ ...c, count: Number(c.count) }));
 
     return {
-      total_entries: total?.count ?? 0,
-      active_symptoms: active?.count ?? 0,
-      resolved_symptoms: resolved?.count ?? 0,
+      total_entries: Number(total?.count ?? 0),
+      active_symptoms: Number(active?.count ?? 0),
+      resolved_symptoms: Number(resolved?.count ?? 0),
       chronic_patterns: chronicPatterns,
       category_frequency: categoryFrequency,
     };
