@@ -412,8 +412,8 @@ ollamaService.chatWithContext({ health: { symptom } })
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
 - ~~Parken (OSM Overpass)~~ ✅ erledigt (Commit d997789, 10 Unit-Tests + 6 Integration-Tests)
+- ~~Health-Provider-Tests~~ ✅ erledigt (25 Tests in `health_provider_test.dart`: searchDoctors, loadSlots, bookAppointment, registerDoctor, DTO-Parsing)
 - Auto-Migration health-check Tool (`npm run migrate:status`)
-- Health-Provider-Tests fehlen (searchDoctors + loadSlots + bookAppointment)
 
 **Known Issues:**
 - `lat: 0, lng: 0` Hack im Health Context — Triage braucht keine Koordinaten, könnte aber bei zukünftigen Erweiterungen Probleme machen
