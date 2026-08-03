@@ -15,6 +15,7 @@
 
 import axios from 'axios';
 import { logger } from '../utils/logger';
+import { externalServices } from '../config/externalServices';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,8 +49,8 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     id: 'berlin',
     displayName: 'Berlin',
     adapter: 'bsr',
-    primaryUrl: process.env.ABFALL_BSR_URL_BASE || '',
-    fallbackUrl: process.env.ABFALL_BSR_FALLBACK_URL,
+    primaryUrl: externalServices.abfallBerlinPrimaryUrl,
+    fallbackUrl: externalServices.abfallBerlinFallbackUrl,
     addressRequired: false,
     attribution: 'Berliner Stadtreinigung (BSR) — CC-BY 4.0',
     nominatimKeywords: ['berlin'],
@@ -58,8 +59,8 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     id: 'muenchen',
     displayName: 'München',
     adapter: 'awb',
-    primaryUrl: process.env.ABFALL_AWB_URL_BASE || '',
-    fallbackUrl: process.env.ABFALL_AWB_FALLBACK_URL,
+    primaryUrl: externalServices.abfallMuenchenPrimaryUrl,
+    fallbackUrl: undefined,
     addressRequired: true,
     attribution: 'Abfallwirtschaftsbetrieb München (AWB) — CC-BY 4.0',
     nominatimKeywords: ['münchen', 'munich', 'muenchen'],
@@ -68,8 +69,8 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     id: 'hamburg',
     displayName: 'Hamburg',
     adapter: 'srh',
-    primaryUrl: process.env.ABFALL_SRH_URL_BASE || '',
-    fallbackUrl: process.env.ABFALL_SRH_FALLBACK_URL,
+    primaryUrl: externalServices.abfallHamburgPrimaryUrl,
+    fallbackUrl: undefined,
     addressRequired: true,
     attribution: 'Stadtreinigung Hamburg (SRH) — CC-BY 4.0',
     nominatimKeywords: ['hamburg'],
