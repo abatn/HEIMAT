@@ -37,8 +37,9 @@ class PreventionProvider extends ChangeNotifier {
       _recommendations.where((r) => !r.isCompleted).toList();
 
   /// Hoch-Prioritäts-Empfehlungen
-  List<PreventionRecommendation> get highPriority =>
-      _recommendations.where((r) => r.priority == 'hoch' && !r.isCompleted).toList();
+  List<PreventionRecommendation> get highPriority => _recommendations
+      .where((r) => r.priority == 'hoch' && !r.isCompleted)
+      .toList();
 
   // ===== API Methods =====
 
@@ -66,7 +67,7 @@ class PreventionProvider extends ChangeNotifier {
         final newRecs = (data['new_recommendations'] as List? ?? [])
             .map((e) => PreventionRecommendation.fromJson(e))
             .toList();
-        
+
         // Zu bestehenden hinzufügen
         _recommendations.addAll(newRecs);
         notifyListeners();
@@ -118,9 +119,11 @@ class PreventionProvider extends ChangeNotifier {
   }
 
   /// Empfehlung als erledigt markieren
-  Future<bool> completeRecommendation(String recommendationId, {String? doctorId}) async {
+  Future<bool> completeRecommendation(String recommendationId,
+      {String? doctorId}) async {
     try {
-      final url = '${AppConfig.backendUrl}/api/health/prevention/$recommendationId';
+      final url =
+          '${AppConfig.backendUrl}/api/health/prevention/$recommendationId';
       final response = await http
           .put(
             Uri.parse(url),
@@ -136,10 +139,12 @@ class PreventionProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final updated = PreventionRecommendation.fromJson(data['recommendation']);
-        
+        final updated =
+            PreventionRecommendation.fromJson(data['recommendation']);
+
         // In der Liste aktualisieren
-        final index = _recommendations.indexWhere((r) => r.id == recommendationId);
+        final index =
+            _recommendations.indexWhere((r) => r.id == recommendationId);
         if (index != -1) {
           _recommendations[index] = updated;
           _completed.insert(0, updated);

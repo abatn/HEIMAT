@@ -63,7 +63,8 @@ class HealthMemoryEntry {
       severity: json['severity'] as int?,
       duration: json['duration'],
       triageLevel: json['triage_level'] ?? json['triageLevel'],
-      triageConfidence: (json['triage_confidence'] ?? json['triageConfidence']) as double?,
+      triageConfidence:
+          (json['triage_confidence'] ?? json['triageConfidence']) as double?,
       icdCodes: json['icd_codes'] != null
           ? List<String>.from(json['icd_codes'])
           : json['icdCodes'] != null
@@ -142,13 +143,16 @@ class HealthMemoryStats {
     return HealthMemoryStats(
       totalEntries: json['total_entries'] ?? json['totalEntries'] ?? 0,
       activeSymptoms: json['active_symptoms'] ?? json['activeSymptoms'] ?? 0,
-      resolvedSymptoms: json['resolved_symptoms'] ?? json['resolvedSymptoms'] ?? 0,
-      chronicPatterns: (json['chronic_patterns'] ?? json['chronicPatterns'] ?? [])
-          .map((e) => ChronicPattern.fromJson(e))
-          .toList(),
-      categoryFrequency: (json['category_frequency'] ?? json['categoryFrequency'] ?? [])
-          .map((e) => CategoryFrequency.fromJson(e))
-          .toList(),
+      resolvedSymptoms:
+          json['resolved_symptoms'] ?? json['resolvedSymptoms'] ?? 0,
+      chronicPatterns:
+          (json['chronic_patterns'] ?? json['chronicPatterns'] ?? [])
+              .map((e) => ChronicPattern.fromJson(e))
+              .toList(),
+      categoryFrequency:
+          (json['category_frequency'] ?? json['categoryFrequency'] ?? [])
+              .map((e) => CategoryFrequency.fromJson(e))
+              .toList(),
     );
   }
 }
@@ -172,9 +176,11 @@ class ChronicPattern {
 
   factory ChronicPattern.fromJson(Map<String, dynamic> json) {
     return ChronicPattern(
-      symptomCategory: json['symptom_category'] ?? json['symptomCategory'] ?? '',
+      symptomCategory:
+          json['symptom_category'] ?? json['symptomCategory'] ?? '',
       occurrences: json['occurrences'] ?? 0,
-      avgSeverity: (json['avg_severity'] ?? json['avgSeverity'] ?? 0).toDouble(),
+      avgSeverity:
+          (json['avg_severity'] ?? json['avgSeverity'] ?? 0).toDouble(),
       firstSeen: json['first_seen'] ?? json['firstSeen'] ?? '',
       lastSeen: json['last_seen'] ?? json['lastSeen'] ?? '',
       isChronic: json['is_chronic'] == true || json['isChronic'] == true,

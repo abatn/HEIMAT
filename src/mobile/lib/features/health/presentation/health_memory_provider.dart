@@ -123,10 +123,12 @@ class HealthMemoryProvider extends ChangeNotifier {
               if (severity != null) 'severity': severity,
               if (duration != null) 'duration': duration,
               if (triageLevel != null) 'triage_level': triageLevel,
-              if (triageConfidence != null) 'triage_confidence': triageConfidence,
+              if (triageConfidence != null)
+                'triage_confidence': triageConfidence,
               if (icdCodes != null) 'icd_codes': icdCodes,
               if (location != null) 'location': location,
-              if (weatherCondition != null) 'weather_condition': weatherCondition,
+              if (weatherCondition != null)
+                'weather_condition': weatherCondition,
               if (season != null) 'season': season,
               if (medicationsUsed != null) 'medications_used': medicationsUsed,
             }),
@@ -180,7 +182,7 @@ class HealthMemoryProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final updatedMemory = HealthMemoryEntry.fromJson(data['memory']);
-        
+
         // In der Liste aktualisieren
         final index = _memories.indexWhere((m) => m.id == memoryId);
         if (index != -1) {

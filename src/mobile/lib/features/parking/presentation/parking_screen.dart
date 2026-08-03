@@ -169,7 +169,6 @@ class _ParkingScreenState extends State<ParkingScreen> {
       selected: selected,
       onSelected: (_) => onTap(),
       selectedColor: AppColors.primary.withOpacity(0.2),
-      
     );
   }
 
@@ -264,8 +263,7 @@ class ParkingSpotCard extends StatelessWidget {
                 _buildBadge(spot.parkingTypeLabel, Icons.local_parking),
                 if (spot.capacity != null)
                   _buildBadge('${spot.capacity} Plätze', Icons.grid_view),
-                if (spot.isLit)
-                  _buildBadge('Beleuchtet', Icons.light_mode),
+                if (spot.isLit) _buildBadge('Beleuchtet', Icons.light_mode),
                 if (spot.surface != null)
                   _buildBadge(spot.surface!, Icons.texture),
                 if (spot.access != null && spot.access != 'public')

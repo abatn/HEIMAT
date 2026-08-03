@@ -119,7 +119,13 @@ class ServiceRegistry {
         name: 'Parkplätze',
         category: 'Mobilität',
         description: 'Parkplätze in deiner Nähe — OpenStreetMap Overpass.',
-        searchTags: const ['parken', 'parkplatz', 'garage', 'tiefgarage', 'parkhaus'],
+        searchTags: const [
+          'parken',
+          'parkplatz',
+          'garage',
+          'tiefgarage',
+          'parkhaus'
+        ],
         nativeBuilder: (_) => const ParkingScreen(),
       ),
 
@@ -145,7 +151,8 @@ class ServiceRegistry {
         name: 'Gesundheit',
         category: 'Alltag',
         description: 'Ärzte-Suche & Online-Terminbuchung.',
-        searchTags: const ['arzt', 'praxis', 'termin', 'medizin', 'doc'],         nativeBuilder: (_) => const HealthScreenWithTabs(),
+        searchTags: const ['arzt', 'praxis', 'termin', 'medizin', 'doc'],
+        nativeBuilder: (_) => const HealthScreenWithTabs(),
       ),
 
       'checkin': ServiceDefinition(

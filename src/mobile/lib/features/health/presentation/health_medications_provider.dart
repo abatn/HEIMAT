@@ -102,7 +102,8 @@ class HealthMedicationsProvider extends ChangeNotifier {
             },
             body: json.encode({
               'name': name,
-              if (activeIngredient != null) 'active_ingredient': activeIngredient,
+              if (activeIngredient != null)
+                'active_ingredient': activeIngredient,
               if (dosage != null) 'dosage': dosage,
               if (frequency != null) 'frequency': frequency,
               if (category != null) 'category': category,
@@ -116,16 +117,16 @@ class HealthMedicationsProvider extends ChangeNotifier {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final result = AddMedicationResult.fromJson(data);
-        
+
         // In die Liste einfügen
         _medications.insert(0, result.medication);
         _activeCount++;
-        
+
         // Interaktionen aktualisieren
         if (result.interactions.interactions.isNotEmpty) {
           _interactions = result.interactions;
         }
-        
+
         notifyListeners();
         return result;
       } else {
@@ -160,7 +161,8 @@ class HealthMedicationsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = '${AppConfig.backendUrl}/api/health/medications/$medicationId';
+      final url =
+          '${AppConfig.backendUrl}/api/health/medications/$medicationId';
       final response = await http
           .put(
             Uri.parse(url),
@@ -170,7 +172,8 @@ class HealthMedicationsProvider extends ChangeNotifier {
             },
             body: json.encode({
               if (name != null) 'name': name,
-              if (activeIngredient != null) 'active_ingredient': activeIngredient,
+              if (activeIngredient != null)
+                'active_ingredient': activeIngredient,
               if (dosage != null) 'dosage': dosage,
               if (frequency != null) 'frequency': frequency,
               if (category != null) 'category': category,
@@ -185,7 +188,7 @@ class HealthMedicationsProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final updatedMedication = UserMedication.fromJson(data['medication']);
-        
+
         // In der Liste aktualisieren
         final index = _medications.indexWhere((m) => m.id == medicationId);
         if (index != -1) {
@@ -211,7 +214,8 @@ class HealthMedicationsProvider extends ChangeNotifier {
   /// Medikament entfernen (deaktivieren)
   Future<bool> removeMedication(String medicationId) async {
     try {
-      final url = '${AppConfig.backendUrl}/api/health/medications/$medicationId';
+      final url =
+          '${AppConfig.backendUrl}/api/health/medications/$medicationId';
       final response = await http
           .delete(Uri.parse(url), headers: _authService.authHeaders)
           .timeout(const Duration(seconds: 30));

@@ -84,7 +84,8 @@ class FollowUpProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = '${AppConfig.backendUrl}/api/health/followups/$followUpId/respond';
+      final url =
+          '${AppConfig.backendUrl}/api/health/followups/$followUpId/respond';
       final response = await http
           .post(
             Uri.parse(url),
@@ -102,7 +103,7 @@ class FollowUpProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final updated = FollowUp.fromJson(data['followup']);
-        
+
         // In der Liste aktualisieren
         final index = _pendingFollowUps.indexWhere((f) => f.id == followUpId);
         if (index != -1) {

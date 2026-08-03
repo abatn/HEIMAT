@@ -228,9 +228,15 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
     ];
 
     final fields = [
-      'q1_lustlos', 'q2_niedergeschlagen', 'q3_schlafprobleme',
-      'q4_muedigkeit', 'q5_appetit', 'q6_schlecht',
-      'q7_konzentration', 'q8_bewegung', 'q9_selbstverletzung',
+      'q1_lustlos',
+      'q2_niedergeschlagen',
+      'q3_schlafprobleme',
+      'q4_muedigkeit',
+      'q5_appetit',
+      'q6_schlecht',
+      'q7_konzentration',
+      'q8_bewegung',
+      'q9_selbstverletzung',
     ];
 
     final scale = [
@@ -360,7 +366,8 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
                           ),
                         ),
                         child: isSelected
-                            ? const Icon(Icons.check, size: 14, color: Colors.white)
+                            ? const Icon(Icons.check,
+                                size: 14, color: Colors.white)
                             : null,
                       ),
                       const SizedBox(width: 12),
@@ -372,8 +379,9 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
                             color: isSelected
                                 ? AppColors.primary
                                 : AppColors.textPrimary,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ),
@@ -430,9 +438,17 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
   // Navigation Buttons
   // ====================================================================
   Widget _buildNavigationButtons() {
-    final currentField = ['q1_lustlos', 'q2_niedergeschlagen', 'q3_schlafprobleme',
-        'q4_muedigkeit', 'q5_appetit', 'q6_schlecht',
-        'q7_konzentration', 'q8_bewegung', 'q9_selbstverletzung'][_currentQuestionIndex];
+    final currentField = [
+      'q1_lustlos',
+      'q2_niedergeschlagen',
+      'q3_schlafprobleme',
+      'q4_muedigkeit',
+      'q5_appetit',
+      'q6_schlecht',
+      'q7_konzentration',
+      'q8_bewegung',
+      'q9_selbstverletzung'
+    ][_currentQuestionIndex];
     final hasAnswer = _answers.containsKey(currentField);
 
     return Container(
@@ -475,7 +491,8 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: AppColors.textSecondary.withOpacity(0.3),
+                disabledBackgroundColor:
+                    AppColors.textSecondary.withOpacity(0.3),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -599,7 +616,8 @@ class _MentalHealthScreenState extends State<MentalHealthScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.auto_awesome, size: 18, color: AppColors.primary),
+                      Icon(Icons.auto_awesome,
+                          size: 18, color: AppColors.primary),
                       SizedBox(width: 8),
                       Text(
                         'Empfehlung',

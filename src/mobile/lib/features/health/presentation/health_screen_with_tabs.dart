@@ -106,8 +106,12 @@ class _HealthScreenWithTabsState extends State<HealthScreenWithTabs>
             Tab(icon: Icon(Icons.timeline, size: 20), text: 'Verlauf'),
             Tab(icon: Icon(Icons.medication, size: 20), text: 'Medikamente'),
             Tab(icon: Icon(Icons.psychology, size: 20), text: 'Mental'),
-            Tab(icon: Icon(Icons.health_and_safety, size: 20), text: 'Vorsorge'),
-            Tab(icon: Icon(Icons.follow_the_signs, size: 20), text: 'Nachsorge'),
+            Tab(
+                icon: Icon(Icons.health_and_safety, size: 20),
+                text: 'Vorsorge'),
+            Tab(
+                icon: Icon(Icons.follow_the_signs, size: 20),
+                text: 'Nachsorge'),
           ],
         ),
       ),
@@ -243,7 +247,9 @@ class _DoctorsTabState extends State<_DoctorsTab> {
                     children: [
                       Icon(icon,
                           size: 16,
-                          color: isSelected ? Colors.white : AppColors.textSecondary),
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Text(label),
                     ],
@@ -286,9 +292,12 @@ class _DoctorsTabState extends State<_DoctorsTab> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const Icon(Icons.error_outline,
+                          size: 48, color: AppColors.error),
                       const SizedBox(height: 16),
-                      Text(provider.error!, style: const TextStyle(color: AppColors.textSecondary)),
+                      Text(provider.error!,
+                          style:
+                              const TextStyle(color: AppColors.textSecondary)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () => provider.searchDoctors(),
@@ -303,11 +312,16 @@ class _DoctorsTabState extends State<_DoctorsTab> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.person_search, size: 64, color: AppColors.textSecondary.withOpacity(0.3)),
+                      Icon(Icons.person_search,
+                          size: 64,
+                          color: AppColors.textSecondary.withOpacity(0.3)),
                       const SizedBox(height: 16),
-                      const Text('Keine Ärzte gefunden', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                      const Text('Keine Ärzte gefunden',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
-                      const Text('Aktivieren Sie Standortzugriff', style: TextStyle(color: AppColors.textSecondary)),
+                      const Text('Aktivieren Sie Standortzugriff',
+                          style: TextStyle(color: AppColors.textSecondary)),
                     ],
                   ),
                 );
@@ -362,22 +376,29 @@ class _DoctorsTabState extends State<_DoctorsTab> {
                           color: AppColors.primary.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 18),
+                        child: const Icon(Icons.auto_awesome,
+                            color: AppColors.primary, size: 18),
                       ),
                       const SizedBox(width: 10),
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Health AI Assistent', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                            Text('Symptome erfragen · Triage · Arzt-Empfehlung', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                            Text('Health AI Assistent',
+                                style: TextStyle(
+                                    fontSize: 14, fontWeight: FontWeight.w600)),
+                            Text('Symptome erfragen · Triage · Arzt-Empfehlung',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary)),
                           ],
                         ),
                       ),
                       AnimatedRotation(
                         turns: _showAiChat ? 0.5 : 0,
                         duration: const Duration(milliseconds: 200),
-                        child: const Icon(Icons.expand_more, color: AppColors.textSecondary, size: 20),
+                        child: const Icon(Icons.expand_more,
+                            color: AppColors.textSecondary, size: 20),
                       ),
                     ],
                   ),
@@ -407,14 +428,20 @@ class _DoctorsTabState extends State<_DoctorsTab> {
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
                                         color: msg.role.name == 'user'
-                                            ? AppColors.primary.withOpacity(0.08)
+                                            ? AppColors.primary
+                                                .withOpacity(0.08)
                                             : AppColors.card,
                                         borderRadius: BorderRadius.circular(10),
                                         border: msg.role.name != 'user'
-                                            ? Border.all(color: AppColors.border)
+                                            ? Border.all(
+                                                color: AppColors.border)
                                             : null,
                                       ),
-                                      child: Text(msg.content, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, height: 1.3)),
+                                      child: Text(msg.content,
+                                          maxLines: 3,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontSize: 12, height: 1.3)),
                                     ))
                                 .toList(),
                           ),
@@ -428,14 +455,24 @@ class _DoctorsTabState extends State<_DoctorsTab> {
                               controller: _aiChatController,
                               enabled: !ai.isLoading,
                               textInputAction: TextInputAction.send,
-                              onSubmitted: ai.isLoading ? null : (v) => _sendAiChatMessage(v),
+                              onSubmitted: ai.isLoading
+                                  ? null
+                                  : (v) => _sendAiChatMessage(v),
                               decoration: InputDecoration(
-                                hintText: ai.isLoading ? 'Denkt nach...' : 'Frag nach Symptomen...',
-                                hintStyle: TextStyle(fontSize: 13, color: AppColors.textSecondary.withOpacity(0.6)),
+                                hintText: ai.isLoading
+                                    ? 'Denkt nach...'
+                                    : 'Frag nach Symptomen...',
+                                hintStyle: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary
+                                        .withOpacity(0.6)),
                                 filled: true,
                                 fillColor: AppColors.surface,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide.none),
                                 isDense: true,
                               ),
                               style: const TextStyle(fontSize: 13),
@@ -444,16 +481,27 @@ class _DoctorsTabState extends State<_DoctorsTab> {
                           const SizedBox(width: 6),
                           Container(
                             decoration: BoxDecoration(
-                              color: ai.isLoading ? AppColors.textSecondary.withOpacity(0.3) : AppColors.primary,
+                              color: ai.isLoading
+                                  ? AppColors.textSecondary.withOpacity(0.3)
+                                  : AppColors.primary,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: IconButton(
                               icon: ai.isLoading
-                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                  : const Icon(Icons.send_rounded, color: Colors.white, size: 16),
-                              onPressed: ai.isLoading ? null : () => _sendAiChatMessage(_aiChatController.text),
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white))
+                                  : const Icon(Icons.send_rounded,
+                                      color: Colors.white, size: 16),
+                              onPressed: ai.isLoading
+                                  ? null
+                                  : () => _sendAiChatMessage(
+                                      _aiChatController.text),
                               padding: const EdgeInsets.all(8),
-                              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                              constraints: const BoxConstraints(
+                                  minWidth: 34, minHeight: 34),
                             ),
                           ),
                         ],
@@ -491,8 +539,14 @@ class _DoctorsTabState extends State<_DoctorsTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Termin ${next.countdownLabel}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                    Text('${next.doctorName} · ${next.date} ${next.time} Uhr', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    Text('Termin ${next.countdownLabel}',
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w700)),
+                    Text('${next.doctorName} · ${next.date} ${next.time} Uhr',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -513,24 +567,47 @@ class _DoctorsTabState extends State<_DoctorsTab> {
           decoration: BoxDecoration(
             color: AppColors.card,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isActive ? AppColors.success.withOpacity(0.3) : AppColors.border),
+            border: Border.all(
+                color: isActive
+                    ? AppColors.success.withOpacity(0.3)
+                    : AppColors.border),
           ),
           child: Row(
             children: [
-              Icon(Icons.verified_user_outlined, size: 18, color: isActive ? AppColors.success : AppColors.textSecondary),
+              Icon(Icons.verified_user_outlined,
+                  size: 18,
+                  color:
+                      isActive ? AppColors.success : AppColors.textSecondary),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Lebenszeichen', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isActive ? AppColors.success : AppColors.textPrimary)),
-                    Text(isActive ? 'Aktiv · Alle ${checkin.status?.currentIntervalHours ?? 24}h' : 'Nicht aktiv', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    Text('Lebenszeichen',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isActive
+                                ? AppColors.success
+                                : AppColors.textPrimary)),
+                    Text(
+                        isActive
+                            ? 'Aktiv · Alle ${checkin.status?.currentIntervalHours ?? 24}h'
+                            : 'Nicht aktiv',
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
               Switch(
                 value: isActive,
-                onChanged: checkin.isLoading ? null : (val) async { val ? await checkin.activate() : await checkin.deactivate(); },
+                onChanged: checkin.isLoading
+                    ? null
+                    : (val) async {
+                        val
+                            ? await checkin.activate()
+                            : await checkin.deactivate();
+                      },
                 activeColor: AppColors.primary,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -574,16 +651,25 @@ class _DoctorListCard extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.local_hospital, color: Colors.white, size: 24),
+            child:
+                const Icon(Icons.local_hospital, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(doctor.name ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                Text(doctor.specialty ?? '', style: const TextStyle(fontSize: 13, color: AppColors.primary)),
-                Text(doctor.address ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(doctor.name ?? '',
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600)),
+                Text(doctor.specialty ?? '',
+                    style: const TextStyle(
+                        fontSize: 13, color: AppColors.primary)),
+                Text(doctor.address ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -594,7 +680,11 @@ class _DoctorListCard extends StatelessWidget {
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text('${doctor.distanceKm!.toStringAsFixed(1)} km', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+              child: Text('${doctor.distanceKm!.toStringAsFixed(1)} km',
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary)),
             ),
         ],
       ),

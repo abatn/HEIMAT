@@ -238,7 +238,8 @@ class _PreventionScreenState extends State<PreventionScreen> {
                   child: LinearProgressIndicator(
                     value: stats.progressPercent / 100,
                     backgroundColor: AppColors.border,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppColors.primary),
                     minHeight: 8,
                   ),
                 ),
@@ -332,7 +333,8 @@ class _PreventionScreenState extends State<PreventionScreen> {
                 ? '${newRecs.length} neue Empfehlungen generiert'
                 : 'Keine neuen Empfehlungen',
           ),
-          backgroundColor: newRecs.isNotEmpty ? AppColors.success : AppColors.info,
+          backgroundColor:
+              newRecs.isNotEmpty ? AppColors.success : AppColors.info,
         ),
       );
     }
@@ -466,7 +468,8 @@ class _RecommendationCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.info_outline, size: 12, color: AppColors.textSecondary),
+              Icon(Icons.info_outline,
+                  size: 12, color: AppColors.textSecondary),
               const SizedBox(width: 4),
               Text(
                 'Basierend auf: ${recommendation.basedOn}',

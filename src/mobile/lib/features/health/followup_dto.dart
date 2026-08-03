@@ -65,42 +65,60 @@ class FollowUp {
   /// Typ-Emoji
   String get typeEmoji {
     switch (followupType) {
-      case 'check_in': return '📋';
-      case 'medication': return '💊';
-      case 'symptom': return '🩺';
-      default: return '📋';
+      case 'check_in':
+        return '📋';
+      case 'medication':
+        return '💊';
+      case 'symptom':
+        return '🩺';
+      default:
+        return '📋';
     }
   }
 
   /// Typ-Label
   String get typeLabel {
     switch (followupType) {
-      case 'check_in': return 'Check-in';
-      case 'medication': return 'Medikament';
-      case 'symptom': return 'Symptom';
-      default: return 'Follow-up';
+      case 'check_in':
+        return 'Check-in';
+      case 'medication':
+        return 'Medikament';
+      case 'symptom':
+        return 'Symptom';
+      default:
+        return 'Follow-up';
     }
   }
 
   /// Status-Emoji
   String get statusEmoji {
     switch (status) {
-      case 'pending': return '⏳';
-      case 'sent': return '📤';
-      case 'responded': return '✅';
-      case 'closed': return '🔒';
-      default: return '❓';
+      case 'pending':
+        return '⏳';
+      case 'sent':
+        return '📤';
+      case 'responded':
+        return '✅';
+      case 'closed':
+        return '🔒';
+      default:
+        return '❓';
     }
   }
 
   /// Status-Farbe
   int get statusColor {
     switch (status) {
-      case 'pending': return 0xFFFFB74D; // Orange
-      case 'sent': return 0xFF3B82F6; // Blau
-      case 'responded': return 0xFF66BB6A; // Grün
-      case 'closed': return 0xFF9E9E9E; // Grau
-      default: return 0xFF9E9E9E;
+      case 'pending':
+        return 0xFFFFB74D; // Orange
+      case 'sent':
+        return 0xFF3B82F6; // Blau
+      case 'responded':
+        return 0xFF66BB6A; // Grün
+      case 'closed':
+        return 0xFF9E9E9E; // Grau
+      default:
+        return 0xFF9E9E9E;
     }
   }
 

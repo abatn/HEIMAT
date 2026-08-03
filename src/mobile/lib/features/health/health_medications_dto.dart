@@ -51,7 +51,8 @@ class UserMedication {
       dosage: json['dosage'],
       frequency: json['frequency'],
       category: json['category'],
-      isPrescription: json['is_prescription'] == true || json['isPrescription'] == true,
+      isPrescription:
+          json['is_prescription'] == true || json['isPrescription'] == true,
       startDate: json['start_date'] ?? json['startDate'],
       endDate: json['end_date'] ?? json['endDate'],
       isActive: json['is_active'] == true || json['isActive'] == true,

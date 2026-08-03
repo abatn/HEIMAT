@@ -139,9 +139,8 @@ class MentalHealthProvider extends ChangeNotifier {
   Future<void> loadEmergencyContacts() async {
     try {
       final url = '${AppConfig.backendUrl}/api/health/mental/crisis';
-      final response = await http
-          .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 15));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -157,9 +156,8 @@ class MentalHealthProvider extends ChangeNotifier {
   Future<void> loadQuestions() async {
     try {
       final url = '${AppConfig.backendUrl}/api/health/mental/questions';
-      final response = await http
-          .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 15));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

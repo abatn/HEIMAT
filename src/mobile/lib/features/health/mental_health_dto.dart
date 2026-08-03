@@ -9,14 +9,14 @@
 
 /// PHQ-9 Antworten (9 Fragen, Score 0-3)
 class Phq9Answers {
-  final int q1Lustlos;          // Wenig Interesse oder Freude
+  final int q1Lustlos; // Wenig Interesse oder Freude
   final int q2Niedergeschlagen; // Niedergeschlagen/hoffnungslos
-  final int q3Schlafprobleme;   // Schlafprobleme
-  final int q4Muedigkeit;       // Müdigkeit/keine Energie
-  final int q5Appetit;          // Schlechter Appetit/Überessen
-  final int q6Schlecht;         // Schlecht über sich selbst
-  final int q7Konzentration;    // Schwer sich zu konzentrieren
-  final int q8Bewegung;         // Langsam/unruhig bewegt
+  final int q3Schlafprobleme; // Schlafprobleme
+  final int q4Muedigkeit; // Müdigkeit/keine Energie
+  final int q5Appetit; // Schlechter Appetit/Überessen
+  final int q6Schlecht; // Schlecht über sich selbst
+  final int q7Konzentration; // Schwer sich zu konzentrieren
+  final int q8Bewegung; // Langsam/unruhig bewegt
   final int q9Selbstverletzung; // Gedanken sich etwas anzutun
 
   Phq9Answers({
@@ -33,22 +33,28 @@ class Phq9Answers {
 
   /// Gesamt-Score (0-27)
   int get totalScore =>
-      q1Lustlos + q2Niedergeschlagen + q3Schlafprobleme +
-      q4Muedigkeit + q5Appetit + q6Schlecht +
-      q7Konzentration + q8Bewegung + q9Selbstverletzung;
+      q1Lustlos +
+      q2Niedergeschlagen +
+      q3Schlafprobleme +
+      q4Muedigkeit +
+      q5Appetit +
+      q6Schlecht +
+      q7Konzentration +
+      q8Bewegung +
+      q9Selbstverletzung;
 
   /// Als Map für API-Request
   Map<String, dynamic> toJson() => {
-    'q1_lustlos': q1Lustlos,
-    'q2_niedergeschlagen': q2Niedergeschlagen,
-    'q3_schlafprobleme': q3Schlafprobleme,
-    'q4_muedigkeit': q4Muedigkeit,
-    'q5_appetit': q5Appetit,
-    'q6_schlecht': q6Schlecht,
-    'q7_konzentration': q7Konzentration,
-    'q8_bewegung': q8Bewegung,
-    'q9_selbstverletzung': q9Selbstverletzung,
-  };
+        'q1_lustlos': q1Lustlos,
+        'q2_niedergeschlagen': q2Niedergeschlagen,
+        'q3_schlafprobleme': q3Schlafprobleme,
+        'q4_muedigkeit': q4Muedigkeit,
+        'q5_appetit': q5Appetit,
+        'q6_schlecht': q6Schlecht,
+        'q7_konzentration': q7Konzentration,
+        'q8_bewegung': q8Bewegung,
+        'q9_selbstverletzung': q9Selbstverletzung,
+      };
 
   factory Phq9Answers.fromJson(Map<String, dynamic> json) {
     return Phq9Answers(
@@ -103,33 +109,48 @@ class Phq9Assessment {
   /// Schweregrad-Label
   String get severityLabel {
     switch (severity) {
-      case 'leicht': return 'Keine/Minimal Depression';
-      case 'mittel': return 'Leichte Depression';
-      case 'schwer': return 'Mittelschwere Depression';
-      case 'sehr_schwer': return 'Schwere Depression';
-      default: return 'Unbekannt';
+      case 'leicht':
+        return 'Keine/Minimal Depression';
+      case 'mittel':
+        return 'Leichte Depression';
+      case 'schwer':
+        return 'Mittelschwere Depression';
+      case 'sehr_schwer':
+        return 'Schwere Depression';
+      default:
+        return 'Unbekannt';
     }
   }
 
   /// Emoji für Schweregrad
   String get severityEmoji {
     switch (severity) {
-      case 'leicht': return '🟢';
-      case 'mittel': return '🟡';
-      case 'schwer': return '🟠';
-      case 'sehr_schwer': return '🔴';
-      default: return '❓';
+      case 'leicht':
+        return '🟢';
+      case 'mittel':
+        return '🟡';
+      case 'schwer':
+        return '🟠';
+      case 'sehr_schwer':
+        return '🔴';
+      default:
+        return '❓';
     }
   }
 
   /// Farbe für Schweregrad
   int get severityColor {
     switch (severity) {
-      case 'leicht': return 0xFF66BB6A; // Grün
-      case 'mittel': return 0xFFFFB74D; // Orange
-      case 'schwer': return 0xFFFF8A65; // Dunkel-Orange
-      case 'sehr_schwer': return 0xFFFF5252; // Rot
-      default: return 0xFF9E9E9E; // Grau
+      case 'leicht':
+        return 0xFF66BB6A; // Grün
+      case 'mittel':
+        return 0xFFFFB74D; // Orange
+      case 'schwer':
+        return 0xFFFF8A65; // Dunkel-Orange
+      case 'sehr_schwer':
+        return 0xFFFF5252; // Rot
+      default:
+        return 0xFF9E9E9E; // Grau
     }
   }
 }
@@ -165,18 +186,24 @@ class Phq9Stats {
   /// Trend-Emoji
   String get trendEmoji {
     switch (trend) {
-      case 'verbesserung': return '📉';
-      case 'verschlechterung': return '📈';
-      default: return '➡️';
+      case 'verbesserung':
+        return '📉';
+      case 'verschlechterung':
+        return '📈';
+      default:
+        return '➡️';
     }
   }
 
   /// Risk-Level-Farbe
   int get riskColor {
     switch (riskLevel) {
-      case 'hoch': return 0xFFFF5252;
-      case 'mittel': return 0xFFFFB74D;
-      default: return 0xFF66BB6A;
+      case 'hoch':
+        return 0xFFFF5252;
+      case 'mittel':
+        return 0xFFFFB74D;
+      default:
+        return 0xFF66BB6A;
     }
   }
 }

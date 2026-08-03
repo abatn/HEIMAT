@@ -419,7 +419,8 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                         children: [
                           const Text('1',
                               style: TextStyle(
-                                  fontSize: 12, color: AppColors.textSecondary)),
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary)),
                           Expanded(
                             child: Slider(
                               value: severity.toDouble(),
@@ -435,7 +436,8 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                           ),
                           const Text('10',
                               style: TextStyle(
-                                  fontSize: 12, color: AppColors.textSecondary)),
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary)),
                           const SizedBox(width: 8),
                           Container(
                             width: 36,
@@ -491,8 +493,9 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                                         ? 'Antwort gespeichert'
                                         : 'Fehler beim Speichern',
                                   ),
-                                  backgroundColor:
-                                      success ? AppColors.success : AppColors.error,
+                                  backgroundColor: success
+                                      ? AppColors.success
+                                      : AppColors.error,
                                 ),
                               );
                             }
@@ -597,8 +600,9 @@ class _FollowUpCard extends StatelessWidget {
                         color: followUp.isDue
                             ? AppColors.warning
                             : AppColors.textSecondary,
-                        fontWeight:
-                            followUp.isDue ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: followUp.isDue
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ],
@@ -713,7 +717,8 @@ class _HistoryCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.auto_awesome, size: 14, color: AppColors.info),
+                  const Icon(Icons.auto_awesome,
+                      size: 14, color: AppColors.info),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

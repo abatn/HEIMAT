@@ -9,12 +9,12 @@ class ParkingSpot {
   final String osmType; // 'node' | 'way' | 'relation'
   final String name;
   final String? operator;
-  final String? parkingType;  // surface, underground, multi-storey, etc.
-  final String? access;       // public, private, customers
-  final String? fee;          // yes, no
+  final String? parkingType; // surface, underground, multi-storey, etc.
+  final String? access; // public, private, customers
+  final String? fee; // yes, no
   final int? capacity;
-  final String? surface;      // asphalt, paved, gravel, etc.
-  final String? lit;          // yes, no
+  final String? surface; // asphalt, paved, gravel, etc.
+  final String? lit; // yes, no
   final double latitude;
   final double longitude;
   final String? openingHours;
@@ -63,12 +63,18 @@ class ParkingSpot {
 
   String get parkingTypeLabel {
     switch (parkingType) {
-      case 'surface': return 'Freifläche';
-      case 'underground': return 'Tiefgarage';
-      case 'multi-storey': return 'Parkhaus';
-      case 'sheds': return 'Unterstand';
-      case 'box': return 'Garage';
-      default: return parkingType ?? 'Parkplatz';
+      case 'surface':
+        return 'Freifläche';
+      case 'underground':
+        return 'Tiefgarage';
+      case 'multi-storey':
+        return 'Parkhaus';
+      case 'sheds':
+        return 'Unterstand';
+      case 'box':
+        return 'Garage';
+      default:
+        return parkingType ?? 'Parkplatz';
     }
   }
 }

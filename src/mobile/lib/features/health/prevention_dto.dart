@@ -54,29 +54,40 @@ class PreventionRecommendation {
   /// Kategorie-Emoji
   String get categoryEmoji {
     switch (category) {
-      case 'Vorsorge': return '🩺';
-      case 'Screening': return '🔍';
-      case 'Impfung': return '💉';
-      case 'Lebensstil': return '🏃';
-      default: return '📋';
+      case 'Vorsorge':
+        return '🩺';
+      case 'Screening':
+        return '🔍';
+      case 'Impfung':
+        return '💉';
+      case 'Lebensstil':
+        return '🏃';
+      default:
+        return '📋';
     }
   }
 
   /// Prioritäts-Farbe
   int get priorityColor {
     switch (priority) {
-      case 'hoch': return 0xFFFF5252; // Rot
-      case 'mittel': return 0xFFFFB74D; // Orange
-      default: return 0xFF66BB6A; // Grün
+      case 'hoch':
+        return 0xFFFF5252; // Rot
+      case 'mittel':
+        return 0xFFFFB74D; // Orange
+      default:
+        return 0xFF66BB6A; // Grün
     }
   }
 
   /// Prioritäts-Emoji
   String get priorityEmoji {
     switch (priority) {
-      case 'hoch': return '🔴';
-      case 'mittel': return '🟡';
-      default: return '🟢';
+      case 'hoch':
+        return '🔴';
+      case 'mittel':
+        return '🟡';
+      default:
+        return '🟢';
     }
   }
 }
@@ -203,19 +214,21 @@ class UserProfile {
 
   /// Als Map für API-Request
   Map<String, dynamic> toJson() => {
-    if (birthDate != null) 'birth_date': birthDate!.toIso8601String().split('T')[0],
-    if (gender != null) 'gender': gender,
-    if (weightKg != null) 'weight_kg': weightKg,
-    if (heightCm != null) 'height_cm': heightCm,
-    'is_smoker': isSmoker,
-    'is_pregnant': isPregnant,
-    'chronic_conditions': chronicConditions,
-    'allergies': allergies,
-    'family_history': familyHistory,
-    if (insuranceType != null) 'insurance_type': insuranceType,
-    if (preferredLanguage != null) 'preferred_language': preferredLanguage,
-    if (preferredGenderDoctor != null) 'preferred_gender_doctor': preferredGenderDoctor,
-    'needs_accessibility': needsAccessibility,
-    'risk_factors': riskFactors,
-  };
+        if (birthDate != null)
+          'birth_date': birthDate!.toIso8601String().split('T')[0],
+        if (gender != null) 'gender': gender,
+        if (weightKg != null) 'weight_kg': weightKg,
+        if (heightCm != null) 'height_cm': heightCm,
+        'is_smoker': isSmoker,
+        'is_pregnant': isPregnant,
+        'chronic_conditions': chronicConditions,
+        'allergies': allergies,
+        'family_history': familyHistory,
+        if (insuranceType != null) 'insurance_type': insuranceType,
+        if (preferredLanguage != null) 'preferred_language': preferredLanguage,
+        if (preferredGenderDoctor != null)
+          'preferred_gender_doctor': preferredGenderDoctor,
+        'needs_accessibility': needsAccessibility,
+        'risk_factors': riskFactors,
+      };
 }

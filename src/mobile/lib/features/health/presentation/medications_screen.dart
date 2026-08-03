@@ -51,7 +51,9 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                 icon: Icon(
                   Icons.warning_amber_outlined,
                   size: 20,
-                  color: activeCount >= 2 ? AppColors.warning : AppColors.textSecondary,
+                  color: activeCount >= 2
+                      ? AppColors.warning
+                      : AppColors.textSecondary,
                 ),
                 onPressed: activeCount >= 2
                     ? () => _showInteractionsSheet(context)
@@ -167,10 +169,12 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
           margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: (severe ? AppColors.error : AppColors.warning).withOpacity(0.08),
+            color: (severe ? AppColors.error : AppColors.warning)
+                .withOpacity(0.08),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: (severe ? AppColors.error : AppColors.warning).withOpacity(0.25),
+              color: (severe ? AppColors.error : AppColors.warning)
+                  .withOpacity(0.25),
             ),
           ),
           child: Row(
@@ -178,7 +182,8 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: (severe ? AppColors.error : AppColors.warning).withOpacity(0.15),
+                  color: (severe ? AppColors.error : AppColors.warning)
+                      .withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -193,7 +198,9 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      severe ? 'Schwerwiegende Interaktion!' : 'Interaktionen gefunden',
+                      severe
+                          ? 'Schwerwiegende Interaktion!'
+                          : 'Interaktionen gefunden',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -568,7 +575,8 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                               Navigator.pop(context);
                               if (result != null) {
                                 // Interaktionen anzeigen
-                                if (result.interactions.interactions.isNotEmpty) {
+                                if (result
+                                    .interactions.interactions.isNotEmpty) {
                                   _showInteractionsDialog(result.interactions);
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -581,8 +589,8 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                        provider.error ?? 'Fehler beim Speichern'),
+                                    content: Text(provider.error ??
+                                        'Fehler beim Speichern'),
                                     backgroundColor: AppColors.error,
                                   ),
                                 );
@@ -725,7 +733,8 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                       color: Color(interaction.severityColor).withOpacity(0.06),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Color(interaction.severityColor).withOpacity(0.2),
+                        color:
+                            Color(interaction.severityColor).withOpacity(0.2),
                       ),
                     ),
                     child: Column(
@@ -945,8 +954,9 @@ class _MedicationCardState extends State<_MedicationCard> {
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
-                            decoration:
-                                med.isActive ? null : TextDecoration.lineThrough,
+                            decoration: med.isActive
+                                ? null
+                                : TextDecoration.lineThrough,
                           ),
                         ),
                         if (med.displayName != med.name)
