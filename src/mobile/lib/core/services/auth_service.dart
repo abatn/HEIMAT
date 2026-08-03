@@ -52,6 +52,19 @@ class AuthService {
     await prefs.remove(_displayNameKey);
   }
 
+  /// Sicheres JSON-Parsing: Prueft Content-Type vor json.decode()
+  static Map<String, dynamic>? _tryDecodeJson(http.Response response) {
+    final contentType = response.headers['content-type'] ?? '';
+    if (!contentType.contains('application/json')) {
+      return null;
+    }
+    try {
+      return json.decode(response.body) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<AuthResult> login(String email, String password) async {
     try {
       final url = '${AppConfig.backendUrl}/api/auth/login';
@@ -63,17 +76,20 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 30));
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+      final data = _tryDecodeJson(response);
+
+      if (response.statusCode == 200 && data != null) {
         _token = data['accessToken'];
-        _userId = data['user']['id'];
-        _email = data['user']['email'];
-        _displayName = data['user']['display_name'];
+        _userId = data['user']?['id'];
+        _email = data['user']?['email'];
+        _displayName = data['user']?['display_name'];
         await _saveToStorage();
         return AuthResult.success();
       } else {
-        final data = json.decode(response.body);
-        return AuthResult.error(data['message'] ?? 'Login fehlgeschlagen');
+        final errorMsg = data?['message'] ??
+            data?['error'] ??
+            'Login fehlgeschlagen (HTTP ${response.statusCode})';
+        return AuthResult.error(errorMsg);
       }
     } catch (e) {
       return AuthResult.error('Netzwerkfehler: $e');
@@ -96,18 +112,20 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 30));
 
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
+      final data = _tryDecodeJson(response);
+
+      if (response.statusCode == 201 && data != null) {
         _token = data['accessToken'];
-        _userId = data['user']['id'];
-        _email = data['user']['email'];
-        _displayName = data['user']['display_name'];
+        _userId = data['user']?['id'];
+        _email = data['user']?['email'];
+        _displayName = data['user']?['display_name'];
         await _saveToStorage();
         return AuthResult.success();
       } else {
-        final data = json.decode(response.body);
-        return AuthResult.error(
-            data['message'] ?? 'Registrierung fehlgeschlagen');
+        final errorMsg = data?['message'] ??
+            data?['error'] ??
+            'Registrierung fehlgeschlagen (HTTP ${response.statusCode})';
+        return AuthResult.error(errorMsg);
       }
     } catch (e) {
       return AuthResult.error('Netzwerkfehler: $e');
