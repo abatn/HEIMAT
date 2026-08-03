@@ -4,19 +4,20 @@
 
 1. **Echte Einnahmen:** 0 EUR — Projekt ist Open Source, keine Monetarisierung implementiert
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)
-3. **Durchgeführte Tests:** 537 Backend-Tests
-   - CI (mit Postgres): 537/537 bestanden (100%)
-   - Lokal (ohne Postgres): 386/537 bestanden (72%) — 134 Umgebungsfehler
-   - Health AI Agent: 137/137 bestanden (100%)
+3. **Durchgeführte Tests:** 547 Backend-Tests
+   - CI (mit Postgres): 547/547 bestanden (100%)
+   - Lokal (ohne Postgres): 396/547 bestanden (72%) — 134 Umgebungsfehler
+   - Health AI Agent: 147/147 bestanden (100%)
+   - Parking Unit-Tests: 10/10 bestanden (100%)
    - Klassifikation: 0 echte Bugs, 0 flaky, 134 Umgebungsprobleme
 4. **Commits:** 599 (seit 2026-07-11, 23 Tage = ~34/Tag)
-5. **Phasen abgeschlossen:** 3 von ~10 (Phase 23: Finance JWT ✅, Phase 24: Demo-KUDOS ✅, Health AI Phase 1+2 ✅)
+5. **Phasen abgeschlossen:** 4 von ~10 (Phase 23: Finance JWT ✅, Phase 24: Demo-KUDOS ✅, Health AI Phase 1+2 ✅, Phase C: E-Ladestationen + Parken ✅)
 6. **Services live:** 3 (Mobilität, Gesundheit, Finanzen) von geplanten 13
-7. **API-Endpunkte:** 18 Route-Dateien, 108 Endpunkte (davon 45 Health-Endpunkte)
+7. **API-Endpunkte:** 19 Route-Dateien, 109 Endpunkte (davon 45 Health-Endpunkte, 1 Parken-Endpunkt)
 8. **Flutter-Dateien:** 84 Dart-Dateien, 22 Testdateien
 9. **Backend-Dateien:** 98 TypeScript-Dateien, 34 Testdateien
 10. **Deployments:** GitHub Pages (Flutter Web) + Render (Backend) — beide grün
-11. **Feedback-Loop-Status:** Funktioniert mit einer Verzerrung — lokale Testmetrik (72%) misst Umgebung, nicht Code-Qualität. CI-Metrik (100%) ist korrekt.
+11. **Feedback-Loop-Status:** Funktioniert. CI-Metrik (100%) ist korrekt. Lokale Testrate (72%) ist verzerrt durch fehlende DB.
 
 ---
 

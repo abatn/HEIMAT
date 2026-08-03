@@ -192,7 +192,7 @@ Basierend auf WeChat (China) und Grab (Singapur) wird HEIMAT von 3 auf **10+ Ser
 | 9 | 💼 **Job-Suche** | BA (inoffizielle/Community-API) + Adzuna | 🏛️ Staatlich / Kommerziell | ✅ | Job-Matching + Skill-Gap |
 | 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | 🌍 Open Source | ✅ | Personalisierte Empfehlung |
 | 11 | 🏨 **Hotels & Unterkünfte** | OSM + Wikidata (nur Standort-Daten, keine Buchung) | 🌍 Open Source | ❌ | Reiseplanung mit Budget |
-| 12 | 🅿️ **Parken** | OpenStreetMap (OSM) | 🌍 Open Source | ⚠️ | — |
+| 12 | 🅿️ **Parken** | OpenStreetMap (OSM) | 🌍 Open Source | ✅ | OSM Overpass Live |
 | 13 | 🏛️ **Bürgeramt-Services** | Kommunale APIs | 🏛️ Staatlich | ✅ | AI-Terminfindung |
 
 ### Integrations-Strategie für Futai (React Native)
@@ -213,7 +213,7 @@ Futai ist eine React Native (Expo) Social-Media-App mit KI-Chat (Ollama), 12 Emo
 |-------|----------|------|
 | **A** | Mini-Program-Container (Fundament) | ✅ Abgeschlossen |
 | **B** | Wetter (DWD) + Luftqualität (UBA) + Abfallkalender | 3-5 |
-| **C** | E-Ladestationen (OSM) + Parken (OSM) | 2-3 |
+| **C** | E-Ladestationen (OSM) + Parken (OSM) | 2-3 | ✅ Abgeschlossen |
 | **D** | Futai-Chat (Mini-Program) + Job-Suche (BA) + Veranstaltungen | 3-5 |
 | **E** | Hotels (OSM/Wikidata) + Bürgeramt | 5-7 |
 | **🎯 Gesamt** | **10 neue Services** | **~15-20 Tage** |
@@ -411,6 +411,7 @@ ollamaService.chatWithContext({ health: { symptom } })
 ### ❌ Was fehlt (echte Lücken)
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
+- ~~Parken (OSM Overpass)~~ ✅ erledigt (Commit d997789, 10 Unit-Tests + 6 Integration-Tests)
 - Auto-Migration health-check Tool (`npm run migrate:status`)
 - Health-Provider-Tests fehlen (searchDoctors + loadSlots + bookAppointment)
 
