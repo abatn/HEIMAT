@@ -13,7 +13,7 @@
 
 import request from 'supertest';
 import app from '../index';
-import { withRetry, isAcceptableStatus, TIMEOUTS } from './test-utils';
+import { withRetry, isAcceptableStatus, TIMEOUTS } from './utils/test-utils';
 
 describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
   const testEmail = `e2e-${Date.now()}@heimat.de`;
