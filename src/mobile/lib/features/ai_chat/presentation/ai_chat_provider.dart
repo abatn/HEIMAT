@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/config/app_config.dart';
 import '../ai_chat_dto.dart';
+import '../ai_sse_client.dart';
 
 /// AiChatProvider — ChatGPT-ähnlicher Chat mit HEIMATs lokalem Ollama.
 ///
@@ -103,57 +105,109 @@ class AiChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final body = <String, dynamic>{
-        'message': text.trim(),
-      };
+      // --- STREAMING PATH ---
+      // Versuche Streaming (token-by-token) — bei Fehler: Fallback auf non-streaming
+      final buffer = StringBuffer();
+      bool streamingWorked = false;
 
-      // Service-Context anhängen (für Health AI, Wetter, etc.)
-      // Health-Tab nutzt includeWeather: false (weather ≠ health)
-      final services = getServiceContext(includeWeather: includeWeather);
-      if (services.isNotEmpty) {
-        body['services'] = services;
+      try {
+        final stream = AiSseClient.streamChat(
+          baseUrl: AppConfig.backendUrl,
+          message: text.trim(),
+        );
+
+        await for (final event in stream) {
+          if (event.isToken) {
+            buffer.write(event.token);
+            streamingWorked = true;
+            // UI updaten mit aktuellem Buffer
+            _updateStreamingMessage(buffer.toString());
+          } else if (event.isError) {
+            // Streaming-Fehler → Fallback auf non-streaming
+            debugPrint('SSE Error: ${event.error}');
+            break;
+          } else if (event.done) {
+            break;
+          }
+        }
+      } catch (e) {
+        debugPrint('SSE Stream failed, falling back to non-streaming: $e');
       }
 
-      // Health-Triage (RAG + Ollama) braucht bis zu 60s
-      // Backend + Netzwerk-Latenz
-      final data = await apiPost('/api/ai/chat', body,
-          timeout: const Duration(seconds: 120));
-
-      final response = ChatResponse.fromJson(data);
-
-      if (response.isError) {
-        // Backend meldet Fehler
-        _messages.add(ChatMessage.assistant(
-          response.response.isNotEmpty
-              ? response.response
-              : 'Entschuldigung, ich habe einen internen Fehler. Bitte versuche es später erneut.',
-        ));
+      if (streamingWorked && buffer.isNotEmpty) {
+        // Streaming hat funktionieren — finalisiere Nachricht
+        _finalizeStreamingMessage(buffer.toString());
       } else {
-        // Normale Antwort anfügen
-        _messages.add(ChatMessage.assistant(response.response));
-
-        // Bei Fallback-Meldung: Hinweis auf Modell-Status
-        if (response.isFallback) {
-          _messages.add(ChatMessage.system(
-            'Der KI-Assistent ist aktuell im Offline-Modus. '
-            'Einige Funktionen sind eingeschränkt.',
-          ));
-        }
+        // --- NON-STREAMING FALLBACK ---
+        await _sendMessageNonStreaming(text.trim(), includeWeather);
       }
     } catch (e) {
       _error = e.toString();
-      // Bei Network-Fehler: Fallback-Nachricht mit Retry-Hinweis
       _messages.add(ChatMessage.assistant(
         'Der KI-Assistent ist nicht verfügbar. '
         'Bitte versuche es später erneut.',
-      ));
-      _messages.add(ChatMessage.system(
-        'Tippe auf eine Frage unten, um erneut zu starten.',
       ));
     } finally {
       _isLoading = false;
       _trimHistory();
       notifyListeners();
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // _updateStreamingMessage — Aktualisiere die letzte Assistant-Nachricht
+  // mit dem aktuellen Streaming-Buffer.
+  // ------------------------------------------------------------------
+  void _updateStreamingMessage(String text) {
+    if (_messages.isNotEmpty && _messages.last.role == ChatRole.assistant) {
+      // Letzte Assistant-Nachricht updaten
+      _messages[_messages.length - 1] = ChatMessage.assistant(text);
+    } else {
+      // Neue Assistant-Nachricht anfügen
+      _messages.add(ChatMessage.assistant(text));
+    }
+    notifyListeners();
+  }
+
+  // ------------------------------------------------------------------
+  // _finalizeStreamingMessage — Ersetze die Streaming-Nachricht durch
+  // die finale Version mit korrektem Timestamp.
+  // ------------------------------------------------------------------
+  void _finalizeStreamingMessage(String text) {
+    if (_messages.isNotEmpty && _messages.last.role == ChatRole.assistant) {
+      _messages[_messages.length - 1] = ChatMessage.assistant(text);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // _sendMessageNonStreaming — Klassischer POST (Fallback)
+  // ------------------------------------------------------------------
+  Future<void> _sendMessageNonStreaming(
+      String text, bool includeWeather) async {
+    final body = <String, dynamic>{'message': text};
+    final services = getServiceContext(includeWeather: includeWeather);
+    if (services.isNotEmpty) {
+      body['services'] = services;
+    }
+
+    final data = await apiPost('/api/ai/chat', body,
+        timeout: const Duration(seconds: 120));
+
+    final response = ChatResponse.fromJson(data);
+
+    if (response.isError) {
+      _messages.add(ChatMessage.assistant(
+        response.response.isNotEmpty
+            ? response.response
+            : 'Entschuldigung, ich habe einen internen Fehler.',
+      ));
+    } else {
+      _messages.add(ChatMessage.assistant(response.response));
+      if (response.isFallback) {
+        _messages.add(ChatMessage.system(
+          'Der KI-Assistent ist aktuell im Offline-Modus.',
+        ));
+      }
     }
   }
 
