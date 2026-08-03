@@ -81,25 +81,43 @@ export class ParkingService {
       `relation["amenity"="parking"](around:${radiusMeters},${lat},${lng});` +
       `);out body center 50;`;
 
+    const MAX_RETRIES_PER_MIRROR = 2;
     let lastError: unknown;
+
     for (const mirror of this.overpassMirrors) {
-      try {
-        const response = await axios.post(mirror, `data=${encodeURIComponent(q)}`, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': this.userAgent,
-          },
-          timeout: 25000,
-        });
-        return (response.data?.elements ?? []) as OverpassElement[];
-      } catch (e) {
-        lastError = e;
-        const axiosError = e as AxiosError;
-        const status = axiosError.response?.status;
-        logger.warn(`Parking Overpass-Mirror ${mirror} fehlgeschlagen (status ${status ?? 'timeout'})`);
+      for (let attempt = 1; attempt <= MAX_RETRIES_PER_MIRROR; attempt++) {
+        try {
+          const response = await axios.post(mirror, `data=${encodeURIComponent(q)}`, {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'User-Agent': this.userAgent,
+            },
+            timeout: 25000,
+          });
+          const elements = (response.data?.elements ?? []) as OverpassElement[];
+          if (elements.length > 0) return elements;
+          if (attempt < MAX_RETRIES_PER_MIRROR) {
+            const delayMs = attempt * 1000;
+            logger.warn(`Parking Overpass ${mirror} leere Antwort (Attempt ${attempt}/${MAX_RETRIES_PER_MIRROR}), Retry in ${delayMs}ms`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+          logger.warn(`Parking Overpass ${mirror} nach ${MAX_RETRIES_PER_MIRROR} Versuchen noch leer`);
+        } catch (e) {
+          lastError = e;
+          const axiosError = e as AxiosError;
+          const status = axiosError.response?.status;
+          if (attempt < MAX_RETRIES_PER_MIRROR) {
+            const delayMs = attempt * 1000;
+            logger.warn(`Parking Overpass ${mirror} Fehler (status ${status ?? 'timeout'}), Retry ${attempt}/${MAX_RETRIES_PER_MIRROR} in ${delayMs}ms`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            continue;
+          }
+          logger.warn(`Parking Overpass ${mirror} fehlgeschlagen (status ${status ?? 'timeout'}) nach ${MAX_RETRIES_PER_MIRROR} Versuchen`);
+        }
       }
     }
-    throw lastError;
+    throw lastError ?? new AppError('Alle Overpass-Mirrors fuer Parking fehlgeschlagen', 503);
   }
 
   private cacheKey(lat: number, lng: number, radiusKm: number): string {
