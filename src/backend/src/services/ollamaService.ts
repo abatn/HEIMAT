@@ -55,18 +55,35 @@ Stufen: NOTFALL (Brustschmerz, Atemnot, Bewusstlosigkeit, Schlaganfall)→112 | 
 Rückfragen: seit wann? Schmerzskala 1-10? Begleitsymptome?
 Handlungsempfehlung fett. Keine Diagnose, keine Medikamente. Deutsch.`;
 
-const DEFAULT_SYSTEM_PROMPT = `Du bist HEIMAT AI, ein hilfreicher Assistent für die HEIMAT Super App.
-Du kennst folgende Services:
-- Wetter (DWD Open Data: Temperatur, Regen, Sonne, Wind)
-- Luftqualität (CAMS: AQI, PM2.5, PM10, Ozon)
-- Abfallkalender (Berlin/Hamburg/München Abfuhrtermine)
-- E-Ladestationen (OSM: Standorte, Stecker-Typen, Öffnungszeiten)
-- Mobilität (ÖPNV Haltestellen, Routen, Abfahrten)
-- Gesundheit (Symptom-Assessment + Triage + Ärztesuche via OSM Live-Daten)
+const DEFAULT_SYSTEM_PROMPT = `Du bist HEIMAT AI — ein intelligenter Cross-Service-Assistent für den deutschen Alltag.
+Du verbindest ECHTE Live-Daten aus mehreren Services zu ACTIONABLE Empfehlungen.
 
-Antworte auf Deutsch, freundlich und präzise.
-Wenn du eine Frage zu einem Service nicht beantworten kannst,
-sage ehrlich "Das kann ich leider nicht beantworten".`;
+## Deine Services (alle mit ECHTEN Live-Daten):
+- 🌦️ Wetter (DWD): Temperatur, Regen, Sonne, Wind, Unwetter
+- 🌬️ Luftqualität (CAMS/UBA): AQI, PM2.5, PM10, Ozon, Gesundheitsempfehlung
+- 🗑️ Abfallkalender: Nächste Abfuhrtermine nach Standort
+- 🚗 Parken (OSM): Kostenlose/gedeckte Plätze in der Nähe
+- 🔌 E-Ladestationen (OSM): Schnelllader, Standorte, Stecker-Typen
+- 🚇 Mobilität (ÖPNV): Haltestellen, Abfahrten, Routen
+- 👨‍⚕️ Gesundheit: Ärzte (OSM), Triage (WHO ICD-11), Medikamente
+- 💼 Jobs (Arbeitnow): Stellenangebote, Remote-Optionen
+
+## Cross-Service-Intelligenz (DEIN Kern-Vorteil):
+Du KOMBINIERST Services zu Handlungsempfehlungen:
+- "Morgen Arzt?" → Wetter (Regenjacke?) + ÖPNV (Nächste Verbindung) + Parken (wenn Auto)
+- "Heute joggen?" → Luftqualität (AQI OK?) + Wetter (Temperatur/Regen?)
+- "Abfall rausstellen?" → Wann (Datum?) + Wetter (Regen? Tonne unterstellen!)
+- "E-Auto laden?" → Nächste Station + Aktueller Preis + Wetter (draußen laden?)
+- "Neuen Job suchen?" → Remote möglich? + ÖPNV erreichbar?
+
+## Regeln:
+- ANTWORTE IMMER AUF DEUTSCH
+- Gib KONKRETE Handlungsempfehlungen, nicht nur Rohdaten
+- Nutze Emojis für Struktur (🌦️ 🚗 🏥 💼)
+- Max 200 Wörter — kurz und präzise
+- Bei Notfällen: IMMER 112/116117 erwähnen
+- Keine medizinische Diagnose, nur Empfehlungen
+- Wenn Daten fehlen: Sage ehrlich was nicht verfügbar ist`;
 
 /** Kombinierter Prompt: Default + Health Triage. Wird genutzt wenn
  *  der health-Service im Context aktiv ist. */
@@ -79,6 +96,133 @@ const FALLBACK_MESSAGE =
 
 /** Separator zwischen Service-Kontexten im System-Prompt. */
 const SERVICE_CONTEXT_SEPARATOR = '\n\n---\n\n';
+
+// -----------------------------------------------------------------------
+// Cross-Service Recommendation Engine
+// Generiert intelligente Handlungsempfehlungen aus kombinierten Service-Daten.
+// Wird als Fallback genutzt wenn Ollama offline ist.
+// -----------------------------------------------------------------------
+
+type ServiceData = { service: string; text: string; data?: Record<string, unknown> };
+
+/** Erkenne Cross-Service-Muster in den Daten und generiere Empfehlungen. */
+function generateCrossServiceRecommendations(
+  userMessage: string,
+  services: ServiceData[],
+): string[] {
+  const recommendations: string[] = [];
+  const msg = userMessage.toLowerCase();
+
+  // Service-Daten als Map für schnellen Zugriff
+  const dataMap = new Map<string, ServiceData>();
+  for (const s of services) {
+    dataMap.set(s.service, s);
+  }
+
+  // --- Cross-Service 1: Arzt-Termin + Wetter + ÖPNV ---
+  if (msg.includes('arzt') || msg.includes('termin') || msg.includes('doctor')) {
+    const weather = dataMap.get('weather');
+    if (weather) {
+      const tempMatch = weather.text.match(/(\d+)°C/);
+      const temp = tempMatch ? parseInt(tempMatch[1]) : null;
+      const isRaining = weather.text.toLowerCase().includes('regen') || weather.text.toLowerCase().includes('niederschlag');
+
+      if (isRaining) {
+        recommendations.push('🌧️ **Regen am Arzttermin** — Nimm einen Regenschirm mit! Bei ÖPNV: Regenjacke reicht. Bei Auto: Scheibenwischer prüfen.');
+      }
+      if (temp !== null && temp < 5) {
+        recommendations.push('🥶 **Kalt am Arzttermin** — Zieh dich warm an. Schal und Handschuhe nicht vergessen!');
+      }
+    }
+    const mobility = dataMap.get('mobility');
+    if (mobility && mobility.text.includes('Abfahrt')) {
+      recommendations.push(`🚇 **ÖPNV zum Arzt** — ${mobility.text.substring(0, 100)}...`);
+    }
+  }
+
+  // --- Cross-Service 2: Joggen/Sport + Luftqualität + Wetter ---
+  if (msg.includes('joggen') || msg.includes('sport') || msg.includes('laufen') || msg.includes('rad')) {
+    const air = dataMap.get('air');
+    const weather = dataMap.get('weather');
+
+    if (air) {
+      const aqiMatch = air.text.match(/AQI[\s:]+(\d+)/i);
+      const aqi = aqiMatch ? parseInt(aqiMatch[1]) : null;
+      if (aqi !== null && aqi > 50) {
+        recommendations.push(`⚠️ **Luftqualität mäßig (AQI ${aqi})** — Leichter Sport okay, aber kein Intensiv-Training draußen.`);
+      } else if (aqi !== null && aqi < 20) {
+        recommendations.push('✅ **Perfekte Luft für Sport** — AQI ist sehr gut. Raus an die frische Luft!');
+      }
+    }
+    if (weather) {
+      const tempMatch = weather.text.match(/(\d+)°C/);
+      const temp = tempMatch ? parseInt(tempMatch[1]) : null;
+      if (temp !== null && temp > 30) {
+        recommendations.push('💧 **Heißer Tag** — Viel Wasser mitnehmen! Lieber morgens oder abends trainieren.');
+      }
+    }
+  }
+
+  // --- Cross-Service 3: Abfall rausstellen + Wetter ---
+  if (msg.includes('abfall') || msg.includes('müll') || msg.includes('tonne') || msg.includes('abfuhr')) {
+    const weather = dataMap.get('weather');
+    const waste = dataMap.get('waste');
+
+    if (waste && waste.text.includes('Abfuhr')) {
+      if (weather) {
+        const isRaining = weather.text.toLowerCase().includes('regen') || weather.text.toLowerCase().includes('niederschlag');
+        if (isRaining) {
+          recommendations.push('🌧️ **Regen bei Abfuhr** — Stell die Tonne am Abend raus (nicht am Morgen), damit sie nicht voll läuft!');
+        } else {
+          recommendations.push('☀️ **Trockene Abfuhr** — Perfekt! Tonne rausstellen und morgens abholen.');
+        }
+      }
+    }
+  }
+
+  // --- Cross-Service 4: E-Auto laden + Wetter ---
+  if (msg.includes('laden') || msg.includes('e-auto') || msg.includes('ladesäule') || msg.includes('ev')) {
+    const weather = dataMap.get('weather');
+    const ev = dataMap.get('ev');
+
+    if (ev && ev.text.includes('Station')) {
+      if (weather) {
+        const isRaining = weather.text.toLowerCase().includes('regen');
+        if (isRaining) {
+          recommendations.push('🌧️ **Regen beim Laden** — Suche eine überdachte Ladesäule!');
+        } else {
+          recommendations.push('☀️ **Trockenes Wetter** — Draußen laden kein Problem.');
+        }
+      }
+    }
+  }
+
+  // --- Cross-Service 5: Job-Suche + ÖPNV ---
+  if (msg.includes('job') || msg.includes('stelle') || msg.includes('arbeit') || msg.includes('bewerbung')) {
+    const job = dataMap.get('job');
+    if (job && job.text.includes('Remote')) {
+      recommendations.push('💻 **Remote-Job gefunden** — Kein Pendeln nötig! Perfekt für Work-Life-Balance.');
+    }
+  }
+
+  // --- Cross-Service 6: Allgemeine Tagesplanung ---
+  if (msg.includes('plan') || msg.includes('tag') || msg.includes('heute') || msg.includes('morgen')) {
+    const weather = dataMap.get('weather');
+    if (weather) {
+      const tempMatch = weather.text.match(/(\d+)°C/);
+      const temp = tempMatch ? parseInt(tempMatch[1]) : null;
+      const isRaining = weather.text.toLowerCase().includes('regen');
+
+      if (isRaining) {
+        recommendations.push('🌧️ **Regen geplant** — Innenaktivitäten oder Regenjacke einplanen!');
+      } else if (temp !== null && temp > 20) {
+        recommendations.push('☀️ **Schönes Wetter** — Perfekt für Aktivitäten draußen!');
+      }
+    }
+  }
+
+  return recommendations;
+}
 
 
 
@@ -400,15 +544,26 @@ export class OllamaService {
       systemPrompt: basePrompt,
     });
 
-    // Fallback: Service-Daten direkt zeigen wenn Ollama offline
+    // Fallback: Service-Daten + Cross-Service-Empfehlungen wenn Ollama offline
     if (ollamaResponse === FALLBACK_MESSAGE && serviceContexts.length > 0) {
-      const combined = serviceContexts
-        .map(sc => `📊 ${sc.service.toUpperCase()}\n${sc.text}`)
+      // 1. Cross-Service-Empfehlungen generieren (intelligente Kombination)
+      const recommendations = generateCrossServiceRecommendations(userMessage, serviceContexts);
+
+      // 2. Rohdaten-Block
+      const rawData = serviceContexts
+        .map(sc => `📊 **${sc.service.toUpperCase()}**\n${sc.text}`)
         .join('\n\n');
-      return (
-        `Hier sind die aktuellen Daten aus deinen HEIMAT-Services:\n\n${combined}\n\n` +
-        `💡 Für eine persönlichere Erklärung stelle bitte sicher, dass der KI-Assistent läuft.`
-      );
+
+      // 3. Zusammenbauen: Empfehlungen zuerst, dann Rohdaten
+      let response = '';
+      if (recommendations.length > 0) {
+        response += '🎯 **HEIMAT Empfehlung:**\n' +
+          recommendations.join('\n\n') + '\n\n---\n\n';
+      }
+      response += rawData;
+      response += '\n\n---\n\n💡 _Für eine persönlichere Erklärung stelle bitte sicher, dass der KI-Assistent läuft._';
+
+      return response;
     }
 
     return ollamaResponse;

@@ -79,21 +79,33 @@ function fillTemplate(template: string, values: Record<string, string | number |
 function weatherTip(temp: number, weatherCode: number, windSpeed: number, precipitation: number): string {
   const tips: string[] = [];
 
-  if (precipitation > 5) tips.push('Nimm einen Regenschirm mit');
-  else if (precipitation > 1) tips.push('Ein Regenschirm könnte nicht schaden');
+  // Regen/Aktivitäten
+  if (precipitation > 5) tips.push('🚿 **Starker Regen** — Regenjacke + Schirm Pflicht! Draußen nur mit Regenschutz.');
+  else if (precipitation > 1) tips.push('🌦️ **Leichter Regen** — Leichte Jacke mitnehmen, Schirm schadet nicht.');
 
-  if (temp < 5) tips.push('Zieh dich warm an — es ist eisig kalt');
-  else if (temp < 12) tips.push('Eine Jacke ist heute empfehlenswert');
-  else if (temp > 30) tips.push('Trink genug Wasser und such Schatten');
+  // Temperatur + Aktivitäten
+  if (temp < 0) tips.push('❄️ **Gefrierend kalt** — Mehrschicht-Prinzip: Unterwäsche + Fleece + Winterjacke. Handschuhe Pflicht!');
+  else if (temp < 5) tips.push('🥶 **Eisig kalt** — Warm anziehen! Schal, Mütze, Handschuhe. Heißer Tee empfohlen.');
+  else if (temp < 12) tips.push('🧥 **Kühl** — Eine Jacke ist empfehlenswert. Für Sport: Layering hilft.');
+  else if (temp > 35) tips.push('🔥 **Hitzewelle** — Viel Wasser trinken (2-3L), Mittagssonne meiden, kühle Räume aufsuchen!');
+  else if (temp > 30) tips.push('💧 **Heiß** — Genug Wasser trinken, Sonnenschutz auftragen, Schatten suchen.');
+  else if (temp > 20 && weatherCode <= 2) tips.push('☀️ **Perfektes Wetter** — Raus an die frische Luft! Spaziergang, Radfahren, Picknick!');
 
-  if (windSpeed > 50) tips.push('Stürmisch! Achte auf herabfallende Äste');
-  else if (windSpeed > 30) tips.push('Es ist windig — halt deine Mütze fest');
+  // Wind
+  if (windSpeed > 60) tips.push('🌪️ **Sturm!** — Drinnen bleiben, keine Äste unter Bäumen!');
+  else if (windSpeed > 40) tips.push('💨 **Stürmisch** — Mütze festhalten, vorsichtig bei Fahrrad/Auto.');
+  else if (windSpeed > 25) tips.push('🌬️ **Windig** — Leichte Jacke, Haare binden.');
 
-  if (weatherCode >= 95) tips.push('Gewittergefahr! Bleib wenn möglich drinnen');
+  // Gewitter
+  if (weatherCode >= 95) tips.push('⛈️ **Gewittergefahr!** — SOFORT ins Innere! Kein Wasser, keine Bäume, kein Fensterbrett!');
 
+  // Default: positives Wetter
   if (tips.length === 0) {
-    if (temp > 20 && weatherCode <= 2) tips.push('Perfektes Wetter für einen Spaziergang');
-    else tips.push('Angenehmes Wetter heute');
+    if (temp > 15 && temp < 25 && weatherCode <= 3) {
+      tips.push('🌿 **Angenehmes Wetter** — Ideal für Aktivitäten im Freien!');
+    } else {
+      tips.push('🌤️ **Heute** — Normales Wetter. Schau auf die Detailansicht für mehr Infos.');
+    }
   }
 
   // Nur den relevantesten Tipp zurückgeben
@@ -135,12 +147,14 @@ const AIR_TEMPLATE =
   'Sport-Tipp: {sport_tipp}';
 
 function sportTip(aqi: number | null): string {
-  if (aqi === null || aqi === undefined) return 'Daten nicht verfügbar.';
-  if (aqi < 20) return 'Heute ist ideales Wetter für Sport an der frischen Luft!';
-  if (aqi < 40) return 'Gute Bedingungen für Sport, aber nicht übertreiben.';
-  if (aqi < 60) return 'Vorsicht bei anstrengendem Sport — die Luftbelastung ist mäßig.';
-  if (aqi < 80) return 'Lieber auf intensiven Ausdauersport verzichten. Ein Spaziergang ist okay.';
-  return 'Bei dieser Luftqualität besser drinnen trainieren.';
+  if (aqi === null || aqi === undefined) return 'Daten nicht verfügbar — trotzdem raus gehen!';
+  if (aqi < 10) return '🌿 **Perfekte Luft** — Ideales Wetter für intensiven Sport an der frischen Luft!';
+  if (aqi < 20) return '✅ **Sehr gut** — Perfekt für Joggen, Radfahren, Schwimmen im Freien!';
+  if (aqi < 30) return '👍 **Gut** — Sport ist kein Problem. Bei Asthma trotzdem auf Warnhinweise achten.';
+  if (aqi < 40) return '🟡 **Mäßig** — Leichter Sport okay, Intensiv-Training lieber verschieben.';
+  if (aqi < 60) return '🟠 **Belastet** — Nur leichter Sport (Spaziergang). Kein Intervall-Training!';
+  if (aqi < 80) return '🔴 **Schlecht** — Drinnen trainieren! Fenster geschlossen lassen.';
+  return '🚨 **Sehr schlecht** — Konsequen drinnen bleiben! Alle Fenster schließen, Luftfilter an.';
 }
 
 function buildAirQualityPrompt(data: AirQualityData): string {
