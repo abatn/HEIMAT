@@ -15,7 +15,7 @@ import 'package:heimat_app/features/ai_chat/presentation/ai_chat_provider.dart';
 import 'package:heimat_app/features/checkin/presentation/checkin_provider.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_screen.dart';
 import 'package:heimat_app/features/finance/presentation/finance_screen.dart';
-import 'package:heimat_app/features/health/presentation/health_screen.dart';
+import 'package:heimat_app/features/health/presentation/health_screen_with_tabs.dart';
 
 class _StubMobility extends MobilityProvider {
   @override
@@ -41,6 +41,8 @@ class _StubHealth extends HealthProvider {
 class _StubAiChat extends AiChatProvider {
   @override
   Future<void> sendMessage(String text, {bool includeWeather = true}) async {}
+  @override
+  Future<void> init() async {}
 }
 
 class _StubCheckin extends CheckinProvider {
@@ -178,24 +180,23 @@ void main() {
     });
   });
 
-  group('HealthScreen', () {
-    testWidgets('shows health screen', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const HealthScreen()));
+  group('HealthScreenWithTabs', () {
+    testWidgets('shows health screen with tabs', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
       await tester.pump(const Duration(milliseconds: 500));
-      expect(find.byType(HealthScreen), findsOneWidget);
+      expect(find.byType(HealthScreenWithTabs), findsOneWidget);
     });
 
-    testWidgets('shows filter chips', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const HealthScreen()));
+    testWidgets('shows tab bar', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
       await tester.pump(const Duration(milliseconds: 500));
-      expect(find.byType(FilterChip), findsWidgets);
+      expect(find.byType(TabBar), findsOneWidget);
     });
 
-    testWidgets('shows FAB for doctor registration',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const HealthScreen()));
+    testWidgets('shows tab views', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
       await tester.pump(const Duration(milliseconds: 500));
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byType(TabBarView), findsOneWidget);
     });
   });
 
