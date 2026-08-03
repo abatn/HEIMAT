@@ -16,6 +16,7 @@
 import axios from 'axios';
 import { logger } from '../utils/logger';
 import { externalServices } from '../config/externalServices';
+import { ABFALL_IO_SERVICES, type AbfallIoServiceEntry } from './abfallIoService';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,7 +28,7 @@ export interface CityWasteConfig {
   /** Anzeigename (z.B. "Berlin", "München") */
   displayName: string;
   /** API-Adapter-Typ */
-  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste';
+  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io';
   /** Primäre API-URL (konfigurierbar via Env) */
   primaryUrl: string;
   /** Fallback-URL (optional) */
@@ -45,6 +46,10 @@ export interface CityWasteConfig {
     /** URL-Template für iCal-Download mit Schedule-ID */
     icalUrlTemplate: string;
   };
+  /** Optional: abfall.io service_id für abfall_io Adapter */
+  abfallIoServiceId?: string;
+  /** Optional: PLZ-Prefixes für Quick-Matching */
+  plzPrefixes?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -119,9 +124,33 @@ export function findCityByNominatim(nominatim: {
   if (nominatim.county) candidates.push(nominatim.county.toLowerCase().trim());
 
   for (const candidate of candidates) {
+    // Check static registry first
     for (const config of CITY_REGISTRY) {
       if (config.nominatimKeywords.some((kw) => candidate.includes(kw))) {
         return config;
+      }
+    }
+    // Then check abfall.io services (strict match: candidate must be >= 4 chars
+    // AND be a significant part of the service title to avoid false positives)
+    for (const service of ABFALL_IO_SERVICES) {
+      const titleLower = service.title.toLowerCase();
+      // Only match if candidate is a significant word (>= 4 chars) AND
+      // appears as a whole word in the service title
+      if (
+        candidate.length >= 4 &&
+        (titleLower.includes(candidate) ||
+         titleLower.split(/\s+/).some(word => word === candidate))
+      ) {
+        return {
+          id: `abfall-io-${service.serviceId.slice(0, 8)}`,
+          displayName: service.title,
+          adapter: 'abfall_io' as const,
+          primaryUrl: `https://api.abfall.io?key=${service.serviceId}`,
+          addressRequired: true,
+          attribution: `abfall.io — ${service.title} (AGPL)`,
+          nominatimKeywords: [service.title.toLowerCase()],
+          abfallIoServiceId: service.serviceId,
+        };
       }
     }
   }
@@ -194,4 +223,78 @@ export async function resolveCityFromCoords(
     logger.warn(`WasteCityRegistry: Nominatim failed — ${msg}`);
     return { config: null, displayName: 'Unbekannt' };
   }
+}
+
+// ---------------------------------------------------------------------------
+// PLZ-based Provider Discovery (ortsungebunden)
+// ---------------------------------------------------------------------------
+
+/**
+ * Find waste provider by German postal code (PLZ).
+ * Uses abfall.io SERVICE_MAP for nationwide coverage.
+ *
+ * @param plz German postal code (5 digits)
+ * @returns CityWasteConfig if found, null otherwise
+ */
+export function findCityByPlz(plz: string): CityWasteConfig | null {
+  const normalizedPlz = plz.trim();
+  if (!/^\d{5}$/.test(normalizedPlz)) {
+    return null;
+  }
+
+  // Check abfall.io services by PLZ prefix
+  for (const service of ABFALL_IO_SERVICES) {
+    if (service.plzPrefix?.some((prefix) => normalizedPlz.startsWith(prefix))) {
+      return {
+        id: `abfall-io-${service.serviceId.slice(0, 8)}`,
+        displayName: service.title,
+        adapter: 'abfall_io',
+        primaryUrl: `https://api.abfall.io?key=${service.serviceId}`,
+        addressRequired: true,
+        attribution: `abfall.io — ${service.title} (AGPL)`,
+        nominatimKeywords: [service.title.toLowerCase()],
+        abfallIoServiceId: service.serviceId,
+        plzPrefixes: service.plzPrefix,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Find waste provider by city name (fuzzy match against abfall.io).
+ * Used when Nominatim returns a city name that's not in the static registry.
+ *
+ * @param cityName City name from Nominatim
+ * @returns CityWasteConfig if found, null otherwise
+ */
+export function findCityByName(cityName: string): CityWasteConfig | null {
+  const normalized = cityName.toLowerCase().trim();
+
+  // First check static registry
+  const staticResult = getSupportedCities().find((c) =>
+    c.nominatimKeywords.some((kw) => normalized.includes(kw))
+  );
+  if (staticResult) return staticResult;
+
+  // Then check abfall.io services (fuzzy match)
+  for (const service of ABFALL_IO_SERVICES) {
+    const titleLower = service.title.toLowerCase();
+    // Match if city name is contained in service title
+    if (titleLower.includes(normalized) || normalized.includes(titleLower.split(' ')[0])) {
+      return {
+        id: `abfall-io-${service.serviceId.slice(0, 8)}`,
+        displayName: service.title,
+        adapter: 'abfall_io',
+        primaryUrl: `https://api.abfall.io?key=${service.serviceId}`,
+        addressRequired: true,
+        attribution: `abfall.io — ${service.title} (AGPL)`,
+        nominatimKeywords: [service.title.toLowerCase()],
+        abfallIoServiceId: service.serviceId,
+      };
+    }
+  }
+
+  return null;
 }

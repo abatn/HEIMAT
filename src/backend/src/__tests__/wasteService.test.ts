@@ -162,8 +162,10 @@ describe('wasteCityResolver — Bounding-Box-Mapping', () => {
     expect(b.displayName).toBe('München');
   });
 
-  it('Odenwald (49.45, 9.0) → CityNotSupportedError', async () => {
-    await expect(resolveCity(49.45, 9.0)).rejects.toThrow(CityNotSupportedError);
+  it('Odenwald (49.45, 9.0) → supported via abfall.io (Rhein-Neckar-Kreis)', async () => {
+    const c = await resolveCity(49.45, 9.0);
+    expect(c.adapter).toBe('abfall_io');
+    expect(c.displayName).toContain('Rhein-Neckar');
   });
 
   it('NaN-input → TypeError statt silent-fail', async () => {

@@ -33,7 +33,8 @@
 import type { AxiosInstance } from 'axios';
 import { logger } from '../utils/logger';
 import { CITY_BOUNDS, resolveCity, CityNotSupportedError, type WasteCityKey, type CityBounds } from './wasteCityResolver';
-import { type CityWasteConfig, getSupportedCities } from './wasteCityRegistry';
+import { type CityWasteConfig, getSupportedCities, findCityByPlz, findCityByName } from './wasteCityRegistry';
+import { AbfallIoService, type AbfallIoResult } from './abfallIoService';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 import { externalServices } from '../config/externalServices';
 
@@ -161,17 +162,35 @@ export class WasteService {
       return { ...cached.data, cached: true };
     }
 
-    // 5. URL-Build (URL-Templates nutzen {street}/{houseNr} placeholders)
-    const urlFor = (template: string) =>
-      template.replace('{street}', encodeURIComponent(street || '')).replace('{houseNr}', encodeURIComponent(houseNr || ''));
-
-    // 6. Mirror-Fetch: primary → (NUR auf recoverable-Failure) fallback
-    // WICHTIG: nur 5xx/429/ECONNREFUSED/ECONNABORTED/ETIMEDOUT loesen fallback
-    // aus. 4xx sind Client-Fehler (z.B. address-bad-encoded) und sollen
-    // nicht den fallback-Endpoint treffen (würde nur 4xx wiederholen).
+    // 5. Adapter-specific handling
     const fetchedAt = new Date().toISOString();
     let source = cityConfig.primaryUrl;
     let events: IcsEvent[] = [];
+
+    // abfall.io Adapter: Multi-Step API (init → strasse → export_ics)
+    if (cityConfig.adapter === 'abfall_io' && cityConfig.abfallIoServiceId) {
+      const abfallIo = new AbfallIoService(this.http);
+      try {
+        const result = await abfallIo.fetchCalendar(
+          cityConfig.abfallIoServiceId,
+          street,
+          houseNr,
+        );
+        events = result.events;
+        source = result.source;
+      } catch (err) {
+        logger.error(`WasteService: abfall.io failed for ${cityConfig.displayName}: ${(err as Error).message}`);
+        throw err;
+      }
+    } else {
+    // Standard iCal Adapter: URL-Based fetch
+    const urlFor = (template: string) =>
+      template.replace('{street}', encodeURIComponent(street || '')).replace('{houseNr}', encodeURIComponent(houseNr || ''));
+
+    // Mirror-Fetch: primary → (NUR auf recoverable-Failure) fallback
+    // WICHTIG: nur 5xx/429/ECONNREFUSED/ECONNABORTED/ETIMEDOUT loesen fallback
+    // aus. 4xx sind Client-Fehler (z.B. address-bad-encoded) und sollen
+    // nicht den fallback-Endpoint treffen (würde nur 4xx wiederholen).
 
     try {
       events = await this.fetchIcs(urlFor(cityConfig.primaryUrl), cityConfig.id);
@@ -191,6 +210,7 @@ export class WasteService {
         throw primaryErr;
       }
     }
+    } // end else (standard iCal adapter)
 
     // 7. Forward-Filter (events must be within `weeks*7` days)
     const filtered = this.filterByWeeks(events, weeks);
