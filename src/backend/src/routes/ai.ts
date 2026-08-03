@@ -169,7 +169,7 @@ aiRouter.post('/chat', asyncHandler(async (req: Request, res: Response) => {
   // --- Route-Level Timeout (15s) ---
   // Verhindert dass der Client auf eine Antwort wartet die zu lange dauert.
   // Bei Timeout: Schneller Fallback mit Service-Daten (wenn vorhanden).
-  const ROUTE_TIMEOUT_MS = 15000;
+  const ROUTE_TIMEOUT_MS = 25000; // 25s — genug fuer Ollama Cold-Start, aber schnell genug fuer Client
   let responseSent = false;
   const timeoutId = setTimeout(() => {
     if (!responseSent) {
