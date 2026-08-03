@@ -11,7 +11,7 @@
    - Parking Unit-Tests: 10/10 bestanden (100%)
    - Klassifikation: 0 echte Bugs, 0 flaky, 134 Umgebungsprobleme
 4. **Commits:** 107 (seit 2026-07-11, 23 Tage = ~15/Tag)
-5. **Phasen abgeschlossen:** 6.5 von ~10 (Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Phase C ✅, Phase D (Jobs+AI): E-Ladestationen + Parken ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅, AI Chat Timeout gefixt ✅)
+5. **Phasen abgeschlossen:** 7 von ~10 (Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Phase C ✅, Phase D (Jobs+AI): E-Ladestationen + Parken ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅, AI Chat Timeout gefixt ✅)
    - HealthProvider-Tests: 25/25 bestanden (searchDoctors, loadSlots, bookAppointment, DTO-Parsing)
 6. **Services live:** 3 (Mobilität, Gesundheit, Finanzen) von geplanten 13
 7. **API-Endpunkte:** 19 Route-Dateien, 109 Endpunkte (davon 45 Health-Endpunkte, 1 Parken-Endpunkt)
@@ -83,7 +83,7 @@
 | # | Dimension | v2.0 | v3.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|--------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
-| 2 | **Phasen-Fortschritt** | 40% (4/10) | 65% (6.5/10) | — stabil | <24% | ✅ OK |
+| 2 | **Phasen-Fortschritt** | 40% (4/10) | 70% (7/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 120 Calls | 120 Calls | — stabil | — | ✅ OK |

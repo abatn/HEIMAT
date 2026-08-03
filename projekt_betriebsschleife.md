@@ -26,7 +26,7 @@
   |--------|----------|--------------|---------------------------|
   | **Test-Passrate** | 100% (nur DB-Fehler erlaubt) | <80% echte Failures | Sofortige Analyse: echte Bugs vs Umgebung |
   | **Commit-Velocity** | ~15 Commits/Tag (Durchschnitt 23 Tage) | <27 Commits/Tag (Fall unter 80%) | Prüfung: Blockiert jemand? Braucht jemand Hilfe? |
-  | **Phasen-Fortschritt** | 6.5/10 abgeschlossen (60%) | <24% (2/10 nach 60% der Zeit) | Strategische Neubewertung: Zu viele Phasen? Falsche Reihenfolge? |
+  | **Phasen-Fortschritt** | 7/10 abgeschlossen (60%) | <24% (2/10 nach 60% der Zeit) | Strategische Neubewertung: Zu viele Phasen? Falsche Reihenfolge? |
 
   **Warum drei Metriken?**
   - Test-Passrate misst **Code-Qualität**
@@ -85,7 +85,7 @@
 | # | Dimension | v2.0 | v3.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|--------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
-| 2 | **Phasen-Fortschritt** | 40% (4/10) | 65% (6.5/10) | — stabil | <24% | ✅ OK |
+| 2 | **Phasen-Fortschritt** | 40% (4/10) | 70% (7/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 120 Calls | 120 Calls | — stabil | — | ✅ OK |
