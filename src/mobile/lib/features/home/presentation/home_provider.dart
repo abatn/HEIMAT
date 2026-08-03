@@ -233,39 +233,39 @@ class HomeProvider extends ChangeNotifier {
 
   Future<void> _loadServiceSnapshots(double lat, double lng) async {
     final snapshots = <ServiceSnapshot>[];
-    
+
     // 1. Wetter-Snapshot
     try {
       final weather = await _fetchWeatherSnapshot(lat, lng);
       if (weather != null) snapshots.add(weather);
     } catch (_) {}
-    
+
     // 2. Luftqualität-Snapshot
     try {
       final air = await _fetchAirQualitySnapshot(lat, lng);
       if (air != null) snapshots.add(air);
     } catch (_) {}
-    
+
     // 3. Parken-Snapshot
     try {
       final parking = await _fetchParkingSnapshot(lat, lng);
       if (parking != null) snapshots.add(parking);
     } catch (_) {}
-    
+
     _snapshots = snapshots;
   }
 
   Future<ServiceSnapshot?> _fetchWeatherSnapshot(double lat, double lng) async {
     final data = await apiGet('/api/weather/forecast?lat=$lat&lng=$lng');
     if (data['status'] != 'ok') return null;
-    
+
     final current = data['current'] as Map<String, dynamic>? ?? {};
     final temp = (current['temperature'] as num?)?.toInt() ?? 0;
     final text = current['weatherText']?.toString() ?? 'Unbekannt';
     final wind = (current['windSpeed'] as num?)?.toInt() ?? 0;
     final precip = (current['precipitation'] as num?)?.toDouble() ?? 0;
     final code = (current['weatherCode'] as num?)?.toInt() ?? 0;
-    
+
     // Intelligente Empfehlung basierend auf Daten
     String rec;
     if (precip > 5) {
@@ -285,7 +285,7 @@ class HomeProvider extends ChangeNotifier {
     } else {
       rec = '🌤️ Angenehmes Wetter — $temp°C, $text.';
     }
-    
+
     return ServiceSnapshot(
       service: 'weather',
       icon: '🌦️',
@@ -296,16 +296,17 @@ class HomeProvider extends ChangeNotifier {
     );
   }
 
-  Future<ServiceSnapshot?> _fetchAirQualitySnapshot(double lat, double lng) async {
+  Future<ServiceSnapshot?> _fetchAirQualitySnapshot(
+      double lat, double lng) async {
     final data = await apiGet('/api/air-quality/current?lat=$lat&lng=$lng');
     if (data['status'] != 'ok') return null;
-    
+
     final aq = data['airQuality'] as Map<String, dynamic>? ?? {};
     final aqi = (aq['europeanAqi'] as num?)?.toInt();
     final level = aq['aqiLevel']?.toString() ?? 'Unbekannt';
-    
+
     if (aqi == null) return null;
-    
+
     // Intelligente Empfehlung
     String rec;
     if (aqi < 20) {
@@ -313,13 +314,14 @@ class HomeProvider extends ChangeNotifier {
     } else if (aqi < 40) {
       rec = '👍 Gute Luft — Sport ist kein Problem.';
     } else if (aqi < 60) {
-      rec = '🟡 Mäßig — Leichter Sport okay, Intensiv-Training lieber verschieben.';
+      rec =
+          '🟡 Mäßig — Leichter Sport okay, Intensiv-Training lieber verschieben.';
     } else if (aqi < 80) {
       rec = '🟠 Belastet — Drinnen trainieren empfohlen.';
     } else {
       rec = '🔴 Schlecht! Konsequent drinnen bleiben.';
     }
-    
+
     return ServiceSnapshot(
       service: 'air',
       icon: '🌬️',
@@ -331,20 +333,26 @@ class HomeProvider extends ChangeNotifier {
   }
 
   Future<ServiceSnapshot?> _fetchParkingSnapshot(double lat, double lng) async {
-    final data = await apiGet('/api/parking/spots?lat=$lat&lng=$lng&radius_km=1');
+    final data =
+        await apiGet('/api/parking/spots?lat=$lat&lng=$lng&radius_km=1');
     if (data['status'] != 'ok') return null;
-    
+
     final count = data['count'] as int? ?? 0;
     if (count == 0) return null;
-    
+
     final spots = data['spots'] as List? ?? [];
-    final names = spots.take(2).map((s) => s['name']?.toString() ?? '').where((n) => n.isNotEmpty).join(', ');
-    
+    final names = spots
+        .take(2)
+        .map((s) => s['name']?.toString() ?? '')
+        .where((n) => n.isNotEmpty)
+        .join(', ');
+
     return ServiceSnapshot(
       service: 'parking',
       icon: '🚗',
       title: '$count Parkplätze in der Nähe',
-      recommendation: '🅿️ ${names.isNotEmpty ? names : "Parkplätze verfügbar"} im Umkreis von 1km.',
+      recommendation:
+          '🅿️ ${names.isNotEmpty ? names : "Parkplätze verfügbar"} im Umkreis von 1km.',
       data: 'Über OpenStreetMap',
       actionType: 'parking',
     );

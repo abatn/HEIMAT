@@ -92,14 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: snapshot.isError
-            ? Colors.red.shade50
-            : AppColors.card,
+        color: snapshot.isError ? Colors.red.shade50 : AppColors.card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: snapshot.isError
-              ? Colors.red.shade200
-              : AppColors.border,
+          color: snapshot.isError ? Colors.red.shade200 : AppColors.border,
           width: 1,
         ),
       ),

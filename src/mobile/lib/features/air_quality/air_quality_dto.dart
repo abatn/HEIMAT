@@ -22,9 +22,11 @@ class AirQualityForecastResponse {
 
   factory AirQualityForecastResponse.fromJson(Map<String, dynamic> json) {
     // API liefert airQuality (current) + hourly (optional)
-    final airQuality = json['airQuality'] as Map<String, dynamic>? ?? json['current'] as Map<String, dynamic>? ?? {};
+    final airQuality = json['airQuality'] as Map<String, dynamic>? ??
+        json['current'] as Map<String, dynamic>? ??
+        {};
     final hourlyRaw = json['hourly'] as List<dynamic>? ?? const [];
-    
+
     return AirQualityForecastResponse(
       status: json['status'] as String? ?? 'unknown',
       current: CurrentAirQualityDto.fromJson(airQuality),

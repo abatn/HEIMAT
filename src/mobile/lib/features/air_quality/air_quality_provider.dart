@@ -101,8 +101,7 @@ class AirQualityProvider extends ChangeNotifier {
         _error = 'Standort konnte nicht ermittelt werden';
         return;
       }
-      final data =
-          await apiGet('/api/air-quality/current?lat=$_lat&lng=$_lng');
+      final data = await apiGet('/api/air-quality/current?lat=$_lat&lng=$_lng');
       if (data['status'] != 'ok') {
         throw Exception(
           data['message']?.toString() ?? 'Backend lieferte Fehler-Status',
