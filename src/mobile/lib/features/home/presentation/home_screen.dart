@@ -46,6 +46,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 4),
               _buildGreetingCard(home),
               const SizedBox(height: 16),
+              if (home.snapshots.isNotEmpty) ...[
+                _buildServiceSnapshots(home),
+                const SizedBox(height: 20),
+              ],
               _buildQuickStats(home),
               const SizedBox(height: 20),
               _buildQuickActions(home),
@@ -55,6 +59,93 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // Service Snapshots — intelligente Empfehlungen aus echten Daten
+  // --------------------------------------------------------------------------
+
+  Widget _buildServiceSnapshots(HomeProvider home) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            '📋 Dein Tag auf einen Blick',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...home.snapshots.map((snapshot) => _buildSnapshotCard(snapshot)),
+      ],
+    );
+  }
+
+  Widget _buildSnapshotCard(ServiceSnapshot snapshot) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: snapshot.isError
+            ? Colors.red.shade50
+            : AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: snapshot.isError
+              ? Colors.red.shade200
+              : AppColors.border,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(snapshot.icon, style: const TextStyle(fontSize: 28)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  snapshot.title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  snapshot.recommendation,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: snapshot.isError
+                        ? Colors.red.shade700
+                        : AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (snapshot.data.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    snapshot.data,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
