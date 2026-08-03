@@ -91,8 +91,8 @@ describe('HealthMemoryService', () => {
         medications_used: ['Ibuprofen'],
       });
 
-      expect(result.location_lat).toBe(52.52);
-      expect(result.location_lng).toBe(13.41);
+      expect(Number(result.location_lat)).toBe(52.52);
+      expect(Number(result.location_lng)).toBe(13.41);
       expect(result.weather_condition).toBe('Regnerisch');
       expect(result.season).toBe('herbst');
       expect(result.medications_used).toEqual(['Ibuprofen']);

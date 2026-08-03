@@ -227,10 +227,9 @@ export class MentalHealthService {
     const rows = await query(
       `SELECT 
         COUNT(*) as total_assessments,
-        AVG(total_score) as average_score,
-        * FROM phq9_responses 
-       WHERE user_id = $1 
-       ORDER BY created_at DESC`,
+        AVG(total_score) as average_score
+       FROM phq9_responses 
+       WHERE user_id = $1`,
       [userId]
     );
     if (rows.length === 0) {
@@ -244,13 +243,22 @@ export class MentalHealthService {
 
     const totalAssessments = parseInt(rows[0].total_assessments || '0');
     const averageScore = parseFloat(rows[0].average_score || '0');
-    const lastAssessment = rows.length > 0 ? this.mapRowToPhq9Result(rows[0]) : undefined;
+
+    // Last assessment for risk/trend calculation
+    const lastRows = await query(
+      `SELECT * FROM phq9_responses WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    );
+    const lastAssessment = lastRows.length > 0 ? this.mapRowToPhq9Result(lastRows[0]) : undefined;
 
     // Trend berechnen (letzte 3 Assessments)
     let trend: Phq9Stats['trend'] = 'stabil';
-    if (rows.length >= 2) {
-      const recent = rows.slice(0, Math.min(3, rows.length));
-      const scores = recent.map((r: any) => parseInt(r.total_score));
+    if (totalAssessments >= 2) {
+      const recentRows = await query(
+        `SELECT total_score FROM phq9_responses WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3`,
+        [userId]
+      );
+      const scores = recentRows.map((r: any) => parseInt(r.total_score));
       if (scores.length >= 2) {
         const diff = scores[0] - scores[scores.length - 1];
         if (diff < -3) trend = 'verbesserung';

@@ -67,7 +67,8 @@ describe('UserMedicationsService', () => {
       expect(result.medication.active_ingredient).toBe('ASS');
       expect(result.medication.dosage).toBe('500mg');
       expect(result.medication.is_active).toBe(true);
-      expect(Array.isArray(result.interactions)).toBe(true);
+      expect(result.interactions).toBeDefined();
+      expect(Array.isArray(result.interactions.interactions)).toBe(true);
     });
 
     it('sollte Interaktionen mit bestehenden Medikamenten prüfen', async () => {
@@ -217,7 +218,8 @@ describe('UserMedicationsService', () => {
       expect(result).toBeDefined();
       expect(result.hasSevereInteraction).toBe(true);
       expect(result.interactions).toBeDefined();
-      expect(Array.isArray(result.interactions)).toBe(true);
+      expect(result.interactions).toBeDefined();
+      expect(Array.isArray(result.interactions.interactions)).toBe(true);
       expect(result.interactions.length).toBeGreaterThanOrEqual(1);
       expect(result.interactions[0].severity).toBe('schwerwiegend');
     });
