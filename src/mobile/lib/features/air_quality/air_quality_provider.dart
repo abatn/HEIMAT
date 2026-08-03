@@ -136,7 +136,14 @@ class AirQualityProvider extends ChangeNotifier {
       if (raw == null) return;
 
       final data = jsonDecode(raw) as Map<String, dynamic>;
-      _forecast = AirQualityForecastResponse.fromJson(data);
+      final parsed = AirQualityForecastResponse.fromJson(data);
+      // Prüfe ob die Daten sinnvoll sind (nicht nur Defaults)
+      if (parsed.current.europeanAqi == null && parsed.hourly.isEmpty) {
+        // Cache hat unerwartete Struktur → treated as corrupted
+        _forecast = null;
+        return;
+      }
+      _forecast = parsed;
       _locationName = prefs.getString(_kNameKey) ?? _locationName;
       final tsMs = prefs.getInt(_kCacheTsKey);
       if (tsMs != null) {

@@ -36,7 +36,7 @@ void main() {
   // ------------------------------------------------------------------
   String validForecastJson({String locationName = 'Berlin'}) => jsonEncode({
         'status': 'ok',
-        'current': {
+        'airQuality': {
           'europeanAqi': 25.0,
           'pm10': 15.2,
           'pm25': 8.5,
@@ -236,13 +236,15 @@ void main() {
       expect(provider.error, isNull);
     });
 
-    test('stilles Recovery bei JSON ohne forecast-Schluessel', () async {
+    test('stilles Recovery bei JSON ohne airQuality-Schluessel', () async {
       SharedPreferences.setMockInitialValues({
         kCacheKey: jsonEncode({'unexpected': 'shape'}),
       });
 
       await provider.init();
 
+      // Provider darf NICHT crashen, kein Error-State
+      // Cache ist korrupt → hasData=false (silent fallback)
       expect(provider.hasData, isFalse);
       expect(provider.error, isNull);
     });
