@@ -8,7 +8,7 @@
 
 Open-Source Super App (à la WeChat/Grab) mit deutscher UI. Drei Services:
 - `src/mobile/` — Flutter App (84 Dart-Dateien)
-- `src/backend/` — Node.js Express API (98 TS-Dateien, 18 Routes, 30 Services)
+- `src/backend/` — Node.js Express API (98 TS-Dateien, 26 Routes, 37 Services)
 - `src/ml-service/` — Python FastAPI (Docker only)
 
 **Production:** `heimat-backend.onrender.com` (Render Free Tier) + Supabase DB + GitHub Pages (Flutter Web)
@@ -60,10 +60,11 @@ src/mobile/flutter/bin/flutter pub get
 - **Taler:** Wallet-Client (Exchange: demo.taler.net). Wallet-Balance = 0.00 KUDOS bis EUR-Exchange-Live.
 
 ### Offene Phasen (nächste Schritte)
-1. **Phase B Rest:** Luftqualität (UBA) + Abfallkalender — Backend `airQuality.ts` + `wasteService.ts` existieren, Flutter-Screens fehlen
-2. **Phase C:** E-Ladestationen (`evChargingService.ts` existiert) + Parken (OSM)
-3. **Phase D:** Futai (React Native via Mini-Program) + Job-Suche + Events
-4. **Phase E:** Hotels + Bürgeramt
+- Phase A ✅ (Mini-Program-Container)
+- Phase B ✅ (Wetter + Luft + Abfall)
+- Phase C ✅ (E-Laden + Parken)
+- Phase D ✅ (Jobs + Events + Hotels + Bürgeramt)
+- **3-Tab-Rebuild ✅ (2026-08-04):** 5→3 Tabs (WeChat-Muster). Commits: f3eb6f2, 11f46d4, b3c6ee2, a4f3650.
 
 ### Bekannte Bugs
 - `lat: 0, lng: 0` Hack im Health Context
@@ -75,7 +76,12 @@ src/mobile/flutter/bin/flutter pub get
 ## Architektur-Entscheidungen
 
 ### ServiceRegistry-Pattern (Mobile)
-Kein IFrame, kein WebView. `service_registry.dart` routet 10 Mini-Programme via `nativeBuilder`. Tap auf App-Karte → Registry-Lookup → echtes Native-Widget oder `ComingSoonScreen`.
+Kein IFrame, kein WebView. `service_registry.dart` routet 14 Services via `nativeBuilder` in 6 Kategorien. Tap auf App-Karte → Registry-Lookup → echtes Native-Widget oder `ComingSoonScreen`.
+
+**NEU (2026-08-04):** 3-Tab-Struktur (WeChat-Muster):
+- Tab 0: Startseite (Dashboard + Alerts + Briefing + AI-Chat FAB)
+- Tab 1: Dienste (Suche + Kategorien: Mobilität, Gesundheit, Alltag, Kultur, Finanzen, AI)
+- Tab 2: Profil (User + Settings + Notfall)
 
 ### FHIR: NOT NOW
 HAPI FHIR (~500MB RAM) passt nicht in Render Free Tier (512MB). HEIMAT hat bereits 1:1-funktionale Äquivalente (`doctor_slots`, `getAvailableSlots()`, `appointments`). Stattdessen: Status-Pipeline, Recurring Slots, Warteliste.

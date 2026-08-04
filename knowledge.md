@@ -113,6 +113,17 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 - **No `npm run migrate` / `npm run seed`** — those don't exist. Schema is loaded via `POST /api/migrate` (admin-only) or CI `psql -f`.
 - **Root `*.md` files (`AI-*.md`, `heimat-plan.md`, `blog/`, `funding/`, `marketing/`)** are planning/marketing docs, NOT code documentation. Don't read them for code context.
 
+## Phase 3-Tab-Rebuild — Status (2026-08-04)
+- ✅ **3-Tab-Struktur (WeChat-Muster)** implementiert und live.
+- 5 Tabs → 3 Tabs: Startseite, Dienste, Profil.
+- ServiceRegistry: 14 Services in 6 Kategorien (Mobilität, Gesundheit, Alltag, Kultur, Finanzen, AI).
+- `displayOrder` + `isFrequentlyUsed` Felder für UI-Sortierung.
+- HomeScreen: "Neue Features" entfernt, "Zuletzt benutzt" + AI-Chat FAB hinzugefügt.
+- Tests: 31/31 grün (app_smoke_test + service_registry_test).
+- CI: Flutter CI + Deploy Web grün für alle 4 Commits.
+- **Commits:** f3eb6f2 (Nav), 11f46d4 (Home), b3c6ee2 (Registry), a4f3650 (Tests).
+- **Dokumentation:** `docs/3-tab-rebuild-plan.md` (519 Zeilen).
+
 ## Phase E — Status (2026-07-27)
 - ✅ Wetter-Pilot als nativer Flutter-Service implementiert (CurrentWeatherHero + HourlyForecastStrip + WeeklyOutlookGrid). CI grün (`dart analyze` 0, `dart format` OK).
 - ServiceRegistry-Pattern: pro Service `useNative: true` in `MiniProgram` → nativ, sonst IFrame-Fallback. Migration inkrementell pro Service.
@@ -487,6 +498,28 @@ Ein intelligenter Health AI Agent, der:
 | `.claude/skills/` | Loadable skill files (heimat-flutter, heimat-backend, heimat-deploy) |
 | `.opencode/skills/heimat-dev/SKILL.md` | Auto-loaded by OpenCode for HEIMAT tasks |
 | `knowledge.md` | This file — Freebuff's fast-access summary |
+| `docs/3-tab-rebuild-plan.md` | 3-Tab-Rebuild-Plan (WeChat-Muster) — 7 Phasen, 9 Dateien |
+
+## App-Navigation (3 Tabs — WeChat-Muster)
+
+| Tab | Name | Inhalt |
+|-----|------|--------|
+| 0 | **Startseite** | Greeting, Dashboard, Smart Alerts, Daily Briefing, Zuletzt benutzt, Empfehlungen, AI-Chat FAB |
+| 1 | **Dienste** | Globale Suche, Häufig benutzt, 6 Kategorien (Mobilität, Gesundheit, Alltag, Kultur, Finanzen, AI) |
+| 2 | **Profil** | User-Info, Einstellungen, Verlauf, Notfall (112/116117), Abmelden |
+
+## Service-Registry (14 Services, 6 Kategorien)
+
+| Kategorie | Services | displayOrder |
+|-----------|----------|-------------|
+| **Mobilität** | ÖPNV, Parken, E-Laden | 1-3 |
+| **Gesundheit** | Ärzte, Lebenszeichen | 4-5 |
+| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | 6-10 |
+| **Kultur & Reise** | Events, Hotels | 11-12 |
+| **Finanzen** | Taler-Wallet | 13 |
+| **AI** | HEIMAT AI | 14 |
+
+**Häufig benutzt (isFrequentlyUsed=true):** ÖPNV, Parken, E-Laden, Ärzte, Wetter.
 
 ## Cost / footprint
 

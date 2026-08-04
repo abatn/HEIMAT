@@ -219,6 +219,59 @@ CI: Code-Reviewer-minimax-m3 9/9 PASS, Code gepuscht, Flutter CI Analyse+Test+Sm
 
 ---
 
+## 3-Tab-Rebuild (WeChat-Muster) — 2026-08-04
+
+**Status:** ✅ Phase 0-4 abgeschlossen, CI grün.
+**Plan:** `docs/3-tab-rebuild-plan.md` (519 Zeilen).
+
+### Navigation (3 Tabs statt 5)
+
+| Tab | Name | Inhalt | Datei |
+|-----|------|--------|-------|
+| 0 | **Startseite** | Greeting, Dashboard, Smart Alerts, Daily Briefing, Zuletzt benutzt, Empfehlungen, AI-Chat FAB | `home_screen.dart` |
+| 1 | **Dienste** | Globale Suche, Häufig benutzt, 6 Kategorien | `services_screen.dart` |
+| 2 | **Profil** | User-Info, Einstellungen, Verlauf, Notfall (112/116117), Abmelden | `profile_screen.dart` |
+
+### ServiceRegistry (14 Services, 6 Kategorien)
+
+| Kategorie | Services | displayOrder |
+|-----------|----------|-------------|
+| **Mobilität** | ÖPNV, Parken, E-Laden | 1-3 |
+| **Gesundheit** | Ärzte, Lebenszeichen | 4-5 |
+| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | 6-10 |
+| **Kultur & Reise** | Events, Hotels | 11-12 |
+| **Finanzen** | Taler-Wallet | 13 |
+| **AI** | HEIMAT AI | 14 |
+
+**Häufig benutzt (isFrequentlyUsed=true):** ÖPNV, Parken, E-Laden, Ärzte, Wetter.
+
+### Änderungen
+
+| # | Commit | Beschreibung |
+|---|--------|-------------|
+| 1 | `f3eb6f2` | 5→3 NavigationDestination, neue Imports |
+| 2 | `11f46d4` | HomeScreen: "Neue Features" entfernt, Zuletzt benutzt + AI-Chat FAB |
+| 3 | `b3c6ee2` | ServiceDefinition: displayOrder + isFrequentlyUsed, 6 Kategorien |
+| 4 | `a4f3650` | Tests: app_smoke_test + service_registry_test angepasst |
+
+### Dateien
+
+| Datei | Status |
+|-------|--------|
+| `src/mobile/lib/main.dart` | Geändert (5→3 Tabs) |
+| `src/mobile/lib/features/services/services_screen.dart` | Neu |
+| `src/mobile/lib/features/profile/profile_screen.dart` | Neu |
+| `src/mobile/lib/features/home/presentation/home_screen.dart` | Geändert |
+| `src/mobile/lib/features/miniprogram/domain/service_definition.dart` | Geändert (+2 Felder) |
+| `src/mobile/lib/features/miniprogram/domain/service_registry.dart` | Geändert (6 Kategorien) |
+
+### CI
+- Flutter CI: ✅ grün (7min)
+- Deploy Web: ✅ grün (4min)
+- audit-no-mocks: 0 violations
+
+---
+
 ## HEIMAT Expansion Plan (Phase 25-26) — Juli 2026
 
 ### Von 3 auf 10+ Services — wie WeChat/Grab, aber Open Source

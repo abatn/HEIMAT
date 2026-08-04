@@ -98,16 +98,16 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v3.0, 2026-08-03)
+## Messung der 5 „besser"-Dimensionen (v3.1, 2026-08-04)
 
-| # | Dimension | v2.0 | v3.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v2.0 | v3.1 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|--------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
-| 2 | **Phasen-Fortschritt** | 40% (4/10) | 70% (7/10) | — stabil | <24% | ✅ OK |
+| 2 | **Phasen-Fortschritt** | 40% (4/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 120 Calls | 120 Calls | — stabil | — | ✅ OK |
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase-D-Abschluss (Events + Hotels + Bürgeramt)
+**Nächste Messung:** Bei Phase 26 (Erweiterung)
