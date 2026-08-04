@@ -84,6 +84,8 @@ Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.
 | Journey search empty | Frontend sends `?from=lat,lng`, backend expects `?from_lat=&from_lng=` | Fix query params in `mobility_provider.dart` |
 | db-rest health check passes but endpoints return empty | Docker image default `ENV PORT 3000`, Render routes to port 3001 | Set `ENV PORT=3000` in Dockerfile or adjust render.yaml |
 | Login "stuck on LoginScreen" with valid credentials | LoginScreen/RegisterScreen didn't react to `isAuthenticated` because Hash-Routing on `/#/login` or `/#/register` mounts the screens directly via `routes` table, bypassing `AuthGate` mounted at `'/'` | Explicit `Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false)` (with `!mounted` early-exit) after successful login/register. Files: `src/mobile/lib/features/auth/presentation/{login,register}_screen.dart`. Fix committed `9c8deb7` (2026-07-25) |
+| Services mit Berlin-Hardcoding (52.52/13.405) | Events, Hotels, Bürgeramt, Smart Alerts, Daily Briefing haben lat=52.52 als Default. Nicht ortsunabhängig. | GPS-Dynamisierung: LocationService.getCurrentLocation() als primäre Quelle, 52.52 nur als letzter Fallback. Dateien: `*_screen.dart`, `routes/*.ts:19/36/78`. |
+| Events nur Berlin | `eventService.ts` nutzt `kulturdaten.berlin` API (nur Berlin) | Keine bessere kostenlose API gefunden. Wikidata SPARQL hat wenige aktuelle Events. |
 
 ## Clarifications (Juli 2026)
 

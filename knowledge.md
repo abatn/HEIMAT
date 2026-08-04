@@ -516,12 +516,27 @@ Ein intelligenter Health AI Agent, der:
 |-----------|----------|--------|
 | **Mobilität** | ÖPNV ✅, Parken ✅, E-Laden ✅ | Alle funktionieren |
 | **Gesundheit** | Ärzte ✅, Lebenszeichen ✅ | Beide funktionieren |
-| **Alltag** | Wetter ✅, Luft ✅, Abfall ✅ (AbfallNavi Bund), Bürgeramt ✅, Jobs ✅ | 5 funktionieren |
-| **Kultur & Reise** | Events ⚠️, Hotels ⚠️ | 1 eingeschränkt, 1 nicht getestet |
+| **Alltag** | Wetter ✅, Luft ✅, Abfall ✅ (AbfallNavi Bund), Bürgeramt ⚠️ (Berlin-Default), Jobs ✅ | 4 funktionieren, 1 ortsabhängig |
+| **Kultur & Reise** | Events ⚠️ (NUR Berlin), Hotels ❌ (Berlin-Default + keine Daten) | Nicht ortsunabhängig |
 | **Finanzen** | Taler-Wallet ✅ | Funktioniert |
 | **AI** | HEIMAT AI ✅ | Funktioniert |
 
-**Gesamt:** 10/14 Services funktionieren 100%, 2 eingeschränkt, 2 nicht verfügbar.
+**Gesamt:** 8/14 Services funktionieren ortsunabhängig, 4 ortsabhängig (Berlin-Hardcoded), 2 nicht verfügbar.
+
+### ⚠️ Berlin-Hardcoding-Problem (2026-08-04)
+
+Folgende Services haben Berlin (52.52/13.405) hardcoded und funktionieren NICHT ortsunabhängig:
+
+| Service | Problem | Dateien |
+|---------|---------|--------|
+| Events | `kulturdaten.berlin` API (nur Berlin) | `eventService.ts`, `routes/events.ts:19` |
+| Hotels | `lat = 52.52` Default, keine Daten | `hotels_screen.dart`, `hotels_dto.dart`, `routes/hotels.ts:19` |
+| Bürgeramt | `lat = 52.52` Default | `buergeramt_screen.dart`, `buergeramt_dto.dart`, `routes/buergeramt.ts:19` |
+| Smart Alerts | `lat = 52.52` Default | `smart_alerts_screen.dart`, `routes/smartAlerts.ts:36` |
+| Daily Briefing | `lat = 52.52` Default | `daily_briefing_screen.dart`, `routes/dailyBriefing.ts:78` |
+| Waste | Nur Berlin/Hamburg/München | `wasteCityRegistry.ts`, `abfallIoService.ts` |
+
+**Lösung:** GPS-Dynamisierung — alle Services müssen User-Position via LocationService nutzen, keine Defaults.
 
 ### AbfallNavi Integration (2026-08-04)
 - **API:** `https://abfallnavi.api.bund.dev/` (Bund/RegioIT) — kostenlose staatliche API

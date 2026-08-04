@@ -16,10 +16,10 @@
 | **Alltag** | Wetter | Open-Meteo ✅ | Open-Meteo (DWD ICON) | ✅ Optimal |
 | **Alltag** | Luft | Open-Meteo ✅ | UBA + Open-Meteo CAMS | ✅ Gut |
 | **Alltag** | Abfall | BSR ❌ | abfall.io | ❌ Reparatur nötig |
-| **Alltag** | Bürgeramt | Nominatim ✅ | OpenStreetMap Nominatim | ✅ Einzig verfügbar |
+| **Alltag** | Bürgeramt | Nominatim ⚠️ | OpenStreetMap Nominatim | ⚠️ Berlin-Default (52.52) |
 | **Alltag** | Jobs | Arbeitnow ✅ | Arbeitnow + BA | ✅ Gut |
-| **Kultur** | Events | Wikidata ⚠️ | Kulturdaten Berlin | ⚠️ Wenig Daten |
-| **Kultur** | Hotels | Wikidata ❌ | OSM + Wikidata | ❌ Nur Standorte |
+| **Kultur** | Events | kulturdaten.berlin ⚠️ | Kulturdaten Berlin | ⚠️ NUR BERLIN |
+| **Kultur** | Hotels | OSM ❌ | OSM + Wikidata | ❌ Berlin-Default + keine Daten |
 | **Finanzen** | Taler | Demo ⚠️ | Kein Production Exchange | ⚠️ Nur Demo |
 | **AI** | Chat | Ollama ✅ | Ollama qwen2.5:3b | ✅ Optimal |
 
@@ -175,7 +175,7 @@
 - Echte kommunale Daten
 - OpenAPI-Dokumentation vorhanden
 
-#### Bürgeramt — OpenStreetMap Nominatim (✅ Einzig verfügbar)
+#### Bürgeramt — OpenStreetMap Nominatim (⚠️ Berlin-Default)
 
 | Eigenschaft | Wert |
 |-------------|------|
@@ -185,12 +185,12 @@
 | **Datenqualität** | Gut |
 | **Abdeckung** | Weltweit |
 
-**Problem:** Nominatim liefert wenig spezifische Bürgeramt-Daten.
+**Probleme:**
+1. `buergeramt_screen.dart` + `buergeramt_dto.dart` haben `lat = 52.52` als Berlin-Default
+2. `routes/buergeramt.ts:19` hat `lat || 52.52`
+3. Nominatim liefert wenig spezifische Bürgeramt-Daten
 
-**Bessere Alternative:** `service.berlin.de` API (nur Berlin):
-- URL: `https://service.berlin.de/`
-- Auth: Keine
-- Abdeckung: Nur Berlin
+**Keine bessere kostenlose API verfügbar.**
 
 #### Jobs — Arbeitnow (✅ Gut)
 
@@ -206,7 +206,7 @@
 
 ### 4. Kultur & Reise
 
-#### Events — Wikidata SPARQL (⚠️ Wenig Daten)
+#### Events — kulturdaten.berlin (⚠️ NUR BERLIN-hardcoded!)
 
 | Eigenschaft | Wert |
 |-------------|------|
@@ -216,14 +216,11 @@
 | **Datenqualität** | Mittel |
 | **Abdeckung** | Weltweit |
 
-**Problem:** Wikidata hat wenige aktuelle Events.
+**Problem:** `eventService.ts` nutzt `kulturdaten.berlin` — eine API die NUR Berlin abdeckt! Backend-Route `routes/events.ts:19` hat `lat || 52.52` als Berlin-Default.
 
-**Bessere Alternative:** `Kulturdaten Berlin` API:
-- URL: `https://api.kulturdaten.berlin/`
-- Auth: API-Key nötig
-- Abdeckung: Nur Berlin
+**Keine bessere kostenlose API verfügbar.** Wikidata SPARQL hat wenige aktuelle Events.
 
-#### Hotels — OpenStreetMap + Wikidata (❌ Nur Standorte)
+#### Hotels — OpenStreetMap + Wikidata (❌ Berlin-Default + keine Daten)
 
 | Eigenschaft | Wert |
 |-------------|------|
@@ -233,9 +230,10 @@
 | **Datenqualität** | Mittel |
 | **Abdeckung** | Weltweit |
 
-**Problem:** Nur Standort-Daten, keine Buchungsdaten.
-
-**Hinweis:** Es gibt KEINE kostenlose Hotel-Buchungs-API. Commercial APIs (Booking.com, Hotels.com) sind nicht kostenlos nutzbar.
+**Probleme:**
+1. `hotels_screen.dart` + `hotels_dto.dart` haben `lat = 52.52` als Berlin-Default
+2. Nur Standort-Daten, keine Buchungsdaten
+3. Keine kostenlose Hotel-Buchungs-API verfügbar
 
 ---
 
