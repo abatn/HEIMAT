@@ -36,8 +36,8 @@ class AiChatProvider extends ChangeNotifier {
     ),
     QuickSuggestion(
       icon: Icons.local_hospital_outlined,
-      label: 'Ärzte in Berlin',
-      question: 'Welche Ärzte gibt es in Berlin?',
+      label: 'Ärzte in meiner Nähe',
+      question: 'Welche Ärzte gibt es in meiner Nähe?',
     ),
     QuickSuggestion(
       icon: Icons.info_outline,

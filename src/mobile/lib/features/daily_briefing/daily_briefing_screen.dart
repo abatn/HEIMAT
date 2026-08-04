@@ -8,17 +8,11 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../core/services/location_service.dart';
 import 'daily_briefing_dto.dart';
 
 class DailyBriefingScreen extends StatefulWidget {
-  final double lat;
-  final double lng;
-
-  const DailyBriefingScreen({
-    super.key,
-    this.lat = 52.52,
-    this.lng = 13.41,
-  });
+  const DailyBriefingScreen({super.key});
 
   @override
   State<DailyBriefingScreen> createState() => _DailyBriefingScreenState();
@@ -28,11 +22,32 @@ class _DailyBriefingScreenState extends State<DailyBriefingScreen> {
   DailyBriefingDto? _briefing;
   bool _loading = true;
   String? _error;
+  double? _lat;
+  double? _lng;
 
   @override
   void initState() {
     super.initState();
-    _loadBriefing();
+    _loadLocation();
+  }
+
+  Future<void> _loadLocation() async {
+    final pos = await LocationService.getCurrentLocation().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => null,
+    );
+    if (pos != null && mounted) {
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+      });
+      _loadBriefing();
+    } else if (mounted) {
+      setState(() {
+        _error = 'Standort nicht verfügbar. Bitte GPS aktivieren.';
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _loadBriefing() async {
@@ -42,10 +57,11 @@ class _DailyBriefingScreenState extends State<DailyBriefingScreen> {
     });
 
     try {
+      if (_lat == null || _lng == null) return;
       final response = await http.get(
         Uri.parse(
           'https://heimat-backend.onrender.com/api/daily-briefing'
-          '?lat=${widget.lat}&lng=${widget.lng}',
+          '?lat=$_lat&lng=$_lng',
         ),
       );
 

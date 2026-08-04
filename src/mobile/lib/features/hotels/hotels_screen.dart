@@ -8,17 +8,11 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../core/services/location_service.dart';
 import 'hotels_dto.dart';
 
 class HotelsScreen extends StatefulWidget {
-  final double lat;
-  final double lng;
-
-  const HotelsScreen({
-    super.key,
-    this.lat = 52.52,
-    this.lng = 13.41,
-  });
+  const HotelsScreen({super.key});
 
   @override
   State<HotelsScreen> createState() => _HotelsScreenState();
@@ -29,11 +23,32 @@ class _HotelsScreenState extends State<HotelsScreen> {
   bool _loading = true;
   String? _error;
   String _selectedType = 'all';
+  double? _lat;
+  double? _lng;
 
   @override
   void initState() {
     super.initState();
-    _loadHotels();
+    _loadLocation();
+  }
+
+  Future<void> _loadLocation() async {
+    final pos = await LocationService.getCurrentLocation().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => null,
+    );
+    if (pos != null && mounted) {
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+      });
+      _loadHotels();
+    } else if (mounted) {
+      setState(() {
+        _error = 'Standort nicht verfügbar. Bitte GPS aktivieren.';
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _loadHotels() async {
@@ -43,10 +58,11 @@ class _HotelsScreenState extends State<HotelsScreen> {
     });
 
     try {
+      if (_lat == null || _lng == null) return;
       final response = await http.get(
         Uri.parse(
           'https://heimat-backend.onrender.com/api/hotels'
-          '?lat=${widget.lat}&lng=${widget.lng}&radius=5',
+          '?lat=$_lat&lng=$_lng&radius=5',
         ),
       );
 

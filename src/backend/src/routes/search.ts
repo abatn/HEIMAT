@@ -150,8 +150,13 @@ async function searchEvCharging(
 searchRouter.get('/', async (req: Request, res: Response) => {
   try {
     const query = (req.query.q as string) || '';
-    const lat = parseFloat(req.query.lat as string) || 52.52;
-    const lng = parseFloat(req.query.lng as string) || 13.41;
+    const latStr = req.query.lat as string;
+    const lngStr = req.query.lng as string;
+    if (!latStr || !lngStr || isNaN(parseFloat(latStr)) || isNaN(parseFloat(lngStr))) {
+      return res.status(400).json({ error: 'lat und lng als Query-Parameter erforderlich' });
+    }
+    const lat = parseFloat(latStr);
+    const lng = parseFloat(lngStr);
 
     if (!query.trim()) {
       return res.status(400).json({ error: 'Suchbegriff erforderlich (q=...)' });

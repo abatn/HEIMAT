@@ -16,8 +16,13 @@ const hotelService = new HotelService();
 
 hotelsRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const lat = parseFloat(req.query.lat as string) || 52.52;
-    const lng = parseFloat(req.query.lng as string) || 13.41;
+    const latStr = req.query.lat as string;
+    const lngStr = req.query.lng as string;
+    if (!latStr || !lngStr || isNaN(parseFloat(latStr)) || isNaN(parseFloat(lngStr))) {
+      return res.status(400).json({ error: 'lat und lng als Query-Parameter erforderlich' });
+    }
+    const lat = parseFloat(latStr);
+    const lng = parseFloat(lngStr);
     const radius = parseFloat(req.query.radius as string) || 5;
 
     logger.info(`Hotels requested: lat=${lat}, lng=${lng}, radius=${radius}km`);

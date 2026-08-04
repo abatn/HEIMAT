@@ -8,17 +8,11 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../core/services/location_service.dart';
 import 'buergeramt_dto.dart';
 
 class BuergeramtScreen extends StatefulWidget {
-  final double lat;
-  final double lng;
-
-  const BuergeramtScreen({
-    super.key,
-    this.lat = 52.52,
-    this.lng = 13.41,
-  });
+  const BuergeramtScreen({super.key});
 
   @override
   State<BuergeramtScreen> createState() => _BuergeramtScreenState();
@@ -28,11 +22,32 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
   BuergeramtResponse? _response;
   bool _loading = true;
   String? _error;
+  double? _lat;
+  double? _lng;
 
   @override
   void initState() {
     super.initState();
-    _loadAemter();
+    _loadLocation();
+  }
+
+  Future<void> _loadLocation() async {
+    final pos = await LocationService.getCurrentLocation().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => null,
+    );
+    if (pos != null && mounted) {
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+      });
+      _loadAemter();
+    } else if (mounted) {
+      setState(() {
+        _error = 'Standort nicht verfügbar. Bitte GPS aktivieren.';
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _loadAemter() async {
@@ -42,10 +57,11 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
     });
 
     try {
+      if (_lat == null || _lng == null) return;
       final response = await http.get(
         Uri.parse(
           'https://heimat-backend.onrender.com/api/buergeramt'
-          '?lat=${widget.lat}&lng=${widget.lng}&radius=10',
+          '?lat=$_lat&lng=$_lng&radius=10',
         ),
       );
 

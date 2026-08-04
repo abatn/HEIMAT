@@ -13,17 +13,11 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../core/services/location_service.dart';
 import 'search_dto.dart';
 
 class SearchScreen extends StatefulWidget {
-  final double lat;
-  final double lng;
-
-  const SearchScreen({
-    super.key,
-    this.lat = 52.52,
-    this.lng = 13.41,
-  });
+  const SearchScreen({super.key});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -36,11 +30,32 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _loading = false;
   String? _error;
   String _selectedCategory = 'all';
+  double? _lat;
+  double? _lng;
 
   @override
   void initState() {
     super.initState();
-    _focusNode.requestFocus();
+    _loadLocation();
+  }
+
+  Future<void> _loadLocation() async {
+    final pos = await LocationService.getCurrentLocation().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => null,
+    );
+    if (pos != null && mounted) {
+      setState(() {
+        _lat = pos.latitude;
+        _lng = pos.longitude;
+      });
+      _focusNode.requestFocus();
+    } else if (mounted) {
+      setState(() {
+        _error = 'Standort nicht verfügbar. Bitte GPS aktivieren.';
+      });
+      _focusNode.requestFocus();
+    }
   }
 
   @override
@@ -59,11 +74,18 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
+      if (_lat == null || _lng == null) {
+        setState(() {
+          _error = 'Standort nicht verfügbar.';
+          _loading = false;
+        });
+        return;
+      }
       final response = await http.get(
         Uri.parse(
           'https://heimat-backend.onrender.com/api/search'
           '?q=${Uri.encodeComponent(query)}'
-          '&lat=${widget.lat}&lng=${widget.lng}',
+          '&lat=$_lat&lng=$_lng',
         ),
       );
 
