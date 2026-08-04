@@ -8,12 +8,12 @@
 // Validierung via Zod (mirror zu validate.ts):
 //   - lat/lng als floats
 //   - weeks als int(1-8)
-//   - street/houseNr als optional strings (für Berlin: optional, Hamburg/MUC: required → 422)
+//   - street/houseNr als optional strings (je nach Stadt dynamisch required → 422)
 //
 // HTTP-Status-Codes:
 //   - 200 OK bei Cache-Hit oder upstream-success
 //   - 400 BadRequest bei malformed lat/lng
-//   - 422 UnprocessableEntity bei Hamburg/München ohne street+houseNr
+//   - 422 UnprocessableEntity bei address-required Städten ohne street+houseNr
 //   - 502 BadGateway bei upstream-fail (alle mirrors dead)
 // ---------------------------------------------------------------------------
 
@@ -103,7 +103,7 @@ wasteRouter.get(
           status: 'error',
           code: err.code,
           message: err.message,
-          supportedCities: ['Berlin', 'Hamburg', 'München'],
+          hint: 'Deine Stadt wird über GPS + Nominatim dynamisch erkannt. Keine Hardcodierung.',
         });
         return;
       }
@@ -132,7 +132,7 @@ wasteRouter.get('/status', asyncHandler(async (_req: Request, res: Response) => 
     cities: status.cities,
     cacheEntries: status.cacheEntries,
     attribution:
-      'Kommunale Open-Data-Quellen (BSR Berlin, SRH Hamburg, AWB München) — CC-BY 4.0',
+      'Kommunale Open-Data-Quellen via abfall.io + AbfallNavi (Bund) — CC-BY 4.0',
   });
 }));
 

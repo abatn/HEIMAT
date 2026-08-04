@@ -1,12 +1,11 @@
 /**
  * eventService.ts — Events & Veranstaltungen
  *
- * Datenquellen (Multi-Source mit Fallback-Pattern):
- * 1. kulturdaten.berlin — Berlin Kulturveranstaltungen (via ExternalServicesRegistry)
- * 2. Wikidata SPARQL — Breite Eventsuche (via ExternalServicesRegistry)
- * 3. OpenStreetMap Overpass — Märkte, Kulturzentren, Kinos, Theater
+ * Datenquellen (Multi-Source, ortsungebunden):
+ * 1. Wikidata SPARQL — Breite Eventsuche (weltweit)
+ * 2. OpenStreetMap Overpass — Märkte, Kulturzentren, Kinos, Theater (weltweit)
  *
- * KEINE hardcoded URLs — alles via externalServices.
+ * KEINE hardcoded URLs, KEINE hardcoded Locations — alles via GPS + APIs.
  */
 
 import axios from 'axios';

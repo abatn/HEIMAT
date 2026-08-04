@@ -1,33 +1,15 @@
 // ---------------------------------------------------------------------------
 // wasteService — Phase B-2 Abfallkalender Backend-Service
 //
-// ARCHITEKTUR (Gemini-Design Phase B-2):
+// ARCHITEKTUR (ortsungebunden):
 //   - 1 Public-API: getWasteCalendar(lat, lng, weeks?, street?, houseNr?)
-//   - lat/lng → city-resolver (statisches Bounding-Box, 0 external deps)
-//   - 3 Städte mit unterschiedlichen URL-Patterns (KEIN einfaches OpenWeather-
-//     Mirror-Pattern! jede Stadt hat ihren eigenen iCal-Endpoint)
-//   - Per-Stadt: PRIMARY URL + 1 FALLBACK URL
-//   - 24h in-memory cache (key = city|street|houseNr; weekly schedules ändern
-//     sich nicht stündlich — vs. 5min cache bei weather/airQuality)
-//   - Constructor-DI für Axios-Instance — pattern-mirror zu weatherService.ts
-//     (Post-Phase-E-Refactor: alle Mirror-Fallback-Services nutzen DI)
-//   - Hamburg + München: optionales address_required-error (response: 422
-//     in route) — Phase 1 ohne Adress-Lookup-Workflow nur Skeleton.
+//   - lat/lng → Nominatim Reverse-Geocode → Stadt-Erkennung
+//   - Dynamische Adapter: ABFALL_IO_SERVICES (28+ Kommunen) + AbfallNavi (19 Regionen)
+//   - 24h in-memory cache (key = city|street|houseNr)
+//   - Constructor-DI für Axios-Instance
+//   - KEINE hardcoded Städte — alles via GPS + dynamische Registry
 //
-// MOCK-POLICY (GEMINI Klarstellung): null fakes in production. Echtes axios.
-// Tests mocken die HTTP-Schicht via Constructor-DI (mirror weatherService.test.ts).
-//
-// URL-STRATEGY (PHASE 1):
-//   Berlin BSR primary:    konfigurierbar via ABFALL_BSR_URL_BASE env (TODO).
-//   Berlin BSR fallback:   Berlin Open Data Portal (TODO: konkreter Pfad).
-//   Hamburg SRH primary:   nur via HTML-Form → noch nicht automatisierbar
-//                            → Phase 1 returns 422 'address_required'.
-//   München AWB primary:   GitHub muenchen-Abfallkalender (open data).
-//   München AWB fallback:  AWB Web-Calendar iCal-Feed (TODO: konkreter Pfad).
-//
-// Wenn PRIMARY URL nicht antwortet (5xx, ECONNREFUSED, ECONNABORTED, 429),
-// gilt automatisch FALLBACK URL der gleichen Stadt. Cross-City-Fallback
-// ist fachlich falsch (Berlin ≠ Hamburg-Müllabfuhr) — NIEMALS versuchen.
+// MOCK-POLICY: null fakes in production. Echtes axios.
 // ---------------------------------------------------------------------------
 
 import type { AxiosInstance } from 'axios';
@@ -97,7 +79,7 @@ export interface WasteCalendarResponse {
 interface CityFetchUrls {
   primary: string;
   fallback?: string;
-  /** Whether the city requires street + houseNr params (Hamburg, München) */
+  /** Whether the city requires street + houseNr params (dynamisch per city config) */
   addressRequired: boolean;
   /** Per-city attribution string (CC-BY license is mandatory) */
   attribution: string;
@@ -128,8 +110,8 @@ export class WasteService {
    * @param weeks Forward-Window: 1-8 Wochen, default 4. Filtered alle VEVENT
    *             deren start-Datum mehr als `weeks*7` Tage in der Zukunft liegt
    *             werden aus der Antwort entfernt.
-   * @param street  Optional (Berlin: default fallback; Hamburg/München: REQUIRED)
-   * @param houseNr  Optional (Berlin: default fallback; Hamburg/München: REQUIRED)
+   * @param street  Optional (je nach Stadt REQUIRED — wird dynamisch erkannt)
+   * @param houseNr  Optional (je nach Stadt REQUIRED — wird dynamisch erkannt)
    */
   async getWasteCalendar(
     lat: number,
@@ -377,11 +359,9 @@ export class WasteService {
   }
 
   private requireCityKeyName(city: WasteCityKey): string {
-    const names: Record<WasteCityKey, string> = {
-      berlin: 'Berlin',
-      hamburg: 'Hamburg',
-      muenchen: 'München',
-    };
-    return names[city];
+    // Dynamisch aus Registry — kein Hardcoding
+    const cities = getSupportedCities();
+    const found = cities.find((c) => c.id === city);
+    return found?.displayName || city;
   }
 }
