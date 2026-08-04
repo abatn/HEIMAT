@@ -1,18 +1,15 @@
 /**
  * buergeramtService.ts — Bürgerämter & Behörden
  *
- * Datenquelle: OpenStreetMap Nominatim
- * KEINE hardcodierten Seiten — alles echte API-Calls.
+ * Datenquelle: OpenStreetMap Overpass — echte deutsche Behörden
+ * Tags: amenity=townhall, office=government, office=admin
  *
- * OSM-Tags für Bürgerämter:
- * - amenity=townhall
- * - office=government
- * - office=public_bath
- * - amenity=community_centre + government
+ * KEINE hardcoded URLs — alles via externalServices.overpassMirrors.
  */
 
 import axios from 'axios';
 import { logger } from '../utils/logger';
+import { externalServices } from '../config/externalServices';
 
 export interface Buergeramt {
   id: string;
@@ -28,103 +25,105 @@ export interface Buergeramt {
 }
 
 export class BuergeramtService {
-  private readonly nominatimEndpoint = 'https://nominatim.openstreetmap.org';
+  // Kein Hardcoded — Overpass via ExternalServicesRegistry
+  private readonly overpassEndpoint = externalServices.overpassMirrors[0];
+  private readonly userAgent = externalServices.userAgent;
 
   /**
-   * Bürgerämter in der Nähe laden
+   * Bürgerämter & Behörden in der Nähe laden
+   * Overpass-Suche: amenity=townhall + office=government + office=admin
    */
   async getNearbyAemter(
     lat: number,
     lng: number,
     radiusKm: number = 10,
   ): Promise<Buergeramt[]> {
+    const radiusM = radiusKm * 1000;
+
+    // Overpass QL: alle Behörden-Typen parallel suchen
+    const query = `
+      [out:json][timeout:20];
+      (
+        node["amenity"="townhall"](around:${radiusM},${lat},${lng});
+        way["amenity"="townhall"](around:${radiusM},${lat},${lng});
+        node["office"="government"](around:${radiusM},${lat},${lng});
+        way["office"="government"](around:${radiusM},${lat},${lng});
+        node["office"="admin"](around:${radiusM},${lat},${lng});
+        way["office"="admin"](around:${radiusM},${lat},${lng});
+      );
+      out body;
+      >;
+      out skel qt;
+    `;
+
     try {
-      // Search for government buildings near coordinates
-      const response = await axios.get(
-        `${this.nominatimEndpoint}/search`,
+      const response = await axios.post(
+        this.overpassEndpoint,
+        `data=${encodeURIComponent(query)}`,
         {
-          params: {
-            q: 'Bürgeramt',
-            format: 'json',
-            limit: 10,
-            viewbox: `${lng - 0.1},${lat + 0.1},${lng + 0.1},${lat - 0.1}`,
-            bounded: 1,
-          },
-          headers: { 'User-Agent': 'HEIMAT/2.0 (https://github.com/abatn/HEIMAT)' },
-          timeout: 10000,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          timeout: 20000,
         },
       );
 
-      const results = response.data || [];
+      const elements = response.data?.elements || [];
 
-      // Also search for "Rathaus" and "Amt"
-      const [rathaus, amt] = await Promise.allSettled([
-        axios.get(`${this.nominatimEndpoint}/search`, {
-          params: {
-            q: 'Rathaus',
-            format: 'json',
-            limit: 5,
-            viewbox: `${lng - 0.1},${lat + 0.1},${lng + 0.1},${lat - 0.1}`,
-            bounded: 1,
-          },
-          headers: { 'User-Agent': 'HEIMAT/2.0' },
-          timeout: 10000,
-        }),
-        axios.get(`${this.nominatimEndpoint}/search`, {
-          params: {
-            q: 'Verwaltungsamt',
-            format: 'json',
-            limit: 5,
-            viewbox: `${lng - 0.1},${lat + 0.1},${lng + 0.1},${lat - 0.1}`,
-            bounded: 1,
-          },
-          headers: { 'User-Agent': 'HEIMAT/2.0' },
-          timeout: 10000,
-        }),
-      ]);
-
-      if (rathaus.status === 'fulfilled') {
-        results.push(...(rathaus.value.data || []));
-      }
-      if (amt.status === 'fulfilled') {
-        results.push(...(amt.value.data || []));
-      }
-
-      // Deduplicate by place_id
-      const seen = new Set<number>();
-      const unique = results.filter((item: any) => {
-        if (seen.has(item.place_id)) return false;
-        seen.add(item.place_id);
-        return true;
-      });
-
-      return unique.map((item: any) => ({
-        id: `nominatim/${item.place_id}`,
-        name: item.display_name?.split(',')[0] || 'Bürgeramt',
-        type: _detectType(item.display_name || ''),
-        address: item.display_name || null,
-        phone: null,
-        website: null,
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-        distance_km: _haversineKm(lat, lng, parseFloat(item.lat), parseFloat(item.lon)),
-        openingHours: null,
-      }));
+      // Nur Elemente mit Namen (echte Behörden)
+      return elements
+        .filter((el: any) => el.tags?.name && (el.type === 'node' || el.center))
+        .map((el: any) => {
+          const lat2 = el.lat || el.center?.lat;
+          const lng2 = el.lon || el.center?.lon;
+          return {
+            id: `osm/${el.id}`,
+            name: el.tags.name,
+            type: _detectType(el.tags),
+            address: _buildAddress(el.tags),
+            phone: el.tags?.phone || el.tags?.['contact:phone'] || null,
+            website: el.tags?.website || el.tags?.['contact:website'] || null,
+            lat: lat2,
+            lng: lng2,
+            distance_km: _haversineKm(lat, lng, lat2, lng2),
+            openingHours: el.tags?.opening_hours || null,
+          };
+        })
+        .sort((a: Buergeramt, b: Buergeramt) =>
+          (a.distance_km ?? 999) - (b.distance_km ?? 999),
+        )
+        .slice(0, 20);
     } catch (error) {
-      logger.warn('Nominatim Bürgeramt search failed:', error);
+      logger.warn('Overpass Bürgeramt search failed:', (error as Error).message);
       return [];
     }
   }
 }
 
-function _detectType(displayName: string): string {
-  const lower = displayName.toLowerCase();
-  if (lower.includes('bürgeramt')) return 'Bürgeramt';
-  if (lower.includes('rathaus')) return 'Rathaus';
-  if (lower.includes('verwaltungsamt')) return 'Verwaltungsamt';
-  if (lower.includes('meldeamt')) return 'Meldeamt';
-  if (lower.includes('standesamt')) return 'Standesamt';
+function _detectType(tags: Record<string, string>): string {
+  const amenity = tags.amenity || '';
+  const office = tags.office || '';
+  const name = (tags.name || '').toLowerCase();
+
+  if (name.includes('bürgeramt') || name.includes('buergeramt')) return 'Bürgeramt';
+  if (name.includes('rathaus')) return 'Rathaus';
+  if (name.includes('standesamt')) return 'Standesamt';
+  if (name.includes('meldeamt')) return 'Meldeamt';
+  if (name.includes('verwaltungsamt') || name.includes('verwaltung')) return 'Verwaltungsamt';
+  if (name.includes('finanzamt')) return 'Finanzamt';
+  if (name.includes('jobcenter')) return 'Jobcenter';
+  if (name.includes('sozialamt')) return 'Sozialamt';
+  if (amenity === 'townhall') return 'Rathaus';
+  if (office === 'government') return 'Behörde';
+  if (office === 'admin') return 'Verwaltung';
   return 'Behörde';
+}
+
+function _buildAddress(tags: Record<string, string>): string | null {
+  const parts: string[] = [];
+  if (tags['addr:street']) parts.push(tags['addr:street']);
+  if (tags['addr:housenumber']) parts.push(tags['addr:housenumber']);
+  if (tags['addr:postcode']) parts.push(tags['addr:postcode']);
+  if (tags['addr:city']) parts.push(tags['addr:city']);
+  return parts.length > 0 ? parts.join(', ') : null;
 }
 
 function _haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -138,5 +137,5 @@ function _haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): n
       Math.sin(dLng / 2) *
       Math.sin(dLng / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return Math.round(R * c * 10) / 10;
 }
