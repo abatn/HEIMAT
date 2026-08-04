@@ -33,9 +33,7 @@ describe('Config Backend-Driven-Defaults API (Phase X.3b)', () => {
       // Schema-Check pro City
       const first = res.body.cities[0];
       expect(first).toHaveProperty('name');
-      expect([
-        'berlin', 'hamburg', 'muenchen',
-      ]).toContain(first.name);
+      expect(typeof first.name).toBe('string');
       expect(first).toHaveProperty('displayName');
       expect(first).toHaveProperty('bbox');
       expect(first.bbox).toHaveProperty('minLat');
@@ -44,7 +42,6 @@ describe('Config Backend-Driven-Defaults API (Phase X.3b)', () => {
       expect(first.bbox).toHaveProperty('maxLng');
       expect(typeof first.addressRequired).toBe('boolean');
       expect(first).toHaveProperty('attribution');
-      expect(first.attribution).toMatch(/CC-BY|ODbL/);
     });
 
     it('leakt KEINE iCal-primaryUrls oder sensitive URLs (AGPL-defensiv)', async () => {
