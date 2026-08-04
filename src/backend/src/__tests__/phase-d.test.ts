@@ -23,7 +23,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
             params: { lat: 52.52, lng: 13.41, radius: 5 },
             timeout: TIMEOUTS.overpass,
           }),
-        { retries: 2, timeout: TIMEOUTS.overpass },
+        { retries: 2, timeoutMs: TIMEOUTS.overpass },
       );
 
       expect(response.status).toBe(200);
@@ -41,7 +41,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
           axios.get(`${BASE_URL}/api/events`, {
             timeout: TIMEOUTS.overpass,
           }),
-        { retries: 2, timeout: TIMEOUTS.overpass },
+        { retries: 2, timeoutMs: TIMEOUTS.overpass },
       );
 
       expect(response.status).toBe(200);
@@ -56,7 +56,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
             params: { lat: 52.52, lng: 13.41, radius: 2 },
             timeout: TIMEOUTS.overpass,
           }),
-        { retries: 2, timeout: TIMEOUTS.overpass },
+        { retries: 2, timeoutMs: TIMEOUTS.overpass },
       );
 
       expect(response.status).toBe(200);
@@ -84,7 +84,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
             params: { lat: 52.52, lng: 13.41, radius: 2 },
             timeout: TIMEOUTS.overpass,
           }),
-        { retries: 2, timeout: TIMEOUTS.overpass },
+        { retries: 2, timeoutMs: TIMEOUTS.overpass },
       );
 
       expect(response.status).toBe(200);
@@ -102,7 +102,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
           axios.get(`${BASE_URL}/api/hotels`, {
             timeout: TIMEOUTS.overpass,
           }),
-        { retries: 2, timeout: TIMEOUTS.overpass },
+        { retries: 2, timeoutMs: TIMEOUTS.overpass },
       );
 
       expect(response.status).toBe(200);
@@ -117,7 +117,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
             params: { lat: 52.52, lng: 13.41, radius: 5 },
             timeout: TIMEOUTS.overpass,
           }),
-        { retries: 2, timeout: TIMEOUTS.overpass },
+        { retries: 2, timeoutMs: TIMEOUTS.overpass },
       );
 
       expect(response.status).toBe(200);
@@ -147,7 +147,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
             params: { lat: 52.52, lng: 13.41, radius: 5 },
             timeout: TIMEOUTS.nominatim,
           }),
-        { retries: 2, timeout: TIMEOUTS.nominatim },
+        { retries: 2, timeoutMs: TIMEOUTS.nominatim },
       );
 
       expect(response.status).toBe(200);
@@ -165,7 +165,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
           axios.get(`${BASE_URL}/api/buergeramt`, {
             timeout: TIMEOUTS.nominatim,
           }),
-        { retries: 2, timeout: TIMEOUTS.nominatim },
+        { retries: 2, timeoutMs: TIMEOUTS.nominatim },
       );
 
       expect(response.status).toBe(200);
@@ -180,7 +180,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
             params: { lat: 52.52, lng: 13.41, radius: 5 },
             timeout: TIMEOUTS.nominatim,
           }),
-        { retries: 2, timeout: TIMEOUTS.nominatim },
+        { retries: 2, timeoutMs: TIMEOUTS.nominatim },
       );
 
       expect(response.status).toBe(200);
@@ -204,7 +204,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
             params: { lat: 52.52, lng: 13.41, radius: 10 },
             timeout: TIMEOUTS.nominatim,
           }),
-        { retries: 2, timeout: TIMEOUTS.nominatim },
+        { retries: 2, timeoutMs: TIMEOUTS.nominatim },
       );
 
       expect(response.status).toBe(200);
@@ -228,7 +228,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
               params,
               timeout: TIMEOUTS.overpass,
             }),
-          { retries: 2, timeout: TIMEOUTS.overpass },
+          { retries: 2, timeoutMs: TIMEOUTS.overpass },
         ),
         withRetry(
           () =>
@@ -236,7 +236,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
               params,
               timeout: TIMEOUTS.overpass,
             }),
-          { retries: 2, timeout: TIMEOUTS.overpass },
+          { retries: 2, timeoutMs: TIMEOUTS.overpass },
         ),
         withRetry(
           () =>
@@ -244,7 +244,7 @@ describe('Phase D: Events + Hotels + Bürgeramt', () => {
               params,
               timeout: TIMEOUTS.nominatim,
             }),
-          { retries: 2, timeout: TIMEOUTS.nominatim },
+          { retries: 2, timeoutMs: TIMEOUTS.nominatim },
         ),
       ]);
 
