@@ -251,7 +251,8 @@ describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
     });
 
     it('sollte Rate-Limit Fehler zurückgeben bei zu vielen Requests', async () => {
-      const promises = Array.from({ length: 110 }, () => request(app).get('/health'));
+      // Rate-Limiter: max: 200 pro 15min — wir schicken 210 um 429 auszuloesen
+      const promises = Array.from({ length: 210 }, () => request(app).get('/health'));
       const results = await Promise.all(promises);
       expect(results.some(r => r.status === 429)).toBe(true);
     }, 60000);
