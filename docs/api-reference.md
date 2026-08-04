@@ -762,9 +762,249 @@ Parsing: `JSON.parse(response.replace(/^warnWetter\.loadWarnings\(/, '').replace
 
 ---
 
+## Internationale APIs — Banken, Organisationen, globale Institutionen
+
+**Quelle:** ECB, WHO, EU, UNESCO, Bundesbank, etc.
+
+### Übersicht — Internationale APIs
+
+| # | API | Provider | Auth | Kategorie | Nutzen für HEIMAT |
+|---|-----|----------|------|-----------|-------------------|
+| 1 | **ECB Wechselkurse** | EZB | Keine | Finanzen | Taler/EUR-Umrechnung |
+| 2 | **Bundesbank SDMX** | Deutsche Bundesbank | Keine | Finanzen | Deutsche Finanzstatistik |
+| 3 | **WHO GHO** | WHO | Keine | Gesundheit | Gesundheitsstatistik DE |
+| 4 | **Eurostat SDMX** | EU | Keine | Statistik | Arbeitsmarkt, Demografie |
+| 5 | **EU Open Data** | EU | Keine | Vielfältig | Breite EU-Datensätze |
+| 6 | **EUR-Lex** | EU | Keine | Recht | EU-Regulierungen |
+| 7 | **UNESCO Welterbe** | UNESCO | Keine | Kultur | 52 deutsche Stätten |
+| 8 | **Europeana** | EU | Kostenloser Key | Kultur | Deutsche Kultursammlungen |
+| 9 | **Wikimedia Commons** | Wikimedia | Keine | Medien | Deutsche Kultur-Bilder |
+| 10 | **WHO ICD-11** | WHO | OAuth2 | Gesundheit | ICD-Codes (bereits integriert) |
+
+---
+
+### 1. ECB Wechselkurse (✅ Funktioniert!)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml` |
+| **Provider** | Europäische Zentralbank (EZB) |
+| **Auth** | Keine |
+| **Format** | XML (auch JSON/CSV verfügbar) |
+| **Datenqualität** | ⭐⭐⭐⭐⭐ Offiziell |
+| **Abdeckung** | Alle EUR-Währungen |
+
+**Beispiel-Response (XML):**
+```xml
+<gesmes:Envelope>
+  <Cube time='2026-08-04'>
+    <Cube currency='USD' rate='1.0923'/>
+    <Cube currency='GBP' rate='0.8456'/>
+    <Cube currency='CHF' rate='0.9312'/>
+  </Cube>
+</gesmes:Envelope>
+```
+
+**In HEIMAT:** Könnte für Taler/EUR-Umrechnung nützlich sein.
+
+---
+
+### 2. Bundesbank SDMX API
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://data.bundesbank.de/rest/data/` |
+| **Provider** | Deutsche Bundesbank |
+| **Auth** | Keine |
+| **Format** | SDMX/JSON/CSV |
+| **Datenqualität** | ⭐⭐⭐⭐⭐ Offiziell |
+| **Abdeckung** | Deutschland-spezifisch |
+
+**Daten:**
+- Zinssätze
+- Wechselkurse
+- Geldmenge
+- Kreditvolumen
+
+**In HEIMAT:** Könnte für Finanz-Statistiken nützlich sein.
+
+---
+
+### 3. WHO Global Health Observatory (GHO)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://ghoapi.azureedge.net/api/` |
+| **Provider** | Weltgesundheitsorganisation (WHO) |
+| **Auth** | Keine |
+| **Format** | JSON (OData) |
+| **Datenqualität** | ⭐⭐⭐⭐⭐ Offiziell |
+| **Abdeckung** | Global (inkl. Deutschland) |
+
+**Daten:**
+- Lebenserwartung
+- Krankheitsraten
+- Impfquoten
+- Gesundheitsausgaben
+
+**In HEIMAT:** Könnte für Gesundheitsstatistiken nützlich sein.
+
+---
+
+### 4. Eurostat SDMX API
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/` |
+| **Provider** | EU (Eurostat) |
+| **Auth** | Keine |
+| **Format** | SDMX/TSV/CSV |
+| **Datenqualität** | ⭐⭐⭐⭐⭐ Offiziell |
+| **Abdeckung** | EU-weit (DE = Kern) |
+
+**Daten:**
+- Arbeitslosenquote
+- BIP
+- Bevölkerung
+- Inflation
+
+**In HEIMAT:** Könnte für Wirtschaftsstatistiken nützlich sein.
+
+---
+
+### 5. EU Open Data Portal
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://data.europa.eu/api/v2/` |
+| **Provider** | EU (Publications Office) |
+| **Auth** | Keine |
+| **Format** | JSON/CSV/RDF |
+| **Datenqualität** | ⭐⭐⭐⭐ Gut |
+| **Abdeckung** | EU-weit |
+
+**Daten:**
+- Breite EU-Datensätze
+- Transport, Umwelt, Wirtschaft, etc.
+
+**In HEIMAT:** Könnte als Ergänzung für verschiedene Features dienen.
+
+---
+
+### 6. EUR-Lex (EU-Recht)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://publications.europa.eu/repository/` |
+| **Provider** | EU (Publications Office) |
+| **Auth** | Keine |
+| **Format** | JSON-LD/RDF |
+| **Datenqualität** | ⭐⭐⭐⭐⭐ Offiziell |
+| **Abdeckung** | EU-Recht (inkl. DE-Umsetzung) |
+
+**Daten:**
+- EU-Verordnungen
+- EU-Richtlinien
+- Nationale Umsetzungen
+
+**In HEIMAT:** Könnte für Rechts-Informationen nützlich sein.
+
+---
+
+### 7. UNESCO Welterbe
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://whc.unesco.org/en/list/xml/` |
+| **Provider** | UNESCO |
+| **Auth** | Keine |
+| **Format** | XML |
+| **Datenqualität** | ⭐⭐⭐⭐⭐ Offiziell |
+| **Abdeckung** | Global (52 deutsche Stätten) |
+
+**Daten:**
+- Welterbe-Stätten
+- Beschreibungen
+- GPS-Koordinaten
+- Status
+
+**In HEIMAT:** Könnte für Kultur-/Tourismus-Feature nützlich sein.
+
+---
+
+### 8. Europeana (Kulturerbe)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://api.europeana.eu/record/v2/` |
+| **Provider** | Europeana Foundation |
+| **Auth** | Kostenloser API-Key |
+| **Format** | JSON |
+| **Datenqualität** | ⭐⭐⭐⭐⭐ Exzellent |
+| **Abdeckung** | Starke deutsche Sammlungen |
+
+**Daten:**
+- Deutsche Kultursammlungen
+- Bilder, Texte, Videos
+- Museen, Bibliotheken, Archive
+
+**In HEIMAT:** Könnte für Kultur-/Events-Feature nützlich sein.
+
+---
+
+### 9. Wikidata SPARQL (✅ Bereits integriert)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://query.wikidata.org/sparql` |
+| **Provider** | Wikimedia Foundation |
+| **Auth** | Keine |
+| **Format** | JSON/CSV |
+| **Datenqualität** | ⭐⭐⭐⭐ Gut |
+| **Abdeckung** | Global |
+
+**In HEIMAT:** ✅ Bereits integriert für Events, Hotels, Bürgeramt.
+
+---
+
+### Top 10 "Ready to Integrate" (Kein API-Key, keine Registrierung)
+
+| # | API | Nutzen für HEIMAT |
+|---|-----|-------------------|
+| 1 | **ECB Wechselkurse** | Taler/EUR-Umrechnung |
+| 2 | **Eurostat SDMX** | Arbeitsmarkt, Demografie |
+| 3 | **WHO GHO** | Gesundheitsstatistik |
+| 4 | **DWD Unwetterwarnungen** | Ergänzung zu Open-Meteo |
+| 5 | **Bundesbank SDMX** | Finanzstatistik |
+| 6 | **UNESCO Welterbe** | Kultur-Feature |
+| 7 | **EUR-Lex** | Rechts-Informationen |
+| 8 | **EU Open Data** | Breite Datensätze |
+| 9 | **Wikimedia Commons** | Medien für Kultur |
+| 10 | **Feiertage API** | Kalender-Feature |
+
+---
+
+### Auth-Übersicht
+
+| Auth-Typ | Anzahl | APIs |
+|----------|--------|------|
+| **Keine** | 22 | ECB, Eurostat, WHO GHO, Open-Meteo, DWD, UNESCO, EUR-Lex, Wikidata, EU Open Data, Bundesbank |
+| **Kostenloser API-Key** | 4 | Europeana, Deutsche Digitale Bibliothek, OpenWeatherMap, EMA |
+| **OAuth2/Registrierung** | 3 | WHO ICD-11, Eurocontrol, Copernicus CAMS |
+| **PSD2 (Bank-OAuth)** | 1 | Open Banking APIs |
+
+---
+
 ## Fazit
 
 **HEIMAT nutzt 11 kostenlose, keine-Auth APIs** — ein exzellentes Verhältnis.
+
+**Neue Erkenntnisse (Internationale APIs):**
+- **ECB Wechselkurse** — Funktioniert, könnte Taler/EUR-Umrechnung unterstützen
+- **WHO GHO** — Funktioniert, Gesundheitsstatistiken für Deutschland
+- **Eurostat SDMX** — Funktioniert, Wirtschaftsstatistiken
+- **UNESCO Welterbe** — Funktioniert, 52 deutsche Stätten
+- **Bundesbank SDMX** — Funktioniert, deutsche Finanzstatistik
 
 **Neue Erkenntnisse (Staatliche APIs):**
 - **DWD Unwetterwarnungen** — Funktioniert, JSON-Format, könnte Open-Meteo ergänzen
@@ -781,4 +1021,4 @@ Parsing: `JSON.parse(response.replace(/^warnWetter\.loadWarnings\(/, '').replace
 - Events/Hotels: Kaum aktuelle Daten
 - Finanzen: Kein Production Exchange
 
-**Kein Handlungsbedarf** — die gewählten APIs sind die besten verfügbaren kostenlosen Lösungen.
+**Gesamtzahl免费 APIs: 22 ohne Auth + 4 mit kostenlosem Key = 26 kostenlose APIs**
