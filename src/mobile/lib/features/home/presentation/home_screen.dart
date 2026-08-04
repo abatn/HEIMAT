@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/skeleton_loader.dart';
-import '../../smart_alerts/smart_alerts_screen.dart';
-import '../../search/search_screen.dart';
-import '../../daily_briefing/daily_briefing_screen.dart';
+import '../../miniprogram/domain/service_registry.dart';
+import '../../miniprogram/domain/service_definition.dart';
+import '../../miniprogram/presentation/native_mini_program_screen.dart';
+import '../../miniprogram/presentation/miniprogram_model.dart';
 import 'home_provider.dart';
 
 // ============================================================================
@@ -41,26 +42,34 @@ class _HomeScreenState extends State<HomeScreen> {
         if (home.isLoading && home.context == null) {
           return _buildLoading();
         }
-        return RefreshIndicator(
-          onRefresh: () => home.loadDashboard(),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
-              const SizedBox(height: 4),
-              _buildGreetingCard(home),
-              const SizedBox(height: 16),
-              if (home.snapshots.isNotEmpty) ...[
-                _buildServiceSnapshots(home),
+        return Scaffold(
+          body: RefreshIndicator(
+            onRefresh: () => home.loadDashboard(),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+              children: [
+                const SizedBox(height: 4),
+                _buildGreetingCard(home),
+                const SizedBox(height: 16),
+                if (home.snapshots.isNotEmpty) ...[
+                  _buildServiceSnapshots(home),
+                  const SizedBox(height: 20),
+                ],
+                _buildQuickStats(home),
                 const SizedBox(height: 20),
+                _buildQuickActions(home),
+                const SizedBox(height: 20),
+                _buildRecentlyUsedSection(home),
+                const SizedBox(height: 20),
+                _buildSuggestionsSection(home),
               ],
-              _buildQuickStats(home),
-              const SizedBox(height: 20),
-              _buildQuickActions(home),
-              const SizedBox(height: 20),
-              _buildNewFeaturesCard(home),
-              const SizedBox(height: 20),
-              _buildSuggestionsSection(home),
-            ],
+            ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _navigateToAction('ai_chat'),
+            backgroundColor: AppColors.primary,
+            tooltip: 'HEIMAT AI Chat',
+            child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
           ),
         );
       },
@@ -413,22 +422,35 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // --------------------------------------------------------------------------
-  // New Features — Smart Alerts + Universelle Suche
+  // Zuletzt benutzt — horizontale Liste der letzten Services
   // --------------------------------------------------------------------------
 
-  Widget _buildNewFeaturesCard(HomeProvider home) {
+  Widget _buildRecentlyUsedSection(HomeProvider home) {
+    final recentActions = home.recentActions;
+    if (recentActions.isEmpty) return const SizedBox.shrink();
+
+    // Unique actions, max 6
+    final unique = <String>[];
+    for (final action in recentActions.reversed) {
+      if (!unique.contains(action) && unique.length < 6) {
+        unique.add(action);
+      }
+    }
+    if (unique.isEmpty) return const SizedBox.shrink();
+
+    final registry = ServiceRegistry.instance;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Row(
-            children: [
-              const Icon(Icons.auto_awesome,
-                  size: 18, color: Color(0xFF7C4DFF)),
-              const SizedBox(width: 6),
+            children: const [
+              Icon(Icons.history, size: 18, color: AppColors.secondary),
+              SizedBox(width: 6),
               Text(
-                'Neue Features',
+                'Zuletzt benutzt',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -438,77 +460,124 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: _FeatureCard(
-                icon: '🔔',
-                title: 'Erinnerungen',
-                subtitle: 'Smart Alerts',
-                color: const Color(0xFF1A237E),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const SmartAlertsScreen(),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _FeatureCard(
-                icon: '🔍',
-                title: 'Suche',
-                subtitle: 'Alles finden',
-                color: const Color(0xFF00695C),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const SearchScreen(),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _FeatureCard(
-                icon: '📋',
-                title: 'Dashboard',
-                subtitle: 'Tages-Briefing',
-                color: const Color(0xFFE65100),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DailyBriefingScreen(),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            itemCount: unique.length,
+            itemBuilder: (context, index) {
+              final serviceId = unique[index];
+              final def = registry.lookup(serviceId);
+              if (def == null) return const SizedBox.shrink();
+              return _buildRecentChip(def);
+            },
+          ),
         ),
       ],
     );
   }
 
-  /// Navigiert basierend auf actionType zum richtigen Tab
-  void _navigateToAction(String actionType) {
-    if (widget.onNavigateTab == null) return;
-    switch (actionType) {
-      case 'mobility':
-        widget.onNavigateTab!(1);
-        break;
-      case 'finance':
-        widget.onNavigateTab!(2);
-        break;
-      case 'health':
-        widget.onNavigateTab!(3);
-        break;
-      case 'apps':
+  Widget _buildRecentChip(ServiceDefinition service) {
+    return GestureDetector(
+      onTap: () => _openService(service),
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _getIconForService(service.id),
+              size: 24,
+              color: AppColors.primary,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              service.name,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getIconForService(String id) {
+    switch (id) {
+      case 'ai_chat':
+        return Icons.chat_bubble_outline;
       case 'weather':
-        widget.onNavigateTab!(4);
-        break;
+        return Icons.wb_sunny_outlined;
+      case 'air':
+        return Icons.air;
+      case 'waste':
+        return Icons.delete_outline;
+      case 'ev_charging':
+        return Icons.ev_station_outlined;
+      case 'parking':
+        return Icons.local_parking_outlined;
+      case 'mobility':
+        return Icons.directions_bus_outlined;
+      case 'finance':
+        return Icons.account_balance_wallet_outlined;
+      case 'health':
+        return Icons.local_hospital_outlined;
+      case 'checkin':
+        return Icons.check_circle_outline;
+      case 'events':
+        return Icons.event_outlined;
+      case 'jobs':
+        return Icons.work_outline;
+      case 'hotels':
+        return Icons.hotel_outlined;
+      case 'buergeramt':
+        return Icons.account_balance_outlined;
       default:
-        widget.onNavigateTab!(1);
+        return Icons.apps;
+    }
+  }
+
+  /// Oeffnet einen Service direkt via NativeMiniProgramScreen
+  void _openService(ServiceDefinition service) {
+    final program = MiniProgram(
+      id: service.id,
+      name: service.name,
+      url: 'native://registry/${service.id}',
+      iconPath: '',
+      description: service.description ?? '',
+      category: service.category ?? 'Sonstiges',
+      useNative: true,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NativeMiniProgramScreen(program: program),
+      ),
+    );
+  }
+
+  /// Navigiert basierend auf actionType — oeffnet Service direkt
+  void _navigateToAction(String actionType) {
+    final registry = ServiceRegistry.instance;
+    final def = registry.lookup(actionType);
+    if (def != null) {
+      _openService(def);
+    } else if (widget.onNavigateTab != null) {
+      // Fallback: zum Dienste-Tab (index 1)
+      widget.onNavigateTab!(1);
     }
   }
 
@@ -719,69 +788,6 @@ class _SuggestionCard extends StatelessWidget {
                 Icons.arrow_forward_ios,
                 size: 14,
                 color: AppColors.textSecondary.withOpacity(0.5),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FeatureCard extends StatelessWidget {
-  final String icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _FeatureCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 28)),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.white70,
-                ),
               ),
             ],
           ),
