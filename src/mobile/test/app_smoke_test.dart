@@ -16,6 +16,9 @@ import 'package:heimat_app/features/checkin/presentation/checkin_provider.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_screen.dart';
 import 'package:heimat_app/features/finance/presentation/finance_screen.dart';
 import 'package:heimat_app/features/health/presentation/health_screen_with_tabs.dart';
+import 'package:heimat_app/features/services/services_screen.dart';
+import 'package:heimat_app/features/profile/profile_screen.dart';
+import 'package:heimat_app/features/miniprogram/domain/service_registry.dart';
 
 class _StubMobility extends MobilityProvider {
   @override
@@ -41,8 +44,6 @@ class _StubHealth extends HealthProvider {
 class _StubAiChat extends AiChatProvider {
   @override
   Future<void> sendMessage(String text, {bool includeWeather = true}) async {}
-  @override
-  Future<void> init() async {}
 }
 
 class _StubCheckin extends CheckinProvider {
@@ -200,6 +201,32 @@ void main() {
           .pumpWidget(buildTestApp(child: const HealthScreenWithTabs()));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(TabBarView), findsOneWidget);
+    });
+  });
+
+  group('ServicesScreen', () {
+    setUpAll(() {
+      ServiceRegistry.instance.initialize();
+    });
+
+    testWidgets('shows categorized service list', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const ServicesScreen()));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(ServicesScreen), findsOneWidget);
+    });
+
+    testWidgets('has search bar', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const ServicesScreen()));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(TextField), findsOneWidget);
+    });
+  });
+
+  group('ProfileScreen', () {
+    testWidgets('shows profile screen', (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestApp(child: const ProfileScreen()));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(ProfileScreen), findsOneWidget);
     });
   });
 
