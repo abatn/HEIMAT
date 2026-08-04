@@ -432,7 +432,7 @@ ollamaService.chatWithContext({ health: { symptom } })
 - `lat: 0, lng: 0` Hack im Health Context — Triage braucht keine Koordinaten, könnte aber bei zukünftigen Erweiterungen Probleme machen
 - Keyword-Drift: `detectHealthSymptom()` in `routes/ai.ts` und `triageRulesService.ts` haben separate Keyword-Listen — könnten auseinanderdriften
 - Fehlende medizinische Fine-Tuning-Modelle (Med42-v2, BioMistral) — aktuell nur `qwen2.5:3b` (General Purpose)
-- **Rate-Limiter zu aggressiv (2026-08-04):** Globaler Rate-Limiter in `src/backend/src/index.ts:57` mit `max: 100` pro 15 Minuten. Render Free Tier cold-startet alle 15 Minuten (offiziell: "Free web service instances spin down if they receive no incoming traffic for 15 consecutive minutes" — [render.com/docs/free](https://render.com/docs/free)). App macht 10-20 Requests beim Laden. Cold Start + App-Reload = "Too many requests". **Fix:** `max: 200` oder `max: 300` für mehr Headroom.
+- **Rate-Limiter behoben (2026-08-04):** Globaler Rate-Limiter in `src/backend/src/index.ts:57` — **`max: 200` pro 15 Minuten** (erhöht von 100). Render Free Tier cold-startet alle 15 Minuten, App macht 10-20 Requests beim Laden. E2E-Test angepasst (110→210 Requests). **Alle CI-Workflows grün.**
 
 ## Health AI Agent — Erweiterte Architektur (2026-08-03)
 
@@ -516,12 +516,19 @@ Ein intelligenter Health AI Agent, der:
 |-----------|----------|--------|
 | **Mobilität** | ÖPNV ✅, Parken ✅, E-Laden ✅ | Alle funktionieren |
 | **Gesundheit** | Ärzte ✅, Lebenszeichen ✅ | Beide funktionieren |
-| **Alltag** | Wetter ✅, Luft ✅, Abfall ✅, Bürgeramt ✅, Jobs ✅ | 5 funktionieren |
+| **Alltag** | Wetter ✅, Luft ✅, Abfall ✅ (AbfallNavi Bund), Bürgeramt ✅, Jobs ✅ | 5 funktionieren |
 | **Kultur & Reise** | Events ⚠️, Hotels ⚠️ | 1 eingeschränkt, 1 nicht getestet |
 | **Finanzen** | Taler-Wallet ✅ | Funktioniert |
 | **AI** | HEIMAT AI ✅ | Funktioniert |
 
 **Gesamt:** 10/14 Services funktionieren 100%, 2 eingeschränkt, 2 nicht verfügbar.
+
+### AbfallNavi Integration (2026-08-04)
+- **API:** `https://abfallnavi.api.bund.dev/` (Bund/RegioIT) — kostenlose staatliche API
+- **19 Regionen:** Nürnberg, Aachen, Solingen, Norderstedt, Bergisch Gladbach, Dinslaken, Dorsten, Gütersloh, Halver, Kreis Coesfeld, Kreis Heinsberg, Kreis Pinneberg, Kreis Warendorf, Lindlar, Lüdenscheid, Roetgen, EGW Westmünsterland, AWA Entsorgungs GmbH, Bergischer Abfallwirtschaftverbund
+- **Backend:** `abfallNaviService.ts` + `wasteCityRegistry.ts` erweitert + `wasteService.ts` adapter integriert
+- **API-Flow:** GET /orte → GET /orte/{id}/strassen → GET /strassen/{id}/ → GET /termine → Echte Abholtermine
+- **Commit:** `feat(backend): AbfallNavi (Bund) Integration` — CI grün nach E2E-Test-Fix
 
 ## Cost / footprint
 
