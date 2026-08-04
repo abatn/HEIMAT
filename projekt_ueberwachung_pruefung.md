@@ -11,8 +11,8 @@
     - TypeScript-Kompilierung: `tsc --noEmit` = 0 Errors
     - Dart-Format: `dart format --set-exit-if-changed` = 0 Abweichungen
   - **Betriebskennzahlen:**
-    - Commit-Velocity: ~15 Commits/Tag (123 Commits / 23 Tage)
-    - Phasen-Fortschritt: Phase A ✅, B ✅, C ✅, Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅ — 8.5/10 (85%)
+    - Commit-Velocity: ~15 Commits/Tag (125 Commits / 23 Tage)
+    - Phasen-Fortschritt: Phase A ✅, B ✅, C ✅, Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅ — 9/10 (90%)
     - Offene Phasen: D (Events/Hotels/Bürgeramt), E (restliche Services)
   - **Infrastruktur:**
     - Backend: heimat-backend.onrender.com (Render Free Tier, Node 20)
