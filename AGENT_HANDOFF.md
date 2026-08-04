@@ -63,14 +63,17 @@ src/mobile/flutter/bin/flutter pub get
 - Phase A ✅ (Mini-Program-Container)
 - Phase B ✅ (Wetter + Luft + Abfall)
 - Phase C ✅ (E-Laden + Parken)
-- Phase D ✅ (Jobs + Events + Hotels + Bürgeramt)
-- **3-Tab-Rebuild ✅ (2026-08-04):** 5→3 Tabs (WeChat-Muster). Commits: f3eb6f2, 11f46d4, b3c6ee2, a4f3650.
+- Phase D ⚠️ (Jobs ✅, Events ❌ kulturdaten.berlin, Hotels ❌ lat=52.52, Bürgeramt ❌ lat=52.52)
+- **3-Tab-Rebuild ✅ (2026-08-04):** 5→3 Tabs (WeChat-Muster)
+- **GPS-Dynamisierung ✅ (2026-08-04):** 6 Screens nutzen LocationService
+- **Offen:** Hardcoded-Locations in eventService.ts, wasteCityRegistry.ts, wasteService.ts entfernen
 
 ### Bekannte Bugs
 - `lat: 0, lng: 0` Hack im Health Context
 - Keyword-Drift in `detectHealthSymptom()` (zwei separate Keyword-Listen)
 - Wallet-Balance = 0.00 KUDOS bis EUR-Production-Exchange live
-- **Rate-Limiter zu aggressiv:** `max: 100/15min` in `index.ts:57`. Render cold-startet alle 15 Min → App-Reload = "Too many requests". Fix: `max: 200`
+- **Rate-Limiter behoben:** `max: 200` in `index.ts:57` (Commit 0371c04)
+- **Hardcoded-Locations:** eventService.ts (kulturdaten.berlin), wasteCityRegistry.ts (Berlin/Hamburg/München), wasteService.ts (City-Name-Mapping) — NICHT ortsunabhängig
 
 ---
 

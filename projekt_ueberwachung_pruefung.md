@@ -12,8 +12,8 @@
     - Dart-Format: `dart format --set-exit-if-changed` = 0 Abweichungen
   - **Betriebskennzahlen:**
     - Commit-Velocity: ~15 Commits/Tag (128 Commits / 23 Tage)
-    - Phasen-Fortschritt: Phase A ✅, B ✅, C ✅, Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅ — 9/10 (90%)
-    - Offene Phasen: D (Events/Hotels/Bürgeramt), E (restliche Services)
+    - Phasen-Fortschritt: Phase A ✅, B ✅, C ✅, Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, GPS-Dynamisierung ✅ — 7/10 (70%)
+    - Offene Phasen: Hardcoded-Locations entfernen (eventService, wasteCityRegistry, wasteService)
   - **Infrastruktur:**
     - Backend: heimat-backend.onrender.com (Render Free Tier, Node 20)
     - DB: Supabase (Supavisor Pooler, IPv4-force)
@@ -103,7 +103,7 @@
 | # | Dimension | v2.0 | v3.1 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|--------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
-| 2 | **Phasen-Fortschritt** | 40% (4/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
+| 2 | **Phasen-Fortschritt** | 40% (4/10) | 70% (7/10) | GPS-Dynamisierung abgeschlossen | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 120 Calls | 120 Calls | — stabil | — | ✅ OK |
