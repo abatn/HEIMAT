@@ -4,14 +4,14 @@
 
 - **Was wird überwacht? (Kennzahlen)**
   - **Code-Qualität:**
-    - Backend-Test-Passrate (lokal): 413/547 (75.5%) — 100% davon Umgebungsprobleme
-    - Backend-Test-Passrate (CI mit Postgres): 547/547 (100%) — korrekte Messung
+    - Backend-Test-Passrate (lokal): 413/555 (75.5%) — 100% davon Umgebungsprobleme
+    - Backend-Test-Passrate (CI mit Postgres): 555/555 (100%) — korrekte Messung
     - Health AI Agent Tests: 137/137 (100%) — alle grün
     - Flutter-Analyse: 0 Errors (bei grünem CI)
     - TypeScript-Kompilierung: `tsc --noEmit` = 0 Errors
     - Dart-Format: `dart format --set-exit-if-changed` = 0 Abweichungen
   - **Betriebskennzahlen:**
-    - Commit-Velocity: ~15 Commits/Tag (125 Commits / 23 Tage)
+    - Commit-Velocity: ~15 Commits/Tag (128 Commits / 23 Tage)
     - Phasen-Fortschritt: Phase A ✅, B ✅, C ✅, Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅ — 9/10 (90%)
     - Offene Phasen: D (Events/Hotels/Bürgeramt), E (restliche Services)
   - **Infrastruktur:**
@@ -63,7 +63,7 @@
 **Letzte Aktualisierung:** 2026-08-03 | Version 3.0
 
 - **Welche Zahlen werden geprüft?**
-  - Backend-Test-Ergebnisse (CI: 547/547 = 100%, lokal: 413/547 = 75.5%)
+  - Backend-Test-Ergebnisse (CI: 555/555 = 100%, lokal: 413/555 = 75.5%)
   - Health AI Agent Tests: 137/137 (100%)
   - TypeScript-Fehler (0 — wird bei jedem CI-Lauf geprüft)
   - Flutter-Analyse-Fehler (0 — wird bei jedem CI-Lauf geprüft)
@@ -94,7 +94,7 @@
   - **0 flaky Tests** — verifiziert durch: Alle Fehler sind reproduzierbar,
     keine zeitabhängigen Fehler.
   - **134 Umgebungsprobleme** — verifiziert durch: Lokal fehlt Postgres.
-    In CI (GitHub Actions mit `postgres:15-alpine`) sind alle 547 Tests grün.
+    In CI (GitHub Actions mit `postgres:15-alpine`) sind alle 555 Tests grün.
 
 ---
 

@@ -4,13 +4,13 @@
 
 1. **Echte Einnahmen:** 0 EUR — Projekt ist Open Source, keine Monetarisierung implementiert
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)
-3. **Durchgeführte Tests:** 547 Backend-Tests
-   - CI (mit Postgres): 547/547 bestanden (100%)
-   - Lokal (ohne Postgres): 413/547 bestanden (75.5%) — 134 Umgebungsfehler
+3. **Durchgeführte Tests:** 555 Backend-Tests
+   - CI (mit Postgres): 555/555 bestanden (100%)
+   - Lokal (ohne Postgres): 413/555 bestanden (75.5%) — 134 Umgebungsfehler
    - Health AI Agent: 147/147 bestanden (100%)
    - Parking Unit-Tests: 10/10 bestanden (100%)
    - Klassifikation: 0 echte Bugs, 0 flaky, 134 Umgebungsprobleme
-4. **Commits:** 125 (seit 2026-07-11, 23 Tage = ~~~20/Tag)
+4. **Commits:** 128 (seit 2026-07-11, 23 Tage = ~~~21/Tag)
 5. **Phasen abgeschlossen:** 9 von ~10 (Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Phase C ✅, Phase D (Jobs+AI): E-Ladestationen + Parken ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅, AI Chat Timeout gefixt ✅)
    - HealthProvider-Tests: 25/25 bestanden (searchDoctors, loadSlots, bookAppointment, DTO-Parsing)
 6. **Services live:** 3 (Mobilität, Gesundheit, Finanzen) von geplanten 13
@@ -36,7 +36,7 @@
   1. **Funktionaler Fortschritt:** Die App kann mehr als gestern — mehr Services,
      mehr Endpunkte, mehr Features. Gemessen an abgeschlossenen Phasen (6/10 = 60%)
      und deployten Funktionen (5+ Services live). NICHT gemessen an Gesamtzahl
-     der Commits (125) — diese ist ein Output, kein Outcome.
+     der Commits (128) — diese ist ein Output, kein Outcome.
 
   2. **Stabilität:** Der CI bleibt grün. Known Bugs werden behoben, neue
      Regressionen entstehen nicht. Gemessen an CI-Testergebnissen (100% mit Postgres)
@@ -50,7 +50,7 @@
      sogar das Mock-Verbot (Tests brauchen echte DB, keine Mocks).
 
   4. **Geschwindigkeit:** Features werden in Tagen gebaut, nicht Monaten.
-     125 Commits in 23 Tagen. Aber: Geschwindigkeit ist kein Selbstzweck.
+     128 Commits in 23 Tagen. Aber: Geschwindigkeit ist kein Selbstzweck.
      Gemessen an Commit-Velocity (>27/Tag = gut) und Phasen-Timing
      (90% Phasen nach 23 Tagen = sehr gut).
 

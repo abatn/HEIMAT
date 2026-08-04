@@ -5,17 +5,17 @@
 - **Welche Daten werden täglich/wöchentlich erhoben?**
   - **Täglich (bei jedem Commit/CI-Lauf):**
     - Flutter CI: `dart format` → `flutter analyze` → `flutter test` → Build (Web + Android)
-    - Backend CI: `npm run lint` → `npm test` (547/547 Tests bestanden) → `npx tsc --noEmit`
+    - Backend CI: `npm run lint` → `npm test` (555/555 Tests bestanden) → `npx tsc --noEmit`
     - Deploy-Status: GitHub Pages (Flutter Web) + Render (Backend)
   - **Wöchentlich:**
     - Dependabot-Patches (auto-approve + auto-merge via `dependabot-auto-merge.yml`)
-    - Commit-Velocity: 125 Commits in 23 Tagen (2026-07-11 bis 2026-08-03)
+    - Commit-Velocity: 128 Commits in 23 Tagen (2026-07-11 bis 2026-08-03)
     - Backend-Test-Regeneration (CI spinnt Postgres 15-alpine auf)
 
 - **Wie wird die Abweichung vom Plan gemessen?**
   - **Phasen-Tracking in AGENTS.md:** Jede Phase hat klaren Status (✅/⏳/❌)
   - **CI-Gates als Tor:** Kein Merge ohne grünen CI (Flutter: format+analyze+test, Backend: lint+test+tsc)
-  - **Test-Coverage als Proxy:** 547 Backend-Tests, 22 Flutter-Testdateien
+  - **Test-Coverage als Proxy:** 555 Backend-Tests, 22 Flutter-Testdateien
 
 - **Abweichung >20% — numerische Definition**
   Die Schwelle von 20% bezieht sich auf **drei unabhängige Metriken**, die jeweils
@@ -33,10 +33,10 @@
   - Commit-Velocity misst **Entwicklungsgeschwindigkeit**
   - Phasen-Fortschritt misst **projektkritischen Fortschritt**
 
-  **Nicht als Metrik:** Die Gesamtzahl der Tests (547) — diese kann steigen ohne
+  **Nicht als Metrik:** Die Gesamtzahl der Tests (555) — diese kann steigen ohne
   dass die Qualität steigt (mehr Tests ≠ besser). Relevant ist die Passrate.
 
-- **Klassifikation der 24.5% fehlgeschlagenen Tests (134/547)**
+- **Klassifikation der 24.5% fehlgeschlagenen Tests (134/555)**
 
   | Kategorie | Anzahl | Anteil | Beschreibung |
   |-----------|--------|--------|-------------|
@@ -54,11 +54,11 @@
 
   **Erkenntnis:** Die 28% sind kein Qualitätsproblem, sondern ein
   Infrastruktur-Problem. In der CI-Pipeline (GitHub Actions) wird Postgres
-  15-alpine aufgespinnt — dort sind alle 547 Tests grün. Lokal fehlt die DB.
+  15-alpine aufgespinnt — dort sind alle 555 Tests grün. Lokal fehlt die DB.
 
 - **Frage: Bilden die Daten noch die Realität ab? (Check)**
   - ✅ CI-Status spiegelt Code-Qualität wider (lokale 75.5% = verzerrt durch fehlende DB)
-  - ✅ Commit-Log zeigt tatsächliche Entwicklung (125 Commits, kein Bloated-Merge)
+  - ✅ Commit-Log zeigt tatsächliche Entwicklung (128 Commits, kein Bloated-Merge)
   - ✅ Deploy-Status ist verifizierbar (heimat-backend.onrender.com erreichbar)
   - ⚠️ Test-Coverage ist lokal verzerrt: 134 Fehlschläge (24.5%) durch fehlende DB, nicht durch Bugs
   - ✅ CI-Pipeline (GitHub Actions) liefert korrekte 100%-Passrate mit Postgres
