@@ -137,22 +137,18 @@
 | **Datenqualität** | Gut (CAMS) |
 | **Abdeckung** | Europa |
 
-#### Abfall — abfall.io (❌ Reparatur nötig)
+#### Abfall — KEINE funktionierende API gefunden (❌)
 
-| Eigenschaft | Wert |
-|-------------|------|
-| **URL** | `https://www.abfall.io/` |
-| **Auth** | Keine |
-| **Rate Limits** | Fair-use |
-| **Datenqualität** | Exzellent |
-| **Abdeckung** | Deutschlandweit (kommunale APIs) |
+| API | Status | Test-Ergebnis |
+|-----|--------|---------------|
+| abfall.io | ❌ | Leere Antwort |
+| BSR (Berlin) | ❌ | API geändert |
+| muellalarm.de | ❌ | Keine API |
+| abfallplus.de | ❌ | Nur HTML |
+| Jumomind | ❌ | Redirect |
+| München GitHub | ❌ | 404 Not Found |
 
-**Problem:** BSR-API hat sich geändert. `abfall.io` wäre die bessere Lösung.
-
-**Vorteile:**
-- Deutschlandweite Abdeckung
-- Echte kommunale Daten
-- Keine Auth nötig
+**Fazit:** Es gibt aktuell KEINE kostenlose, funktionierende Abfall-API für Deutschland. Alle getesteten APIs sind entweder defekt, nicht öffentlich oder erfordern eine Bezahlung.
 
 #### Bürgeramt — OpenStreetMap Nominatim (✅ Einzig verfügbar)
 
@@ -261,7 +257,7 @@
 
 | Service | Aktuelle API | Empfohlene API | Aufwand |
 |---------|-------------|----------------|---------|
-| **Abfall** | BSR ❌ | abfall.io | 1-2 Tage |
+| **Abfall** | BSR ❌ | **KEINE verfügbare API** | Nicht lösbar |
 | **Events** | Wikidata ⚠️ | Kulturdaten Berlin | 2-3 Tage |
 
 ### Priorität 2: Verbesserung (Services die besser sein könnten)
