@@ -432,6 +432,7 @@ ollamaService.chatWithContext({ health: { symptom } })
 - `lat: 0, lng: 0` Hack im Health Context — Triage braucht keine Koordinaten, könnte aber bei zukünftigen Erweiterungen Probleme machen
 - Keyword-Drift: `detectHealthSymptom()` in `routes/ai.ts` und `triageRulesService.ts` haben separate Keyword-Listen — könnten auseinanderdriften
 - Fehlende medizinische Fine-Tuning-Modelle (Med42-v2, BioMistral) — aktuell nur `qwen2.5:3b` (General Purpose)
+- **Rate-Limiter zu aggressiv (2026-08-04):** Globaler Rate-Limiter in `src/backend/src/index.ts:57` mit `max: 100` pro 15 Minuten. Render Free Tier cold-startet alle 15 Minuten (offiziell: "Free web service instances spin down if they receive no incoming traffic for 15 consecutive minutes" — [render.com/docs/free](https://render.com/docs/free)). App macht 10-20 Requests beim Laden. Cold Start + App-Reload = "Too many requests". **Fix:** `max: 200` oder `max: 300` für mehr Headroom.
 
 ## Health AI Agent — Erweiterte Architektur (2026-08-03)
 

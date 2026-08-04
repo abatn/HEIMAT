@@ -70,6 +70,7 @@ src/mobile/flutter/bin/flutter pub get
 - `lat: 0, lng: 0` Hack im Health Context
 - Keyword-Drift in `detectHealthSymptom()` (zwei separate Keyword-Listen)
 - Wallet-Balance = 0.00 KUDOS bis EUR-Production-Exchange live
+- **Rate-Limiter zu aggressiv:** `max: 100/15min` in `index.ts:57`. Render cold-startet alle 15 Min → App-Reload = "Too many requests". Fix: `max: 200`
 
 ---
 

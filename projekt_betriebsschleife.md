@@ -36,6 +36,8 @@
   **Nicht als Metrik:** Die Gesamtzahl der Tests (555) — diese kann steigen ohne
   dass die Qualität steigt (mehr Tests ≠ besser). Relevant ist die Passrate.
 
+- **Rate-Limiter Problem (2026-08-04):** Globaler Rate-Limiter `max: 100/15min` zu aggressiv. Render Free Tier cold-startet alle 15 Min. App macht 10-20 Requests beim Laden → "Too many requests". Fix: `max: 200` empfohlen.
+
 - **Klassifikation der 24.5% fehlgeschlagenen Tests (134/555)**
 
   | Kategorie | Anzahl | Anteil | Beschreibung |
