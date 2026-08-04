@@ -33,6 +33,9 @@ import { jobsRouter } from './routes/jobs';
 import { dailyBriefingRouter } from './routes/dailyBriefing';
 import { smartAlertsRouter } from './routes/smartAlerts';
 import { searchRouter } from './routes/search';
+import { eventsRouter } from './routes/events';
+import { hotelsRouter } from './routes/hotels';
+import { buergeramtRouter } from './routes/buergeramt';
 import { checkinService } from './services/checkinService';
 import { testConnection } from './config/database';
 import raptorService from './services/raptorService';
@@ -84,6 +87,9 @@ app.use('/api/jobs', jobsRouter);
 app.use('/api/daily-briefing', dailyBriefingRouter);
 app.use('/api/smart-alerts', smartAlertsRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/events', eventsRouter);
+app.use('/api/hotels', hotelsRouter);
+app.use('/api/buergeramt', buergeramtRouter);
 
 // Lebenszeichen Check-in Eskalations-Timer starten (nur in Produktion)
 if (process.env.NODE_ENV !== 'test') {

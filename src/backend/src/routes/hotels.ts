@@ -1,0 +1,37 @@
+/**
+ * hotels.ts — Hotels & Unterkünfte API
+ *
+ * GET /api/hotels?lat=52.52&lng=13.41&radius=5
+ *
+ * Datenquelle: OpenStreetMap Overpass
+ * KEINE hardcodierten Seiten — alles echte API-Calls.
+ */
+
+import { Router, Request, Response } from 'express';
+import { HotelService } from '../services/hotelService';
+import { logger } from '../utils/logger';
+
+export const hotelsRouter = Router();
+const hotelService = new HotelService();
+
+hotelsRouter.get('/', async (req: Request, res: Response) => {
+  try {
+    const lat = parseFloat(req.query.lat as string) || 52.52;
+    const lng = parseFloat(req.query.lng as string) || 13.41;
+    const radius = parseFloat(req.query.radius as string) || 5;
+
+    logger.info(`Hotels requested: lat=${lat}, lng=${lng}, radius=${radius}km`);
+
+    const hotels = await hotelService.getNearbyHotels(lat, lng, radius);
+
+    res.json({
+      count: hotels.length,
+      hotels,
+      center: { lat, lng },
+      radius,
+    });
+  } catch (error) {
+    logger.error('Hotels error:', error);
+    res.status(500).json({ error: 'Hotels konnten nicht geladen werden' });
+  }
+});

@@ -9,7 +9,9 @@ import '../../finance/presentation/finance_screen.dart';
 import '../../health/presentation/health_screen_with_tabs.dart';
 import '../../checkin/presentation/checkin_screen.dart';
 import '../../jobs/job_screen.dart';
-import '../presentation/coming_soon_screen.dart';
+import '../../events/events_screen.dart';
+import '../../hotels/hotels_screen.dart';
+import '../../buergeramt/buergeramt_screen.dart';
 import 'service_definition.dart';
 
 /// ServiceRegistry — Singleton-Verzeichnis aller HEIMAT-Services.
@@ -32,7 +34,10 @@ import 'service_definition.dart';
 /// - ✅ `finance` → Native Flutter (Finanzen — 2026-07-29)
 /// - ✅ `health` → Native Flutter (Gesundheit — 2026-07-29)
 /// - ✅ `jobs` → Native Flutter (Job-Suche via Arbeitnow — Phase D, 2026-08-03)
-/// - ⏳ futai, events, hotels, buergeramt → ComingSoonScreen-Placeholder (Migration in Phase D/E)
+/// - ✅ events → Native Flutter (Wikidata + OSM — Phase D, 2026-08-04)
+/// - ✅ hotels → Native Flutter (OSM Overpass — Phase D, 2026-08-04)
+/// - ✅ buergeramt → Native Flutter (Nominatim — Phase D, 2026-08-04)
+/// - ⏳ futai → ComingSoonScreen-Placeholder
 class ServiceRegistry {
   ServiceRegistry._();
   static final ServiceRegistry instance = ServiceRegistry._();
@@ -181,12 +186,7 @@ class ServiceRegistry {
         category: 'Kultur',
         description: 'Events & Aktivitäten aus Wikidata & OpenStreetMap.',
         searchTags: const ['konzert', 'theater', 'fest', 'event', 'kultur'],
-        nativeBuilder: (_) => const ComingSoonScreen(
-          serviceName: 'Veranstaltungen',
-          description: 'Events & Aktivitäten aus Wikidata & OpenStreetMap.',
-          category: 'Kultur',
-          searchTags: ['konzert', 'theater', 'fest', 'kultur'],
-        ),
+        nativeBuilder: (_) => const EventsScreen(),
       ),
       'jobs': ServiceDefinition(
         id: 'jobs',
@@ -200,27 +200,17 @@ class ServiceRegistry {
         id: 'hotels',
         name: 'Hotels',
         category: 'Reise',
-        description: 'Unterkünfte aus OpenStreetMap & Wikidata.',
+        description: 'Unterkünfte aus OpenStreetMap.',
         searchTags: const ['unterkunft', 'übernachtung', 'reise', 'hostel'],
-        nativeBuilder: (_) => const ComingSoonScreen(
-          serviceName: 'Hotels',
-          description: 'Unterkünfte aus OpenStreetMap & Wikidata.',
-          category: 'Reise',
-          searchTags: ['unterkunft', 'übernachtung', 'reise'],
-        ),
+        nativeBuilder: (_) => const HotelsScreen(),
       ),
       'buergeramt': ServiceDefinition(
         id: 'buergeramt',
         name: 'Bürgeramt',
         category: 'Behörden',
-        description: 'Termine & Services deiner lokalen Bürgerämter.',
+        description: 'Bürgerämter & Behörden in deiner Nähe.',
         searchTags: const ['amt', 'behörde', 'verwaltung', 'termin'],
-        nativeBuilder: (_) => const ComingSoonScreen(
-          serviceName: 'Bürgeramt',
-          description: 'Termine & Services deiner lokalen Bürgerämter.',
-          category: 'Behörden',
-          searchTags: ['amt', 'behörde', 'verwaltung', 'termin'],
-        ),
+        nativeBuilder: (_) => const BuergeramtScreen(),
       ),
     });
   }

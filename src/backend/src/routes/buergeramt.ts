@@ -1,0 +1,37 @@
+/**
+ * buergeramt.ts — Bürgerämter & Behörden API
+ *
+ * GET /api/buergeramt?lat=52.52&lng=13.41&radius=10
+ *
+ * Datenquelle: OpenStreetMap Nominatim
+ * KEINE hardcodierten Seiten — alles echte API-Calls.
+ */
+
+import { Router, Request, Response } from 'express';
+import { BuergeramtService } from '../services/buergeramtService';
+import { logger } from '../utils/logger';
+
+export const buergeramtRouter = Router();
+const buergeramtService = new BuergeramtService();
+
+buergeramtRouter.get('/', async (req: Request, res: Response) => {
+  try {
+    const lat = parseFloat(req.query.lat as string) || 52.52;
+    const lng = parseFloat(req.query.lng as string) || 13.41;
+    const radius = parseFloat(req.query.radius as string) || 10;
+
+    logger.info(`Bürgeramt requested: lat=${lat}, lng=${lng}, radius=${radius}km`);
+
+    const aemter = await buergeramtService.getNearbyAemter(lat, lng, radius);
+
+    res.json({
+      count: aemter.length,
+      aemter,
+      center: { lat, lng },
+      radius,
+    });
+  } catch (error) {
+    logger.error('Bürgeramt error:', error);
+    res.status(500).json({ error: 'Bürgerämter konnten nicht geladen werden' });
+  }
+});
