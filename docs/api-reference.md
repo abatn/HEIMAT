@@ -560,16 +560,224 @@
 
 ---
 
+## Staatliche & Bund-APIs (NEU — August 2026)
+
+**Quelle:** `api.bund.dev` (zentrale API-Registry des Bundes)
+
+### Übersicht — Staatliche APIs
+
+| # | API | Provider | Auth | Kategorie | Status |
+|---|-----|----------|------|-----------|--------|
+| 1 | **DWD Unwetterwarnungen** | Bund (DWD) | Keine | Wetter | ✅ Echte JSON-API |
+| 2 | **Feiertage API** | Bund | Keine | Alltag | ✅ Funktioniert |
+| 3 | **Pegel-Online** | Bund (Wasserstraßen) | Keine | Mobilität | ✅ Funktioniert |
+| 4 | **BA Jobsuche** | Bund (BA) | Fester Header | Jobs | ⚠️ Test nötig |
+| 5 | **Ladesäulen-API** | Bund (BNetzA) | Keine | E-Laden | ✅ Dokumentiert |
+| 6 | **UBA Luftqualität** | Bund (UBA) | Keine | Luft | ⚠️ Redirect-Probleme |
+| 7 | **NINA Warnungen** | Bund (BBK) | Keine | Sicherheit | ⚠️ Kein REST-Endpoint |
+| 8 | **AbfallNavi Bund** | Kommunen (regio iT) | Keine | Abfall | ✅ Bereits integriert |
+
+---
+
+### 1. DWD Unwetterwarnungen (✅ Funktioniert!)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://www.dwd.de/DWD/warnungen/warnapp/json/warnings.json` |
+| **Provider** | Bund (Deutscher Wetterdienst) |
+| **Auth** | Keine |
+| **Format** | JSON (JavaScript-Callback-Wrapper) |
+| **Datenqualität** | ⭐⭐⭐ Offiziell |
+| **Abdeckung** | Deutschlandweit |
+| **GitHub** | `bundesAPI/dwd-api` |
+
+**API-Format:** `warnWetter.loadWarnings({...})` — JSON in JavaScript-Callback-Wrapper.
+Parsing: `JSON.parse(response.replace(/^warnWetter\.loadWarnings\(/, '').replace(/\)$/, ''))`
+
+**Daten:**
+- Unwetterwarnungen (Sturm, Hagel, Regen, Hitze, Kälte)
+- Regionale Einteilung nach Landkreisen
+- Start/Ende-Zeitpunkt
+- Schweregrad (Level 1-4)
+
+**In HEIMAT:** Noch nicht integriert. Könnte als Ergänzung zu Open-Meteo-Warnungen dienen.
+
+---
+
+### 2. Feiertage API (✅ Funktioniert!)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://feiertage-api.de/api/?jahr=2026` |
+| **Provider** | Bund (Community-Projekt) |
+| **Auth** | Keine |
+| **Format** | JSON |
+| **Datenqualität** | ⭐⭐⭐ Offiziell |
+| **Abdeckung** | Deutschlandweit + Bundesländer |
+
+**Beispiel-Response:**
+```json
+{
+  "Neujahrstag": {"datum":"2026-01-01","hinweis":""},
+  "Karfreitag": {"datum":"2026-04-03","hinweis":""}
+}
+```
+
+**Parameter:** `?jahr=2026&nur_land=HE` (nur Hessen)
+
+**In HEIMAT:** Noch nicht integriert. Nützlich für Daily Briefing oder Kalender-Features.
+
+---
+
+### 3. Pegel-Online (✅ Funktioniert!)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json` |
+| **Provider** | Bund (Wasserstraßen- und Schifffahrtsverwaltung) |
+| **Auth** | Keine |
+| **Format** | JSON |
+| **Datenqualität** | ⭐⭐⭐ Offiziell |
+| **Abdeckung** | Alle deutschen Wasserstraßen |
+
+**Endpoints:**
+- `GET /stations.json` — Alle Pegelstationen
+- `GET /stations/{name}/measurements.json` — Messwerte
+- `GET /stations/{name}/WASSERSTAND菊.json` — Aktueller Wasserstand
+
+**Daten:**
+- Pegelstände in cm
+- Wasserstand (Hochwasser/Niedrigwasser)
+- GPS-Koordinaten
+- Flüsse, Kanäle, Seen
+
+**In HEIMAT:** Noch nicht integriert. Könnte für Mobilität (Brücken, Hochwasser) oder Wetter-Feature nützlich sein.
+
+---
+
+### 4. Bundesagentur für Arbeit — Jobsuche (⚠️ Test nötig)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://rest.arbeitsagentur.de/jobboerse/jobsuche/suche` |
+| **Provider** | Bund (Bundesagentur für Arbeit) |
+| **Auth** | Fester Header: `X-API-Key: jobboerse-jobsuche` |
+| **Format** | JSON |
+| **Datenqualität** | ⭐⭐⭐ Offiziell |
+| **Abdeckung** | Deutschlandweit (alle BA-Stellen) |
+| **GitHub** | `bundesAPI/jobsuche-api` (146 Stars) |
+| **Python** | `pip install de-jobsuche` |
+
+**Vorteile:**
+- Größte Stellendatenbank Deutschlands
+- Offizielle BA-Daten
+- Kein API-Key nötig (fester Header)
+
+**In HEIMAT:** Aktuell nutzt HEIMAT Arbeitnow. BA-API als Alternative möglich.
+
+---
+
+### 5. Ladesäulen-API (Bundesnetzagentur)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://ladestationen.api.bund.dev` |
+| **Provider** | Bund (Bundesnetzagentur) |
+| **Auth** | Keine |
+| **Format** | JSON |
+| **Datenqualität** | ⭐⭐⭐ Offiziell |
+| **Abdeckung** | Alle Ladesäulen in Deutschland |
+| **GitHub** | `bundesAPI/ladestationen-api` (27 Stars) |
+| **Python** | `pip install de-ladestationen` |
+
+**Daten:**
+- Alle registrierten Ladesäulen
+- Standort, Steckertypen, Leistung
+- Betreiber, Verfügbarkeit
+
+**In HEIMAT:** Aktuell nutzt HEIMAT Overpass für E-Laden. Ladesäulen-API als bessere Alternative möglich.
+
+---
+
+### 6. UBA Luftqualität
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://www.umweltbundesamt.de/api/air_data/v2` |
+| **Provider** | Bund (Umweltbundesamt) |
+| **Auth** | Keine |
+| **Format** | JSON |
+| **Datenqualität** | ⭐⭐⭐ Offiziell |
+| **Abdeckung** | Deutschlandweit |
+| **GitHub** | `bundesAPI/luftqualitaet-api` (23 Stars) |
+| **Python** | `pip install de-luftqualitaet` |
+
+**Endpoints:**
+- `GET /stations/json` — Messstationen
+- `GET /measures/json` — Messwerte
+- `GET /airquality/json` — Luftqualitätsindex
+
+**In HEIMAT:** Aktuell nutzt HEIMAT Open-Meteo CAMS. UBA als Alternative/Ergänzung möglich.
+
+---
+
+### 7. NINA Warnungen (Bevölkerungsschutz)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | Keine öffentliche REST-API |
+| **Provider** | Bund (BBK) |
+| **Auth** | N/A |
+| **Status** | **Kein REST-Endpoint verfügbar** — NINA-App nutzt interne APIs |
+
+**Alternative:** DWD-Unwetterwarnungen als Hauptquelle für Gefahrenwarnungen.
+
+---
+
+### 8. AbfallNavi Bund (✅ Bereits integriert!)
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://{region}-abfallapp.regioit.de/abfall-app-{region}/rest` |
+| **Provider** | Kommunen (regio iT) |
+| **Auth** | Keine |
+| **Format** | JSON |
+| **Datenqualität** | ⭐⭐⭐ Exzellent |
+| **Abdeckung** | 19 Regionen |
+| **GitHub** | `bundesAPI/abfallnavi-api` (14 Stars) |
+
+**In HEIMAT:** ✅ Bereits integriert (`abfallNaviService.ts`)
+
+---
+
+### Empfehlung: Welche Bund-APIs sollte HEIMAT nutzen?
+
+| Priorität | API | Aufwand | Nutzen |
+|-----------|-----|---------|--------|
+| **1** | DWD Unwetterwarnungen | Gering | Ergänzung zu Open-Meteo |
+| **2** | Feiertage API | Minimal | Kalender-Feature |
+| **3** | Ladesäulen-API | Gering | Bessere E-Laden-Daten |
+| **4** | BA Jobsuche | Gering | Alternative zu Arbeitnow |
+| **5** | Pegel-Online | Gering | Wasserstand-Feature |
+
+---
+
 ## Fazit
 
 **HEIMAT nutzt 11 kostenlose, keine-Auth APIs** — ein exzellentes Verhältnis.
+
+**Neue Erkenntnisse (Staatliche APIs):**
+- **DWD Unwetterwarnungen** — Funktioniert, JSON-Format, könnte Open-Meteo ergänzen
+- **Feiertage API** — Funktioniert, einfach zu integrieren
+- **Pegel-Online** — Funktioniert, nützlich für Mobilität
+- **Ladesäulen-API** — Bessere Alternative zu Overpass für E-Laden
 
 **Stärken:**
 - Wetter, Luft, Jobs, AI, Abfall: Optimal gelöst
 - Ärzte, Bürgeramt, ÖPNV: Gut gelöst mit Overpass/Transitous
 
 **Einschränkungen (keine bessere kostenlose API verfügbar):**
-- Parken/E-Laden: Keine Echtzeit-Abdeckung
+- Parken: Keine Echtzeit-Abdeckung
 - Events/Hotels: Kaum aktuelle Daten
 - Finanzen: Kein Production Exchange
 
