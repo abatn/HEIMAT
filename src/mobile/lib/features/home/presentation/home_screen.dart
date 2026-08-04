@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/skeleton_loader.dart';
+import '../../smart_alerts/smart_alerts_screen.dart';
+import '../../search/search_screen.dart';
+import '../../daily_briefing/daily_briefing_screen.dart';
 import 'home_provider.dart';
 
 // ============================================================================
@@ -53,6 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildQuickStats(home),
               const SizedBox(height: 20),
               _buildQuickActions(home),
+              const SizedBox(height: 20),
+              _buildNewFeaturesCard(home),
               const SizedBox(height: 20),
               _buildSuggestionsSection(home),
             ],
@@ -407,6 +412,84 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // --------------------------------------------------------------------------
+  // New Features — Smart Alerts + Universelle Suche
+  // --------------------------------------------------------------------------
+
+  Widget _buildNewFeaturesCard(HomeProvider home) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome,
+                  size: 18, color: Color(0xFF7C4DFF)),
+              const SizedBox(width: 6),
+              Text(
+                'Neue Features',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _FeatureCard(
+                icon: '🔔',
+                title: 'Erinnerungen',
+                subtitle: 'Smart Alerts',
+                color: const Color(0xFF1A237E),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SmartAlertsScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _FeatureCard(
+                icon: '🔍',
+                title: 'Suche',
+                subtitle: 'Alles finden',
+                color: const Color(0xFF00695C),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SearchScreen(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _FeatureCard(
+                icon: '📋',
+                title: 'Dashboard',
+                subtitle: 'Tages-Briefing',
+                color: const Color(0xFFE65100),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DailyBriefingScreen(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   /// Navigiert basierend auf actionType zum richtigen Tab
   void _navigateToAction(String actionType) {
     if (widget.onNavigateTab == null) return;
@@ -636,6 +719,69 @@ class _SuggestionCard extends StatelessWidget {
                 Icons.arrow_forward_ios,
                 size: 14,
                 color: AppColors.textSecondary.withOpacity(0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _FeatureCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 28)),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.white70,
+                ),
               ),
             ],
           ),
