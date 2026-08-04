@@ -137,18 +137,43 @@
 | **Datenqualität** | Gut (CAMS) |
 | **Abdeckung** | Europa |
 
-#### Abfall — KEINE funktionierende API gefunden (❌)
+#### Abfall — AbfallNavi (Bund) ✅ FUNKTIONIERT!
 
-| API | Status | Test-Ergebnis |
-|-----|--------|---------------|
-| abfall.io | ❌ | Leere Antwort |
-| BSR (Berlin) | ❌ | API geändert |
-| muellalarm.de | ❌ | Keine API |
-| abfallplus.de | ❌ | Nur HTML |
-| Jumomind | ❌ | Redirect |
-| München GitHub | ❌ | 404 Not Found |
+| Eigenschaft | Wert |
+|-------------|------|
+| **URL** | `https://{region}-abfallapp.regioit.de/abfall-app-{region}/rest` |
+| **Doku** | `https://abfallnavi.api.bund.dev/` (OpenAPI/Swagger) |
+| **Auth** | Keine |
+| **Rate Limits** | Keine bekannt |
+| **Datenqualität** | Exzellent — echte kommunale Daten |
+| **Abdeckung** | 19 Regionen in Deutschland |
 
-**Fazit:** Es gibt aktuell KEINE kostenlose, funktionierende Abfall-API für Deutschland. Alle getesteten APIs sind entweder defekt, nicht öffentlich oder erfordern eine Bezahlung.
+**Verfügbare Regionen:**
+- Aachen, Nürnberg, Solingen, Norderstedt
+- Bergisch Gladbach, Dinslaken, Dorsten, Gütersloh
+- Halver, Kreis Coesfeld, Kreis Heinsberg
+- Kreis Pinneberg, Kreis Warendorf, Lindlar
+- Lüdenscheid, Roetgen, EGW Westmünsterland
+- AWA Entsorgungs GmbH, Bergischer Abfallwirtschaftverbund
+
+**API-Flow:**
+1. `GET /orte` — Orte im System
+2. `GET /orte/{ortId}/strassen` — Straßen im Ort
+3. `GET /strassen/{strassenId}` — Hausnummern
+4. `GET /fraktionen` — Müllsorten (Papier, Restmüll, etc.)
+5. `GET /termine` — Abholtermine
+
+**Test-Ergebnis (Nürnberg):**
+```json
+[{"id":6756817,"name":"Nürnberg"}]
+```
+
+**Vorteile:**
+- Staatliche API (Bund)
+- Kostenlos
+- Keine Auth nötig
+- Echte kommunale Daten
+- OpenAPI-Dokumentation vorhanden
 
 #### Bürgeramt — OpenStreetMap Nominatim (✅ Einzig verfügbar)
 

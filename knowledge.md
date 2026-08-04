@@ -516,7 +516,7 @@ Ein intelligenter Health AI Agent, der:
 |-----------|----------|--------|
 | **Mobilität** | ÖPNV ✅, Parken ✅, E-Laden ✅ | Alle funktionieren |
 | **Gesundheit** | Ärzte ✅, Lebenszeichen ✅ | Beide funktionieren |
-| **Alltag** | Wetter ✅, Luft ✅, Abfall ❌❌, Bürgeramt ✅, Jobs ✅ | 4 funktionieren, 1 nicht verfügbar (KEINE API gefunden) |
+| **Alltag** | Wetter ✅, Luft ✅, Abfall ✅, Bürgeramt ✅, Jobs ✅ | 5 funktionieren |
 | **Kultur & Reise** | Events ⚠️, Hotels ⚠️ | 1 eingeschränkt, 1 nicht getestet |
 | **Finanzen** | Taler-Wallet ✅ | Funktioniert |
 | **AI** | HEIMAT AI ✅ | Funktioniert |
