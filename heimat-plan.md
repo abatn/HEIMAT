@@ -2392,4 +2392,345 @@ Ein intelligenter Health AI Agent, der:
 1. **Diskussion abschließen** — User bestätigt Architektur
 2. **Detailliertes Design** — API-Schemas, DB-Tabellen, UI-Mockups
 3. **Proof of Concept** — Einzelne Features testen
+
+---
+
+## Phase 27: Internationale & Staatliche APIs — Integrationsplan (2026-08-04)
+
+### Status
+🔍 **Recherche abgeschlossen** — 26 kostenlose APIs identifiziert (22 ohne Auth + 4 mit kostenlosem Key).
+
+### Vollständige API-Referenz
+`docs/api-reference.md` — Beste verfügbare offene APIs für alle 13 Kategorien (Version 2.0).
+
+### Übersicht — Neue APIs zur Integration
+
+| # | API | Provider | Auth | Kategorie | Aufwand | Nutzen |
+|---|-----|----------|------|-----------|---------|--------|
+| 1 | **ECB Wechselkurse** | EZB | Keine | Finanzen | 1 Tag | Taler/EUR-Umrechnung |
+| 2 | **DWD Unwetterwarnungen** | Bund | Keine | Wetter | 1 Tag | Ergänzung zu Open-Meteo |
+| 3 | **Feiertage API** | Bund | Keine | Alltag | 0.5 Tage | Kalender-Feature |
+| 4 | **Ladesäulen-API** | Bund (BNetzA) | Keine | E-Laden | 2 Tage | Bessere E-Laden-Daten |
+| 5 | **Pegel-Online** | Bund (WSV) | Keine | Mobilität | 1 Tag | Wasserstand-Feature |
+| 6 | **BA Jobsuche** | Bund (BA) | Fester Header | Jobs | 1 Tag | Alternative zu Arbeitnow |
+| 7 | **UBA Luftqualität** | Bund (UBA) | Keine | Luft | 1 Tag | Offizielle Messwerte |
+| 8 | **Bundesbank SDMX** | Bundesbank | Keine | Finanzen | 1 Tag | Finanzstatistik |
+| 9 | **Eurostat SDMX** | EU | Keine | Statistik | 1 Tag | Wirtschaftsdaten |
+| 10 | **UNESCO Welterbe** | UNESCO | Keine | Kultur | 0.5 Tage | 52 deutsche Stätten |
+
+---
+
+### Integrationsstrategie
+
+#### Prinzip: Erweiterung, kein Ersatz
+
+**WICHTIG:** Bestehende APIs werden NICHT entfernt. Neue APIs werden als **zusätzliche Datenquellen** integriert (Fallback, Ergänzung, bessere Datenqualität).
+
+```
+Bestehende API (Primär)
+    │
+    ├── Bei Erfolg → Daten verwenden
+    │
+    └── Bei Fehler/Leer → Neue API (Fallback) → Daten verwenden
+```
+
+---
+
+### Detaillierter Integrationsplan
+
+#### 1. ECB Wechselkurse (Finanzen)
+
+**Ziel:** Taler/EUR-Umrechnung in Echtzeit.
+
+| Aspekt | Details |
+|--------|---------|
+| **API** | `https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml` |
+| **Backend-Datei** | `src/backend/src/services/exchangeRateService.ts` (NEU) |
+| **Route** | `GET /api/finance/exchange-rate?from=EUR&to=USD` |
+| **Flutter** | `exchange_rate_dto.dart` + `exchange_rate_provider.dart` |
+| **Caching** | 24h (Tageskurs) |
+| **Tests** | 3 Unit-Tests (Parsing, Fallback, Caching) |
+
+**Architektur:**
+```
+ECB XML → parseXML() → ExchangeRate-DTO → JSON Response
+                                    ↓
+                              24h Cache (SharedPreferences)
+```
+
+---
+
+#### 2. DWD Unwetterwarnungen (Wetter)
+
+**Ziel:** Offizielle DWD-Warnungen als Ergänzung zu Open-Meteo.
+
+| Aspekt | Details |
+|--------|---------|
+| **API** | `https://www.dwd.de/DWD/warnungen/warnapp/json/warnings.json` |
+| **Backend-Datei** | `src/backend/src/services/weatherAlertsService.ts` (ERWEITERN) |
+| **Route** | `GET /api/weather/warnings?lat=...&lng=...` |
+| **Flutter** | `weather_alerts_dto.dart` + `weather_alerts_provider.dart` |
+| **Caching** | 15 Minuten |
+| **Tests** | 5 Unit-Tests (Parsing, Region-Filter, Level-Mapping) |
+
+**Architektur:**
+```
+DWD JSON → parseWarnings() → Region-Filter (Lat/Lng → Landkreis) → Alerts[]
+                                    ↓
+                              15min Cache
+```
+
+**Besonderheit:** DWD-Alerts sind nach Landkreisen geordnet. Nötig: Reverse-Geocoding (Nominatim) → Landkreis-Name → DWD-Region-ID.
+
+---
+
+#### 3. Feiertage API (Alltag)
+
+**Ziel:** Deutsche Feiertage für Kalender-Feature.
+
+| Aspekt | Details |
+|--------|---------|
+| **API** | `https://feiertage-api.de/api/?jahr=2026` |
+| **Backend-Datei** | `src/backend/src/services/holidayService.ts` (NEU) |
+| **Route** | `GET /api/holidays?year=2026&state=HE` |
+| **Flutter** | `holiday_dto.dart` + `holiday_provider.dart` |
+| **Caching** | 365 Tage (Jahresdaten) |
+| **Tests** | 3 Unit-Tests (Parsing, State-Filter, Caching) |
+
+**Architektur:**
+```
+Feiertage JSON → parseHolidays() → Holiday-DTO → JSON Response
+                                    ↓
+                              365 Tage Cache
+```
+
+---
+
+#### 4. Ladesäulen-API (E-Laden)
+
+**Ziel:** Offizielle Bundesnetzdaten als Ergänzung zu Overpass.
+
+| Aspekt | Details |
+|--------|---------|
+| **API** | `https://ladestationen.api.bund.dev` |
+| **Backend-Datei** | `src/backend/src/services/evChargingService.ts` (ERWEITERN) |
+| **Route** | `/api/ev-charging/stations` (ERWEITERN) |
+| **Flutter** | `ev_charging_dto.dart` (ERWEITERN) |
+| **Caching** | 24h |
+| **Tests** | 5 Unit-Tests (Parsing, Fallback, Merge) |
+
+**Architektur:**
+```
+Overpass (primär) → Bei Fehler/Leer → Ladesäulen-API (Fallback)
+         ↓                                    ↓
+    Stationen[] ← Merge → Deduplizierung nach ID → Kombinierte Liste
+```
+
+---
+
+#### 5. Pegel-Online (Mobilität)
+
+**Ziel:** Wasserpegel für Hochwasser-Warnungen und Routing.
+
+| Aspekt | Details |
+|--------|---------|
+| **API** | `https://www.pegelonline.wsv.de/webservices/rest-api/v2/stations.json` |
+| **Backend-Datei** | `src/backend/src/services/waterLevelService.ts` (NEU) |
+| **Route** | `GET /api/mobility/water-levels?lat=...&lng=...` |
+| **Flutter** | `water_level_dto.dart` + `water_level_provider.dart` |
+| **Caching** | 30 Minuten |
+| **Tests** | 3 Unit-Tests (Parsing, Radius-Filter, Hochwasser-Flag) |
+
+**Architektur:**
+```
+Pegel-Online JSON → Stations-Filter (Radius) → Messwerte → Hochwasser-Status
+                                    ↓
+                              30min Cache
+```
+
+---
+
+#### 6. BA Jobsuche (Jobs)
+
+**Ziel:** Größere Stellendatenbank als Alternative zu Arbeitnow.
+
+| Aspekt | Details |
+|--------|---------|
+| **API** | `https://rest.arbeitsagentur.de/jobboerse/jobsuche/suche` |
+| **Backend-Datei** | `src/backend/src/services/jobService.ts` (ERWEITERN) |
+| **Route** | `/api/jobs/search` (ERWEITERN) |
+| **Flutter** | `job_dto.dart` (ERWEITERN) |
+| **Caching** | 1h |
+| **Tests** | 5 Unit-Tests (Parsing, Fallback, Merge) |
+
+**Architektur:**
+```
+Arbeitnow (primär) → Bei Fehler/Leer → BA Jobsuche (Fallback)
+         ↓                                    ↓
+    Jobs[] ← Merge → Deduplizierung nach Titel+Unternehmen → Kombinierte Liste
+```
+
+---
+
+#### 7. UBA Luftqualität (Luft)
+
+**Ziel:** Offizielle Messwerte als Ergänzung zu Open-Meteo CAMS.
+
+| Aspekt | Details |
+|--------|---------|
+| **API** | `https://www.umweltbundesamt.de/api/air_data/v2` |
+| **Backend-Datei** | `src/backend/src/services/airQualityService.ts` (ERWEITERN) |
+| **Route** | `/api/air-quality/current` (ERWEITERN) |
+| **Flutter** | `air_quality_dto.dart` (ERWEITERN) |
+| **Caching** | 1h |
+| **Tests** | 3 Unit-Tests (Parsing, Fallback, Merge) |
+
+**Architektur:**
+```
+Open-Meteo CAMS (primär) → Bei Fehler → UBA (Fallback)
+         ↓                              ↓
+    AQI-Daten ← Merge → Nächste Messstation → Kombinierte Daten
+```
+
+---
+
+### Priorisierung der Integration
+
+| Priorität | API | Tage | Begründung |
+|-----------|-----|------|------------|
+| **1** | ECB Wechselkurse | 1 | Finanz-Feature, einfach zu integrieren |
+| **2** | DWD Unwetterwarnungen | 1 | Wetter-Feature, hoher Nutzen |
+| **3** | Feiertage API | 0.5 | Kalender-Feature, minimaler Aufwand |
+| **4** | Ladesäulen-API | 2 | Bessere E-Laden-Daten |
+| **5** | Pegel-Online | 1 | Mobilität-Feature, Hochwasser-Warnung |
+| **6** | BA Jobsuche | 1 | Größere Job-Datenbank |
+| **7** | UBA Luftqualität | 1 | Offizielle Messwerte |
+| **8** | Bundesbank SDMX | 1 | Finanzstatistik |
+| **9** | Eurostat SDMX | 1 | Wirtschaftsdaten |
+| **10** | UNESCO Welterbe | 0.5 | Kultur-Feature |
+
+**Gesamtaufwand:** ~10 Tage
+
+---
+
+### Backend-Architektur
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    HEIMAT Backend (Node.js)                  │
+├─────────────────────────────────────────────────────────────┤
+│  Bestehende Services (unverändert):                          │
+│  ├── mobilityService.ts (Overpass + Transitous)             │
+│  ├── weatherService.ts (Open-Meteo + Bright Sky)           │
+│  ├── airQualityService.ts (Open-Meteo CAMS)                │
+│  ├── evChargingService.ts (Overpass)                        │
+│  ├── jobService.ts (Arbeitnow)                              │
+│  └── financeService.ts (Taler)                              │
+├─────────────────────────────────────────────────────────────┤
+│  NEUE Services (hinzugefügt):                                │
+│  ├── exchangeRateService.ts (ECB Wechselkurse)              │
+│  ├── holidayService.ts (Feiertage API)                      │
+│  ├── waterLevelService.ts (Pegel-Online)                    │
+│  └── governmentApis.ts (zentrale Config für Bund-APIs)      │
+├─────────────────────────────────────────────────────────────┤
+│  ERWEITERTE Services (Fallback-Pattern):                     │
+│  ├── weatherAlertsService.ts (+ DWD Unwetterwarnungen)      │
+│  ├── evChargingService.ts (+ Ladesäulen-API)                │
+│  ├── jobService.ts (+ BA Jobsuche)                          │
+│  └── airQualityService.ts (+ UBA Luftqualität)              │
+├─────────────────────────────────────────────────────────────┤
+│  Externe APIs                                                │
+│  ├── Overpass (3 Mirrors) ──── primär für POI-Daten        │
+│  ├── Open-Meteo ────────────── primär für Wetter/Luft       │
+│  ├── Transitous ────────────── primär für ÖPNV              │
+│  ├── ECB ───────────────────── NEU: Wechselkurse            │
+│  ├── DWD ───────────────────── NEU: Unwetterwarnungen       │
+│  ├── Feiertage ─────────────── NEU: Deutsche Feiertage      │
+│  ├── Ladesäulen-API ────────── NEU: Bund-Ladestationen      │
+│  ├── Pegel-Online ──────────── NEU: Wasserpegel             │
+│  ├── BA Jobsuche ───────────── NEU: Stellenbörse            │
+│  └── UBA ───────────────────── NEU: Luftqualität            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Flutter-Architektur
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    HEIMAT Flutter App                        │
+├─────────────────────────────────────────────────────────────┤
+│  Bestehende Providers (unverändert):                         │
+│  ├── MobilityProvider                                       │
+│  ├── WeatherProvider                                        │
+│  ├── AirQualityProvider                                     │
+│  ├── EvChargingProvider                                     │
+│  ├── JobProvider                                            │
+│  └── FinanceProvider                                        │
+├─────────────────────────────────────────────────────────────┤
+│  NEUE Providers (hinzugefügt):                               │
+│  ├── ExchangeRateProvider (ECB Wechselkurse)                │
+│  ├── HolidayProvider (Feiertage)                            │
+│  └── WaterLevelProvider (Pegel-Online)                      │
+├─────────────────────────────────────────────────────────────┤
+│  ERWEITERTE DTOs (neue Felder):                              │
+│  ├── WeatherAlertDto (+ DWD-Level, Region)                  │
+│  ├── EvChargingDto (+ Bundesnetz-ID, Leistung)             │
+│  ├── JobDto (+ BA-ID, Berufsfeld)                          │
+│  └── AirQualityDto (+ UBA-Station, Messwert)               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Tests
+
+| Service | Unit-Tests | Integration-Tests | Gesamt |
+|---------|------------|-------------------|--------|
+| exchangeRateService | 3 | 0 | 3 |
+| holidayService | 3 | 0 | 3 |
+| waterLevelService | 3 | 0 | 3 |
+| weatherAlertsService (erweitert) | 5 | 0 | 5 |
+| evChargingService (erweitert) | 5 | 0 | 5 |
+| jobService (erweitert) | 5 | 0 | 5 |
+| airQualityService (erweitert) | 3 | 0 | 3 |
+| **Gesamt** | **27** | **0** | **27** |
+
+---
+
+### CI/CD
+
+**Keine Änderungen an CI nötig** — neue Services folgen dem bestehenden Pattern:
+- Backend: `npm run lint` + `npm test` + `npx tsc --noEmit`
+- Flutter: `dart format` + `flutter analyze` + `flutter test`
+
+---
+
+### Risiken
+
+| Risiko | Impact | Lösung |
+|--------|--------|--------|
+| API-Änderung (ECB, DWD, etc.) | Niedrig | Fallback-Pattern + Versionierung |
+| Rate-Limit (DWD, UBA) | Niedrig | Caching (15min-24h) |
+| Datenqualität (BA Jobsuche) | Mittel | Merge mit Arbeitnow + Deduplizierung |
+| Komplexität (Fallback-Pattern) | Mittel | Klare Primär/Fallback-Trennung |
+
+---
+
+### Nächste Schritte
+
+1. **ECB Wechselkurse** implementieren (1 Tag)
+2. **DWD Unwetterwarnungen** implementieren (1 Tag)
+3. **Feiertage API** implementieren (0.5 Tage)
+4. **Ladesäulen-API** implementieren (2 Tage)
+5. **Pegel-Online** implementieren (1 Tag)
+6. **BA Jobsuche** implementieren (1 Tag)
+7. **UBA Luftqualität** implementieren (1 Tag)
+8. **Bundesbank SDMX** implementieren (1 Tag)
+9. **Eurostat SDMX** implementieren (1 Tag)
+10. **UNESCO Welterbe** implementieren (0.5 Tage)
+
+**Gesamtaufwand:** ~10 Tage
+**Beginn:** Nach Abschluss der aktuellen Bugfixes
 4. **Phasenweise Implementierung** — Phase 1 → Phase 2 → Phase 3
