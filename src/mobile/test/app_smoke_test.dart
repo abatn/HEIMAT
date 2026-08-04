@@ -13,6 +13,7 @@ import 'package:heimat_app/features/finance/presentation/finance_provider.dart';
 import 'package:heimat_app/features/health/presentation/health_provider.dart';
 import 'package:heimat_app/features/ai_chat/presentation/ai_chat_provider.dart';
 import 'package:heimat_app/features/checkin/presentation/checkin_provider.dart';
+import 'package:heimat_app/features/auth/presentation/auth_provider.dart';
 import 'package:heimat_app/features/mobility/presentation/mobility_screen.dart';
 import 'package:heimat_app/features/finance/presentation/finance_screen.dart';
 import 'package:heimat_app/features/health/presentation/health_screen_with_tabs.dart';
@@ -63,6 +64,17 @@ class _StubCheckin extends CheckinProvider {
   Future<bool> ping({String? healthSymptoms}) async => true;
   @override
   Future<void> refreshStatus() async {}
+}
+
+class _StubAuth extends AuthProvider {
+  @override
+  bool get isAuthenticated => true;
+  @override
+  String? get userId => 'test-user-id';
+  @override
+  String? get email => 'test@heimat.de';
+  @override
+  String? get displayName => 'Test User';
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +136,7 @@ Widget buildTestApp({required Widget child}) {
       ChangeNotifierProvider<CheckinProvider>(
         create: (_) => _StubCheckin(AuthService()),
       ),
+      ChangeNotifierProvider<AuthProvider>(create: (_) => _StubAuth()),
     ],
     child: MaterialApp(
       title: AppConfig.appName,
@@ -210,13 +223,15 @@ void main() {
     });
 
     testWidgets('shows categorized service list', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const ServicesScreen()));
+      await tester
+          .pumpWidget(buildTestApp(child: Scaffold(body: ServicesScreen())));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(ServicesScreen), findsOneWidget);
     });
 
     testWidgets('has search bar', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const ServicesScreen()));
+      await tester
+          .pumpWidget(buildTestApp(child: Scaffold(body: ServicesScreen())));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(TextField), findsOneWidget);
     });
@@ -224,7 +239,8 @@ void main() {
 
   group('ProfileScreen', () {
     testWidgets('shows profile screen', (WidgetTester tester) async {
-      await tester.pumpWidget(buildTestApp(child: const ProfileScreen()));
+      await tester
+          .pumpWidget(buildTestApp(child: Scaffold(body: ProfileScreen())));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.byType(ProfileScreen), findsOneWidget);
     });
