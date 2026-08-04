@@ -2,15 +2,16 @@
  * eventService.ts — Events & Veranstaltungen
  *
  * Datenquellen (Multi-Source mit Fallback-Pattern):
- * 1. kulturdaten.berlin — Berlin Kulturveranstaltungen (kostenlos, kein Auth)
- * 2. Wikidata SPARQL — Breite Eventsuche (Q1322418 Kultur + Q1656682 Events + Q15300282 Online-Events)
+ * 1. kulturdaten.berlin — Berlin Kulturveranstaltungen (via ExternalServicesRegistry)
+ * 2. Wikidata SPARQL — Breite Eventsuche (via ExternalServicesRegistry)
  * 3. OpenStreetMap Overpass — Märkte, Kulturzentren, Kinos, Theater
  *
- * KEINE hardcodierten Seiten — alles echte API-Calls.
+ * KEINE hardcoded URLs — alles via externalServices.
  */
 
 import axios from 'axios';
 import { logger } from '../utils/logger';
+import { externalServices } from '../config/externalServices';
 
 export interface Event {
   id: string;
@@ -27,9 +28,11 @@ export interface Event {
 }
 
 export class EventService {
-  private readonly wikidataEndpoint = 'https://query.wikidata.org/sparql';
-  private readonly overpassEndpoint = 'https://overpass-api.de/api/interpreter';
-  private readonly kulturdatenEndpoint = 'https://kulturdaten.berlin/api/v1';
+  // Alle URLs aus ExternalServicesRegistry — kein Hardcoded!
+  private readonly wikidataEndpoint = externalServices.wikidataSparqlUrl;
+  private readonly overpassEndpoint = externalServices.overpassMirrors[0];
+  private readonly kulturdatenEndpoint = externalServices.kulturdatenUrl;
+  private readonly userAgent = externalServices.userAgent;
 
   /**
    * Events in der Nähe laden — alle Quellen parallel
@@ -76,7 +79,6 @@ export class EventService {
 
   /**
    * kulturdaten.berlin — Berlin Kulturveranstaltungen
-   * Kostenlos, kein Auth, REST API
    */
   private async fetchKulturdatenEvents(
     lat: number,
@@ -84,7 +86,6 @@ export class EventService {
     radiusKm: number,
   ): Promise<Event[]> {
     try {
-      // kulturdaten.berlin Search API — Events nahe Koordinaten
       const response = await axios.get(`${this.kulturdatenEndpoint}/events`, {
         params: {
           'filter[location.geo.distance]': `${lat},${lng},${radiusKm * 1000}`,
@@ -93,7 +94,7 @@ export class EventService {
         },
         headers: {
           'Accept': 'application/vnd.api+json',
-          'User-Agent': 'HEIMAT/2.0 (https://github.com/abatn/HEIMAT)',
+          'User-Agent': this.userAgent,
         },
         timeout: 10000,
       });
@@ -119,7 +120,6 @@ export class EventService {
         };
       });
     } catch (error) {
-      // kulturdaten.berlin ist nur fuer Berlin — bei anderen Staedten 404/leer ist normal
       logger.debug('kulturdaten.berlin events:', (error as Error).message);
       return [];
     }
@@ -135,11 +135,9 @@ export class EventService {
     lng: number,
     radiusKm: number,
   ): Promise<Event[]> {
-    // Breitere Query: mehr Event-Typen + geospatial Search
     const query = `
       SELECT ?event ?eventLabel ?description ?startDate ?endDate ?locationLabel ?coord ?categoryLabel
       WHERE {
-        # Verschiedene Event-Typen
         {
           ?event wdt:P31/wdt:P279* wd:Q1322418 .
         } UNION {
@@ -151,24 +149,13 @@ export class EventService {
         } UNION {
           ?event wdt:P31/wdt:P279* wd:Q1806098 .
         }
-
-        # Nur Deutschland
         ?event wdt:P17 wd:Q183 .
-
-        # Zeitraum: nur zukuenftige oder aktuelle Events
         OPTIONAL { ?event wdt:P580 ?startDate . }
         OPTIONAL { ?event wdt:P582 ?endDate . }
-
-        # Standort
         OPTIONAL { ?event wdt:P276 ?location . }
         OPTIONAL { ?location wdt:P625 ?coord . }
-
-        # Beschreibung
         OPTIONAL { ?event schema:description ?description . FILTER(LANG(?description) = "de") }
-
-        # Kategorie
         OPTIONAL { ?event wdt:P31 ?category . }
-
         SERVICE wikibase:label { bd:serviceParam wikibase:language "de,en" . }
       }
       LIMIT 30
@@ -177,7 +164,7 @@ export class EventService {
     try {
       const response = await axios.get(this.wikidataEndpoint, {
         params: { query, format: 'json' },
-        headers: { 'User-Agent': 'HEIMAT/2.0 (https://github.com/abatn/HEIMAT)' },
+        headers: { 'User-Agent': this.userAgent },
         timeout: 20000,
       });
 
@@ -211,7 +198,6 @@ export class EventService {
 
   /**
    * OpenStreetMap Overpass — Märkte, Kulturzentren, Kinos, Theater
-   * Overpass liefert Venues (nicht Events), aber nützlich als Ergänzung
    */
   private async fetchOsmEvents(
     lat: number,

@@ -47,6 +47,9 @@ export interface ExternalServiceEnv {
   // ABFALL_AWB_FALLBACK_URL?: string; — env-only (Phase B-2.3 AGPL-defensiv: kein commit-fähiger default)
   // ABFALL_SRH_FALLBACK_URL?: string; — env-only (Phase B-2.1 NEEDS-FIX #2 AGPL-defensiv)
   ABFALL_SRH_PRIMARY_URL?: string;
+  // --- Events & Hotels ---
+  KULTURDATEN_URL?: string;
+  WIKIDATA_SPARQL_URL?: string;
   // --- Ollama AI (Phase AI-1) ---
   OLLAMA_BASE_URL?: string;
   // --- WHO ICD-API v2 (Health Triage) ---
@@ -102,6 +105,12 @@ export class ExternalServiceRegistry {
 
   /** Abfallkalender Hamburg SRH Primary iCal-Endpoint (HTML-form-export). */
   public readonly abfallHamburgPrimaryUrl: string;
+
+  /** kulturdaten.berlin Base-URL (Berlin Kulturveranstaltungen). */
+  public readonly kulturdatenUrl: string;
+
+  /** Wikidata SPARQL Endpoint (semantische Suche). */
+  public readonly wikidataSparqlUrl: string;
 
   /** Ollama Base-URL (lokaler AI-Assistent). Default: localhost:11434 */
   public readonly ollamaBaseUrl: string;
@@ -177,6 +186,8 @@ export class ExternalServiceRegistry {
     const abfallBerlinFallbackRaw = normalizeEnvValue(env.ABFALL_BSR_FALLBACK_URL);
     const abfallMuenchenPrimaryRaw = normalizeEnvValue(env.ABFALL_AWB_PRIMARY_URL);
     const abfallHamburgPrimaryRaw = normalizeEnvValue(env.ABFALL_SRH_PRIMARY_URL);
+    const kulturdatenRaw = normalizeEnvValue(env.KULTURDATEN_URL);
+    const wikidataSparqlRaw = normalizeEnvValue(env.WIKIDATA_SPARQL_URL);
     const ollamaRaw = normalizeEnvValue(env.OLLAMA_BASE_URL);
     const userAgentRaw = normalizeEnvValue(env.HEIMAT_USER_AGENT);
     const overpassRaw = normalizeEnvValue(env.OVERPASS_MIRRORS);
@@ -240,6 +251,18 @@ export class ExternalServiceRegistry {
       'https://www.stadtreinigung-hamburg.de/icity/export.php?street={street}&houseNr={houseNr}',
     );
 
+    this.kulturdatenUrl = validateUrl(
+      kulturdatenRaw,
+      'KULTURDATEN_URL',
+      'https://kulturdaten.berlin/api/v1',
+    );
+
+    this.wikidataSparqlUrl = validateUrl(
+      wikidataSparqlRaw,
+      'WIKIDATA_SPARQL_URL',
+      'https://query.wikidata.org/sparql',
+    );
+
     this.ollamaBaseUrl = validateUrl(
       ollamaRaw,
       'OLLAMA_BASE_URL',
@@ -298,7 +321,9 @@ export class ExternalServiceRegistry {
     abfallBerlinPrimaryUrl: string;
     abfallBerlinFallbackUrl: string;
     abfallMuenchenPrimaryUrl: string;
-    abfallHamburgPrimaryUrl: string;      ollamaBaseUrl: string;
+    abfallHamburgPrimaryUrl: string;      kulturdatenUrl: string;
+      wikidataSparqlUrl: string;
+      ollamaBaseUrl: string;
       whoIcdClientId: string;
       whoIcdClientSecret: string;
       envOverridesActive: string[];
@@ -317,6 +342,8 @@ export class ExternalServiceRegistry {
     if (process.env.ABFALL_BSR_FALLBACK_URL) activeOverrides.push('ABFALL_BSR_FALLBACK_URL');
     if (process.env.ABFALL_AWB_PRIMARY_URL) activeOverrides.push('ABFALL_AWB_PRIMARY_URL');
     if (process.env.ABFALL_SRH_PRIMARY_URL) activeOverrides.push('ABFALL_SRH_PRIMARY_URL');
+    if (process.env.KULTURDATEN_URL) activeOverrides.push('KULTURDATEN_URL');
+    if (process.env.WIKIDATA_SPARQL_URL) activeOverrides.push('WIKIDATA_SPARQL_URL');
     if (process.env.OLLAMA_BASE_URL) activeOverrides.push('OLLAMA_BASE_URL');
     if (process.env.HEIMAT_USER_AGENT) activeOverrides.push('HEIMAT_USER_AGENT');
     return {
@@ -334,6 +361,8 @@ export class ExternalServiceRegistry {
       abfallBerlinFallbackUrl: this.abfallBerlinFallbackUrl,
       abfallMuenchenPrimaryUrl: this.abfallMuenchenPrimaryUrl,
       abfallHamburgPrimaryUrl: this.abfallHamburgPrimaryUrl,
+      kulturdatenUrl: this.kulturdatenUrl,
+      wikidataSparqlUrl: this.wikidataSparqlUrl,
       ollamaBaseUrl: this.ollamaBaseUrl,
       whoIcdClientId: this.whoIcdClientId ? '(set)' : '(empty)',
       whoIcdClientSecret: this.whoIcdClientSecret ? '(set)' : '(empty)',

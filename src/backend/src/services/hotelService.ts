@@ -2,15 +2,16 @@
  * hotelService.ts — Hotels & Unterkünfte
  *
  * Datenquellen (Multi-Source mit Fallback-Pattern):
- * 1. OpenStreetMap Overpass — Hotels, Hostels, Motels, Pensionen (nwr = nodes+ways+relations)
+ * 1. OpenStreetMap Overpass — Hotels, Hostels, Motels (nwr = nodes+ways+relations)
  * 2. Wikidata SPARQL — Bekannte Hotels nahe Koordinaten
  *
  * Aenderung: Overpass sucht jetzt nwr (nicht nur node) — die meisten Hotels sind ways!
- * KEINE hardcodierten Seiten — alles echte API-Calls.
+ * KEINE hardcoded URLs — alles via externalServices.
  */
 
 import axios from 'axios';
 import { logger } from '../utils/logger';
+import { externalServices } from '../config/externalServices';
 
 export interface Hotel {
   id: string;
@@ -27,8 +28,10 @@ export interface Hotel {
 }
 
 export class HotelService {
-  private readonly overpassEndpoint = 'https://overpass-api.de/api/interpreter';
-  private readonly wikidataEndpoint = 'https://query.wikidata.org/sparql';
+  // Alle URLs aus ExternalServicesRegistry — kein Hardcoded!
+  private readonly overpassEndpoint = externalServices.overpassMirrors[0];
+  private readonly wikidataEndpoint = externalServices.wikidataSparqlUrl;
+  private readonly userAgent = externalServices.userAgent;
 
   /**
    * Hotels in der Nähe laden — Overpass + Wikidata parallel
@@ -71,7 +74,6 @@ export class HotelService {
   /**
    * OpenStreetMap Overpass — Hotels, Hostels, Motels, Pensionen
    * WICHTIG: nwr (nodes + ways + relations) statt nur node!
-   * Die meisten Hotels sind als way oder relation in OSM.
    */
   private async fetchOverpassHotels(
     lat: number,
@@ -80,7 +82,6 @@ export class HotelService {
   ): Promise<Hotel[]> {
     const radiusM = radiusKm * 1000;
 
-    // nwr = nodes + ways + relations — viel bessere Abdeckung!
     const query = `
       [out:json][timeout:20];
       (
@@ -107,7 +108,6 @@ export class HotelService {
 
       const elements = response.data?.elements || [];
 
-      // Ways/Relations brauchen center-Koordinaten
       return elements
         .filter((el: any) => el.type === 'node' || el.center)
         .map((el: any) => {
@@ -135,7 +135,6 @@ export class HotelService {
 
   /**
    * Wikidata SPARQL — Bekannte Hotels nahe Koordinaten
-   * Nutzt wikibase:around fuer geospatial Search
    */
   private async fetchWikidataHotels(
     lat: number,
@@ -151,18 +150,15 @@ export class HotelService {
           bd:serviceParam wikibase:radius "${radiusKm}" .
           bd:serviceParam wikibase:distance ?dist .
         }
-        # Hotels, Hostels, Motels
         { ?place wdt:P31/wdt:P279* wd:Q27686 . }
         UNION
         { ?place wdt:P31/wdt:P279* wd:Q3957 . }
         UNION
         { ?place wdt:P31/wdt:P279* wd:Q44613 . }
-
         OPTIONAL { ?place wdt:P969 ?address . }
         OPTIONAL { ?place wdt:P1329 ?phone . }
         OPTIONAL { ?place wdt:P856 ?website . }
         OPTIONAL { ?place wdt:P296 ?stars . }
-
         SERVICE wikibase:label { bd:serviceParam wikibase:language "de,en" . }
       }
       ORDER BY ASC(?dist)
@@ -173,7 +169,7 @@ export class HotelService {
       const response = await axios.get(this.wikidataEndpoint, {
         params: { query, format: 'json' },
         headers: {
-          'User-Agent': 'HEIMAT/2.0 (https://github.com/abatn/HEIMAT)',
+          'User-Agent': this.userAgent,
           'Accept': 'application/json',
         },
         timeout: 20000,
