@@ -35,6 +35,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_initialized && mounted) {
         _initialized = true;
+        context.read<AiChatProvider>().loadModel();
       }
     });
   }
@@ -114,17 +115,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'HEIMAT AI',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   Text(
-                    'llama3.1:8b · lokal · datenschutz',
-                    style: TextStyle(
+                    '${p.modelName} · lokal · datenschutz',
+                    style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.textSecondary,
                     ),

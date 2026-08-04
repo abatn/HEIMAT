@@ -7,7 +7,7 @@ import '../ai_sse_client.dart';
 
 /// AiChatProvider — ChatGPT-ähnlicher Chat mit HEIMATs lokalem Ollama.
 ///
-/// **Backend:** POST /api/ai/chat → ollamaService.ts → llama3.1:8b (localhost)
+/// **Backend:** POST /api/ai/chat → ollamaService.ts → auto-detected model
 /// **Service-Context:** Übergibt Gesundheits-, Wetter- und Standort-Daten im Chat.
 /// **Kein Cache:** Chat-Verlauf nur in-memory (kein SharedPreferences).
 class AiChatProvider extends ChangeNotifier {
@@ -19,6 +19,7 @@ class AiChatProvider extends ChangeNotifier {
   List<ChatMessage> _messages = [];
   double? _currentLat;
   double? _currentLng;
+  String _modelName = 'Ollama';
 
   // ------------------------------------------------------------------
   // Quick Suggestion Chips (für Empty-State)
@@ -54,6 +55,7 @@ class AiChatProvider extends ChangeNotifier {
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   double? get currentLat => _currentLat;
   double? get currentLng => _currentLng;
+  String get modelName => _modelName;
 
   /// Maximum Chat-Nachrichten (verhindert Speicher-Overflow)
   static const int maxMessages = 50;
@@ -64,6 +66,22 @@ class AiChatProvider extends ChangeNotifier {
   void setLocation(double lat, double lng) {
     _currentLat = lat;
     _currentLng = lng;
+  }
+
+  // ------------------------------------------------------------------
+  // loadModel — Model-Name vom Backend laden (GET /api/ai/status)
+  // ------------------------------------------------------------------
+  Future<void> loadModel() async {
+    try {
+      final data = await apiGet('/api/ai/status');
+      final model = data['model'] as String?;
+      if (model != null && model.isNotEmpty) {
+        _modelName = model;
+        notifyListeners();
+      }
+    } catch (_) {
+      // Fallback: behalte Default 'Ollama'
+    }
   }
 
   // ------------------------------------------------------------------

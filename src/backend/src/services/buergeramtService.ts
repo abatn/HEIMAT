@@ -42,7 +42,7 @@ export class BuergeramtService {
     const radiusM = radiusKm * 1000;
 
     const query = `
-      [out:json][timeout:20];
+      [out:json][timeout:10];
       (
         node["amenity"="townhall"](around:${radiusM},${lat},${lng});
         way["amenity"="townhall"](around:${radiusM},${lat},${lng});
@@ -64,7 +64,7 @@ export class BuergeramtService {
           `data=${encodeURIComponent(query)}`,
           {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            timeout: 20000,
+            timeout: 10000,
           },
         );
 

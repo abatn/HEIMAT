@@ -11,6 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/skeleton_loader.dart';
 import '../../core/widgets/empty_state.dart';
@@ -480,10 +481,16 @@ class _JobScreenState extends State<JobScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () {
-                      // URL would be opened via url_launcher
-                      Navigator.pop(context);
-                    },
+                    onPressed: job.url.isNotEmpty
+                        ? () async {
+                            final uri = Uri.parse(job.url);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri,
+                                  mode: LaunchMode.externalApplication);
+                            }
+                            if (context.mounted) Navigator.pop(context);
+                          }
+                        : null,
                     icon: const Icon(Icons.open_in_new, size: 18),
                     label: const Text('Angebot ansehen'),
                   ),

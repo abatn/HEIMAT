@@ -181,9 +181,12 @@ class FinanceProvider extends ChangeNotifier {
 
   Future<void> loadTransactions() async {
     final userId = _authService.userId;
-    if (userId == null) return;
+    if (userId == null) {
+      _error = 'Nicht angemeldet. Bitte erneut anmelden.';
+      notifyListeners();
+      return;
+    }
     try {
-      // Backend identifiziert User aus Bearer-Token, keinen URL-Param senden.
       final url = '${AppConfig.backendUrl}/api/finance/transactions';
       final response = await http.get(Uri.parse(url), headers: {
         ..._authService.authHeaders,
@@ -193,9 +196,17 @@ class FinanceProvider extends ChangeNotifier {
         _transactions = (data['transactions'] as List)
             .map((t) => Transaction.fromJson(t))
             .toList();
+        _error = null;
+        notifyListeners();
+      } else {
+        _error =
+            'Transaktionen konnten nicht geladen werden (${response.statusCode})';
         notifyListeners();
       }
-    } catch (_) {}
+    } catch (e) {
+      _error = 'Transaktionen konnten nicht geladen werden: $e';
+      notifyListeners();
+    }
   }
 
   Future<bool> sendMoney(String toUserId, double amount) async {

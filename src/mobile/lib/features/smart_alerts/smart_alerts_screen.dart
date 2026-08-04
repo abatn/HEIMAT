@@ -6,8 +6,7 @@
 /// Design: Prioritäts-basierte Karten mit Farb-Codierung
 
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../../../core/api/api_client.dart';
 import '../../../core/services/location_service.dart';
 import 'smart_alerts_dto.dart';
 
@@ -58,25 +57,13 @@ class _SmartAlertsScreenState extends State<SmartAlertsScreen> {
 
     try {
       if (_lat == null || _lng == null) return;
-      final response = await http.get(
-        Uri.parse(
-          'https://heimat-backend.onrender.com/api/smart-alerts'
-          '?lat=$_lat&lng=$_lng',
-        ),
+      final data = await apiGet(
+        '/api/smart-alerts?lat=$_lat&lng=$_lng',
       );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        setState(() {
-          _response = SmartAlertsResponse.fromJson(json);
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Fehler: ${response.statusCode}';
-          _loading = false;
-        });
-      }
+      setState(() {
+        _response = SmartAlertsResponse.fromJson(data);
+        _loading = false;
+      });
     } catch (e) {
       setState(() {
         _error = 'Netzwerkfehler: $e';

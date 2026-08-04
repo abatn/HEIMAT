@@ -6,8 +6,7 @@
 /// Design: Glas-Aesthetik mit farbigen Karten pro Service
 
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../../../core/api/api_client.dart';
 import '../../../core/services/location_service.dart';
 import 'daily_briefing_dto.dart';
 
@@ -58,25 +57,13 @@ class _DailyBriefingScreenState extends State<DailyBriefingScreen> {
 
     try {
       if (_lat == null || _lng == null) return;
-      final response = await http.get(
-        Uri.parse(
-          'https://heimat-backend.onrender.com/api/daily-briefing'
-          '?lat=$_lat&lng=$_lng',
-        ),
+      final data = await apiGet(
+        '/api/daily-briefing?lat=$_lat&lng=$_lng',
       );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        setState(() {
-          _briefing = DailyBriefingDto.fromJson(json);
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Fehler: ${response.statusCode}';
-          _loading = false;
-        });
-      }
+      setState(() {
+        _briefing = DailyBriefingDto.fromJson(data);
+        _loading = false;
+      });
     } catch (e) {
       setState(() {
         _error = 'Netzwerkfehler: $e';

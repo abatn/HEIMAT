@@ -245,9 +245,9 @@ export class ExternalServiceRegistry {
           .map(s => s.trim().replace(/\/+$/, ''))
           .filter((s): s is string => s.length > 0)
       : [
+          'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
-          'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
         ];
     // Phase X.3b scheme-check: alle mirror-URLs muessen http(s) sein.
     // ACHTUNG: dieser fasst die ganze Liste — wenn EINE mirror-URL kaputt

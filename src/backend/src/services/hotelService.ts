@@ -29,7 +29,7 @@ export interface Hotel {
 
 export class HotelService {
   // Alle URLs aus ExternalServicesRegistry — kein Hardcoded!
-  private readonly overpassEndpoint = externalServices.overpassMirrors[0];
+  private readonly overpassMirrors = externalServices.overpassMirrors;
   private readonly wikidataEndpoint = externalServices.wikidataSparqlUrl;
   private readonly userAgent = externalServices.userAgent;
 
@@ -96,41 +96,57 @@ export class HotelService {
       out skel qt;
     `;
 
-    try {
-      const response = await axios.post(
-        this.overpassEndpoint,
-        `data=${encodeURIComponent(query)}`,
-        {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          timeout: 20000,
-        },
-      );
+    const MAX_RETRIES_PER_MIRROR = 2;
 
-      const elements = response.data?.elements || [];
+    for (const mirror of this.overpassMirrors) {
+      for (let attempt = 1; attempt <= MAX_RETRIES_PER_MIRROR; attempt++) {
+        try {
+          const response = await axios.post(
+            mirror,
+            `data=${encodeURIComponent(query)}`,
+            {
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              timeout: 10000,
+            },
+          );
 
-      return elements
-        .filter((el: any) => el.type === 'node' || el.center)
-        .map((el: any) => {
-          const lat2 = el.lat || el.center?.lat;
-          const lng2 = el.lon || el.center?.lon;
-          return {
-            id: `osm/${el.id}`,
-            name: el.tags?.name || el.tags?.['name:de'] || _getTypeLabel(el.tags),
-            type: _getTypeLabel(el.tags),
-            stars: el.tags?.stars ? parseInt(el.tags.stars) : null,
-            address: _buildAddress(el.tags),
-            phone: el.tags?.phone || el.tags?.['contact:phone'] || null,
-            website: el.tags?.website || el.tags?.['contact:website'] || null,
-            lat: lat2,
-            lng: lng2,
-            distance_km: _haversineKm(lat, lng, lat2, lng2),
-            openingHours: el.tags?.opening_hours || null,
-          };
-        });
-    } catch (error) {
-      logger.warn('Overpass hotels failed:', (error as Error).message);
-      return [];
+          const elements = response.data?.elements || [];
+          if (elements.length > 0) {
+            return elements
+              .filter((el: any) => el.type === 'node' || el.center)
+              .map((el: any) => {
+                const lat2 = el.lat || el.center?.lat;
+                const lng2 = el.lon || el.center?.lon;
+                return {
+                  id: `osm/${el.id}`,
+                  name: el.tags?.name || el.tags?.['name:de'] || _getTypeLabel(el.tags),
+                  type: _getTypeLabel(el.tags),
+                  stars: el.tags?.stars ? parseInt(el.tags.stars) : null,
+                  address: _buildAddress(el.tags),
+                  phone: el.tags?.phone || el.tags?.['contact:phone'] || null,
+                  website: el.tags?.website || el.tags?.['contact:website'] || null,
+                  lat: lat2,
+                  lng: lng2,
+                  distance_km: _haversineKm(lat, lng, lat2, lng2),
+                  openingHours: el.tags?.opening_hours || null,
+                };
+              });
+          }
+          if (attempt < MAX_RETRIES_PER_MIRROR) {
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+            continue;
+          }
+        } catch (error) {
+          if (attempt < MAX_RETRIES_PER_MIRROR) {
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+            continue;
+          }
+          logger.warn(`Overpass hotels ${mirror} fehlgeschlagen: ${(error as Error).message}`);
+        }
+      }
     }
+
+    return [];
   }
 
   /**

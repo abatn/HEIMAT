@@ -11,8 +11,7 @@
 /// Design: Suchleiste + Kategorie-Chips + Ergebnisliste
 
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../../../core/api/api_client.dart';
 import '../../../core/services/location_service.dart';
 import 'search_dto.dart';
 
@@ -81,26 +80,14 @@ class _SearchScreenState extends State<SearchScreen> {
         });
         return;
       }
-      final response = await http.get(
-        Uri.parse(
-          'https://heimat-backend.onrender.com/api/search'
-          '?q=${Uri.encodeComponent(query)}'
-          '&lat=$_lat&lng=$_lng',
-        ),
+      final data = await apiGet(
+        '/api/search?q=${Uri.encodeComponent(query)}'
+        '&lat=$_lat&lng=$_lng',
       );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        setState(() {
-          _response = SearchResponse.fromJson(json);
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Fehler: ${response.statusCode}';
-          _loading = false;
-        });
-      }
+      setState(() {
+        _response = SearchResponse.fromJson(data);
+        _loading = false;
+      });
     } catch (e) {
       setState(() {
         _error = 'Netzwerkfehler: $e';

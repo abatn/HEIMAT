@@ -6,104 +6,30 @@
 /// Backend: GET /api/events?lat=...&lng=...&radius=...
 
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../../core/services/location_service.dart';
+import 'package:provider/provider.dart';
+import 'events_provider.dart';
 import 'events_dto.dart';
 
-class EventsScreen extends StatefulWidget {
+class EventsScreen extends StatelessWidget {
   const EventsScreen({super.key});
 
   @override
-  State<EventsScreen> createState() => _EventsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => EventsProvider()..loadEvents(),
+      child: const _EventsBody(),
+    );
+  }
 }
 
-class _EventsScreenState extends State<EventsScreen> {
-  EventsResponse? _response;
-  bool _loading = true;
-  String? _error;
-  String _selectedCategory = 'all';
-  double? _lat;
-  double? _lng;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLocation();
-  }
-
-  Future<void> _loadLocation() async {
-    final pos = await LocationService.getCurrentLocation().timeout(
-      const Duration(seconds: 5),
-      onTimeout: () => null,
-    );
-    if (pos != null && mounted) {
-      setState(() {
-        _lat = pos.latitude;
-        _lng = pos.longitude;
-      });
-      _loadEvents();
-    } else if (mounted) {
-      setState(() {
-        _error = 'Standort nicht verfügbar. Bitte GPS aktivieren.';
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _loadEvents() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      if (_lat == null || _lng == null) return;
-      final response = await http.get(
-        Uri.parse(
-          'https://heimat-backend.onrender.com/api/events'
-          '?lat=$_lat&lng=$_lng&radius=10',
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        setState(() {
-          _response = EventsResponse.fromJson(json);
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Fehler: ${response.statusCode}';
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Netzwerkfehler: $e';
-        _loading = false;
-      });
-    }
-  }
-
-  List<EventDto> get _filteredEvents {
-    if (_response == null) return [];
-    if (_selectedCategory == 'all') return _response!.events;
-    return _response!.events
-        .where((e) => e.category == _selectedCategory)
-        .toList();
-  }
-
-  Set<String> get _categories {
-    if (_response == null) return {};
-    return _response!.events.map((e) => e.category).toSet();
-  }
+class _EventsBody extends StatelessWidget {
+  const _EventsBody();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🎪 Veranstaltungen'),
+        title: const Text('Veranstaltungen'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -115,17 +41,24 @@ class _EventsScreenState extends State<EventsScreen> {
             colors: [Colors.deepPurple.shade400, Colors.deepPurple.shade800],
           ),
         ),
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white))
-            : _error != null
-                ? _buildError()
-                : _buildContent(),
+        child: Consumer<EventsProvider>(
+          builder: (context, provider, _) {
+            if (provider.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            }
+            if (provider.error != null) {
+              return _buildError(context, provider);
+            }
+            return _buildContent(context, provider);
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(BuildContext context, EventsProvider provider) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -135,13 +68,13 @@ class _EventsScreenState extends State<EventsScreen> {
             const Icon(Icons.event_busy, size: 64, color: Colors.white54),
             const SizedBox(height: 16),
             Text(
-              _error!,
+              provider.error!,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _loadEvents,
+              onPressed: () => provider.loadEvents(),
               child: const Text('Erneut versuchen'),
             ),
           ],
@@ -150,8 +83,8 @@ class _EventsScreenState extends State<EventsScreen> {
     );
   }
 
-  Widget _buildContent() {
-    if (_response == null || _response!.events.isEmpty) {
+  Widget _buildContent(BuildContext context, EventsProvider provider) {
+    if (provider.events.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -168,13 +101,12 @@ class _EventsScreenState extends State<EventsScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadEvents,
+      onRefresh: () => provider.refresh(),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Header
           Text(
-            '${_response!.events.length} Veranstaltung${_response!.events.length == 1 ? '' : 'en'}',
+            '${provider.count} Veranstaltung${provider.count == 1 ? '' : 'en'}',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -183,23 +115,20 @@ class _EventsScreenState extends State<EventsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'In deiner Nähe (${_response!.radius.toStringAsFixed(0)} km)',
+            'In deiner Naehe (${provider.response!.radius.toStringAsFixed(0)} km)',
             style: const TextStyle(color: Colors.white54, fontSize: 14),
           ),
           const SizedBox(height: 16),
-
-          // Category chips
-          if (_categories.length > 1) _buildCategoryChips(),
+          if (provider.categories.length > 1)
+            _buildCategoryChips(context, provider),
           const SizedBox(height: 16),
-
-          // Events list
-          ..._filteredEvents.map((event) => _buildEventCard(event)),
+          ...provider.filteredEvents.map((event) => _buildEventCard(event)),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryChips() {
+  Widget _buildCategoryChips(BuildContext context, EventsProvider provider) {
     return SizedBox(
       height: 40,
       child: ListView(
@@ -209,36 +138,36 @@ class _EventsScreenState extends State<EventsScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
               label: Text(
-                'Alle (${_response!.events.length})',
+                'Alle (${provider.events.length})',
                 style: TextStyle(
-                  color: _selectedCategory == 'all'
+                  color: provider.selectedCategory == 'all'
                       ? Colors.deepPurple.shade900
                       : Colors.white,
                   fontSize: 13,
                 ),
               ),
-              selected: _selectedCategory == 'all',
+              selected: provider.selectedCategory == 'all',
               selectedColor: Colors.white,
               backgroundColor: Colors.white.withOpacity(0.15),
-              onSelected: (_) => setState(() => _selectedCategory = 'all'),
+              onSelected: (_) => provider.setCategory('all'),
             ),
           ),
-          ..._categories.map((cat) => Padding(
+          ...provider.categories.map((cat) => Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: FilterChip(
                   label: Text(
                     cat,
                     style: TextStyle(
-                      color: _selectedCategory == cat
+                      color: provider.selectedCategory == cat
                           ? Colors.deepPurple.shade900
                           : Colors.white,
                       fontSize: 13,
                     ),
                   ),
-                  selected: _selectedCategory == cat,
+                  selected: provider.selectedCategory == cat,
                   selectedColor: Colors.white,
                   backgroundColor: Colors.white.withOpacity(0.15),
-                  onSelected: (_) => setState(() => _selectedCategory = cat),
+                  onSelected: (_) => provider.setCategory(cat),
                 ),
               )),
         ],
@@ -259,7 +188,6 @@ class _EventsScreenState extends State<EventsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Category + Source
             Row(
               children: [
                 Container(
@@ -289,8 +217,6 @@ class _EventsScreenState extends State<EventsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-
-            // Name
             Text(
               event.name,
               style: const TextStyle(
@@ -299,8 +225,6 @@ class _EventsScreenState extends State<EventsScreen> {
                 color: Colors.white,
               ),
             ),
-
-            // Description
             if (event.description.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
@@ -313,8 +237,6 @@ class _EventsScreenState extends State<EventsScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ],
-
-            // Location + Date
             if (event.location != null || event.startDate != null) ...[
               const SizedBox(height: 12),
               Row(

@@ -1,4 +1,4 @@
-/// hotels_screen.dart — Hotels & Unterkünfte
+/// hotels_screen.dart — Hotels & Unterkuenfte
 ///
 /// Nativ via OpenStreetMap Overpass.
 /// KEINE hardcodierten Seiten — alles echte API-Calls.
@@ -6,102 +6,30 @@
 /// Backend: GET /api/hotels?lat=...&lng=...&radius=...
 
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../../core/services/location_service.dart';
+import 'package:provider/provider.dart';
+import 'hotels_provider.dart';
 import 'hotels_dto.dart';
 
-class HotelsScreen extends StatefulWidget {
+class HotelsScreen extends StatelessWidget {
   const HotelsScreen({super.key});
 
   @override
-  State<HotelsScreen> createState() => _HotelsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => HotelsProvider()..loadHotels(),
+      child: const _HotelsBody(),
+    );
+  }
 }
 
-class _HotelsScreenState extends State<HotelsScreen> {
-  HotelsResponse? _response;
-  bool _loading = true;
-  String? _error;
-  String _selectedType = 'all';
-  double? _lat;
-  double? _lng;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLocation();
-  }
-
-  Future<void> _loadLocation() async {
-    final pos = await LocationService.getCurrentLocation().timeout(
-      const Duration(seconds: 5),
-      onTimeout: () => null,
-    );
-    if (pos != null && mounted) {
-      setState(() {
-        _lat = pos.latitude;
-        _lng = pos.longitude;
-      });
-      _loadHotels();
-    } else if (mounted) {
-      setState(() {
-        _error = 'Standort nicht verfügbar. Bitte GPS aktivieren.';
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _loadHotels() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      if (_lat == null || _lng == null) return;
-      final response = await http.get(
-        Uri.parse(
-          'https://heimat-backend.onrender.com/api/hotels'
-          '?lat=$_lat&lng=$_lng&radius=5',
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        setState(() {
-          _response = HotelsResponse.fromJson(json);
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Fehler: ${response.statusCode}';
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Netzwerkfehler: $e';
-        _loading = false;
-      });
-    }
-  }
-
-  List<HotelDto> get _filteredHotels {
-    if (_response == null) return [];
-    if (_selectedType == 'all') return _response!.hotels;
-    return _response!.hotels.where((h) => h.type == _selectedType).toList();
-  }
-
-  Set<String> get _types {
-    if (_response == null) return {};
-    return _response!.hotels.map((h) => h.type).toSet();
-  }
+class _HotelsBody extends StatelessWidget {
+  const _HotelsBody();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🏨 Hotels'),
+        title: const Text('Hotels'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -113,17 +41,24 @@ class _HotelsScreenState extends State<HotelsScreen> {
             colors: [Colors.teal.shade400, Colors.teal.shade800],
           ),
         ),
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white))
-            : _error != null
-                ? _buildError()
-                : _buildContent(),
+        child: Consumer<HotelsProvider>(
+          builder: (context, provider, _) {
+            if (provider.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            }
+            if (provider.error != null) {
+              return _buildError(context, provider);
+            }
+            return _buildContent(context, provider);
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(BuildContext context, HotelsProvider provider) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -133,13 +68,13 @@ class _HotelsScreenState extends State<HotelsScreen> {
             const Icon(Icons.hotel, size: 64, color: Colors.white54),
             const SizedBox(height: 16),
             Text(
-              _error!,
+              provider.error!,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _loadHotels,
+              onPressed: () => provider.loadHotels(),
               child: const Text('Erneut versuchen'),
             ),
           ],
@@ -148,8 +83,8 @@ class _HotelsScreenState extends State<HotelsScreen> {
     );
   }
 
-  Widget _buildContent() {
-    if (_response == null || _response!.hotels.isEmpty) {
+  Widget _buildContent(BuildContext context, HotelsProvider provider) {
+    if (provider.hotels.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -166,13 +101,12 @@ class _HotelsScreenState extends State<HotelsScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadHotels,
+      onRefresh: () => provider.refresh(),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Header
           Text(
-            '${_response!.hotels.length} Unterkunft${_response!.hotels.length == 1 ? '' : 'en'}',
+            '${provider.count} Unterkunft${provider.count == 1 ? '' : 'en'}',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -181,23 +115,19 @@ class _HotelsScreenState extends State<HotelsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'In deiner Nähe (${_response!.radius.toStringAsFixed(0)} km)',
+            'In deiner Naehe (${provider.response!.radius.toStringAsFixed(0)} km)',
             style: const TextStyle(color: Colors.white54, fontSize: 14),
           ),
           const SizedBox(height: 16),
-
-          // Type chips
-          if (_types.length > 1) _buildTypeChips(),
+          if (provider.types.length > 1) _buildTypeChips(context, provider),
           const SizedBox(height: 16),
-
-          // Hotels list
-          ..._filteredHotels.map((hotel) => _buildHotelCard(hotel)),
+          ...provider.filteredHotels.map((hotel) => _buildHotelCard(hotel)),
         ],
       ),
     );
   }
 
-  Widget _buildTypeChips() {
+  Widget _buildTypeChips(BuildContext context, HotelsProvider provider) {
     return SizedBox(
       height: 40,
       child: ListView(
@@ -207,36 +137,36 @@ class _HotelsScreenState extends State<HotelsScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
               label: Text(
-                'Alle (${_response!.hotels.length})',
+                'Alle (${provider.hotels.length})',
                 style: TextStyle(
-                  color: _selectedType == 'all'
+                  color: provider.selectedType == 'all'
                       ? Colors.teal.shade900
                       : Colors.white,
                   fontSize: 13,
                 ),
               ),
-              selected: _selectedType == 'all',
+              selected: provider.selectedType == 'all',
               selectedColor: Colors.white,
               backgroundColor: Colors.white.withOpacity(0.15),
-              onSelected: (_) => setState(() => _selectedType = 'all'),
+              onSelected: (_) => provider.setType('all'),
             ),
           ),
-          ..._types.map((type) => Padding(
+          ...provider.types.map((type) => Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: FilterChip(
                   label: Text(
                     type,
                     style: TextStyle(
-                      color: _selectedType == type
+                      color: provider.selectedType == type
                           ? Colors.teal.shade900
                           : Colors.white,
                       fontSize: 13,
                     ),
                   ),
-                  selected: _selectedType == type,
+                  selected: provider.selectedType == type,
                   selectedColor: Colors.white,
                   backgroundColor: Colors.white.withOpacity(0.15),
-                  onSelected: (_) => setState(() => _selectedType = type),
+                  onSelected: (_) => provider.setType(type),
                 ),
               )),
         ],
@@ -257,7 +187,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Type badge + Stars
             Row(
               children: [
                 Container(
@@ -287,8 +216,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-
-            // Name
             Text(
               hotel.name,
               style: const TextStyle(
@@ -297,8 +224,6 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 color: Colors.white,
               ),
             ),
-
-            // Address
             if (hotel.address != null) ...[
               const SizedBox(height: 6),
               Row(
@@ -320,12 +245,10 @@ class _HotelsScreenState extends State<HotelsScreen> {
                 ],
               ),
             ],
-
-            // Distance
             if (hotel.distanceKm != null) ...[
               const SizedBox(height: 8),
               Text(
-                '📍 ${hotel.distanceKm!.toStringAsFixed(1)} km entfernt',
+                '${hotel.distanceKm!.toStringAsFixed(1)} km entfernt',
                 style: const TextStyle(
                   fontSize: 12,
                   color: Colors.white54,

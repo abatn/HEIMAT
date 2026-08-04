@@ -1,4 +1,4 @@
-/// buergeramt_screen.dart — Bürgerämter & Behörden
+/// buergeramt_screen.dart — Buergeraemter & Behoerden
 ///
 /// Nativ via OpenStreetMap Nominatim.
 /// KEINE hardcodierten Seiten — alles echte API-Calls.
@@ -6,90 +6,30 @@
 /// Backend: GET /api/buergeramt?lat=...&lng=...&radius=...
 
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../../core/services/location_service.dart';
+import 'package:provider/provider.dart';
+import 'buergeramt_provider.dart';
 import 'buergeramt_dto.dart';
 
-class BuergeramtScreen extends StatefulWidget {
+class BuergeramtScreen extends StatelessWidget {
   const BuergeramtScreen({super.key});
 
   @override
-  State<BuergeramtScreen> createState() => _BuergeramtScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => BuergeramtProvider()..loadAemter(),
+      child: const _BuergeramtBody(),
+    );
+  }
 }
 
-class _BuergeramtScreenState extends State<BuergeramtScreen> {
-  BuergeramtResponse? _response;
-  bool _loading = true;
-  String? _error;
-  double? _lat;
-  double? _lng;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLocation();
-  }
-
-  Future<void> _loadLocation() async {
-    final pos = await LocationService.getCurrentLocation().timeout(
-      const Duration(seconds: 5),
-      onTimeout: () => null,
-    );
-    if (pos != null && mounted) {
-      setState(() {
-        _lat = pos.latitude;
-        _lng = pos.longitude;
-      });
-      _loadAemter();
-    } else if (mounted) {
-      setState(() {
-        _error = 'Standort nicht verfügbar. Bitte GPS aktivieren.';
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _loadAemter() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      if (_lat == null || _lng == null) return;
-      final response = await http.get(
-        Uri.parse(
-          'https://heimat-backend.onrender.com/api/buergeramt'
-          '?lat=$_lat&lng=$_lng&radius=10',
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body) as Map<String, dynamic>;
-        setState(() {
-          _response = BuergeramtResponse.fromJson(json);
-          _loading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'Fehler: ${response.statusCode}';
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Netzwerkfehler: $e';
-        _loading = false;
-      });
-    }
-  }
+class _BuergeramtBody extends StatelessWidget {
+  const _BuergeramtBody();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🏛️ Bürgeramt'),
+        title: const Text('Buergeramt'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -101,17 +41,24 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
             colors: [Colors.blueGrey.shade400, Colors.blueGrey.shade800],
           ),
         ),
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white))
-            : _error != null
-                ? _buildError()
-                : _buildContent(),
+        child: Consumer<BuergeramtProvider>(
+          builder: (context, provider, _) {
+            if (provider.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              );
+            }
+            if (provider.error != null) {
+              return _buildError(context, provider);
+            }
+            return _buildContent(context, provider);
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(BuildContext context, BuergeramtProvider provider) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -121,13 +68,13 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
             const Icon(Icons.account_balance, size: 64, color: Colors.white54),
             const SizedBox(height: 16),
             Text(
-              _error!,
+              provider.error!,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _loadAemter,
+              onPressed: () => provider.loadAemter(),
               child: const Text('Erneut versuchen'),
             ),
           ],
@@ -136,8 +83,8 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
     );
   }
 
-  Widget _buildContent() {
-    if (_response == null || _response!.aemter.isEmpty) {
+  Widget _buildContent(BuildContext context, BuergeramtProvider provider) {
+    if (provider.aemter.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -145,7 +92,7 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
             Icon(Icons.search_off, size: 64, color: Colors.white54),
             SizedBox(height: 16),
             Text(
-              'Keine Ämter gefunden.',
+              'Keine Aemter gefunden.',
               style: TextStyle(color: Colors.white54, fontSize: 16),
             ),
           ],
@@ -154,13 +101,12 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadAemter,
+      onRefresh: () => provider.refresh(),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Header
           Text(
-            '${_response!.aemter.length} Amt${_response!.aemter.length == 1 ? '' : 'er'}',
+            '${provider.count} Amt${provider.count == 1 ? '' : 'er'}',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -169,13 +115,11 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'In deiner Nähe (${_response!.radius.toStringAsFixed(0)} km)',
+            'In deiner Naehe (${provider.response!.radius.toStringAsFixed(0)} km)',
             style: const TextStyle(color: Colors.white54, fontSize: 14),
           ),
           const SizedBox(height: 16),
-
-          // Ämter list
-          ..._response!.aemter.map((amt) => _buildAmtCard(amt)),
+          ...provider.aemter.map((amt) => _buildAmtCard(amt)),
         ],
       ),
     );
@@ -194,7 +138,6 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Type badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -211,8 +154,6 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Name
             Text(
               amt.name,
               style: const TextStyle(
@@ -221,8 +162,6 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
                 color: Colors.white,
               ),
             ),
-
-            // Address
             if (amt.address != null) ...[
               const SizedBox(height: 6),
               Row(
@@ -244,12 +183,10 @@ class _BuergeramtScreenState extends State<BuergeramtScreen> {
                 ],
               ),
             ],
-
-            // Distance
             if (amt.distanceKm != null) ...[
               const SizedBox(height: 8),
               Text(
-                '📍 ${amt.distanceKm!.toStringAsFixed(1)} km entfernt',
+                '${amt.distanceKm!.toStringAsFixed(1)} km entfernt',
                 style: const TextStyle(
                   fontSize: 12,
                   color: Colors.white54,

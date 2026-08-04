@@ -25,8 +25,8 @@ class HotelsResponse {
               ?.map((h) => HotelDto.fromJson(h as Map<String, dynamic>))
               .toList() ??
           [],
-      lat: (center?['lat'] as num?)?.toDouble() ?? 52.52,
-      lng: (center?['lng'] as num?)?.toDouble() ?? 13.41,
+      lat: (center?['lat'] as num?)?.toDouble() ?? 0,
+      lng: (center?['lng'] as num?)?.toDouble() ?? 0,
       radius: (json['radius'] as num?)?.toDouble() ?? 5,
     );
   }

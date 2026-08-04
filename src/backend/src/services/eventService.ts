@@ -30,7 +30,7 @@ export class EventService {
   // Nur ortsunabhängige APIs: Wikidata + Overpass (weltweit)
   // kulturdaten.berlin ENTFERNT — war Berlin-only, Hardcoding verboten!
   private readonly wikidataEndpoint = externalServices.wikidataSparqlUrl;
-  private readonly overpassEndpoint = externalServices.overpassMirrors[0];
+  private readonly overpassMirrors = externalServices.overpassMirrors;
   private readonly userAgent = externalServices.userAgent;
 
   /**
@@ -169,35 +169,51 @@ export class EventService {
       out body;
     `;
 
-    try {
-      const response = await axios.post(
-        this.overpassEndpoint,
-        `data=${encodeURIComponent(query)}`,
-        {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          timeout: 15000,
-        },
-      );
+    const MAX_RETRIES_PER_MIRROR = 2;
 
-      const elements = response.data?.elements || [];
+    for (const mirror of this.overpassMirrors) {
+      for (let attempt = 1; attempt <= MAX_RETRIES_PER_MIRROR; attempt++) {
+        try {
+          const response = await axios.post(
+            mirror,
+            `data=${encodeURIComponent(query)}`,
+            {
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              timeout: 10000,
+            },
+          );
 
-      return elements.map((el: any) => ({
-        id: `osm/${el.id}`,
-        name: el.tags?.name || el.tags?.['name:de'] || _getCategoryLabel(el.tags),
-        description: el.tags?.description || el.tags?.opening_hours || '',
-        category: _getOsmCategory(el.tags),
-        startDate: null,
-        endDate: null,
-        location: el.tags?.addr_full || el.tags?.['addr:street'] || null,
-        lat: el.lat || null,
-        lng: el.lon || null,
-        url: el.tags?.website || null,
-        source: 'osm' as const,
-      }));
-    } catch (error) {
-      logger.warn('Overpass events failed:', (error as Error).message);
-      return [];
+          const elements = response.data?.elements || [];
+          if (elements.length > 0) {
+            return elements.map((el: any) => ({
+              id: `osm/${el.id}`,
+              name: el.tags?.name || el.tags?.['name:de'] || _getCategoryLabel(el.tags),
+              description: el.tags?.description || el.tags?.opening_hours || '',
+              category: _getOsmCategory(el.tags),
+              startDate: null,
+              endDate: null,
+              location: el.tags?.addr_full || el.tags?.['addr:street'] || null,
+              lat: el.lat || null,
+              lng: el.lon || null,
+              url: el.tags?.website || null,
+              source: 'osm' as const,
+            }));
+          }
+          if (attempt < MAX_RETRIES_PER_MIRROR) {
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+            continue;
+          }
+        } catch (error) {
+          if (attempt < MAX_RETRIES_PER_MIRROR) {
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+            continue;
+          }
+          logger.warn(`Overpass events ${mirror} fehlgeschlagen: ${(error as Error).message}`);
+        }
+      }
     }
+
+    return [];
   }
 }
 
