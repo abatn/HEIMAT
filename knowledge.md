@@ -519,7 +519,7 @@ Ein intelligenter Health AI Agent, der:
 | **Alltag** | Wetter ✅, Luft ✅, Abfall ✅ (AbfallNavi Bund), Bürgeramt ⚠️ (Berlin-Default), Jobs ✅ | 4 funktionieren, 1 ortsabhängig |
 | **Kultur & Reise** | Events ⚠️ (NUR Berlin), Hotels ❌ (Berlin-Default + keine Daten) | Nicht ortsunabhängig |
 | **Finanzen** | Taler-Wallet ✅ | Funktioniert |
-| **AI** | HEIMAT AI ✅ | Funktioniert| **Gesamt:** 13/14 Services funktionieren ortsunabhängig, 1 eingeschränkt (Waste), 0 nicht verfügbar.
+| **AI** | HEIMAT AI ✅ | Funktioniert| **Gesamt:** 14/14 Services funktionieren ortsunabhängig. KEIN Hardcoding mehr.
 
 ### ✅ Berlin-Hardcoding behoben (2026-08-04)
 
@@ -539,7 +539,12 @@ Ein intelligenter Health AI Agent, der:
 - Flutter: 6 Screens nutzen `LocationService.getCurrentLocation()`
 - AI Chat: "Ärzte in Berlin" → "Ärzte in meiner Nähe"
 
-**Noch nicht ortsunabhängig:** Waste (nur Berlin/Hamburg/München + 19 AbfallNavi-Regionen)
+**Alle Services ortsunabhängig!** Keine hardcoded Locations mehr im Code:
+- externalServices.ts: Berlin/München/Hamburg/kulturdaten URLs entfernt
+- wasteCityRegistry.ts: CITY_REGISTRY leer, nur dynamisch
+- eventService.ts: kulturdaten.berlin entfernt, nur Wikidata + Overpass
+- wasteService.ts: City-Name-Mapping dynamisch
+- Waste nutzt ABFALL_IO_SERVICES (28+ Kommunen) + AbfallNavi (19 Regionen)
 
 ### AbfallNavi Integration (2026-08-04)
 - **API:** `https://abfallnavi.api.bund.dev/` (Bund/RegioIT) — kostenlose staatliche API
