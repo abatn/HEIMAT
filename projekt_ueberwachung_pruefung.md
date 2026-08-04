@@ -1,6 +1,6 @@
 # Überwachungsschleife (Gegenmaßstab)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 9.0
+**Letzte Aktualisierung:** 2026-08-04 | Version 10.0
 
 - **Was wird überwacht? (Kennzahlen)**
   - **Code-Qualität:**
@@ -60,7 +60,7 @@
 
 # Prüfschleife (unabhängig)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 9.0
+**Letzte Aktualisierung:** 2026-08-04 | Version 10.0
 
 - **Welche Zahlen werden geprüft?**
   - Backend-Test-Ergebnisse (CI: 555/555 = 100%, lokal: 413/555 = 75.5%)
@@ -98,18 +98,17 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v9.0, 2026-08-04)
+## Messung der 5 „besser"-Dimensionen (v10.0, 2026-08-04)
 
-| # | Dimension | v8.0 | v9.0 (heute) | Änderung | 20%-Schwelle | Status |
-|---|-----------|------|--------------|----------|--------------|--------|
+| # | Dimension | v9.0 | v10.0 (heute) | Änderung | 20%-Schwelle | Status |
+|---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 122 Calls | 122 Calls | — stabil | — | ✅ OK |
 
-**Änderung v9.0:** Prüfschleife: Overpass-Mirror-Reihenfolge korrigiert.
-Abfall-APIs (abfall.io, AbfallNavi Bund) extern nicht erreichbar.
+**Änderung v10.0:** Prüfschleife: Mobility Timeout-Fix bestätigt.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

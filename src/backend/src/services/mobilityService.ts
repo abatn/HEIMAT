@@ -51,7 +51,7 @@ export class MobilityService {
         try {
           const response = await axios.post(mirror, `data=${encodeURIComponent(q)}`, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': this.userAgent },
-            timeout: 25000,
+            timeout: 10000,
           });
           const elements = (response.data?.elements ?? []) as OverpassElement[];
           if (elements.length > 0) return elements;

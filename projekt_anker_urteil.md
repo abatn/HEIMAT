@@ -1,6 +1,6 @@
 # Anker (Anchors) – nicht schönbare Messgrößen
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 9.0
+**Letzte Aktualisierung:** 2026-08-04 | Version 10.0
 
 1. **Echte Einnahmen:** 0 EUR — Projekt ist Open Source, keine Monetarisierung implementiert
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)
@@ -80,18 +80,17 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v9.0, 2026-08-04)
+## Messung der 5 „besser"-Dimensionen (v10.0, 2026-08-04)
 
-| # | Dimension | v8.0 | v9.0 (heute) | Änderung | 20%-Schwelle | Status |
-|---|-----------|------|--------------|----------|--------------|--------|
+| # | Dimension | v9.0 | v10.0 (heute) | Änderung | 20%-Schwelle | Status |
+|---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 122 Calls | 122 Calls | — stabil | — | ✅ OK |
 
-**Änderung v9.0:** Overpass-Mirror-Fix. Abfall-APIs extern down.
-13/14 Services funktional. Abfall = nicht funktional (externes Problem).
+**Änderung v10.0:** Mobility Timeout-Fix. 13/14 Services funktional.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
