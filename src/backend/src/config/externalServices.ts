@@ -94,20 +94,10 @@ export class ExternalServiceRegistry {
   /** GNU Taler Demo-Bank Base-URL (Web-UI fuer Bank-Wire-Transfer zum Exchange). */
   public readonly talerBankBase: string;
 
-  /** Abfallkalender Berlin BSR Primary iCal-Endpoint. */
-  public readonly abfallBerlinPrimaryUrl: string;
-
-  /** Abfallkalender Berlin BSR Fallback iCal-Endpoint (opendata-mirror). */
-  public readonly abfallBerlinFallbackUrl: string;
-
-  /** Abfallkalender München AWB Primary iCal-Endpoint (community-mirror). */
-  public readonly abfallMuenchenPrimaryUrl: string;
-
-  /** Abfallkalender Hamburg SRH Primary iCal-Endpoint (HTML-form-export). */
-  public readonly abfallHamburgPrimaryUrl: string;
-
-  /** kulturdaten.berlin Base-URL (Berlin Kulturveranstaltungen). */
-  public readonly kulturdatenUrl: string;
+  // KEINE hardcoded city-spezifischen URLs mehr!
+  // Waste: nutzt ABFALL_IO_SERVICES + AbfallNavi (dynamisch)
+  // Events: nutzt Overpass (weltweit)
+  // Hardcoding ist verboten (User-Regel).
 
   /** Wikidata SPARQL Endpoint (semantische Suche). */
   public readonly wikidataSparqlUrl: string;
@@ -182,11 +172,7 @@ export class ExternalServiceRegistry {
     const transitousRaw = normalizeEnvValue(env.TRANSITOUS_BASE_URL);
     const talerExchangeRaw = normalizeEnvValue(env.TALER_EXCHANGE_BASE_URL);
     const talerBankRaw = normalizeEnvValue(env.TALER_BANK_BASE_URL);
-    const abfallBerlinPrimaryRaw = normalizeEnvValue(env.ABFALL_BSR_PRIMARY_URL);
-    const abfallBerlinFallbackRaw = normalizeEnvValue(env.ABFALL_BSR_FALLBACK_URL);
-    const abfallMuenchenPrimaryRaw = normalizeEnvValue(env.ABFALL_AWB_PRIMARY_URL);
-    const abfallHamburgPrimaryRaw = normalizeEnvValue(env.ABFALL_SRH_PRIMARY_URL);
-    const kulturdatenRaw = normalizeEnvValue(env.KULTURDATEN_URL);
+    // KEINE hardcoded city-URLs mehr — waste nutzt ABFALL_IO_SERVICES + AbfallNavi
     const wikidataSparqlRaw = normalizeEnvValue(env.WIKIDATA_SPARQL_URL);
     const ollamaRaw = normalizeEnvValue(env.OLLAMA_BASE_URL);
     const userAgentRaw = normalizeEnvValue(env.HEIMAT_USER_AGENT);
@@ -227,35 +213,10 @@ export class ExternalServiceRegistry {
       talerBankRaw, 'TALER_BANK_BASE_URL', 'https://bank.demo.taler.net'
     );
 
-    this.abfallBerlinPrimaryUrl = validateUrl(
-      abfallBerlinPrimaryRaw,
-      'ABFALL_BSR_PRIMARY_URL',
-      'https://www.bsr.de/abfuhrkalender-ical?strasse={street}&hausnr={houseNr}',
-    );
-
-    this.abfallBerlinFallbackUrl = validateUrl(
-      abfallBerlinFallbackRaw,
-      'ABFALL_BSR_FALLBACK_URL',
-      'https://opendata.bahn.de/web/opendata/bsr-mirror/abfallkalender.ics?stadtteil={street}&hausnr={houseNr}',
-    );
-
-    this.abfallMuenchenPrimaryUrl = validateUrl(
-      abfallMuenchenPrimaryRaw,
-      'ABFALL_AWB_PRIMARY_URL',
-      'https://raw.githubusercontent.com/mil-muenchen/muenchen-abfallkalender/main/muenchen.ics',
-    );
-
-    this.abfallHamburgPrimaryUrl = validateUrl(
-      abfallHamburgPrimaryRaw,
-      'ABFALL_SRH_PRIMARY_URL',
-      'https://www.stadtreinigung-hamburg.de/icity/export.php?street={street}&houseNr={houseNr}',
-    );
-
-    this.kulturdatenUrl = validateUrl(
-      kulturdatenRaw,
-      'KULTURDATEN_URL',
-      'https://kulturdaten.berlin/api/v1',
-    );
+    // KEINE hardcoded city-spezifischen URLs mehr!
+    // Waste: nutzt ABFALL_IO_SERVICES + AbfallNavi (dynamisch)
+    // Events: nutzt Overpass (weltweit)
+    // Hardcoding ist verboten (User-Regel).
 
     this.wikidataSparqlUrl = validateUrl(
       wikidataSparqlRaw,
@@ -318,10 +279,7 @@ export class ExternalServiceRegistry {
     brightSkyBase: string;
     talerExchangeBase: string;
     talerBankBase: string;
-    abfallBerlinPrimaryUrl: string;
-    abfallBerlinFallbackUrl: string;
-    abfallMuenchenPrimaryUrl: string;
-    abfallHamburgPrimaryUrl: string;      kulturdatenUrl: string;
+    // KEINE hardcoded city-URLs mehr
       wikidataSparqlUrl: string;
       ollamaBaseUrl: string;
       whoIcdClientId: string;
@@ -338,11 +296,7 @@ export class ExternalServiceRegistry {
     if (process.env.BRIGHTSKY_BASE_URL) activeOverrides.push('BRIGHTSKY_BASE_URL');
     if (process.env.TALER_EXCHANGE_BASE_URL) activeOverrides.push('TALER_EXCHANGE_BASE_URL');
     if (process.env.TALER_BANK_BASE_URL) activeOverrides.push('TALER_BANK_BASE_URL');
-    if (process.env.ABFALL_BSR_PRIMARY_URL) activeOverrides.push('ABFALL_BSR_PRIMARY_URL');
-    if (process.env.ABFALL_BSR_FALLBACK_URL) activeOverrides.push('ABFALL_BSR_FALLBACK_URL');
-    if (process.env.ABFALL_AWB_PRIMARY_URL) activeOverrides.push('ABFALL_AWB_PRIMARY_URL');
-    if (process.env.ABFALL_SRH_PRIMARY_URL) activeOverrides.push('ABFALL_SRH_PRIMARY_URL');
-    if (process.env.KULTURDATEN_URL) activeOverrides.push('KULTURDATEN_URL');
+    // KEINE hardcoded city-URL-Overrides mehr
     if (process.env.WIKIDATA_SPARQL_URL) activeOverrides.push('WIKIDATA_SPARQL_URL');
     if (process.env.OLLAMA_BASE_URL) activeOverrides.push('OLLAMA_BASE_URL');
     if (process.env.HEIMAT_USER_AGENT) activeOverrides.push('HEIMAT_USER_AGENT');
@@ -357,11 +311,7 @@ export class ExternalServiceRegistry {
       brightSkyBase: this.brightSkyBase,
       talerExchangeBase: this.talerExchangeBase,
       talerBankBase: this.talerBankBase,
-      abfallBerlinPrimaryUrl: this.abfallBerlinPrimaryUrl,
-      abfallBerlinFallbackUrl: this.abfallBerlinFallbackUrl,
-      abfallMuenchenPrimaryUrl: this.abfallMuenchenPrimaryUrl,
-      abfallHamburgPrimaryUrl: this.abfallHamburgPrimaryUrl,
-      kulturdatenUrl: this.kulturdatenUrl,
+      // KEINE hardcoded city-URLs mehr (waste nutzt ABFALL_IO_SERVICES + AbfallNavi)
       wikidataSparqlUrl: this.wikidataSparqlUrl,
       ollamaBaseUrl: this.ollamaBaseUrl,
       whoIcdClientId: this.whoIcdClientId ? '(set)' : '(empty)',

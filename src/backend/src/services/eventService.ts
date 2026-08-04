@@ -24,14 +24,14 @@ export interface Event {
   lat: number | null;
   lng: number | null;
   url: string | null;
-  source: 'kulturdaten' | 'wikidata' | 'osm';
+  source: 'wikidata' | 'osm';
 }
 
 export class EventService {
-  // Alle URLs aus ExternalServicesRegistry — kein Hardcoded!
+  // Nur ortsunabhängige APIs: Wikidata + Overpass (weltweit)
+  // kulturdaten.berlin ENTFERNT — war Berlin-only, Hardcoding verboten!
   private readonly wikidataEndpoint = externalServices.wikidataSparqlUrl;
   private readonly overpassEndpoint = externalServices.overpassMirrors[0];
-  private readonly kulturdatenEndpoint = externalServices.kulturdatenUrl;
   private readonly userAgent = externalServices.userAgent;
 
   /**
@@ -43,7 +43,6 @@ export class EventService {
     radiusKm: number = 10,
   ): Promise<Event[]> {
     const results = await Promise.allSettled([
-      this.fetchKulturdatenEvents(lat, lng, radiusKm),
       this.fetchWikidataEvents(lat, lng, radiusKm),
       this.fetchOsmEvents(lat, lng, radiusKm),
     ]);
@@ -75,54 +74,6 @@ export class EventService {
     });
 
     return unique.slice(0, 30);
-  }
-
-  /**
-   * kulturdaten.berlin — Berlin Kulturveranstaltungen
-   */
-  private async fetchKulturdatenEvents(
-    lat: number,
-    lng: number,
-    radiusKm: number,
-  ): Promise<Event[]> {
-    try {
-      const response = await axios.get(`${this.kulturdatenEndpoint}/events`, {
-        params: {
-          'filter[location.geo.distance]': `${lat},${lng},${radiusKm * 1000}`,
-          'page[limit]': 20,
-          sort: '-startDate',
-        },
-        headers: {
-          'Accept': 'application/vnd.api+json',
-          'User-Agent': this.userAgent,
-        },
-        timeout: 10000,
-      });
-
-      const items = response.data?.data || [];
-
-      return items.map((item: any) => {
-        const attrs = item.attributes || item;
-        const loc = attrs.location || {};
-        const geo = loc.geo || {};
-        return {
-          id: `kulturdaten/${item.id || Math.random().toString(36).slice(2)}`,
-          name: attrs.name?.de || attrs.name || attrs.title || 'Event',
-          description: attrs.description?.de || attrs.description || '',
-          category: attrs.category || attrs.type || 'Kultur',
-          startDate: attrs.startDate || attrs.start || null,
-          endDate: attrs.endDate || attrs.end || null,
-          location: loc.address?.de || loc.address || loc.name || null,
-          lat: parseFloat(geo.latitude) || parseFloat(loc.latitude) || null,
-          lng: parseFloat(geo.longitude) || parseFloat(loc.longitude) || null,
-          url: attrs.url || attrs.ticketUrl || null,
-          source: 'kulturdaten' as const,
-        };
-      });
-    } catch (error) {
-      logger.debug('kulturdaten.berlin events:', (error as Error).message);
-      return [];
-    }
   }
 
   /**
