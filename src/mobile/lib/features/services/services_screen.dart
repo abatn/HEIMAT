@@ -91,39 +91,35 @@ class _ServicesScreenState extends State<ServicesScreen> {
   // ------------------------------------------------------------------
 
   Widget _buildCategorizedList() {
+    final registry = ServiceRegistry.instance;
+    final grouped = registry.categoriesGrouped();
+
+    // Kategorie-Emojis
+    const categoryEmojis = {
+      'Mobilität': '🚗',
+      'Gesundheit': '🏥',
+      'Alltag': '🏠',
+      'Kultur & Reise': '🎪',
+      'Finanzen': '💰',
+      'AI': '💬',
+    };
+
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         // Häufig benutzt
         _buildFrequentlyUsedSection(),
         const SizedBox(height: 8),
-        // Kategorien
-        _buildCategorySection('🚗', 'Mobilität', [
-          'ev_charging',
-          'parking',
-          'mobility',
-        ]),
-        _buildCategorySection('🏥', 'Gesundheit', [
-          'health',
-          'checkin',
-        ]),
-        _buildCategorySection('🏠', 'Alltag', [
-          'weather',
-          'air',
-          'waste',
-          'buergeramt',
-          'jobs',
-        ]),
-        _buildCategorySection('🎪', 'Kultur & Reise', [
-          'events',
-          'hotels',
-        ]),
-        _buildCategorySection('💰', 'Finanzen', [
-          'finance',
-        ]),
-        _buildCategorySection('💬', 'AI & Kommunikation', [
-          'ai_chat',
-        ]),
+        // Kategorien aus Registry (dynamisch, nicht hardcodiert)
+        ...grouped.map((entry) {
+          final (category, services) = entry;
+          final emoji = categoryEmojis[category] ?? '📌';
+          return _buildCategorySection(
+            emoji,
+            category,
+            services.map((s) => s.id).toList(),
+          );
+        }),
       ],
     );
   }
@@ -133,9 +129,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
   // ------------------------------------------------------------------
 
   Widget _buildFrequentlyUsedSection() {
-    // Placeholder — wird in Phase 4 mit echten Daten gefüllt
-    final frequentIds = ['weather', 'health', 'parking', 'ev_charging'];
-    final registry = ServiceRegistry.instance;
+    final frequent = ServiceRegistry.instance.frequentlyUsed();
+    if (frequent.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,11 +151,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: frequentIds.length,
+            itemCount: frequent.length,
             itemBuilder: (context, index) {
-              final service = registry.lookup(frequentIds[index]);
-              if (service == null) return const SizedBox.shrink();
-              return _buildFrequentCard(service);
+              return _buildFrequentCard(frequent[index]);
             },
           ),
         ),

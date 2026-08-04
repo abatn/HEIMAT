@@ -51,23 +51,72 @@ class ServiceRegistry {
   /// eigentliche Widget wird nur bei Tap gebaut.
   void initialize() {
     _definitions.addAll({
-      // ===== Echte native Services =====
-      'ai_chat': ServiceDefinition(
-        id: 'ai_chat',
-        name: 'HEIMAT AI',
-        category: 'Alltag',
-        description:
-            'KI-Assistent für Wetter, Luftqualität, Abfallkalender & mehr — lokal via Ollama.',
-        searchTags: const [
-          'ki',
-          'chat',
-          'assistent',
-          'ollama',
-          'hilfe',
-          'frage'
-        ],
-        nativeBuilder: (_) => const AiChatScreen(),
+      // ===== Mobilität (category: 'Mobilität') =====
+      'mobility': ServiceDefinition(
+        id: 'mobility',
+        name: 'ÖPNV & Routen',
+        category: 'Mobilität',
+        description: 'Haltestellen & Abfahrten in deiner Nähe.',
+        searchTags: const ['bus', 'bahn', 'öpnv', 'transitous', 'haltestelle'],
+        nativeBuilder: (_) => const MobilityScreen(),
+        displayOrder: 1,
+        isFrequentlyUsed: true,
       ),
+      'parking': ServiceDefinition(
+        id: 'parking',
+        name: 'Parkplätze',
+        category: 'Mobilität',
+        description: 'Parkplätze in deiner Nähe — OpenStreetMap Overpass.',
+        searchTags: const [
+          'parken',
+          'parkplatz',
+          'garage',
+          'tiefgarage',
+          'parkhaus'
+        ],
+        nativeBuilder: (_) => const ParkingScreen(),
+        displayOrder: 2,
+        isFrequentlyUsed: true,
+      ),
+      'ev_charging': ServiceDefinition(
+        id: 'ev_charging',
+        name: 'E-Ladestationen',
+        category: 'Mobilität',
+        description: 'E-Ladestationen in deiner Nähe — OpenStreetMap Overpass.',
+        searchTags: const ['ladestation', 'laden', 'ev', 'elektro', 'strom'],
+        nativeBuilder: (_) => const EvChargingScreen(),
+        displayOrder: 3,
+        isFrequentlyUsed: true,
+      ),
+
+      // ===== Gesundheit (category: 'Gesundheit') =====
+      'health': ServiceDefinition(
+        id: 'health',
+        name: 'Ärzte & Termine',
+        category: 'Gesundheit',
+        description: 'Ärzte-Suche & Online-Terminbuchung.',
+        searchTags: const ['arzt', 'praxis', 'termin', 'medizin', 'doc'],
+        nativeBuilder: (_) => const HealthScreenWithTabs(),
+        displayOrder: 1,
+        isFrequentlyUsed: true,
+      ),
+      'checkin': ServiceDefinition(
+        id: 'checkin',
+        name: 'Lebenszeichen',
+        category: 'Gesundheit',
+        description: 'Täglicher Check-in für deine Sicherheit — Timer-basiert.',
+        searchTags: const [
+          'checkin',
+          'lebenszeichen',
+          'sicherheit',
+          'notfall',
+          'schutzengel'
+        ],
+        nativeBuilder: (_) => const CheckinScreen(),
+        displayOrder: 2,
+      ),
+
+      // ===== Alltag (category: 'Alltag') =====
       'weather': ServiceDefinition(
         id: 'weather',
         name: 'Wetter',
@@ -82,6 +131,8 @@ class ServiceRegistry {
           'wettervorhersage'
         ],
         nativeBuilder: (_) => const WeatherScreen(),
+        displayOrder: 1,
+        isFrequentlyUsed: true,
       ),
       'air': ServiceDefinition(
         id: 'air',
@@ -98,6 +149,7 @@ class ServiceRegistry {
           'gesundheit'
         ],
         nativeBuilder: (_) => const AirQualityScreen(),
+        displayOrder: 2,
       ),
       'waste': ServiceDefinition(
         id: 'waste',
@@ -112,105 +164,74 @@ class ServiceRegistry {
           'gelber sack'
         ],
         nativeBuilder: (_) => const WasteScreen(),
-      ),
-      'ev_charging': ServiceDefinition(
-        id: 'ev_charging',
-        name: 'E-Ladestationen',
-        category: 'Mobilität',
-        description: 'E-Ladestationen in deiner Nähe — OpenStreetMap Overpass.',
-        searchTags: const ['ladestation', 'laden', 'ev', 'elektro', 'strom'],
-        nativeBuilder: (_) => const EvChargingScreen(),
-      ),
-      'parking': ServiceDefinition(
-        id: 'parking',
-        name: 'Parkplätze',
-        category: 'Mobilität',
-        description: 'Parkplätze in deiner Nähe — OpenStreetMap Overpass.',
-        searchTags: const [
-          'parken',
-          'parkplatz',
-          'garage',
-          'tiefgarage',
-          'parkhaus'
-        ],
-        nativeBuilder: (_) => const ParkingScreen(),
-      ),
-
-      // ===== Echte native Services =====
-      'mobility': ServiceDefinition(
-        id: 'mobility',
-        name: 'Mobilität',
-        category: 'Mobilität',
-        description: 'Haltestellen & Abfahrten in deiner Nähe.',
-        searchTags: const ['bus', 'bahn', 'öpnv', 'transitous', 'haltestelle'],
-        nativeBuilder: (_) => const MobilityScreen(),
-      ),
-      'finance': ServiceDefinition(
-        id: 'finance',
-        name: 'Finanzen',
-        category: 'Alltag',
-        description: 'Taler-Wallet & P2P-Überweisungen.',
-        searchTags: const ['geld', 'kudos', 'taler', 'p2p', 'wallet'],
-        nativeBuilder: (_) => const FinanceScreen(),
-      ),
-      'health': ServiceDefinition(
-        id: 'health',
-        name: 'Gesundheit',
-        category: 'Alltag',
-        description: 'Ärzte-Suche & Online-Terminbuchung.',
-        searchTags: const ['arzt', 'praxis', 'termin', 'medizin', 'doc'],
-        nativeBuilder: (_) => const HealthScreenWithTabs(),
-      ),
-
-      'checkin': ServiceDefinition(
-        id: 'checkin',
-        name: 'Lebenszeichen',
-        category: 'Gesundheit',
-        description:
-            'Täglicher Check-in für deine Sicherheit — Timer-basiert, kein Sensor-Tracking.',
-        searchTags: const [
-          'checkin',
-          'lebenszeichen',
-          'sicherheit',
-          'notfall',
-          'schutzengel'
-        ],
-        nativeBuilder: (_) => const CheckinScreen(),
-      ),
-
-      // ===== Coming Soon Placeholder (Phase D/E Migration pending) =====
-
-      'events': ServiceDefinition(
-        id: 'events',
-        name: 'Veranstaltungen',
-        category: 'Kultur',
-        description: 'Events & Aktivitäten aus Wikidata & OpenStreetMap.',
-        searchTags: const ['konzert', 'theater', 'fest', 'event', 'kultur'],
-        nativeBuilder: (_) => const EventsScreen(),
-      ),
-      'jobs': ServiceDefinition(
-        id: 'jobs',
-        name: 'Job-Suche',
-        category: 'Karriere',
-        description: 'Stellenangebote aus Deutschland (Arbeitnow API).',
-        searchTags: const ['stelle', 'arbeit', 'karriere', 'job', 'ba'],
-        nativeBuilder: (_) => const JobScreen(),
-      ),
-      'hotels': ServiceDefinition(
-        id: 'hotels',
-        name: 'Hotels',
-        category: 'Reise',
-        description: 'Unterkünfte aus OpenStreetMap.',
-        searchTags: const ['unterkunft', 'übernachtung', 'reise', 'hostel'],
-        nativeBuilder: (_) => const HotelsScreen(),
+        displayOrder: 3,
       ),
       'buergeramt': ServiceDefinition(
         id: 'buergeramt',
         name: 'Bürgeramt',
-        category: 'Behörden',
+        category: 'Alltag',
         description: 'Bürgerämter & Behörden in deiner Nähe.',
         searchTags: const ['amt', 'behörde', 'verwaltung', 'termin'],
         nativeBuilder: (_) => const BuergeramtScreen(),
+        displayOrder: 4,
+      ),
+      'jobs': ServiceDefinition(
+        id: 'jobs',
+        name: 'Job-Suche',
+        category: 'Alltag',
+        description: 'Stellenangebote aus Deutschland (Arbeitnow API).',
+        searchTags: const ['stelle', 'arbeit', 'karriere', 'job', 'ba'],
+        nativeBuilder: (_) => const JobScreen(),
+        displayOrder: 5,
+      ),
+
+      // ===== Kultur & Reise (category: 'Kultur & Reise') =====
+      'events': ServiceDefinition(
+        id: 'events',
+        name: 'Veranstaltungen',
+        category: 'Kultur & Reise',
+        description: 'Events & Aktivitäten aus Wikidata & OpenStreetMap.',
+        searchTags: const ['konzert', 'theater', 'fest', 'event', 'kultur'],
+        nativeBuilder: (_) => const EventsScreen(),
+        displayOrder: 1,
+      ),
+      'hotels': ServiceDefinition(
+        id: 'hotels',
+        name: 'Hotels',
+        category: 'Kultur & Reise',
+        description: 'Unterkünfte aus OpenStreetMap.',
+        searchTags: const ['unterkunft', 'übernachtung', 'reise', 'hostel'],
+        nativeBuilder: (_) => const HotelsScreen(),
+        displayOrder: 2,
+      ),
+
+      // ===== Finanzen (category: 'Finanzen') =====
+      'finance': ServiceDefinition(
+        id: 'finance',
+        name: 'Taler-Wallet',
+        category: 'Finanzen',
+        description: 'Taler-Wallet & P2P-Überweisungen.',
+        searchTags: const ['geld', 'kudos', 'taler', 'p2p', 'wallet'],
+        nativeBuilder: (_) => const FinanceScreen(),
+        displayOrder: 1,
+      ),
+
+      // ===== AI (category: 'AI') =====
+      'ai_chat': ServiceDefinition(
+        id: 'ai_chat',
+        name: 'HEIMAT AI',
+        category: 'AI',
+        description: 'KI-Assistent für alle Services — lokal via Ollama.',
+        searchTags: const [
+          'ki',
+          'chat',
+          'assistent',
+          'ollama',
+          'hilfe',
+          'frage'
+        ],
+        nativeBuilder: (_) => const AiChatScreen(),
+        displayOrder: 1,
       ),
     });
   }
@@ -219,6 +240,48 @@ class ServiceRegistry {
   ServiceDefinition? lookup(String id) => _definitions[id];
 
   /// True wenn der Service ein nativen Flutter-Builder hat.
-  /// Phase X.1: Alle registrierten Services haben einen nativeBuilder (ComingSoonScreen zählt).
   bool isNative(String id) => _definitions[id]?.isNative ?? false;
+
+  /// Alle Kategorien in Reihenfolge, mit zugehörigen Services.
+  /// Liefert: [('Mobilität', [def1, def2, ...]), ...]
+  List<(String, List<ServiceDefinition>)> categoriesGrouped() {
+    final map = <String, List<ServiceDefinition>>{};
+    for (final def in _definitions.values) {
+      final cat = def.category ?? 'Sonstiges';
+      map.putIfAbsent(cat, () => []);
+      map[cat]!.add(def);
+    }
+    // Sortiere Services innerhalb jeder Kategorie nach displayOrder
+    for (final list in map.values) {
+      list.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    }
+    // Kategorien-Reihenfolge: Mobilität, Gesundheit, Alltag, Kultur, Finanzen, AI
+    const order = [
+      'Mobilität',
+      'Gesundheit',
+      'Alltag',
+      'Kultur & Reise',
+      'Finanzen',
+      'AI'
+    ];
+    final result = <(String, List<ServiceDefinition>)>[];
+    for (final cat in order) {
+      if (map.containsKey(cat)) {
+        result.add((cat, map[cat]!));
+      }
+    }
+    // Restliche Kategorien anhängen
+    for (final entry in map.entries) {
+      if (!order.contains(entry.key)) {
+        result.add((entry.key, entry.value));
+      }
+    }
+    return result;
+  }
+
+  /// Services mit isFrequentlyUsed = true, sortiert nach displayOrder.
+  List<ServiceDefinition> frequentlyUsed() {
+    return _definitions.values.where((d) => d.isFrequentlyUsed).toList()
+      ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+  }
 }

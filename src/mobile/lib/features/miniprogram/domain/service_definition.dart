@@ -19,7 +19,7 @@ class ServiceDefinition {
   /// Anzeige-Name für UI
   final String name;
 
-  /// Optionale Kategorie für UI-Gruppierung (z.B. 'Alltag', 'Mobilität')
+  /// Kategorie für UI-Gruppierung (z.B. 'Mobilität', 'Gesundheit')
   final String? category;
 
   /// Optionale Beschreibung für Service-Such-Tooltip und Detail-View
@@ -34,6 +34,12 @@ class ServiceDefinition {
   /// Builder für das native Flutter-Widget. Wenn null, wird IFrame-Pfad benutzt.
   final Widget Function(BuildContext context)? nativeBuilder;
 
+  /// Reihenfolge innerhalb der Kategorie (niedriger = weiter oben)
+  final int displayOrder;
+
+  /// true wenn Service in "Häufig benutzt" Section angezeigt werden soll
+  final bool isFrequentlyUsed;
+
   const ServiceDefinition({
     required this.id,
     required this.name,
@@ -42,6 +48,8 @@ class ServiceDefinition {
     this.searchTags,
     this.fallbackUrl,
     this.nativeBuilder,
+    this.displayOrder = 99,
+    this.isFrequentlyUsed = false,
   });
 
   /// True wenn ein native Flutter-Widget verfügbar ist
