@@ -11,9 +11,9 @@
    - Parking Unit-Tests: 10/10 bestanden (100%)
    - Klassifikation: 0 echte Bugs, 0 flaky, 134 Umgebungsprobleme
 4. **Commits:** 128 (seit 2026-07-11, 23 Tage = ~~~21/Tag)
-5. **Phasen abgeschlossen:** 9 von ~10 (Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Phase C ✅, Phase D (Jobs+AI): E-Ladestationen + Parken ✅, Abfallkalender abfall.io ✅, Wetter-Tipps ✅, Air Quality Tips ✅, AI Chat Timeout gefixt ✅)
+5. **Phasen abgeschlossen:** 9 von ~10 (Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Phase C ✅, Phase D (Jobs+AI): E-Ladestationen ⚠️, Parken ⚠️, Abfallkalender ⚠️, Wetter-Tipps ✅, Air Quality Tips ✅, AI Chat Timeout gefixt ✅)
    - HealthProvider-Tests: 25/25 bestanden (searchDoctors, loadSlots, bookAppointment, DTO-Parsing)
-6. **Services live:** 3 (Mobilität, Gesundheit, Finanzen) von geplanten 13
+6. **Services live:** 8 von 14 funktional (Mobilität ✅, Gesundheit ✅, Finanzen ✅, Wetter ✅, Luft ✅, Jobs ✅, AI ✅, Lebenszeichen ✅). 4 eingeschränkt (Parken ⚠️, E-Laden ⚠️, Abfall ⚠️, Events ⚠️). 2 nicht verfügbar (Bürgeramt ❌, Hotels ❌).
 7. **API-Endpunkte:** 19 Route-Dateien, 109 Endpunkte (davon 45 Health-Endpunkte, 1 Parken-Endpunkt)
 8. **Flutter-Dateien:** 84 Dart-Dateien, 22 Testdateien
 9. **Backend-Dateien:** 98 TypeScript-Dateien, 34 Testdateien

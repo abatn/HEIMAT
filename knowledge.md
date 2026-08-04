@@ -200,13 +200,13 @@ Basierend auf WeChat (China) und Grab (Singapur) wird HEIMAT von 3 auf **10+ Ser
 | 4 | 💬 **Chat/Social (Futai)** | Futai (github.com/abatn/futai) | Open Source | ✅ | Ollama-KI-Twin + Gedächtnis |
 | 5 | 🌤️ **Wetter** | DWD (Deutscher Wetterdienst) | 🏛️ Staatlich CC-BY | ✅ | Unwetter-Früherkennung |
 | 6 | 🌬️ **Luftqualität** | Umweltbundesamt (UBA) | 🏛️ Staatlich Open Data | ✅ | Gesundheitsempfehlung |
-| 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-Portale | 🏛️ Staatlich | ✅ | Sortier-Tipps + Erinnerung |
-| 8 | 🔌 **E-Ladestationen** | OpenStreetMap + GoingElectric | 🌍 Open Source | ⚠️ | Routenplanung inkl. Ladestopps |
+| 7 | 🗑️ **Abfallkalender** | Kommunale Open-Data-Portale | 🏛️ Staatlich | ⚠️ | Braucht lat/lng (GPS) |
+| 8 | 🔌 **E-Ladestationen** | OpenStreetMap + GoingElectric | 🌍 Open Source | ⚠️ | Overpass-Rate-Limit |
 | 9 | 💼 **Job-Suche** | BA (inoffizielle/Community-API) + Adzuna | 🏛️ Staatlich / Kommerziell | ✅ | Job-Matching + Skill-Gap |
-| 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | 🌍 Open Source | ✅ | Personalisierte Empfehlung |
-| 11 | 🏨 **Hotels & Unterkünfte** | OSM + Wikidata (nur Standort-Daten, keine Buchung) | 🌍 Open Source | ❌ | Reiseplanung mit Budget |
-| 12 | 🅿️ **Parken** | OpenStreetMap (OSM) | 🌍 Open Source | ✅ | OSM Overpass Live |
-| 13 | 🏛️ **Bürgeramt-Services** | Kommunale APIs | 🏛️ Staatlich | ✅ | AI-Terminfindung |
+| 10 | 📰 **Veranstaltungen** | Wikidata + OSM + Stadtportale | 🌍 Open Source | ⚠️ | Nicht getestet |
+| 11 | 🏨 **Hotels & Unterkünfte** | OSM + Wikidata (nur Standort-Daten, keine Buchung) | 🌍 Open Source | ❌ | Nicht verfügbar |
+| 12 | 🅿️ **Parken** | OpenStreetMap (OSM) | 🌍 Open Source | ⚠️ | Wenige Ergebnisse |
+| 13 | 🏛️ **Bürgeramt-Services** | Kommunale APIs | 🏛️ Staatlich | ❌ | Endpoint fehlt |
 
 ### Integrations-Strategie für Futai (React Native)
 
@@ -511,16 +511,16 @@ Ein intelligenter Health AI Agent, der:
 
 ## Service-Registry (14 Services, 6 Kategorien)
 
-| Kategorie | Services | displayOrder |
-|-----------|----------|-------------|
-| **Mobilität** | ÖPNV, Parken, E-Laden | 1-3 |
-| **Gesundheit** | Ärzte, Lebenszeichen | 4-5 |
-| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | 6-10 |
-| **Kultur & Reise** | Events, Hotels | 11-12 |
-| **Finanzen** | Taler-Wallet | 13 |
-| **AI** | HEIMAT AI | 14 |
+| Kategorie | Services | Status |
+|-----------|----------|--------|
+| **Mobilität** | ÖPNV ✅, Parken ⚠️, E-Laden ⚠️ | 1 funktioniert, 2 eingeschränkt |
+| **Gesundheit** | Ärzte ✅, Lebenszeichen ✅ | Beide funktionieren |
+| **Alltag** | Wetter ✅, Luft ✅, Abfall ⚠️, Bürgeramt ❌, Jobs ✅ | 3 funktionieren, 1 eingeschränkt, 1 fehlt |
+| **Kultur & Reise** | Events ⚠️, Hotels ❌ | 1 nicht getestet, 1 nicht verfügbar |
+| **Finanzen** | Taler-Wallet ✅ | Funktioniert |
+| **AI** | HEIMAT AI ✅ | Funktioniert |
 
-**Häufig benutzt (isFrequentlyUsed=true):** ÖPNV, Parken, E-Laden, Ärzte, Wetter.
+**Gesamt:** 8/14 Services funktionieren, 4 eingeschränkt, 2 nicht verfügbar.
 
 ## Cost / footprint
 
