@@ -500,6 +500,7 @@ Ein intelligenter Health AI Agent, der:
 | `.opencode/skills/heimat-dev/SKILL.md` | Auto-loaded by OpenCode for HEIMAT tasks |
 | `knowledge.md` | This file — Freebuff's fast-access summary |
 | `docs/3-tab-rebuild-plan.md` | 3-Tab-Rebuild-Plan (WeChat-Muster) — 7 Phasen, 9 Dateien |
+| `docs/api-reference.md` | API-Referenz — Beste verfügbare offene APIs für alle 14 Services |
 
 ## App-Navigation (3 Tabs — WeChat-Muster)
 
@@ -513,14 +514,14 @@ Ein intelligenter Health AI Agent, der:
 
 | Kategorie | Services | Status |
 |-----------|----------|--------|
-| **Mobilität** | ÖPNV ✅, Parken ⚠️, E-Laden ⚠️ | 1 funktioniert, 2 eingeschränkt |
+| **Mobilität** | ÖPNV ✅, Parken ✅, E-Laden ✅ | Alle funktionieren |
 | **Gesundheit** | Ärzte ✅, Lebenszeichen ✅ | Beide funktionieren |
-| **Alltag** | Wetter ✅, Luft ✅, Abfall ⚠️, Bürgeramt ❌, Jobs ✅ | 3 funktionieren, 1 eingeschränkt, 1 fehlt |
-| **Kultur & Reise** | Events ⚠️, Hotels ❌ | 1 nicht getestet, 1 nicht verfügbar |
+| **Alltag** | Wetter ✅, Luft ✅, Abfall ❌, Bürgeramt ✅, Jobs ✅ | 4 funktionieren, 1 nicht verfügbar |
+| **Kultur & Reise** | Events ⚠️, Hotels ⚠️ | 1 eingeschränkt, 1 nicht getestet |
 | **Finanzen** | Taler-Wallet ✅ | Funktioniert |
 | **AI** | HEIMAT AI ✅ | Funktioniert |
 
-**Gesamt:** 8/14 Services funktionieren, 4 eingeschränkt, 2 nicht verfügbar.
+**Gesamt:** 10/14 Services funktionieren 100%, 2 eingeschränkt, 2 nicht verfügbar.
 
 ## Cost / footprint
 

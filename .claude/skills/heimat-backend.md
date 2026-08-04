@@ -93,3 +93,13 @@ src/backend/src/
 - Schema-Quelle: `src/database/schema.sql` — CI lädt via `psql`
 - GTFS-Import: `src/backend/scripts/import-gtfs-local.ts` (nicht auf Render — Free-Tier Limit)
 - Kein `npm run migrate` oder `npm run seed`
+
+## API-Referenz
+
+Vollständige Übersicht der besten verfügbaren offenen APIs: `docs/api-reference.md`
+
+Kurzfassung:
+- ÖPNV: db-rest ✅ (Optimal)
+- Wetter: Open-Meteo ✅ (Optimal)
+- Abfall: abfall.io ❌ (BSR defekt, Reparatur nötig)
+- Events: Kulturdaten Berlin ⚠️ (Wikidata hat wenig Daten)

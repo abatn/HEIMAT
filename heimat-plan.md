@@ -14,6 +14,8 @@ HEIMAT 2.0 ist eine Open-Source Super App für den deutschen Alltag, die ausschl
 
 **Ergebnis: 18 externe API-Endpoints gefunden, 1 Doku-Lücke identifiziert.**
 
+**Vollständige API-Referenz:** `docs/api-reference.md` — Beste verfügbare offene APIs für alle 14 Services (Recherche 2026-08-04).
+
 | # | API | Service | In Doku? |
 |---|-----|---------|:--------:|
 | 1 | `overpass-api.de/api/interpreter` | mobility, health | ✅ |

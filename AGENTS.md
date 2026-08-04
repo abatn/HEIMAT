@@ -223,6 +223,7 @@ CI: Code-Reviewer-minimax-m3 9/9 PASS, Code gepuscht, Flutter CI Analyse+Test+Sm
 
 **Status:** ✅ Phase 0-4 abgeschlossen, CI grün.
 **Plan:** `docs/3-tab-rebuild-plan.md` (519 Zeilen).
+**API-Referenz:** `docs/api-reference.md` — Beste verfügbare offene APIs für alle 14 Services.
 
 ### Navigation (3 Tabs statt 5)
 
