@@ -35,6 +35,7 @@ import { logger } from '../utils/logger';
 import { CITY_BOUNDS, resolveCity, CityNotSupportedError, type WasteCityKey, type CityBounds } from './wasteCityResolver';
 import { type CityWasteConfig, getSupportedCities, findCityByPlz, findCityByName } from './wasteCityRegistry';
 import { AbfallIoService, type AbfallIoResult } from './abfallIoService';
+import { AbfallNaviService, type AbfallNaviResult } from './abfallNaviService';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 import { externalServices } from '../config/externalServices';
 
@@ -180,6 +181,22 @@ export class WasteService {
         source = result.source;
       } catch (err) {
         logger.error(`WasteService: abfall.io failed for ${cityConfig.displayName}: ${(err as Error).message}`);
+        throw err;
+      }
+    } else if (cityConfig.adapter === 'abfall_navi' && cityConfig.abfallNaviRegion) {
+      // AbfallNavi (Bund) Adapter: Staatliche API
+      const abfallNavi = new AbfallNaviService(this.http);
+      try {
+        const result = await abfallNavi.fetchCalendar(
+          cityConfig.abfallNaviRegion,
+          street || '',
+          houseNr || '',
+          weeks,
+        );
+        events = result.events;
+        source = result.source;
+      } catch (err) {
+        logger.error(`WasteService: AbfallNavi failed for ${cityConfig.displayName}: ${(err as Error).message}`);
         throw err;
       }
     } else {

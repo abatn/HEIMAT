@@ -28,7 +28,7 @@ export interface CityWasteConfig {
   /** Anzeigename (z.B. "Berlin", "München") */
   displayName: string;
   /** API-Adapter-Typ */
-  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io';
+  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io' | 'abfall_navi';
   /** Primäre API-URL (konfigurierbar via Env) */
   primaryUrl: string;
   /** Fallback-URL (optional) */
@@ -48,6 +48,8 @@ export interface CityWasteConfig {
   };
   /** Optional: abfall.io service_id für abfall_io Adapter */
   abfallIoServiceId?: string;
+  /** Optional: AbfallNavi Region-Key für abfall_navi Adapter */
+  abfallNaviRegion?: string;
   /** Optional: PLZ-Prefixes für Quick-Matching */
   plzPrefixes?: string[];
 }
@@ -91,6 +93,17 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     addressRequired: true,
     attribution: 'Stadtreinigung Hamburg (SRH) — CC-BY 4.0',
     nominatimKeywords: ['hamburg'],
+  },
+  {
+    id: 'nuernberg',
+    displayName: 'Nürnberg',
+    adapter: 'abfall_navi',
+    primaryUrl: '', // Wird über abfallNaviRegion aufgelöst
+    fallbackUrl: undefined,
+    addressRequired: true,
+    attribution: 'AbfallNavi (Bund/RegioIT) — Open Data',
+    nominatimKeywords: ['nürnberg', 'nuernberg', 'nuernberg'],
+    abfallNaviRegion: 'nuernberg',
   },
 ];
 
