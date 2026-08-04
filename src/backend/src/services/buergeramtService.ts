@@ -4,6 +4,7 @@
  * Datenquelle: OpenStreetMap Overpass — echte deutsche Behörden
  * Tags: amenity=townhall, office=government, office=admin
  *
+ * Mirror-Fallback: Bei Ausfall des ersten Mirrors wird der nächste probiert.
  * KEINE hardcoded URLs — alles via externalServices.overpassMirrors.
  */
 
@@ -25,13 +26,13 @@ export interface Buergeramt {
 }
 
 export class BuergeramtService {
-  // Kein Hardcoded — Overpass via ExternalServicesRegistry
-  private readonly overpassEndpoint = externalServices.overpassMirrors[0];
+  // Kein Hardcoded — Overpass Mirrors via ExternalServicesRegistry
+  private readonly overpassMirrors = externalServices.overpassMirrors;
   private readonly userAgent = externalServices.userAgent;
 
   /**
    * Bürgerämter & Behörden in der Nähe laden
-   * Overpass-Suche: amenity=townhall + office=government + office=admin
+   * Overpass-Suche mit Mirror-Fallback
    */
   async getNearbyAemter(
     lat: number,
@@ -40,7 +41,6 @@ export class BuergeramtService {
   ): Promise<Buergeramt[]> {
     const radiusM = radiusKm * 1000;
 
-    // Overpass QL: alle Behörden-Typen parallel suchen
     const query = `
       [out:json][timeout:20];
       (
@@ -56,45 +56,50 @@ export class BuergeramtService {
       out skel qt;
     `;
 
-    try {
-      const response = await axios.post(
-        this.overpassEndpoint,
-        `data=${encodeURIComponent(query)}`,
-        {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          timeout: 20000,
-        },
-      );
+    // Mirror-Fallback: Alle Mirrors der Reihe nach probieren
+    for (const mirror of this.overpassMirrors) {
+      try {
+        const response = await axios.post(
+          mirror,
+          `data=${encodeURIComponent(query)}`,
+          {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            timeout: 20000,
+          },
+        );
 
-      const elements = response.data?.elements || [];
+        const elements = response.data?.elements || [];
 
-      // Nur Elemente mit Namen (echte Behörden)
-      return elements
-        .filter((el: any) => el.tags?.name && (el.type === 'node' || el.center))
-        .map((el: any) => {
-          const lat2 = el.lat || el.center?.lat;
-          const lng2 = el.lon || el.center?.lon;
-          return {
-            id: `osm/${el.id}`,
-            name: el.tags.name,
-            type: _detectType(el.tags),
-            address: _buildAddress(el.tags),
-            phone: el.tags?.phone || el.tags?.['contact:phone'] || null,
-            website: el.tags?.website || el.tags?.['contact:website'] || null,
-            lat: lat2,
-            lng: lng2,
-            distance_km: _haversineKm(lat, lng, lat2, lng2),
-            openingHours: el.tags?.opening_hours || null,
-          };
-        })
-        .sort((a: Buergeramt, b: Buergeramt) =>
-          (a.distance_km ?? 999) - (b.distance_km ?? 999),
-        )
-        .slice(0, 20);
-    } catch (error) {
-      logger.warn('Overpass Bürgeramt search failed:', (error as Error).message);
-      return [];
+        return elements
+          .filter((el: any) => el.tags?.name && (el.type === 'node' || el.center))
+          .map((el: any) => {
+            const lat2 = el.lat || el.center?.lat;
+            const lng2 = el.lon || el.center?.lon;
+            return {
+              id: `osm/${el.id}`,
+              name: el.tags.name,
+              type: _detectType(el.tags),
+              address: _buildAddress(el.tags),
+              phone: el.tags?.phone || el.tags?.['contact:phone'] || null,
+              website: el.tags?.website || el.tags?.['contact:website'] || null,
+              lat: lat2,
+              lng: lng2,
+              distance_km: _haversineKm(lat, lng, lat2, lng2),
+              openingHours: el.tags?.opening_hours || null,
+            };
+          })
+          .sort((a: Buergeramt, b: Buergeramt) =>
+            (a.distance_km ?? 999) - (b.distance_km ?? 999),
+          )
+          .slice(0, 20);
+      } catch (error) {
+        logger.warn(`Overpass mirror ${mirror} failed for Bürgeramt:`, (error as Error).message);
+        continue;
+      }
     }
+
+    logger.error('All Overpass mirrors failed for Bürgeramt');
+    return [];
   }
 }
 
