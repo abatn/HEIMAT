@@ -58,54 +58,9 @@ export interface CityWasteConfig {
 // Dynamische Registry (kein Hardcoding — neue Städte = neuer Eintrag)
 // ---------------------------------------------------------------------------
 
-const CITY_REGISTRY: CityWasteConfig[] = [
-  // BSR Berlin: Temporär deaktiviert — neue API erfordert Schedule-ID
-  // die nicht öffentlich per Adresse aufgelöst werden kann.
-  // Status: https://github.com/abatn/HEIMAT/issues/XXX
-  // TODO: BSR API erneut prüfen sobald öffentliches Lookup verfügbar ist.
-  // Aktuell: Zeige klare Meldung "BSR-API nicht verfügbar" statt 404-Fehler.
-  {
-    id: 'berlin',
-    displayName: 'Berlin',
-    adapter: 'bsr',
-    primaryUrl: '', // Deaktiviert — BSR API erfordert Schedule-ID
-    fallbackUrl: undefined,
-    addressRequired: true,
-    attribution: 'Berliner Stadtreinigung (BSR) — CC-BY 4.0',
-    nominatimKeywords: ['berlin'],
-  },
-  {
-    id: 'muenchen',
-    displayName: 'München',
-    adapter: 'awb',
-    primaryUrl: externalServices.abfallMuenchenPrimaryUrl,
-    fallbackUrl: undefined,
-    addressRequired: true,
-    attribution: 'Abfallwirtschaftsbetrieb München (AWB) — CC-BY 4.0',
-    nominatimKeywords: ['münchen', 'munich', 'muenchen'],
-  },
-  {
-    id: 'hamburg',
-    displayName: 'Hamburg',
-    adapter: 'srh',
-    primaryUrl: externalServices.abfallHamburgPrimaryUrl,
-    fallbackUrl: undefined,
-    addressRequired: true,
-    attribution: 'Stadtreinigung Hamburg (SRH) — CC-BY 4.0',
-    nominatimKeywords: ['hamburg'],
-  },
-  {
-    id: 'nuernberg',
-    displayName: 'Nürnberg',
-    adapter: 'abfall_navi',
-    primaryUrl: '', // Wird über abfallNaviRegion aufgelöst
-    fallbackUrl: undefined,
-    addressRequired: true,
-    attribution: 'AbfallNavi (Bund/RegioIT) — Open Data',
-    nominatimKeywords: ['nürnberg', 'nuernberg', 'nuernberg'],
-    abfallNaviRegion: 'nuernberg',
-  },
-];
+// KEIN statisches CITY_REGISTRY mehr — alles dynamisch via ABFALL_IO_SERVICES + AbfallNavi.
+// Hardcoding ist verboten (User-Regel).
+const CITY_REGISTRY: CityWasteConfig[] = [];
 
 // ---------------------------------------------------------------------------
 // Lookup-Funktionen
@@ -172,10 +127,27 @@ export function findCityByNominatim(nominatim: {
 }
 
 /**
- * Alle unterstützten Städte auflisten.
+ * Alle unterstützten Städte auflisten (dynamisch via ABFALL_IO_SERVICES + AbfallNavi).
  */
 export function getSupportedCities(): CityWasteConfig[] {
-  return [...CITY_REGISTRY];
+  const cities: CityWasteConfig[] = [...CITY_REGISTRY];
+  
+  // Dynamisch aus ABFALL_IO_SERVICES befuellen
+  for (const service of ABFALL_IO_SERVICES) {
+    cities.push({
+      id: `abfall-io-${service.serviceId.slice(0, 8)}`,
+      displayName: service.title,
+      adapter: 'abfall_io',
+      primaryUrl: `https://api.abfall.io?key=${service.serviceId}`,
+      addressRequired: true,
+      attribution: `abfall.io — ${service.title} (AGPL)`,
+      nominatimKeywords: [service.title.toLowerCase()],
+      abfallIoServiceId: service.serviceId,
+      plzPrefixes: service.plzPrefix,
+    });
+  }
+  
+  return cities;
 }
 
 /**
