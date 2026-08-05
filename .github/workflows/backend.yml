@@ -84,9 +84,8 @@ jobs:
       - name: Wait for PostgreSQL
         run: |
           echo "Warte auf PostgreSQL..."
-          for i in {1..30}; do
-            if pg_isready -h localhost -p 5432 -U postgres; then
-              echo "PostgreSQL ist bereit!"
+          for i in $(seq 1 30); do
+            if node -e "const {Pool}=require('pg');const p=new Pool({host:'localhost',port:5432,user:'postgres',password:'postgres',database:'heimat_test',connectionTimeoutMillis:2000});p.query('SELECT 1').then(()=>{console.log('PostgreSQL bereit!');process.exit(0)}).catch(()=>{process.exit(1)})"; then
               break
             fi
             echo "Warte... ($i/30)"
