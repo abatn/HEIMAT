@@ -11,4 +11,6 @@ module.exports = {
   coverageReporters: ['text', 'lcov'],
   forceExit: true,
   testTimeout: 30000,
+  // Warte bis Postgres bereit ist BEVOR Tests starten
+  globalSetup: './src/__tests__/globalSetup.ts',
 };
