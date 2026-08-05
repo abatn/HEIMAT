@@ -1,30 +1,21 @@
-import 'package:geolocator/geolocator.dart';
+/// location_service.dart — Standort-Dienst fuer HEIMAT
+///
+/// Nutzt bedingten Import fuer Web/ Mobile:
+/// - Mobile/Desktop: Geolocator (nativer GPS-Zugriff)
+/// - Flutter Web: Browser-Geolocation-API
+///
+/// Pattern-Mirror zu web_url_opener.dart (Conditional Import).
+
 import 'package:latlong2/latlong.dart';
+import 'location_service_stub.dart'
+    if (dart.library.js_interop) 'location_service_web.dart';
 
 class LocationService {
-  static Future<LatLng?> getCurrentLocation() async {
-    // 1. Service-Status prüfen
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return null;
-
-    // 2. Permission prüfen
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return null;
-    }
-
-    if (permission == LocationPermission.deniedForever) return null;
-
-    // 3. Position abrufen mit Timeout
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
-      );
-      return LatLng(position.latitude, position.longitude);
-    } catch (e) {
-      return null;
-    }
-  }
+  /// Laedt den aktuellen Standort ueber die Plattform-spezifische API.
+  /// Gibt null zurueck wenn:
+  /// - Standortdienst deaktiviert
+  /// - Berechtigung verweigert
+  /// - Timeout (15s Mobile, 10s Web)
+  /// - Browser erlaubt keinen Standortzugriff (Web)
+  static Future<LatLng?> getCurrentLocation() => getCurrentLocationImpl();
 }
