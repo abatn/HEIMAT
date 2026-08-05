@@ -63,10 +63,10 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres -d heimat_test"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
     steps:
       - name: Checkout
         working-directory: ${{ github.workspace }}
@@ -81,6 +81,17 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
+      - name: Wait for PostgreSQL
+        run: |
+          echo "Warte auf PostgreSQL..."
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "PostgreSQL ist bereit!"
+              break
+            fi
+            echo "Warte... ($i/30)"
+            sleep 2
+          done
       - name: Initialize database
         run: psql -f src/database/schema.sql postgresql://postgres:postgres@localhost:5432/heimat_test
       - name: Run tests
