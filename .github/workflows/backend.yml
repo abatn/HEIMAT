@@ -69,11 +69,11 @@ jobs:
         run: npm install
       - name: Debug: Check Supabase secrets
         run: |
-          echo "DB_HOST set: $([ -n \"$DB_HOST\" ] && echo 'yes' || echo 'no')"
-          echo "DB_PORT set: $([ -n \"$DB_PORT\" ] && echo 'yes' || echo 'no')"
-          echo "DB_NAME set: $([ -n \"$DB_NAME\" ] && echo 'yes' || echo 'no')"
-          echo "DB_USER set: $([ -n \"$DB_USER\" ] && echo 'yes' || echo 'no')"
-          echo "DB_PASSWORD set: $([ -n \"$DB_PASSWORD\" ] && echo 'yes' || echo 'no')"
+          echo "DB_HOST set: $(if [ -n '$DB_HOST' ]; then echo 'yes'; else echo 'no'; fi)"
+          echo "DB_PORT set: $(if [ -n '$DB_PORT' ]; then echo 'yes'; else echo 'no'; fi)"
+          echo "DB_NAME set: $(if [ -n '$DB_NAME' ]; then echo 'yes'; else echo 'no'; fi)"
+          echo "DB_USER set: $(if [ -n '$DB_USER' ]; then echo 'yes'; else echo 'no'; fi)"
+          echo "DB_PASSWORD set: $(if [ -n '$DB_PASSWORD' ]; then echo 'yes'; else echo 'no'; fi)"
         env:
           DB_HOST: ${{ secrets.SUPABASE_TEST_HOST }}
           DB_PORT: ${{ secrets.SUPABASE_TEST_PORT }}
