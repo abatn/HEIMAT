@@ -67,6 +67,19 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
+      - name: Debug: Check Supabase secrets
+        run: |
+          echo "DB_HOST set: $([ -n \"$DB_HOST\" ] && echo 'yes' || echo 'no')"
+          echo "DB_PORT set: $([ -n \"$DB_PORT\" ] && echo 'yes' || echo 'no')"
+          echo "DB_NAME set: $([ -n \"$DB_NAME\" ] && echo 'yes' || echo 'no')"
+          echo "DB_USER set: $([ -n \"$DB_USER\" ] && echo 'yes' || echo 'no')"
+          echo "DB_PASSWORD set: $([ -n \"$DB_PASSWORD\" ] && echo 'yes' || echo 'no')"
+        env:
+          DB_HOST: ${{ secrets.SUPABASE_TEST_HOST }}
+          DB_PORT: ${{ secrets.SUPABASE_TEST_PORT }}
+          DB_NAME: ${{ secrets.SUPABASE_TEST_DB }}
+          DB_USER: ${{ secrets.SUPABASE_TEST_USER }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_TEST_PASSWORD }}
       - name: Initialize database (Supabase)
         run: |
           npm install pg
