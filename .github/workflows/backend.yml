@@ -53,20 +53,6 @@ jobs:
     defaults:
       run:
         working-directory: src/backend
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: heimat_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d heimat_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
     steps:
       - name: Checkout
         working-directory: ${{ github.workspace }}
@@ -81,26 +67,17 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
-      - name: Wait for PostgreSQL
-        run: |
-          echo "Warte auf PostgreSQL..."
-          for i in $(seq 1 30); do
-            if node -e "const {Pool}=require('pg');const p=new Pool({host:'localhost',port:5432,user:'postgres',password:'postgres',database:'heimat_test',connectionTimeoutMillis:2000});p.query('SELECT 1').then(()=>{console.log('PostgreSQL bereit!');process.exit(0)}).catch(()=>{process.exit(1)})"; then
-              break
-            fi
-            echo "Warte... ($i/30)"
-            sleep 2
-          done
-      - name: Initialize database
-        run: psql -f src/database/schema.sql postgresql://postgres:postgres@localhost:5432/heimat_test
+      - name: Initialize database (Supabase)
+        run: psql -f src/database/schema.sql postgresql://${{ secrets.SUPABASE_TEST_USER }}:${{ secrets.SUPABASE_TEST_PASSWORD }}@${{ secrets.SUPABASE_TEST_HOST }}:${{ secrets.SUPABASE_TEST_PORT }}/${{ secrets.SUPABASE_TEST_DB }}
       - name: Run tests
         run: npm test
         env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: heimat_test
-          DB_USER: postgres
-          DB_PASSWORD: postgres
+          DB_HOST: ${{ secrets.SUPABASE_TEST_HOST }}
+          DB_PORT: ${{ secrets.SUPABASE_TEST_PORT }}
+          DB_NAME: ${{ secrets.SUPABASE_TEST_DB }}
+          DB_USER: ${{ secrets.SUPABASE_TEST_USER }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_TEST_PASSWORD }}
+          DB_SSL: "true"
 
   build:
     name: Build
