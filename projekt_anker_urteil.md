@@ -1,6 +1,6 @@
 # Anker (Anchors) – nicht schönbare Messgrößen
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 10.0
+**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
 
 1. **Echte Einnahmen:** 0 EUR — Projekt ist Open Source, keine Monetarisierung implementiert
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)

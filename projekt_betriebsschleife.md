@@ -1,6 +1,6 @@
 # Betriebsschleife (schnell)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 10.0
+**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
 
 - **Welche Daten werden täglich/wöchentlich erhoben?**
   - **Täglich (bei jedem Commit/CI-Lauf):**

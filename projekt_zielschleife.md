@@ -1,6 +1,6 @@
 # Zielschleife (angewandte Schleife)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 10.0
+**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
 
 - **Endgültiges Ziel des Projekts:**
   HEIMAT 2.0 ist eine Open-Source "Super App" (à la WeChat/Grab) mit deutscher UI,

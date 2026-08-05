@@ -1,6 +1,6 @@
 # Überwachungsschleife (Gegenmaßstab)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 10.0
+**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
 
 - **Was wird überwacht? (Kennzahlen)**
   - **Code-Qualität:**
@@ -60,7 +60,7 @@
 
 # Prüfschleife (unabhängig)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 10.0
+**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
 
 - **Welche Zahlen werden geprüft?**
   - Backend-Test-Ergebnisse (CI: 555/555 = 100%, lokal: 413/555 = 75.5%)
