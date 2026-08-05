@@ -68,7 +68,28 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Initialize database (Supabase)
-        run: psql -f src/database/schema.sql postgresql://${{ secrets.SUPABASE_TEST_USER }}:${{ secrets.SUPABASE_TEST_PASSWORD }}@${{ secrets.SUPABASE_TEST_HOST }}:${{ secrets.SUPABASE_TEST_PORT }}/${{ secrets.SUPABASE_TEST_DB }}
+        run: |
+          npm install pg
+          node -e "
+            const {Pool}=require('pg');
+            const fs=require('fs');
+            const schema=fs.readFileSync('src/database/schema.sql','utf8');
+            const pool=new Pool({
+              host:process.env.DB_HOST,
+              port:process.env.DB_PORT,
+              database:process.env.DB_NAME,
+              user:process.env.DB_USER,
+              password:process.env.DB_PASSWORD,
+              ssl:{rejectUnauthorized:false}
+            });
+            pool.query(schema).then(()=>{console.log('Schema geladen');pool.end()}).catch(e=>{console.error('Fehler:',e.message);pool.end();process.exit(1)});
+          "
+        env:
+          DB_HOST: ${{ secrets.SUPABASE_TEST_HOST }}
+          DB_PORT: ${{ secrets.SUPABASE_TEST_PORT }}
+          DB_NAME: ${{ secrets.SUPABASE_TEST_DB }}
+          DB_USER: ${{ secrets.SUPABASE_TEST_USER }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_TEST_PASSWORD }}
       - name: Run tests
         run: npm test
         env:
