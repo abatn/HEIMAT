@@ -24,7 +24,7 @@ description: "Deployment & CI/CD für HEIMAT. Trigger bei Änderungen an render.
 - **DB_SSL:** `true`
 - **DB_USER:** `postgres.sqbiqzwkcryhcyvftumb` (Session-Pooler-Format: `user.<project_ref>`)
 - **DB_PASSWORD:** sync:false (manuell im Render-Dashboard setzen — nicht im Repo committen!)
-- **AUTO_MIGRATE:** `true` (auto-migration als startup-hook in src/index.ts; preDeployCommand ist in runtime:node still ignoriert und wurde aus render.yaml entfernt)
+- **AUTO_MIGRATE:** Default aktiv (Migrations-Startup-Hook in `src/backend/src/index.ts` vor `app.listen`; mit `AUTO_MIGRATE=false` explizit deaktivierbar). `render.yaml` enthält zusätzlich `healthCheckPath: /health`.
 - **ADMIN_KEY:** sync:false (manuell im Render-Dashboard setzen — schützt `/api/admin/migrate` vor unauth Aufrufen)
 - **Redis:** via Render internal service
 

@@ -26,6 +26,51 @@ export interface Event {
   source: 'wikidata' | 'osm';
 }
 
+export function buildWikidataEventsQuery(
+  lat: number,
+  lng: number,
+  radiusKm: number,
+): string {
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+    throw new RangeError('Event query latitude must be between -90 and 90');
+  }
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+    throw new RangeError('Event query longitude must be between -180 and 180');
+  }
+  if (!Number.isFinite(radiusKm) || radiusKm <= 0) {
+    throw new RangeError('Event query radius must be greater than 0');
+  }
+
+  return `
+      SELECT ?event ?eventLabel ?description ?startDate ?endDate ?locationLabel ?coord ?categoryLabel
+      WHERE {
+        SERVICE wikibase:around {
+          ?location wdt:P625 ?coord .
+          bd:serviceParam wikibase:center "Point(${lng} ${lat})"^^geo:wktLiteral ;
+                          wikibase:radius "${radiusKm}" .
+        }
+        ?event wdt:P276 ?location .
+        {
+          ?event wdt:P31/wdt:P279* wd:Q1322418 .
+        } UNION {
+          ?event wdt:P31/wdt:P279* wd:Q1854458 .
+        } UNION {
+          ?event wdt:P31/wdt:P279* wd:Q1854459 .
+        } UNION {
+          ?event wdt:P31/wdt:P279* wd:Q15300282 .
+        } UNION {
+          ?event wdt:P31/wdt:P279* wd:Q1806098 .
+        }
+        OPTIONAL { ?event wdt:P580 ?startDate . }
+        OPTIONAL { ?event wdt:P582 ?endDate . }
+        OPTIONAL { ?event schema:description ?description . FILTER(LANG(?description) = "de") }
+        OPTIONAL { ?event wdt:P31 ?category . }
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "de,en" . }
+      }
+      LIMIT 30
+    `;
+}
+
 export class EventService {
   // Nur ortsunabhängige APIs: Wikidata + Overpass (weltweit)
   // kulturdaten.berlin ENTFERNT — war Berlin-only, Hardcoding verboten!
@@ -85,31 +130,7 @@ export class EventService {
     lng: number,
     radiusKm: number,
   ): Promise<Event[]> {
-    const query = `
-      SELECT ?event ?eventLabel ?description ?startDate ?endDate ?locationLabel ?coord ?categoryLabel
-      WHERE {
-        {
-          ?event wdt:P31/wdt:P279* wd:Q1322418 .
-        } UNION {
-          ?event wdt:P31/wdt:P279* wd:Q1854458 .
-        } UNION {
-          ?event wdt:P31/wdt:P279* wd:Q1854459 .
-        } UNION {
-          ?event wdt:P31/wdt:P279* wd:Q15300282 .
-        } UNION {
-          ?event wdt:P31/wdt:P279* wd:Q1806098 .
-        }
-        ?event wdt:P17 wd:Q183 .
-        OPTIONAL { ?event wdt:P580 ?startDate . }
-        OPTIONAL { ?event wdt:P582 ?endDate . }
-        OPTIONAL { ?event wdt:P276 ?location . }
-        OPTIONAL { ?location wdt:P625 ?coord . }
-        OPTIONAL { ?event schema:description ?description . FILTER(LANG(?description) = "de") }
-        OPTIONAL { ?event wdt:P31 ?category . }
-        SERVICE wikibase:label { bd:serviceParam wikibase:language "de,en" . }
-      }
-      LIMIT 30
-    `;
+    const query = buildWikidataEventsQuery(lat, lng, radiusKm);
 
     try {
       const response = await axios.get(this.wikidataEndpoint, {

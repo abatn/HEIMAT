@@ -1,14 +1,14 @@
 /**
- * migrate.ts — Pre-Deploy Database Migration Runner
+ * migrate.ts — Startup Database Migration Runner
  *
- * Wird vom Render preDeployCommand nach `npm run build` ausgeführt und
+ * Wird vom kompilierten Backend-Startup-Hook vor `app.listen` ausgeführt und
  * wendet src/backend/src/database/schema.sql auf die Production-DB an.
  *
  * Vorteile gegenüber einem `/api/migrate` Endpoint:
  *   - Sicherheit: kein unauth Mutation-Endpoint im Internet exponiert
  *   - Atomic-Deploy: failure → Render aborted deploy, alte Instanz läuft weiter
- *   - Cold-Start: passiert beim Deploy, nicht beim App-Boot (Render Free Tier
- *     schläft nach 15 min, dann muss die App so schnell wie möglich antworten)
+ *   - Startup-Sicherheit: läuft vor `app.listen`; bei Fehler nimmt die neue
+ *     Instanz keinen Traffic an und der Prozess beendet sich mit Fehlercode 1.
  *   - Idempotent: schema.sql nutzt CREATE TABLE/INDEX IF NOT EXISTS +
  *     DROP COLUMN IF EXISTS + ALTER TABLE ADD COLUMN IF NOT EXISTS.
  *
@@ -54,7 +54,7 @@ export async function run(): Promise<void> {
   // Wir loggen absichtlich NUR host/port/database/ssl — niemals das Passwort.
   // Auf Render wird die volle URI (inkl. PASSWORD) ohnehin per envVar bereitgestellt
   // und ist nur im Dashboard sichtbar.
-  logger.info('Starting pre-deploy database migration', {
+  logger.info('Starting startup database migration', {
     schemaPath,
     dbHost: process.env.DB_HOST || '(unset)',
     dbPort: process.env.DB_PORT || '5432',

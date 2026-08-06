@@ -19,7 +19,8 @@
     "migrate": "node dist/scripts/migrate.js",
     "migrate:dev": "ts-node src/scripts/migrate.ts",
     "migrate:status": "ts-node src/scripts/migrate-status.ts",
-    "migrate:status:json": "ts-node src/scripts/migrate-status.ts --json"
+    "migrate:status:json": "ts-node src/scripts/migrate-status.ts --json",
+    "verify:services": "ts-node src/scripts/verify-services.ts"
   },
   "dependencies": {
     "@types/swagger-jsdoc": "^6.0.4",

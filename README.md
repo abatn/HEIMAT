@@ -6,6 +6,8 @@
 
 <h3 align="center">Die erste Open-Source Super App für Deutschland</h3>
 
+> **Aktueller Status-Override (2026-08-06):** Im Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Die Production-Prüfung ist nur eine öffentliche Read-only-Teilmatrix: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat sind unbewertet/offen. Historische „live“-/Phasenangaben weiter unten sind keine aktuelle Gesamtfunktionszusage.
+
 <p align="center">
   <a href="https://www.gnu.org/licenses/agpl-3.0">
     <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License: AGPL v3">
@@ -19,6 +21,23 @@
 </p>
 
 ---
+
+## Aktuelle Verifikationslage (Version 15.0, 2026-08-06)
+
+Im aktuellen Arbeitsverzeichnis läuft **kein lokaler Backend-Server und kein lokales PostgreSQL**. Lokale `localhost`-/`ECONNREFUSED`-Befunde sind daher kein Produktnachweis. Ein Service wird hier nur dann als **funktionfähig** geführt, wenn sein realer Datenpfad durch CI mit bereitgestellter Datenbank oder einen read-only Production-Check bestätigt wurde.
+
+Die vorhandene Production-Prüfung ist ausdrücklich nur eine **öffentliche Read-only-Teilmatrix**:
+
+- **Mit echten Daten bestanden:** Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs.
+- **Degraded:** Abfall an Orten ohne unterstützte kommunale Quelle (`CITY_NOT_SUPPORTED`).
+- **Fail/offen:** Universelle Event-Suche (`/api/search`) lieferte bei der Prüfung keine echten Event-Ergebnisse.
+- **Unbewertet/offen:** authentifizierte oder zustandsändernde Pfade wie Mobility-Journey, Finance, Health, Check-in und AI-Chat.
+
+Daraus folgt ausdrücklich **kein Gesamtstatus „alle Services funktionieren“ und kein 14/14-Nachweis**. Historische Roadmap- und Phasenangaben weiter unten beschreiben Implementierungsmeilensteine, nicht automatisch die aktuelle Production-Funktionsfähigkeit.
+
+`render.yaml` verwendet jetzt `healthCheckPath: /health`. Das prüft nur die HTTP-Readiness des Render-Webservice; es bestätigt weder die Datenbank noch einzelne Fachservices. Die Migration läuft im aktuellen `src/backend/src/index.ts` als blockierender Startup-Hook vor `app.listen`.
+
+Die universelle Event-Suche wurde technisch um einen echten Wikidata-Georadius erweitert. Sie bleibt trotzdem offen/`fail`, bis ein neuer Render-Production-Lauf echte Event-Ergebnisse am angefragten Standort bestätigt.
 
 ## Was ist HEIMAT 2.0?
 
@@ -63,7 +82,7 @@ HEIMAT 2.0 ist eine datenschutzkonforme, kostenfreie Super App für den deutsche
 
 ### Mini-Programme (Apps-Tab)
 - **10 Mini-Programme** registriert: Wetter, Luftqualität, Abfallkalender, Mobilität, Finanzen, Gesundheit, Veranstaltungen, Job-Suche, Hotels, Bürgeramt
-- **Status (Phase X.1, 2026-07-28):** 3 nativ (Wetter, Luftqualität, Abfallkalender) + 7 in Vorbereitung (Coming Soon)
+- **Status:** Historischer Phase-X.1-Eintrag: 3 nativ + 7 in Vorbereitung. Der aktuelle Registry-Code enthält weitere native Builder; der Service gilt erst nach realem Datenpfad, Tests und Production-Check als funktionfähig. Im aktuellen Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL; lokale Tests ersetzen CI/Production nicht.
 - 100% native Flutter-Implementierung — kein IFrame, kein WebView, keine externe Webseiten-Einbettung
 - Tap auf ein Mini-Programm öffnet den entsprechenden nativen Bildschirm oder einen ehrlichen "Coming Soon"-Platzhalter falls noch nicht implementiert
 
@@ -168,7 +187,7 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | Gesundheit (100% Overpass-Live) | ✅ Abgeschlossen | Ortsunabhängig, 25 Specialty-Kategorien, dynamische DB bei Terminbuchung |
 | **User-Auth (JWT)** | ✅ Live (2026-07-25) | Register/Login/Logout end-to-end auf Render, Token in Browser-LocalStorage persistiert, AppBar mit ⋮-Logout |
 | **Finanzen (JWT-Roundtrip)** | ✅ Live (2026-07-25) | Bearer-Token in allen 5 Mobile-HTTP-Calls; Backend `GET /wallet` neu; Schema-Migration |
-| **Phase 23 Security-Härtung** | ✅ Live (2026-07-25) | `POST /api/migrate` entfernt; `preDeployCommand` Auto-Migration; `security.test.ts` Regression-Lock |
+| **Phase 23 Security-Härtung** | ✅ Historischer Nachweis (2026-07-25) | `POST /api/migrate` entfernt; Migration heute im Startup-Hook; `security.test.ts` Regression-Lock |
 | Finanzen (Taler Wallet-Client) | ✅ Client-Code live, EUR-ready | Exchange-Client gegen `exchange.demo.taler.net` (Ed25519, KUDOS); EUR-ready via `TALER_EXCHANGE_URL` |
 | UX-Modernisierung (Finance/Health/Mobility) | ✅ Abgeschlossen | Gradient-Karten, Pill-Nav, Bottom Sheets |
 | **Phase A: Mini-Program-Container** | ✅ **Live (2026-07-27)** | **WebView-Framework mit 10 Mini-Programmen (Futai, Wetter, Luft, Events, Jobs, E-Ladestationen, Abfall, Hotels, Parken, Bürgeramt) + Apps-Tab + Conditional Imports** |
@@ -182,7 +201,9 @@ HEIMAT 2.0 ist ein gemeinnütziges Open-Source-Projekt. Wir sind auf Spenden ang
 | **Health AI Agent Phase 2** | ✅ **Live (2026-08-03)** | **Mental Health (PHQ-9) + Prävention + Nachsorge: Backend Services + API-Endpunkte + Flutter DTOs/Provider/Screens + 74 Tests** |
 | **HealthScreen Integration** | ✅ **Live (2026-08-03)** | **HealthScreenWithTabs mit 6 Tabs: Ärzte + Verlauf + Medikamente + Mental + Vorsorge + Nachsorge** |
 
-## 🚀 HEIMAT Expansion — Neue Services
+## 🚀 HEIMAT Expansion — Neue Services (Roadmap/Implementierungsstand)
+
+> Die folgenden Service- und Phasenangaben sind historische Roadmap-/Implementierungsnachweise. Sie zertifizieren nicht automatisch die aktuelle Production-Funktionsfähigkeit eines Dienstes.
 
 HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, aber Open Source, Privacy-first, mit staatlichen Daten.
 
@@ -203,9 +224,11 @@ HEIMAT expandiert von 3 auf **10+ Services** — inspiriert von WeChat/Grab, abe
 
 ---
 
-## Phase 23 Recap — Stand Juli 2026
+## Phase 23 Recap — Stand Juli 2026 (historischer Nachweis)
 
-**Produktion läuft** — User-Auth, Finance-Roundtrip, Auto-Migration und Security-Härtung end-to-end live.
+> Die folgenden Angaben dokumentieren frühere Implementierungs- und Production-Meilensteine. Sie sind kein aktueller Gesamtstatus. Für den aktuellen Status gilt die Verifikationslage oben: kein lokaler Server/PostgreSQL, öffentliche Read-only-Teilmatrix, mehrere Services offen/degraded/fail/unbewertet.
+
+**Produktion lief im dokumentierten Phase-23-Nachweis** — User-Auth, Finance-Roundtrip, Auto-Migration und Security-Härtung end-to-end live.
 
 ### ✅ Was funktioniert
 - User-Auth (JWT+bcryptjs) — Register/Login/Logout end-to-end live auf `heimat-backend.onrender.com`

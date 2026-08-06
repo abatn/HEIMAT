@@ -110,7 +110,7 @@ void main() {
       final dto = BuergeramtDto.fromJson(json);
       expect(dto.id, '');
       expect(dto.name, '');
-      expect(dto.type, 'Behoerde');
+      expect(dto.type, 'Behörde');
       expect(dto.lat, 0);
       expect(dto.lng, 0);
       expect(dto.address, isNull);

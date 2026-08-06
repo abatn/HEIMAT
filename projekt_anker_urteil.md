@@ -1,6 +1,6 @@
 # Anker (Anchors) – nicht schönbare Messgrößen
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
+**Letzte Aktualisierung:** 2026-08-06 | Version 18.0
 
 1. **Echte Einnahmen:** 0 EUR — Projekt ist Open Source, keine Monetarisierung implementiert
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)
@@ -11,9 +11,9 @@
    - Parking Unit-Tests: 10/10 bestanden (100%)
    - Klassifikation: 0 echte Bugs, 0 flaky, 134 Umgebungsprobleme
 4. **Commits:** 128 (seit 2026-07-11, 23 Tage = ~~~21/Tag)
-5. **Phasen abgeschlossen:** 10 von ~10 (Hardcoded-Locations komplett entfernt, alle Services ortsunabhängig) (Phase 23 ✅, Phase 24 ✅, Health AI Phase 1+2 ✅, Phase C ✅, Phase D (Jobs+AI): E-Ladestationen ⚠️, Parken ⚠️, Abfallkalender ⚠️, Wetter-Tipps ✅, Air Quality Tips ✅, AI Chat Timeout gefixt ✅)
+5. **Phasen abgeschlossen:** Die dokumentierten Phasen bleiben historische Meilensteine; ein Service-/Phasenabschluss wird ab Version 12.0 zusätzlich erst nach realem Production-Check als funktionfähig gezählt. Die universelle Event-Suche ist lokal umgesetzt, Deployment/Production-Prüfung bleibt offen.
    - HealthProvider-Tests: 25/25 bestanden (searchDoctors, loadSlots, bookAppointment, DTO-Parsing)
-6. **Services live:** 14 von 14 funktional und ortsunabhängig. Keine hardcoded Locations mehr.
+6. **Services live:** Kein pauschaler 14-von-14-Nachweis. Funktionfähig wird pro Service erst nach realem Datenpfad, Tests und Production-Check gezählt. Die normale Events-Route sowie E-Laden/Parken wurden in den aktuellen read-only Checks mit echten Daten bestätigt; die universelle Event-Suche ist lokal bestätigt, Production vor Deployment noch offen.
    Waste nutzt ABFALL_IO_SERVICES + AbfallNavi (dynamisch). Events nutzt Wikidata + Overpass (weltweit).
    **v4.0:** Alle 14 Flutter-Screens nutzen AppConfig.backendUrl via api_client.dart (keine hardcoded URLs mehr).
 7. **API-Endpunkte:** 19 Route-Dateien, 109 Endpunkte (davon 45 Health-Endpunkte, 1 Parken-Endpunkt)
@@ -94,4 +94,18 @@
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase 26 (Erweiterung)
+**Version-12-Nachtrag (2026-08-05):** „Funktionfähig“ wird nicht pauschal aus der Registry oder HTTP 200 abgeleitet. Die universelle Event-Suche ist lokal mit echten OSM-Daten und 2/2 Integrationstests geprüft; Production ist vor Deployment noch offen (`/api/search` count 0). EUR-Production-Exchange und AI-5 bleiben offen.
+
+**Version-13-Nachtrag (historischer Zwischenstand, 2026-08-05):** Keine pauschale Servicezahl. Die damalige Read-only-Real-Data-Matrix bewertete einzelne öffentliche Pfade; Abfall war `degraded`, universelle Event-Suche `fail`, authentifizierte/stateful Services unbewertet. Daraus darf keine Gesamtfunktionsaussage abgeleitet werden. „Funktionfähig“ wird nur je Service nach realem Datenpfad, Tests und Production-Check eingetragen.
+
+**Version-14-Nachtrag — Anker:** Im Repository läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Daher gibt es keinen lokalen End-to-End-Nachweis. Nicht durch CI oder Production belegte Services werden nicht als funktionfähig gezählt. Aktuell bleiben insbesondere universelle Event-Suche (`fail`), Abfall an nicht unterstützten Orten (`degraded`) und authentifizierte/stateful Services unbewertet bzw. offen.
+
+**Version-15-Nachtrag — aktuelles Urteil (2026-08-06):** Viele Services sind nach dem geltenden Maßstab weiterhin nicht vollständig funktionverifiziert. Die öffentliche Read-only-Teilmatrix bestätigt Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat sind unbewertet/offen. Historische „live“-Angaben werden nicht als heutiger Gesamtstatus gezählt.
+
+**Version-16-Nachtrag — Anker für Render (2026-08-06):** `healthCheckPath: /health` ist ein ehrliches Deployment-Signal für HTTP-Erreichbarkeit, aber kein Beweis für funktionierende Fachservices. Die aktuelle Bewertung bleibt deshalb unverändert: mehrere Services sind offen, degraded, fail oder unbewertet.
+
+**Version-17-Nachtrag — Anker für Event-Suche (2026-08-06):** Die Event-Suche wurde technisch nachgebessert: Wikidata nutzt jetzt den realen Suchradius. Sie bleibt bis zur echten Production-Antwort `fail`; vorhandener Code und ein lokaler Contract-Test reichen nicht für `funktionfähig`. Die Abfrage kann nur Events mit verknüpftem Wikidata-Ort und Koordinaten liefern.
+
+**Version-18-Nachtrag — Anker für Abfall-PLZ-Fallback (2026-08-06):** Die PLZ-Fallback-Verbesserung im Abfall-City-Resolver ist code-technisch umgesetzt und mit 20 Tests validiert. Der Abfall-Service bleibt `degraded` bis zur echten Production-Verifikation. Der PLZ-Fallback verbessert die Abdeckung, ersetzt aber keinen Production-Check.
+
+**Nächste Messung:** Nach CI-/Production-Prüfung mit dokumentierter Umgebung

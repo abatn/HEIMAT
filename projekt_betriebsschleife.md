@@ -1,6 +1,6 @@
 # Betriebsschleife (schnell)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
+**Letzte Aktualisierung:** 2026-08-06 | Version 18.0
 
 - **Welche Daten werden täglich/wöchentlich erhoben?**
   - **Täglich (bei jedem Commit/CI-Lauf):**
@@ -96,4 +96,18 @@
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase 26 (Erweiterung)
+**Version-12-Nachtrag (2026-08-05):** Service-Status wird dreistufig geführt: Code vorhanden, lokaler realer Datenpfad getestet, Production nach Deployment verifiziert. Event-Suche: lokal 2/2 Integrationstests grün; Production vor Deployment noch `count: 0`. HTTP 200 allein wird nicht als vollständige Funktionsfähigkeit gezählt.
+
+**Version-13-Nachtrag (historischer Zwischenstand, 2026-08-05):** `npm run verify:services` ist ein read-only Prüfer mit Exit-Codes `0=pass`, `1=fail`, `2=degraded`. In der damaligen Render-Prüfung bestanden Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs; Abfall war an Frankfurt/München `degraded`; die universelle Event-Suche fiel wegen fehlender echter Event-Ergebnisse durch. Dies ist keine Gesamtfunktionsaussage.
+
+**Version-14-Nachtrag — keine lokale Serverumgebung:** Im Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. `localhost`-Aufrufe oder DB-Tests können hier nicht als Produktnachweis ausgeführt werden. Lokale Fehler wie `ECONNREFUSED` sind Umgebungsfehler; sie dürfen weder als Service-Erfolg noch als vollständiger Produktfehler gezählt werden. Maßgeblich sind CI mit Datenbank und read-only Production-Checks.
+
+**Version-15-Nachtrag — aktueller Betriebsstatus (2026-08-06):** Die öffentliche Read-only-Teilmatrix darf nicht als Gesamtstatus verwendet werden. Aktuell sind Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs real geprüft; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat unbewertet/offen. Ein Service wird erst nach realem Datenpfad, Tests und Production-Check als funktionfähig geführt.
+
+**Version-16-Nachtrag — Render-Readiness (2026-08-06):** Der Render-Webservice nutzt jetzt `healthCheckPath: /health`. Damit wird der vorhandene read-only HTTP-Healthcheck nach dem Port-Binding geprüft. Das ist nur ein Deployment-/Readiness-Signal und kein Nachweis, dass Fachservices funktionieren. `AUTO_MIGRATE` läuft im aktuellen `src/index.ts` vor `app.listen`; die Migration muss erfolgreich sein, bevor die Instanz Traffic annimmt.
+
+**Version-17-Nachtrag — Event-Suche (2026-08-06):** Die Wikidata-Abfrage verwendet jetzt den echten `wikibase:around`-Radius mit Aufruferkoordinaten. Der lokale Contract-Test ist grün; Production bleibt `fail`, bis Render nach Deployment echte lokale Event-Ergebnisse liefert. Die Wikidata-Quelle setzt einen verknüpften `P276`-Ort mit `P625`-Koordinaten voraus; Datensätze ohne solchen Ort können weiterhin leer bleiben.
+
+**Version-18-Nachtrag — Abfall-PLZ-Fallback (2026-08-06):** `resolveCityFromCoords` nutzt jetzt die PLZ aus Nominatim-Adress-Details als Fallback, wenn das Stadt-Name-Matching fehlschlägt. Dies verbessert die Abdeckung für Städte, deren Name nicht exakt mit einem ABFALL_IO_SERVICES-Titel übereinstimmt (z.B. „Göttingen“ vs. „Göttinger Entsorgungsbetriebe“). 20 neue Tests validieren die Matching-Logik. Der Service bleibt `degraded`, bis ein Production-Lauf mit echtem Nominatim-Response den Fallback bestätigt.
+
+**Nächste Messung:** Nach einem CI-Lauf mit bereitgestelltem PostgreSQL bzw. einem dokumentierten Production-Check

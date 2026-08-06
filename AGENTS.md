@@ -5,6 +5,8 @@ HEIMAT 2.0 – open-source "super app" (German docs/UI). Three services under `s
 - `src/backend/` – Node 18+ / TypeScript Express API (port 3000)
 - `src/ml-service/` – Python FastAPI (port 8000, Docker only)
 
+> **Aktueller Status-Override (2026-08-06):** Im Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Es gibt daher keinen lokalen End-to-End-Nachweis. Die öffentliche Production-Prüfung ist nur eine Read-only-Teilmatrix: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat sind unbewertet/offen. Historische „live“-/Phasenangaben weiter unten sind keine aktuelle Gesamtfunktionszusage.
+
 ## Critical: untracked junk in the working tree
 
 - `src/mobile/flutter/` is a **full vendored Flutter SDK checkout** (3.24.5). Untracked, not gitignored. Never edit, search, or `git add` anything under it.
@@ -61,7 +63,9 @@ Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.
 ## Production-First (no sandbox)
 
 - **No sandbox.** All work targets production (Supabase + Render).
-- **Supabase + Render must be operational** – they are the only testing/deployment environment.
+- **Current local limitation (2026-08-06):** Im aktuellen Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. `localhost`-/`ECONNREFUSED`-Befunde sind kein Produktnachweis.
+- **Supabase + Render must be operational** – sie sind die einzige reale Test-/Deployment-Umgebung; CI mit bereitgestelltem PostgreSQL und read-only Production-Checks sind maßgeblich.
+- **Service-Regel:** Ein Service gilt erst nach realem Datenpfad, Tests und Production-Check als funktionfähig. Die öffentliche Read-only-Teilmatrix ist kein Gesamtcheck; viele Services bleiben offen, degraded, fail oder unbewertet.
 - **Code is committed and deployed via CI/CD** – no pre-production workflow.
 
 ## Conventions
@@ -85,7 +89,7 @@ Dependabot patches are auto-approved and auto-merged via `dependabot-auto-merge.
 | db-rest health check passes but endpoints return empty | Docker image default `ENV PORT 3000`, Render routes to port 3001 | Set `ENV PORT=3000` in Dockerfile or adjust render.yaml |
 | Login "stuck on LoginScreen" with valid credentials | LoginScreen/RegisterScreen didn't react to `isAuthenticated` because Hash-Routing on `/#/login` or `/#/register` mounts the screens directly via `routes` table, bypassing `AuthGate` mounted at `'/'` | Explicit `Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false)` (with `!mounted` early-exit) after successful login/register. Files: `src/mobile/lib/features/auth/presentation/{login,register}_screen.dart`. Fix committed `9c8deb7` (2026-07-25) |
 | Services mit Berlin-Hardcoding (BEHOBEN ✅) | ~~Events, Hotels, Bürgeramt, Smart Alerts, Daily Briefing~~ Alle via GPS dynamisiert (Commit `afdec39`). | Backend: lat+lng als Pflichtparameter. Flutter: LocationService.getCurrentLocation(). |
-| Events API noch Berlin-fokussiert | `eventService.ts` nutzt `kulturdaten.berlin` API (nur Berlin) — aber lat/lng ist jetzt dynamisch via GPS | Backend-Route erzwingt lat+lng, Events werden in User-Nähe gesucht |
+| ~~Events API noch Berlin-fokussiert~~ BEHOBEN ✅ | `eventService.ts` nutzt `kulturdaten.berlin` API — aber lat/lng dynamisch via GPS | Backend erzwingt lat+lng, keine Hardcodierung |
 
 ## Clarifications (Juli 2026)
 
@@ -115,14 +119,14 @@ Berlin-Seed entfernt. Alle Ärzte live von Overpass (OSM) — weltweit, standort
 **Update 2026-07-25 (Commits cfb0561 + e00105d):** Finance-Roundtrip ist nun end-to-end live: `_authService.authHeaders` schickt Bearer-Token in alle 5 Finance-Calls, URL-Pfade ohne `/$userId`-Suffix (Backend leitet User aus Token ab), `GET /api/finance/wallet`-Route neu im Backend, `wallet_priv` Legacy-Spalte per Schema-Migration gedroppt.
 
 ### Phase 23: Roundtrip ✅ Live (2026-07-25)
-Finance-JWT-Integration abgeschlossen. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün am 2026-07-25. security.test.ts Regression-Lock aktiv (Commit 3414aea).
+Finance-JWT-Integration abgeschlossen (historischer Nachweis). ADMIN_KEY auf Render gesetzt; Migration läuft aktuell im Startup-Hook, `/api/admin/migrate` bleibt der manuelle Admin-Pfad. security.test.ts Regression-Lock aktiv (Commit 3414aea).
 
 Wichtige Commits (in Reihenfolge):
 - `cfb0561` — Mobile `finance_provider.dart`: Bearer-Header in allen 5 Finance-HTTP-Calls.
 - `e00105d` — Mobile URL-Pfade bereinigt (kein `/$userId` Suffix); Backend identifiziert User aus Bearer-Token; neue `GET /api/finance/wallet` Route; Schema-Migration `DROP COLUMN IF EXISTS wallet_priv`.
 - `25ac7ab` — Security-Fix: ungeschützten `POST /api/migrate` Endpoint entfernt (jeder konnte DB-Schema mutieren).
 - `3414aea` — Regression-Lock: `src/backend/src/__tests__/security.test.ts` verriegelt dass POST /api/migrate 404 retourniert (Body-Lock verhindert subtile Refactors).
-- `e7fcd85` — Auto-Migration: `src/backend/src/scripts/migrate.ts` (Node.js Schema-Applier mit Password-Redaction) läuft im `render.yaml` `preDeployCommand`. Atomar (fail → Render aborted Deploy).
+- `e7fcd85` — Auto-Migration: `src/backend/src/scripts/migrate.ts` (Node.js Schema-Applier mit Password-Redaction) läuft aktuell im blockierenden Startup-Hook vor `app.listen`. Atomar (Fehler → Instanz startet nicht).
 
 **Verifikation auf Render:** POST `/api/admin/migrate` mit `X-Admin-Key` Header retourniert HTTP 200 `{"success":true,"message":"Schema migrated"}` in ~213ms (Supavisor-Pooler + Postgres-Ack).
 
@@ -133,6 +137,8 @@ Wichtige Commits (in Reihenfolge):
 - **Render + Supabase connection** (`render.yaml`): now using **Supavisor pooler** (`aws-0-eu-west-1.pooler.supabase.com:5432`), `DB_SSL=true`, Node 20, devDeps-pruned. Supavisor pools Render Free Tier (IPv4) traffic to the Supabase IPv6-only DB column endpoint.
 
 ## Phase 23 Recap — Stand Juli 2026
+
+> **Historischer Implementierungsnachweis, kein aktueller Gesamtstatus:** Die folgenden Phase-23-Angaben dokumentieren damalige CI-/Production-Meilensteine. Im aktuellen Arbeitsverzeichnis läuft kein lokaler Server/PostgreSQL; einzelne Services dürfen erst nach aktuellem read-only Production-Check als funktionfähig gelten.
 
 Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert; kleinere offene Tasks in klarer Reihenfolge.
 
@@ -173,7 +179,10 @@ Finanzen-Tab oeffnen -> Wallet auto-erstellt -> 0.00 KUDOS -> [Guthaben aufladen
 
 **⚠️ Option B (Bank-API automatisieren) bleibt Dead End (2026-07-27):** Die Taler-Demo-Bank hat nur Lese-API-Endpoints (`GET /accounts/{username}`, `GET /accounts/{username}/transactions`, `POST /accounts/{username}/token`) + `POST /admin/add-incoming` (Admin-Login noetig). KEIN user-autorisierter REST-Endpoint fuer Wire-Transfer. Phase-R-Entscheidung: Mock-Bypass fundLocal wurde deshalb KOMPLETT entfernt (Commit 2d3ae18) statt ihn durch Bank-API zu ersetzen. User fuehrt Bank-Wire manuell aus (Reserve-Adresse -> Button "Aktualisieren").
 
-### ❌ Was fehlt
+### ❌ Was fehlt / aktuell unbewertet
+- **Aktuelle öffentliche Teilmatrix ist nicht vollständig:** Mobility-Journey, Finance, Health, Check-in und AI-Chat sind nicht als vollständige reale Servicepfade verifiziert.
+- **Universelle Event-Suche:** Production-`fail`, solange `/api/search` keine echten Event-Ergebnisse liefert.
+- **Abfall:** `degraded` an Orten mit `CITY_NOT_SUPPORTED`; nur belegte kommunale Quellen ergänzen.
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (Commit 78a371d, `test/auth_integration_test.dart` mit 6 Tests).
 - ~~Auth-Routing-Bug Regression-Test in mobile tests~~ ✅ erledigt in Phase Q (`test/auth_gate_test.dart` 5 authlock-regression-Tests).
 - Auto-Migration health-check (`npm run migrate:status`)
@@ -414,7 +423,7 @@ ollamaService.chatWithContext({ health: { symptom } })
 
 **Rule:** KEIN IFrame, KEIN WebView, KEIN `dart:html` im Mobile-Frontend. Externe Webseiten-Einbettung ist verboten (User-Regel: "Hardkodierung und externe Webseiten-Aufrufe sind verboten", project-prompt.md Phase H).
 
-1. **ServiceRegistry-Pattern** — Singleton in `src/mobile/lib/features/miniprogram/domain/service_registry.dart` routet alle 10 Mini-Programme (weather, air, waste, mobility, finance, health, events, jobs, hotels, buergeramt) via `nativeBuilder`. Tap auf Mini-Program → `NativeMiniProgramScreen._body` lookup't in Registry → entweder echtes Native-Widget (z.B. `WeatherScreen`) oder `ComingSoonScreen` als ehrlicher Placeholder.
+1. **ServiceRegistry-Pattern** — Singleton in `src/mobile/lib/features/miniprogram/domain/service_registry.dart` routet die registrierten Mini-Programme via `nativeBuilder`. Ein Registry-Eintrag beweist nur Routing; nach Version 12.0 erfordert „funktionfähig“ zusätzlich realen Datenpfad, Tests und Production-Check. Tap auf Mini-Program → `NativeMiniProgramScreen._body` lookup't in Registry → echtes Native-Widget oder ehrlicher Placeholder.
 2. **NativeMiniProgramScreen** — Einziger Routing-Punkt in `src/mobile/lib/features/miniprogram/presentation/native_mini_program_screen.dart`. KEIN IFrame-Fallback mehr. Defensive "Service unbekannt"-Fallback existiert als letzte Verteidigung.
 3. **ComingSoonScreen** — Ehrlicher Status-Placeholder fuer nicht-migrierte Services. Zeigt "Coming Soon"-Badge + User-Regel-Footer ("HEIMAT vermeidet externe Webseiten-Einbettung per User-Regel"). KEIN Mock, KEINE Simulation.
 4. **Sentinel-URLs** in `miniProgramProvider.dart`: alle 10 URLs sind `native://registry/<id>` (kein HTTP-Request, nur Registry-Lookup).

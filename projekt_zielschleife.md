@@ -1,6 +1,6 @@
 # Zielschleife (angewandte Schleife)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
+**Letzte Aktualisierung:** 2026-08-06 | Version 18.0
 
 - **Endgültiges Ziel des Projekts:**
   HEIMAT 2.0 ist eine Open-Source "Super App" (à la WeChat/Grab) mit deutscher UI,
@@ -62,4 +62,18 @@ Live-API-Check: 13/14 Services erreichbar (HTTP 200). Waste 502 (externes Proble
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase 26 (Erweiterung)
+**Version-12-Nachtrag (2026-08-05):** Die universelle Event-Suche wurde lokal mit dem vorhandenen EventService (OSM/Wikidata) verbunden und mit echten OSM-Daten geprüft (2/2 Integrationstests grün). Production war zum Prüfzeitpunkt noch nicht aktualisiert und liefert für `/api/search` weiterhin den alten `count: 0`-Stand. Daher wird diese Task erst nach Deployment und erneutem Production-E2E als live-funktionfähig gezählt.
+
+**Version-13-Nachtrag (historischer Zwischenstand, 2026-08-05):** `verify:services` wurde als read-only Teilmatrix implementiert. Die damaligen Real-Data-Läufe gegen Frankfurt und München bestätigten einzelne öffentliche Pfade; Abfall war wegen `CITY_NOT_SUPPORTED` `degraded`, die universelle Event-Suche lieferte keine echten Event-Ergebnisse. Die Matrix deckt ausdrücklich keine authentifizierten/stateful Services ab und ist keine Gesamtfunktionsaussage.
+
+**Version-14-Nachtrag — reale Ausführungsumgebung:** Im aktuellen Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Lokale HTTP-/DB-Tests sind deshalb kein End-to-End-Nachweis. Nur CI mit bereitgestellter Datenbank oder read-only Production-Checks gegen Render dürfen für reale Service-Funktion herangezogen werden. Viele Services bleiben dadurch unbewertet bzw. nicht funktionfähig; ein vorhandener Screen, eine Route oder ein HTTP-200 allein genügt nicht.
+
+**Version-15-Nachtrag — Statuskonsolidierung (2026-08-06):** Diese Regel ist verbindlich für alle aktuellen Dokumente. Die öffentliche Read-only-Teilmatrix ist kein Gesamtcheck: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden die dokumentierte Prüfung; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat bleiben unbewertet/offen. Historische „live“-/Phasenangaben bleiben als Implementierungsnachweise erhalten und werden nicht als heutiger Gesamtstatus gezählt.
+
+**Version-16-Nachtrag — Render-Readiness (2026-08-06):** `render.yaml` konfiguriert jetzt `healthCheckPath: /health`. Dieser vorhandene read-only Endpoint bestätigt, dass die Webinstanz HTTP-seitig antwortet; er zertifiziert nicht die Funktion der einzelnen Fachservices. Die Datenbankmigration bleibt der blockierende Startup-Hook in `src/index.ts`; bei Fehler wird der Start abgebrochen. Ältere `preDeployCommand`-Formulierungen sind als historisch zu behandeln.
+
+**Version-17-Nachtrag — umgesetzte, noch nicht production-verifizierte Service-Task (2026-08-06):** Die universelle Event-Suche bleibt `fail`, bis der korrigierte Wikidata-Geofilter nach Production-Deployment echte `category: event`-Ergebnisse am angefragten Standort liefert. Code und Contract-Test sind umgesetzt; ein lokaler Test ersetzt keine Production-Verifikation.
+
+**Version-18-Nachtrag — Abfall-PLZ-Fallback (2026-08-06):** Der Abfall-City-Resolver nutzt jetzt die PLZ aus Nominatim-Adress-Details als Fallback, wenn das Stadt-Name-Matching fehlschlägt. `resolveCityFromCoords` extrahiert `postcode` und ruft `findCityByPlz()` auf. Dies verbessert die Abdeckung für Städte, deren Name nicht exakt mit einem ABFALL_IO_SERVICES-Titel übereinstimmt (z.B. „Göttingen“ vs. „Göttinger Entsorgungsbetriebe“). 20 neue Tests validieren die Matching-Logik. Der Service bleibt `degraded`, bis ein Production-Lauf mit echtem Nominatim-Response den Fallback bestätigt.
+
+**Nächste Messung:** Nach Production-Deployment/-Prüfung der offenen Services und nur mit dokumentierter Testumgebung

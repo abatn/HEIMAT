@@ -4,10 +4,13 @@ services:
     runtime: node
     region: frankfurt
     plan: free
+    # Render muss den realen HTTP-Readiness-Endpunkt prüfen, nicht nur den offenen Port.
+    # /health antwortet ohne DB-Mutation und ist deshalb als Webservice-Healthcheck geeignet.
+    healthCheckPath: /health
     buildCommand: cd src/backend && npm install --include=dev && npm run build && mkdir -p dist/database && cp src/database/schema.sql dist/database/
-    # preDeployCommand entfaellt: ist in runtime:node still ignoriert (Render-Docs).
-    # Auto-Migration laeuft jetzt als startup-hook in src/index.ts standardmaessig IMMER,
-    # ausser bei explizitem AUTO_MIGRATE=false (Default-on: kein Dashboard-Env-Var noetig).
+    # Die Migration wird bewusst im Backend-Startup-Hook ausgeführt, bevor app.listen
+    # bindet. Dadurch nimmt eine Instanz bei fehlgeschlagener Migration keinen Traffic an.
+    # AUTO_MIGRATE ist standardmäßig aktiv und kann nur explizit mit false deaktiviert werden.
     startCommand: cd src/backend && node dist/index.js
     # Supavisor Shared Pooler / Session Mode (Port 5432) statt Direct-Verbindung:
     # Render Free Tier (Frankfurt) ist IPv4-only outbound. Der Supabase-Direkt-Hostname

@@ -200,6 +200,18 @@ Der aktuelle Schwerpunkt ist die Fertigstellung der Taler-Integration (Phase 3 d
 
 **Hinweis für den Agenten:** Dies ist der überarbeitete Rahmen für HEIMAT 2.0. Alle Entscheidungen müssen unter der Prämisse getroffen werden: **"Nur das nutzen, was legal, kostenlos und Open Source ist – ohne Verträge, ohne Genehmigungen, ohne Unternehmen."**
 
+### Verbindliche Ausführungs- und Statusregel (Version 15.0, 2026-08-06)
+
+- Im aktuellen Projektarbeitsverzeichnis läuft **kein lokaler Backend-Server und kein lokales PostgreSQL**.
+- `localhost`- oder lokale DB-Fehler sind deshalb Umgebungsbefunde und kein Beweis für funktionierende oder nicht funktionierende Produktservices.
+- Ein Service darf nur dann als **funktionfähig** dokumentiert werden, wenn der reale Datenpfad durch CI mit bereitgestellter Datenbank oder durch einen read-only Production-Check bestätigt wurde.
+- Alle übrigen Services sind als **offen**, **degraded**, **fail** oder **unbewertet** zu dokumentieren.
+- Keine lokalen Server, Testdaten, Mocks, Fakes oder Simulationen als Ersatz für den fehlenden Nachweis einführen.
+- Aktueller offener Status: universelle Event-Suche `fail`; Abfall bei `CITY_NOT_SUPPORTED` `degraded`; Mobility-Journey, Finance, Health, Check-in und AI-Chat unbewertet/offen.
+- Die öffentliche Read-only-Teilmatrix ist kein Gesamtcheck. Historische Phasen- und CI-Angaben bleiben Nachweise für damalige Implementierungsschritte und dürfen nicht als aktueller „alle Services funktionieren“-Claim verwendet werden.
+- `render.yaml` muss für den Webservice den vorhandenen read-only Endpoint `/health` als `healthCheckPath` konfigurieren. Dieser Check belegt nur HTTP-Readiness, nicht die Funktion einzelner Services.
+- Die universelle Event-Suche bleibt offen/`fail`, bis die Wikidata-Geosuche nach Deployment echte Events im angefragten Radius liefert. Contract-Tests allein markieren keinen Service als funktionfähig.
+
 ---
 
 ## 🧠 PHASE 8: AI-INTEGRATION – KONKRETE AUFGABEN

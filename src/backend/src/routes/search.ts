@@ -6,7 +6,7 @@
  * - Parkplätze (Overpass)
  * - E-Ladestationen (Overpass)
  * - Adressen (Nominatim)
- * - Events (Wikidata — TODO)
+ * - Events (Wikidata + OpenStreetMap)
  *
  * GET /api/search?q=arzt+berlin&lat=52.52&lng=13.41
  *
@@ -18,6 +18,7 @@ import axios from 'axios';
 import { logger } from '../utils/logger';
 import { ParkingService } from '../services/parkingService';
 import { EvChargingService } from '../services/evChargingService';
+import { EventService, Event } from '../services/eventService';
 
 export const searchRouter = Router();
 
@@ -46,7 +47,7 @@ function detectCategories(query: string): string[] {
   if (lower.match(/laden|ladestation|strom|ev|elektro/)) {
     categories.push('ev_charging');
   }
-  if (lower.match(/event|veranstaltung|konzert|festival|markt/)) {
+  if (lower.match(/event|veranstaltung|konzert|festival|markt|museum|theater|kino|ausstellung/)) {
     categories.push('event');
   }
   if (lower.match(/straße|str\.|weg|platz|adresse/)) {
@@ -123,6 +124,52 @@ async function searchParking(
   }
 }
 
+const eventOnlyPattern = /event|veranstaltung|konzert|festival|markt/i;
+
+// Search events from the existing Wikidata + OpenStreetMap service
+async function searchEvents(
+  query: string,
+  lat: number,
+  lng: number,
+): Promise<SearchResult[]> {
+  try {
+    const service = new EventService();
+    const events = await service.getNearbyEvents(lat, lng, 10);
+    const categoryQuery = eventOnlyPattern.test(query);
+    const searchTerm = query
+      .split(/\s+/)
+      .filter((term) => !eventOnlyPattern.test(term))
+      .join(' ')
+      .trim()
+      .toLowerCase();
+    const matchingEvents = categoryQuery && !searchTerm
+      ? events
+      : events.filter((event) =>
+          [event.name, event.description, event.category, event.location]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .includes(searchTerm),
+        );
+
+    return matchingEvents.slice(0, 10).map((event: Event) => ({
+      id: event.id,
+      category: 'event' as const,
+      name: event.name,
+      description: event.description
+        ? `${event.category} · ${event.description}`
+        : event.category || 'Veranstaltung',
+      distance: null,
+      lat: event.lat,
+      lng: event.lng,
+      relevance: 0.7,
+    }));
+  } catch (error) {
+    logger.warn('Event search failed:', error);
+    return [];
+  }
+}
+
 // Search EV charging stations
 async function searchEvCharging(
   lat: number,
@@ -179,7 +226,7 @@ searchRouter.get('/', async (req: Request, res: Response) => {
         case 'address':
           return searchAddresses(query, lat, lng);
         case 'event':
-          return Promise.resolve([]); // TODO: Wikidata integration
+          return searchEvents(query, lat, lng);
         default:
           return Promise.resolve([]);
       }

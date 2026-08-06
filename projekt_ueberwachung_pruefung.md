@@ -1,6 +1,6 @@
 # Überwachungsschleife (Gegenmaßstab)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
+**Letzte Aktualisierung:** 2026-08-06 | Version 18.0
 
 - **Was wird überwacht? (Kennzahlen)**
   - **Code-Qualität:**
@@ -60,7 +60,7 @@
 
 # Prüfschleife (unabhängig)
 
-**Letzte Aktualisierung:** 2026-08-04 | Version 11.0
+**Letzte Aktualisierung:** 2026-08-06 | Version 18.0
 
 - **Welche Zahlen werden geprüft?**
   - Backend-Test-Ergebnisse (CI: 555/555 = 100%, lokal: 413/555 = 75.5%)
@@ -112,4 +112,18 @@
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Nächste Messung:** Bei Phase 26 (Erweiterung)
+**Version-12-Nachtrag (2026-08-05):** Die lokale universelle Event-Suche ist mit echten OSM-Daten verifiziert (2/2 Integrationstests). Production liefert vor Deployment noch den alten leeren Event-Zweig. Offener Prüfpunkt: Deployment, danach read-only E2E mit `Veranstaltung` und `Museum` an einem Standort außerhalb Berlins.
+
+**Version-13-Nachtrag (2026-08-05):** Die neue öffentliche Read-only-Teilmatrix wurde mit echten Render-Daten ausgeführt. 8 Dienste bestanden an zwei Standorten; Abfall ist wegen fehlender kommunaler Abdeckung `degraded`; universelle Event-Suche ist `fail`. Authentifizierte/stateful Services sind bewusst nicht enthalten.
+
+**Version-14-Nachtrag — Prüfgrenze:** Es existiert aktuell kein lokaler Backend-Server und kein lokales PostgreSQL. Deshalb sind lokale Flutter-/DB-Testfehler keine Serviceverifikation. Die öffentliche Read-only-Teilmatrix gegen Render ist ebenfalls kein vollständiger Projektcheck: authentifizierte/stateful Services sowie nicht erreichbare oder fehlschlagende Services bleiben ausdrücklich unbewertet bzw. nicht funktionfähig.
+
+**Version-15-Nachtrag — aktuelle Prüfliste (2026-08-06):** Für den aktuellen Status gelten ausschließlich belegte Nachweise. Bestanden sind in der dokumentierten Teilmatrix Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs. Abfall bleibt bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche bleibt `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat sind unbewertet/offen. Kein lokaler Server/PostgreSQL und kein vorhandener Screen, Route oder HTTP-200 ersetzt diese Prüfung.
+
+**Version-16-Nachtrag — Render-Prüfgrenze (2026-08-06):** Der neue `healthCheckPath: /health` prüft nur die Erreichbarkeit des bestehenden HTTP-Endpunkts. Er darf nicht als Fachservice- oder Datenbank-Gesamtnachweis interpretiert werden. Die Fachservice-Matrix und die authentifizierten/stateful Prüfungen bleiben separat erforderlich.
+
+**Version-17-Nachtrag — Event-Suche (2026-08-06):** Die zuvor ungefilterte Wikidata-Query wurde auf `SERVICE wikibase:around` mit echten Standort-/Radiusparametern umgestellt. Das ist ein Code-/Contract-Test-Nachweis, kein Production-Erfolg. Der offene Prüfpunkt bleibt ein realer Render-Lauf von `verify:services`. Der Query benötigt einen Wikidata-Event-Ort (`P276`) mit Koordinaten (`P625`); fehlende Ortsdaten sind eine dokumentierte Datenquellenbegrenzung.
+
+**Version-18-Nachtrag — Abfall-PLZ-Fallback (2026-08-06):** Die PLZ-Fallback-Logik in `resolveCityFromCoords` wurde implementiert und mit 20 Tests validiert. Der Abfall-Service bleibt `degraded`, bis ein echter Production-Lauf den PLZ-Fallback mit Nominatim-Daten bestätigt. Die Tests prüfen die reine Matching-Logik (findCityByNominatim, findCityByPlz) ohne HTTP-Abhängigkeiten.
+
+**Nächste Messung:** Nach CI-/Production-Prüfung mit dokumentierter Umgebung

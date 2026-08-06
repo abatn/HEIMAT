@@ -191,7 +191,17 @@ export async function resolveCityFromCoords(
     );
 
     const addr = response.data?.address || {};
-    const config = findCityByNominatim(addr);
+    let config = findCityByNominatim(addr);
+
+    // Phase X.16: PLZ-Fallback — wenn Stadt-Name-Matching fehlschlägt,
+    // versuche PLZ-basiertes Matching via ABFALL_IO_SERVICES.
+    // Nominatim liefert postcode in der Adress-Details, z.B. "postcode": "80331".
+    if (!config && addr.postcode) {
+      config = findCityByPlz(addr.postcode);
+      if (config) {
+        logger.info(`WasteCityRegistry: PLZ ${addr.postcode} → ${config.id} (${config.adapter})`);
+      }
+    }
 
     const displayName =
       addr.city || addr.town || addr.village || addr.state || 'Unbekannt';

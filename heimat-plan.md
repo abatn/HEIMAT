@@ -908,16 +908,16 @@ HEIMAT 2.0 ist ein machbares Projekt mit minimalen Kosten, klarem rechtlichem Ra
 - `e00105d` — Mobile URL-Pfade bereinigt (kein `/$userId` Suffix); Backend identifiziert User aus Bearer-Token via `requireAuth`; neue `GET /api/finance/wallet` Route; Schema-Migration `ALTER TABLE ... DROP COLUMN IF EXISTS wallet_priv`
 - `25ac7ab` — Security-Fix: ungeschützten `POST /api/migrate` Endpoint entfernt (jeder Internetbesucher konnte DB-Schema mutieren)
 - `3414aea` — Regression-Lock: `src/backend/src/__tests__/security.test.ts` verriegelt dass POST /api/migrate 404 retourniert (Body-Lock gegen subtile Refactors)
-- `e7fcd85` — Auto-Migration: `src/backend/src/scripts/migrate.ts` (Node.js Schema-Applier mit Password-Redaction + pool.end) läuft im `render.yaml` `preDeployCommand`. Atomar (failure → Render aborted Deploy, alte Instanz bleibt live)
+- `e7fcd85` — Auto-Migration: `src/backend/src/scripts/migrate.ts` (Node.js Schema-Applier mit Password-Redaction + pool.end). **Historischer Planungsnachweis:** Der aktuelle Aufruf erfolgt im blockierenden Startup-Hook vor `app.listen`; bei Fehler startet die neue Instanz nicht.
 
 ### Render-Produktion
 - ADMIN_KEY auf Render-Dashboard gesetzt (sync:false) am 2026-07-25
 - `/api/admin/migrate` positive-control: HTTP 200 `{"success":true,"message":"Schema migrated"}` in ~213ms (Supavisor-Pooler + Postgres-Ack)
-- preDeployCommand läuft automatisch bei jedem Render-Deploy und wendet `dist/database/schema.sql` an
+- Der aktuelle Startup-Hook läuft bei jedem Backend-Start und wendet `dist/database/schema.sql` an; ältere preDeployCommand-Verweise in diesem historischen Planungsabschnitt sind nicht der aktuelle Mechanismus.
 
 ### Sicherheits-Netto
 - Vor Phase 23: unauth `POST /api/migrate` (jeder konnte DB-Schema mutieren) + kein Auto-Migration-Hook (Production-DB-Drift nach schema.sql-Änderungen)
-- Nach Phase 23: `/api/migrate` 404 (Security-Lock), `/api/admin/migrate` nur mit X-Admin-Key, preDeployCommand garantiert Schema-Sync, security.test.ts regresssion-lockt dass der Endpoint nicht versehentlich re-addet wird
+- Nach Phase 23: `/api/migrate` 404 (Security-Lock), `/api/admin/migrate` nur mit X-Admin-Key, der Startup-Hook garantiert den Schema-Sync, security.test.ts regressions-locked dass der Endpoint nicht versehentlich re-addet wird
 
 ### Nächste Schritte
 - Mobile Browser-Re-Test mit `heimat-demo-user@heimat.de` gegen Finanzen-Tab → echte Wallet-Daten statt 0.00 KUDOS-Demo

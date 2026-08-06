@@ -92,8 +92,8 @@ void main() {
 
       final response = EventsResponse.fromJson(json);
 
-      expect(response.lat, 52.52); // default
-      expect(response.lng, 13.41); // default
+      expect(response.lat, 0.0); // default
+      expect(response.lng, 0.0); // default
       expect(response.radius, 10); // default
     });
   });

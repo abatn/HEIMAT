@@ -3,9 +3,15 @@
 ## Projekt
 HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Python ML)
 
+> **Aktueller Status-Override (2026-08-06):** Im Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Die dokumentierte Production-Prüfung ist nur eine öffentliche Read-only-Teilmatrix: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat sind unbewertet/offen. Historische „live“-/Phasenangaben weiter unten sind keine aktuelle Gesamtfunktionszusage.
+
 ## aktueller Stand
 
-**Phase 23 Recap — Stand Juli 2026:** Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert.
+> **Verifikationsgrenze (2026-08-06):** Im aktuellen Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Lokale `localhost`-/`ECONNREFUSED`-Fehler sind kein Produktnachweis. Die aktuelle Production-Prüfung ist nur eine öffentliche Read-only-Teilmatrix; sie ist kein Nachweis, dass alle Services funktionieren.
+>
+> **Aktuelle Bewertung:** Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden die dokumentierte öffentliche Prüfung; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat bleiben unbewertet/offen.
+
+**Phase 23 Recap — Stand Juli 2026 (historischer Implementierungsnachweis):** Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert. Diese Angaben ersetzen keinen aktuellen Service-Production-Check.
 
 ### ✅ Was funktioniert
 - User-Auth (JWT+bcryptjs): Register/Login/Logout end-to-end live auf Render
@@ -29,6 +35,10 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - Mobilität und Gesundheit (100% Overpass-Live, standortunabhängig) seit MVP grün
 
 ### Was ist offen
+- **Kein lokaler E2E-Nachweis:** Kein lokaler Backend-Server und kein lokales PostgreSQL; für reale Funktionsaussagen sind CI mit Datenbank oder read-only Production-Checks erforderlich.
+- **Universelle Event-Suche:** Production-`fail`, bis `/api/search` echte Event-Ergebnisse liefert.
+- **Abfall:** `degraded` an Orten ohne belegte kommunale Quelle (`CITY_NOT_SUPPORTED`).
+- **Nicht vollständig verifiziert:** Mobility-Journey, Finance, Health, Check-in und AI-Chat bleiben unbewertet/offen.
 - EUR-Exchange: Wallet-Balance bleibt 0.00 KUDOS bis EUR-Production-Exchange (oder bank.demo.taler.net) echtes Taler-Guthaben via Reserve-Adresse-Bank-Wire bucht. Demo-Mock-Bypass fundLocal liefert HTTP 410 Gone (Commit 2d3ae18). Mobile Demo-Button "25 Demo-KUDOS" + `_computeMockLiveStatus` entfernt (Commit 7718333). audit-no-mocks.sh enforced in CI (Commit 82047ad). User-Regel (AGENTS.md:143 + knowledge.md:283): "mock, simulation, fake sind verboten".
 - **migrate.ts Unit-Test ✅ (Commit 06dc2e3)** — 18 Tests, alle gruen
 
@@ -65,14 +75,14 @@ HEIMAT 2.0 — Open-Source Super App für Deutschland (Flutter + Node.js + Pytho
 - `src/ml-service/` — Python FastAPI ML-Service
 
 ### ✅ Phase X.1 — IFrame-Elimination (2026-07-28, Commits b80b07d + 0d7ef3d)
-**Status:** Live. Frontend komplett ohne externe Webseiten-Einbettung. 10 Mini-Programme (3 native + 7 Coming Soon) via ServiceRegistry.nativeBuilder gerendert. KEIN IFrame, KEIN WebView, KEIN `dart:html`.
+**Status:** Live. Frontend komplett ohne externe Webseiten-Einbettung. Dieser Handoff-Abschnitt beschreibt den historischen Phase-X.1-Stand (3 native + 7 Coming Soon); spätere Registry-Einträge werden separat nach realem Datenpfad, Tests und Production-Check bewertet. KEIN IFrame, KEIN WebView, KEIN `dart:html`.
 
 **Commits:**
 - `b80b07d` feat(miniprogram) — 11 files (5 modified + 4 deleted + 1 new), Phase X.1 Haupt-Refactor
 - `0d7ef3d` fix(phase-x-1) — 2 new test files + index.ts cleanup (path-Import entfernt)
 
 **Was funktioniert:**
-- 10 Mini-Programme: `weather`, `air`, `waste` = echte Native-Screens; `mobility`, `finance`, `health`, `events`, `jobs`, `hotels`, `buergeramt` = `ComingSoonScreen`-Pattern (ehrlicher Placeholder)
+- Historischer Phase-X.1-Stand: `weather`, `air`, `waste` = echte Native-Screens; weitere Services waren damals `ComingSoonScreen`-Placeholder. Der aktuelle Code-Stand ist in `ServiceRegistry` und Version-12-Nachweisen zu prüfen.
 - **+16 neue Tests** (Phase R-Q-Backend ~177 + Phase X.1: 12 in service_registry_test.dart + 4 in coming_soon_screen_test.dart)
 - `MiniProgram.url`: Sentinel-URLs `native://registry/<id>` (kein HTTP-Request, nur Registry-Lookup)
 - `index.ts`: `/mini`-Static-Serving entfernt (`express.static(miniDir, ...)` weg)
@@ -130,14 +140,14 @@ https://github.com/abatn/futai — React Native Social-Media-App mit KI-Chat (Ol
 
 
 ### Phase 23: ✅ Finance-JWT-Roundtrip + Security-Härtung (2026-07-25 abgeschlossen)
-**Status:** Live. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün. security.test.ts Regression-Lock aktiv (Commit 3414aea).
+**Status:** Historischer Phase-23-Nachweis. ADMIN_KEY auf Render gesetzt; der aktuelle Migrationspfad läuft im Startup-Hook; `/api/admin/migrate` bleibt der manuelle Admin-Pfad. security.test.ts Regression-Lock aktiv (Commit 3414aea).
 
 Commits:
 - `cfb0561` — Mobile Finance-Bearer-Header
 - `e00105d` — URL-Pfade bereinigt + neue GET /wallet + Schema-Migration wallet_priv
 - `25ac7ab` — Security-Fix: POST /api/migrate entfernt
 - `3414aea` — security.test.ts Regression-Lock (POST /api/migrate → 404 + Body != Schema-loaded)
-- `e7fcd85` — render.yaml preDeployCommand + migrate.ts (Auto-Migration, idempotent, atomar)
+- `e7fcd85` — migrate.ts-Auto-Migration (idempotent, atomar); der aktuelle Aufruf erfolgt im Startup-Hook vor `app.listen`.
 
 Verifikation: POST `/api/admin/migrate` mit X-Admin-Key Header gegen Render → HTTP 200 `{"success":true,"message":"Schema migrated"}` in 213ms.
 

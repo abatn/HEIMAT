@@ -1825,3 +1825,190 @@ Column( AI Header → Lebenszeichen Status → Filter Chips → Divider → Doct
 - dart format: ✅ 1 file formatted
 - Commit 037dfd0: ✅ erfolgreich gepusht
 - CI erwartet: flutter analyze + flutter test (3 neue Tests)
+
+## Phase X.15 — Universelle Event-Suche: Wikidata-Geofilter (2026-08-06)
+
+> **Ziel:** Die universelle Event-Suche darf keine beliebigen deutschen Wikidata-Events laden und anschließend am Suchort vorbeifiltern. Die reale Wikidata-Quelle wird mit dem vom Aufrufer gelieferten Standort und Radius abgefragt.
+
+### Ist-Zustand
+
+- `src/backend/src/services/eventService.ts` suchte zuvor bis zu 30 Events aus Deutschland ohne räumlichen Filter.
+- Die Parameter `lat`, `lng` und `radiusKm` wurden zwar an `fetchWikidataEvents()` übergeben, aber in der SPARQL-Abfrage nicht verwendet.
+- Dadurch konnten lokale Suchen ohne passende Textübereinstimmung leer bleiben; die Production-Prüfung der universellen Event-Suche blieb `fail`.
+
+### Umsetzung
+
+- ✅ `buildWikidataEventsQuery(lat, lng, radiusKm)` verwendet den offiziellen `SERVICE wikibase:around`-Mechanismus.
+- ✅ `buildWikidataEventsQuery()` lehnt nicht-endliche Koordinaten, ungültige geografische Grenzen und nicht-positive Radien ab; eine zusätzliche Radius-Obergrenze wird ohne belegte Projektvorgabe nicht erfunden.
+- ✅ Der Query verbindet echte Events über `wdt:P276` mit einem realen Ort und `wdt:P625`-Koordinaten.
+- ✅ Mittelpunkt wird als WKT `Point(longitude latitude)` aus den Aufruferparametern gesetzt.
+- ✅ Radius wird in Kilometern an Wikidata übergeben.
+- ✅ Kein neuer Endpoint, keine Default-Stadt, keine erfundenen Events und keine Produktions-Mocks.
+- ✅ Geografische Eingaben werden vor der SPARQL-Interpolation validiert (Latituden -90..90, Longituden -180..180, positiver Radius).
+- ✅ Der frühere Deutschland-Filter wurde entfernt; die Suche bleibt tatsächlich ortsunabhängig. Events ohne verknüpften Wikidata-Ort bleiben eine bekannte Datenquellenbegrenzung.
+
+### Tests
+
+- ✅ `src/backend/src/__tests__/eventServiceQuery.test.ts` prüft Mittelpunkt, Radius und räumliche Verknüpfung.
+- ✅ Der Test führt keine Netzwerkabfrage aus; der echte Funktionsnachweis bleibt der read-only Production-Lauf.
+
+### Offener Nachweis
+
+Die Änderung ist lokal statisch und per Contract-Test geprüft, aber noch **nicht als funktionfähig** dokumentiert. Nach Deployment muss `npm run verify:services` mit echten Render-Antworten erneut ausgeführt werden. Erst echte `category: event`-Ergebnisse am angegebenen Standort ändern den Production-Status von `fail` zu `pass`.
+
+---
+
+## Phase X.14 — Render-Healthcheck und Deployment-Readiness (2026-08-06)
+
+> **Ziel:** Render soll die vorhandene HTTP-Readiness des Backends prüfen, ohne daraus fälschlich die Funktionsfähigkeit aller Fachservices abzuleiten.
+
+### Ist-Zustand
+
+- `render.yaml` startet `node dist/index.js`.
+- `src/backend/src/index.ts` führt die Datenbankmigration als blockierenden Startup-Hook vor `app.listen` aus, sofern `AUTO_MIGRATE !== 'false'`.
+- `src/backend/src/routes/health.ts` stellt `GET /health` als read-only Endpoint mit HTTP 200 und `status: 'ok'` bereit.
+- Vor dieser Task war in `render.yaml` kein `healthCheckPath` eingetragen; ein offener Port allein war kein ausreichendes Readiness-Signal.
+
+### Status
+
+- ✅ `render.yaml` enthält `healthCheckPath: /health`.
+- ✅ `src/backend/src/__tests__/render-config.test.ts` prüft den Render-Webservice, den Healthcheck und den Startup-/Migration-Vertrag durch Lesen der vorhandenen Konfiguration.
+- ✅ Keine Server- oder Datenbankprozesse für den Contract-Test erforderlich.
+- ⚠️ `/health` ist nur ein Deployment-/HTTP-Readiness-Signal. Fachservices bleiben nach der Version-15-Regel separat zu prüfen.
+- ✅ `render.yaml` enthält keinen `preDeployCommand`; die aktuelle Migration läuft nachweislich im Startup-Hook.
+- ✅ Aktuelle Status-/Deployment-Dokumente nennen den Startup-Hook statt eines aktuellen `preDeployCommand`; verbleibende Treffer gehören ausschließlich historischen Planungsabschnitten.
+
+### Validation
+
+- TypeScript `tsc --noEmit`: bestanden.
+- `render-config.test.ts`: 2/2 bestanden.
+- `git diff --check`: bestanden.
+- `audit-no-mocks.sh`: 0 Verstöße.
+- Kein lokaler Server und kein lokales PostgreSQL gestartet.
+
+### Verbleibende Tasks
+
+1. Nach dem nächsten Render-Deploy den `/health`-Check read-only gegen Production prüfen.
+2. Verbleibende historische Planungsabschnitte bei einem separaten Dokumentations-Sweep vollständig angleichen; sie sind kein aktueller Deployment-Mechanismus.
+3. Die fachliche Read-only-Teilmatrix und die authentifizierten/stateful Services separat erneut prüfen.
+
+---
+
+## Phase X.13 — Statuskonsolidierung ohne lokale Serverumgebung (2026-08-06)
+
+> **Ziel:** Die Projekt- und Übergabedokumentation darf trotz historischer Implementierungsnachweise nicht behaupten, dass alle Services funktionieren.
+
+### Status
+
+- ✅ Vier Steuerdokumente auf Version 15.0 aktualisiert.
+- ✅ `project-prompt.md` enthält die verbindliche Regel: kein lokaler Backend-Server/PostgreSQL; keine Mocks, Fakes oder Simulationen als Nachweis.
+- ✅ `README.md`, `knowledge.md`, `AGENTS.md` und `HANDOFF.md` nennen die aktuelle öffentliche Read-only-Teilmatrix und deren Grenzen.
+- ✅ Aktuelle Einstufung konsolidiert: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden; Abfall `degraded` bei `CITY_NOT_SUPPORTED`; universelle Event-Suche `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat unbewertet/offen.
+- ✅ Historische „live“-/Phasenangaben bleiben erhalten, werden aber ausdrücklich nicht als aktueller Gesamtstatus gezählt.
+
+### Offene Tasks
+
+1. Universelle Event-Suche nach erfolgreichem Production-Deployment mit echten Ergebnissen erneut read-only prüfen.
+2. Abfall nur mit belegten kommunalen Quellen erweitern; nicht unterstützte Orte bleiben `degraded`.
+3. Mobility-Journey, Finance, Health, Check-in und AI-Chat separat mit gültiger Auth-/Stateful-Umgebung prüfen.
+4. EUR-Production-Exchange und weitere im Projekt-Prompt genannte AI-5-Komponenten bleiben offen.
+
+### Validation
+
+- Kein lokaler Server und kein lokales PostgreSQL gestartet.
+- Backend TypeScript: bestanden.
+- `verify-services.test.ts`: 3/3 bestanden.
+- `git diff --check`: bestanden.
+- `scripts/audit-no-mocks.sh`: 0 Verstöße.
+
+---
+
+## Phase X.11 — Universelle Event-Suche (2026-08-05)
+
+> **Ziel:** Die erkannte Kategorie `event` in `/api/search` darf nicht länger immer eine leere Liste liefern. Die bereits vorhandene reale `EventService`-Integration (Wikidata + OpenStreetMap) wird in die universelle Suche eingebunden.
+
+### Status
+
+- ✅ `src/backend/src/routes/search.ts` — nutzt `EventService.getNearbyEvents()` für Event-Suchkategorien.
+- ✅ Event-Suchbegriffe erweitert: `Museum`, `Theater`, `Kino` und `Ausstellung` werden als Event-Kategorie erkannt.
+- ✅ Konkrete Suchbegriffe wie `Museum`, `Theater`, `Kino` und `Ausstellung` werden über Name, Beschreibung, Kategorie und Ort gefiltert; reine Kategoriebegriffe (`event`, `Veranstaltung`, `Konzert`, `Festival`, `Markt`) laden den realen Event-Bestand im Radius.
+- ✅ Bestehende Search-Response bleibt kompatibel; die reale Event-Kategorie wird in der Beschreibung erhalten.
+- ✅ `src/backend/src/__tests__/searchEvents.test.ts` — zwei konfigurationsabhängige, mock-freie Live-Integrationstests.
+
+### Nachweis / Validation
+
+- ✅ Lokaler E2E-Lauf mit echten OSM-Daten: 2/2 Tests bestanden.
+- ✅ `npx tsc --noEmit`: 0 Fehler.
+- ✅ Gezieltes ESLint: 0 Fehler; nur bestehende Warnungen.
+- ✅ `bash scripts/audit-no-mocks.sh`: 0 Verstöße.
+- ⚠️ Production-Verifikation bleibt offen: `/api/search` liefert für Eventbegriffe aktuell keine echten Event-Ergebnisse.
+
+## Phase X.12 — Read-only Production-Service-Verifikation (2026-08-05)
+
+> **Ausführungsgrenze:** Im Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Das CLI darf ausschließlich gegen einen vom Aufrufer angegebenen echten Backend-Endpunkt laufen. Ein fehlender lokaler Server ist kein Produkt-Funktionsnachweis.
+
+> **Ziel:** Ein reproduzierbarer Prüfer soll die tatsächlich von der App verwendeten öffentlichen GET-Endpunkte mit vom Aufrufer gesetzten Koordinaten und Suchbegriffen prüfen. Keine Default-Stadt, keine Fallback-Daten, keine Mutationen.
+
+### Umsetzung
+
+- ✅ `src/backend/src/scripts/verify-services.ts` — CLI `npm run verify:services`.
+- ✅ `src/backend/src/__tests__/verify-services.test.ts` — 3 Contract-/Klassifikationstests.
+- ✅ `src/backend/package.json` — Script `verify:services`.
+- ✅ Öffentliche Read-only-Pfade für Wetter, Luftqualität aktuell, Abfall, E-Laden, Parken, Events, Hotels, Bürgeramt, Jobs und universelle Event-Suche.
+- ✅ Authentifizierte oder zustandsändernde Services (Mobility-Journey, Finance, Health, Check-in, AI-Chat) sind bewusst nicht Teil dieser Teilmatrix.
+- ✅ Koordinaten, Suchbegriffe, Radien und Wochenwerte werden über `VERIFY_*`-Umgebungsvariablen gesetzt.
+- ✅ Exit-Codes: `0 = pass`, `1 = fail`, `2 = degraded`.
+
+### Validierung
+
+- ✅ `npx tsc --noEmit`: 0 Fehler.
+- ✅ `verify-services.test.ts`: 3/3 Tests bestanden.
+- ✅ `git diff --check`: bestanden.
+- ✅ `audit-no-mocks.sh`: 0 Verstöße.
+- ✅ Read-only Real-Data-Läufe gegen Render in Frankfurt und München: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs lieferten echte Daten.
+- ⚠️ Kein lokales End-to-End: Im Arbeitsverzeichnis lief kein lokaler Backend-Server und kein lokales PostgreSQL. Lokale DB-/localhost-Fehler werden nicht als Produktstatus gezählt.
+- ⚠️ Abfall: `CITY_NOT_SUPPORTED` an den geprüften Orten → `degraded`.
+- ❌ Universelle Event-Suche: keine echten `category: event`-Ergebnisse an den geprüften Orten → weiterhin nicht funktionfähig in Production.
+
+### Offene Tasks
+
+1. Universelle Event-Suche deployen und mit `Museum` sowie `Veranstaltung` erneut prüfen.
+2. Waste-Provider: weitere echte kommunale Datenquellen nur auf Basis vorhandener, rechtlich belegter Dateien ergänzen.
+3. Separate Verifikation für Auth-/Stateful-Services mit echten Credentials bzw. User-Opt-in.
+4. AI-5 On-Device TFLite bleibt offen.
+5. EUR-Production-Exchange bleibt offen.
+6. Authentifizierte/stateful Services (Mobility-Journey, Finance, Health, Check-in, AI) sind ohne bereitgestellte Credentials/Umgebung unbewertet.
+7. Services ohne CI-/Production-Nachweis gelten nicht als funktionfähig.
+
+---
+
+## Phase X.16 — Abfall-PLZ-Fallback im City-Resolver (2026-08-06)
+
+> **Ziel:** Matching-Abdeckung des Abfall-Services verbessern, indem die PLZ aus Nominatim-Adress-Details als Fallback genutzt wird, wenn das Stadt-Name-Matching fehlschlägt.
+
+### Ursache
+
+Das `findCityByNominatim`-Matching prüft, ob der Kandidat (Stadt-Name von Nominatim) im Service-Titel enthalten ist. Wenn Nominatim z.B. `"Göttingen"` zurückgibt, aber der Service `"Göttinger Entsorgungsbetriebe"` heißt, schlägt das Matching fehl (`"göttinger"` ≠ `"göttingen"`). Gleichzeitig liefert Nominatim eine PLZ, die gegen ABFALL_IO_SERVICES gematcht werden kann.
+
+### Änderungen
+
+| Datei | Änderung |
+|-------|----------|
+| `src/backend/src/services/wasteCityRegistry.ts` | PLZ-Fallback in `resolveCityFromCoords`: Nach fehlgeschlagenem `findCityByNominatim` wird `findCityByPlz(postcode)` aufgerufen |
+| `src/backend/src/__tests__/wasteCityRegistry.test.ts` | NEU — 20 Tests: 7 findCityByNominatim, 9 findCityByPlz, 4 PLZ-Fallback-Indirekte-Validierung |
+
+### Tests
+
+- **findCityByNominatim:** Berlin → ALBA Berlin, Landshut → Stadt Landshut, Bayreuth → Landkreis Bayreuth, Göttingen → kein Matching (korrekt), Heilbronn → Landkreis Heilbronn, Unbekannt → null, Kurzer Name → null
+- **findCityByPlz:** 10115 → Berlin, 84028 → Landshut, 95448 → Bayreuth, 37081 → Göttingen, 74072 → Heilbronn, Ungültige PLZ → null
+- **PLZ-Fallback-Indirekt:** Validiert dass findCityByPlz die richtigen Matches liefert, die den Fallback aktivieren
+
+### Validierung
+
+- ✅ `npx tsc --noEmit`: 0 Fehler
+- ✅ `npx eslint`: 0 Errors (2 vorbestehende Warnings)
+- ✅ `npx jest wasteCityRegistry.test.ts`: 20/20 bestanden
+- ✅ `npx jest wasteCityRegistry wasteService render-config verify-services`: 34 bestanden, 7 übersprungen
+- ✅ `git diff --check`: bestanden
+- ✅ `audit-no-mocks.sh`: 0 Verstöße
+- ⚠️ Service bleibt `degraded`, bis ein Production-Lauf mit echtem Nominatim-Response den Fallback bestätigt
