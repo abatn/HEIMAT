@@ -132,7 +132,8 @@ void main() {
       expect(provider.locationName, 'Berlin');
     });
 
-    test('Cache ohne lat/lng → lat/lng bleibt 0/0 (kein Berlin-Fallback)', () async {
+    test('Cache ohne lat/lng → lat/lng bleibt 0/0 (kein Berlin-Fallback)',
+        () async {
       final now = DateTime.now();
       SharedPreferences.setMockInitialValues({
         kWeatherCacheKey: validWeatherJson(),
@@ -176,7 +177,8 @@ void main() {
       await provider.refresh();
 
       expect(provider.error, isNotNull);
-      expect(provider.error!, contains('Standort konnte nicht ermittelt werden'));
+      expect(
+          provider.error!, contains('Standort konnte nicht ermittelt werden'));
     });
 
     test('Ohne GPS → hasData bleibt false', () async {
@@ -300,7 +302,8 @@ void main() {
   // Group 5: Stale Cache mit Koordinaten
   // ==================================================================
   group('Stale Cache — Koordinaten-Restaurierung', () {
-    test('Weather: stale Cache restauriert lat/lng auch wenn Refresh fehlschlägt',
+    test(
+        'Weather: stale Cache restauriert lat/lng auch wenn Refresh fehlschlägt',
         () async {
       final staleTs = DateTime.now()
           .subtract(const Duration(minutes: 10))
