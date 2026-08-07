@@ -1882,8 +1882,92 @@ Die Änderung ist lokal statisch und per Contract-Test geprüft, aber noch **nic
 
 - TypeScript `tsc --noEmit`: bestanden.
 - `render-config.test.ts`: 2/2 bestanden.
-- `git diff --check`: bestanden.
-- `audit-no-mocks.sh`: 0 Verstöße.
+- `git diff --check`: bestanden.  - `audit-no-mocks.sh`: 0 Verstöße
+
+---
+
+## Phase X.18 — Bürgeramt Overpass + AI Chat Timeout + Steuerungsdateien (2026-08-07)
+
+> **Ziel:** Offene Service-Probleme beheben und Steuerungsdateien aktualisieren.
+
+### Fix 1: Bürgeramt Overpass Query (Commit 3120544)
+
+**Problem:** Bürgeramt-Service lieferte 0 Ergebnisse in Berlin trotz 2513 Overpass-Elementen.
+
+**Root Cause:** Overpass-Query nutzte `out body; >; out skel qt;` — das liefert für `way`-Elemente keine Center-Koordinaten. Der Filter `el.type === 'node' || el.center` schloss alle `way`-Elemente aus.
+
+**Lösung:** Query von `out body; >; out skel qt;` auf `out center;` geändert.
+
+**Ergebnis:** 86 Berliner Behörden statt 0.
+
+**Datei:** `src/backend/src/services/buergeramtService.ts` (1 Zeile geändert)
+
+### Fix 2: AI Chat Ollama Timeout (Commit 5221725)
+
+**Problem:** Auf Render gibt es keinen lokalen Ollama-Server. Der `OllamaService` versuchte `localhost:11434` zu erreichen, was 30s lang hing.
+
+**Lösung:** Timeout von 30s auf 5s reduziert.
+
+**Ergebnis:** Sofortiger Fallback-Text auf Render statt 30s Warten.
+
+**Datei:** `src/backend/src/services/ollamaService.ts` (1 Zeile geändert)
+
+### Fix 3: dart format (Commit 1b4dabe)
+
+**Problem:** `location_service_test.dart` hatte Formatierungsabweichungen.
+
+**Lösung:** `dart format` angewendet.
+
+**Ergebnis:** Flutter CI grün.
+
+### Fix 4: Steuerungsdateien Version 19.0 (Commit 210865d)
+
+**Änderungen:** 4 Nachträge in Steuerungsdateien:
+- `projekt_zielschleife.md` — Service-Status dokumentiert
+- `projekt_betriebsschleife.md` — CI-Status dokumentiert
+- `projekt_ueberwachung_pruefung.md` — Verifikation dokumentiert
+- `projekt_anker_urteil.md` — Anker-Zahlen aktualisiert
+
+### Fix 5: knowledge.md Service-Status v19.0 (Commit eed9f65)
+
+**Änderungen:**
+- Status-Override: 15/17 Services 100%
+- Service-Registry: Tabelle mit Status-Nachweis
+- Production-Verifikation: 15 Endpunkte geprüft
+- Bekannte Probleme: Waste + AI Chat dokumentiert
+
+### Validierung
+
+| Check | Ergebnis |
+|-------|----------|
+| TypeScript | `tsc --noEmit` → 0 Errors |
+| Backend Tests | 555/555 grün (CI) |
+| Flutter Tests | 418/418 grün |
+| audit-no-mocks.sh | 0 Violations |
+| Production Check | 15/17 Services HTTP 200 |
+| CI Status | Alle neuen Commits grün |
+
+### Service-Status v19.0
+
+| Service | Status | Nachweis |
+|---------|--------|----------|
+| Health | ✅ 100% | HTTP 200 |
+| Auth Login | ✅ 100% | JWT Token |
+| Auth Register | ✅ 100% | 201 Created |
+| Wetter | ✅ 100% | 18.6°C |
+| Luftqualität | ✅ 100% | EAQI 24 |
+| E-Laden | ✅ 100% | 17 Stationen |
+| Parken | ✅ 100% | 6 Parkhäuser |
+| Events | ✅ 100% | 30 Events |
+| Hotels | ✅ 100% | 3 Hotels |
+| Bürgeramt | ✅ 100% | 86 Behörden (gefixt!) |
+| Jobs | ✅ 100% | 175 Ergebnisse |
+| Health (Ärzte) | ✅ 100% | 8 Ärzte |
+| Mobility | ✅ 100% | 7 Verbindungen |
+| Finance | ✅ 100% | Wallet existiert |
+| Checkin | ✅ 100% | Aktiv |
+| Waste | ⚠️ degraded | abfall.io API antwortet leer |
+| AI Chat | ⚠️ Fallback | Kein lokaler Ollama auf Render |.
 - Kein lokaler Server und kein lokales PostgreSQL gestartet.
 
 ### Verbleibende Tasks
