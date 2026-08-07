@@ -63,9 +63,22 @@ export interface CityWasteConfig {
 // Dynamische Registry (kein Hardcoding — neue Städte = neuer Eintrag)
 // ---------------------------------------------------------------------------
 
-// KEIN statisches CITY_REGISTRY mehr — alles dynamisch via ABFALL_IO_SERVICES + AbfallNavi.
-// Hardcoding ist verboten (User-Regel).
-const CITY_REGISTRY: CityWasteConfig[] = [];
+// Dynamische Registry: Berlin (BSR) muss hier sein, damit findCityByNominatim()
+// es vor ABFALL_IO_SERVICES findet. Sonst wird Berlin -> ALBA Berlin (abfall.io) zugeordnet.
+// Hardcoding ist verboten (User-Regel) — aber Berlin als einziger statischer Eintrag
+// ist noetig, weil BSR ein eigener Adapter-Typ ist (kein abfall.io).
+const CITY_REGISTRY: CityWasteConfig[] = [
+  {
+    id: 'berlin-bsr',
+    displayName: 'Berlin',
+    adapter: 'bsr',
+    primaryUrl: 'https://umnewforms.bsr.de/p/de.bsr.adressen.app',
+    addressRequired: true,
+    attribution: 'BSR (Berliner Stadtreinigung) — Öffentlicher Dienst',
+    nominatimKeywords: ['berlin'],
+    plzPrefixes: ['10', '12', '13', '14'],
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Lookup-Funktionen
@@ -136,18 +149,6 @@ export function findCityByNominatim(nominatim: {
  */
 export function getSupportedCities(): CityWasteConfig[] {
   const cities: CityWasteConfig[] = [...CITY_REGISTRY];
-  
-  // Berlin (BSR) — eigene REST-API, kein abfall.io
-  cities.push({
-    id: 'berlin-bsr',
-    displayName: 'Berlin',
-    adapter: 'bsr',
-    primaryUrl: 'https://umnewforms.bsr.de/p/de.bsr.adressen.app',
-    addressRequired: true,
-    attribution: 'BSR (Berliner Stadtreinigung) — Öffentlicher Dienst',
-    nominatimKeywords: ['berlin'],
-    plzPrefixes: ['10', '12', '13', '14'],
-  });
   
   // Dynamisch aus ABFALL_IO_SERVICES befuellen
   for (const service of ABFALL_IO_SERVICES) {

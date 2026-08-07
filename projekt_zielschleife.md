@@ -102,3 +102,10 @@ Live-API-Check: 13/14 Services erreichbar (HTTP 200). Waste 502 (externes Proble
 2. 8 Tests bestanden (ollamaService.test.ts).
 3. TypeScript-Kompilierung bestanden.
 4. AI Chat Status: Bessere Fallback-Nachricht wenn Ollama nicht verfügbar.
+
+**Version-23-Nachtrag — Waste Service Berlin-BSR-Adapter Fix (2026-08-07):**
+1. Problem: Berlin wurde abfall.io (ALBA) statt BSR zugeordnet.
+2. Ursache: `findCityByNominatim()` prüfte nur `CITY_REGISTRY` (leer) + `ABFALL_IO_SERVICES`, nicht `getSupportedCities()`.
+3. Fix: Berlin in statische `CITY_REGISTRY` eingefügt (Adapter-Typ 'bsr').
+4. Production-Check: 9/10 Services PASS (Waste noch nicht deployed).
+5. Universal Event Search: PASS mit 10 echten Event-Ergebnissen (vorher: fail).

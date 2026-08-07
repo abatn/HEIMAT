@@ -133,3 +133,9 @@
 1. Fallback-Text verbessert.
 2. 8 Tests bestanden.
 3. TypeScript-Kompilierung: `tsc --noEmit` bestanden.
+
+**Version-23-Nachtrag — Waste Service Berlin-BSR-Adapter Fix (2026-08-07):**
+1. Berlin in statische CITY_REGISTRY eingefügt (Adapter-Typ 'bsr').
+2. `findCityByNominatim()` findet jetzt BSR vor abfall.io.
+3. 21 Tests bestanden (bsrService + wasteService).
+4. TypeScript-Kompilierung: `tsc --noEmit` bestanden.

@@ -133,3 +133,9 @@
 - Fallback-Text verbessert: Hilfreiche Beschreibung.
 - 8 Tests bestanden.
 - AI Chat: Bessere Fallback-Nachricht.
+
+**Version-23-Nachtrag — Waste Service Berlin-BSR-Adapter Fix (2026-08-07):**
+- Berlin in statische CITY_REGISTRY eingefügt (Adapter-Typ 'bsr').
+- `findCityByNominatim()` findet jetzt BSR vor abfall.io.
+- 21 Tests bestanden (bsrService + wasteService).
+- Production-Check: 9/10 Services PASS.
