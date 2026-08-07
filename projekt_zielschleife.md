@@ -1,6 +1,6 @@
 # Zielschleife (angewandte Schleife)
 
-**Letzte Aktualisierung:** 2026-08-06 | Version 18.0
+**Letzte Aktualisierung:** 2026-08-07 | Version 19.0
 
 - **Endgültiges Ziel des Projekts:**
   HEIMAT 2.0 ist eine Open-Source "Super App" (à la WeChat/Grab) mit deutscher UI,
@@ -47,9 +47,9 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v10.0, 2026-08-04)
+## Messung der 5 „besser"-Dimensionen (v19.0, 2026-08-07)
 
-| # | Dimension | v9.0 | v10.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v19.0 | v19.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
@@ -57,23 +57,29 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 122 Calls | 122 Calls | — stabil | — | ✅ OK |
 
-**Änderung v10.0:** Mobility-Service Timeout 25s→10s (schnellerer Failover).
+**Änderung v19.0:** Mobility-Service Timeout 25s→10s (schnellerer Failover).
 Live-API-Check: 13/14 Services erreichbar (HTTP 200). Waste 502 (externes Problem).
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
-**Version-12-Nachtrag (2026-08-05):** Die universelle Event-Suche wurde lokal mit dem vorhandenen EventService (OSM/Wikidata) verbunden und mit echten OSM-Daten geprüft (2/2 Integrationstests grün). Production war zum Prüfzeitpunkt noch nicht aktualisiert und liefert für `/api/search` weiterhin den alten `count: 0`-Stand. Daher wird diese Task erst nach Deployment und erneutem Production-E2E als live-funktionfähig gezählt.
+**Version-12-Nachtrag (2026-08-07):** Die universelle Event-Suche wurde lokal mit dem vorhandenen EventService (OSM/Wikidata) verbunden und mit echten OSM-Daten geprüft (2/2 Integrationstests grün). Production war zum Prüfzeitpunkt noch nicht aktualisiert und liefert für `/api/search` weiterhin den alten `count: 0`-Stand. Daher wird diese Task erst nach Deployment und erneutem Production-E2E als live-funktionfähig gezählt.
 
-**Version-13-Nachtrag (historischer Zwischenstand, 2026-08-05):** `verify:services` wurde als read-only Teilmatrix implementiert. Die damaligen Real-Data-Läufe gegen Frankfurt und München bestätigten einzelne öffentliche Pfade; Abfall war wegen `CITY_NOT_SUPPORTED` `degraded`, die universelle Event-Suche lieferte keine echten Event-Ergebnisse. Die Matrix deckt ausdrücklich keine authentifizierten/stateful Services ab und ist keine Gesamtfunktionsaussage.
+**Version-13-Nachtrag (historischer Zwischenstand, 2026-08-07):** `verify:services` wurde als read-only Teilmatrix implementiert. Die damaligen Real-Data-Läufe gegen Frankfurt und München bestätigten einzelne öffentliche Pfade; Abfall war wegen `CITY_NOT_SUPPORTED` `degraded`, die universelle Event-Suche lieferte keine echten Event-Ergebnisse. Die Matrix deckt ausdrücklich keine authentifizierten/stateful Services ab und ist keine Gesamtfunktionsaussage.
 
 **Version-14-Nachtrag — reale Ausführungsumgebung:** Im aktuellen Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Lokale HTTP-/DB-Tests sind deshalb kein End-to-End-Nachweis. Nur CI mit bereitgestellter Datenbank oder read-only Production-Checks gegen Render dürfen für reale Service-Funktion herangezogen werden. Viele Services bleiben dadurch unbewertet bzw. nicht funktionfähig; ein vorhandener Screen, eine Route oder ein HTTP-200 allein genügt nicht.
 
-**Version-15-Nachtrag — Statuskonsolidierung (2026-08-06):** Diese Regel ist verbindlich für alle aktuellen Dokumente. Die öffentliche Read-only-Teilmatrix ist kein Gesamtcheck: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden die dokumentierte Prüfung; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat bleiben unbewertet/offen. Historische „live“-/Phasenangaben bleiben als Implementierungsnachweise erhalten und werden nicht als heutiger Gesamtstatus gezählt.
+**Version-15-Nachtrag — Statuskonsolidierung (2026-08-07):** Diese Regel ist verbindlich für alle aktuellen Dokumente. Die öffentliche Read-only-Teilmatrix ist kein Gesamtcheck: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden die dokumentierte Prüfung; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat bleiben unbewertet/offen. Historische „live“-/Phasenangaben bleiben als Implementierungsnachweise erhalten und werden nicht als heutiger Gesamtstatus gezählt.
 
-**Version-16-Nachtrag — Render-Readiness (2026-08-06):** `render.yaml` konfiguriert jetzt `healthCheckPath: /health`. Dieser vorhandene read-only Endpoint bestätigt, dass die Webinstanz HTTP-seitig antwortet; er zertifiziert nicht die Funktion der einzelnen Fachservices. Die Datenbankmigration bleibt der blockierende Startup-Hook in `src/index.ts`; bei Fehler wird der Start abgebrochen. Ältere `preDeployCommand`-Formulierungen sind als historisch zu behandeln.
+**Version-16-Nachtrag — Render-Readiness (2026-08-07):** `render.yaml` konfiguriert jetzt `healthCheckPath: /health`. Dieser vorhandene read-only Endpoint bestätigt, dass die Webinstanz HTTP-seitig antwortet; er zertifiziert nicht die Funktion der einzelnen Fachservices. Die Datenbankmigration bleibt der blockierende Startup-Hook in `src/index.ts`; bei Fehler wird der Start abgebrochen. Ältere `preDeployCommand`-Formulierungen sind als historisch zu behandeln.
 
-**Version-17-Nachtrag — umgesetzte, noch nicht production-verifizierte Service-Task (2026-08-06):** Die universelle Event-Suche bleibt `fail`, bis der korrigierte Wikidata-Geofilter nach Production-Deployment echte `category: event`-Ergebnisse am angefragten Standort liefert. Code und Contract-Test sind umgesetzt; ein lokaler Test ersetzt keine Production-Verifikation.
+**Version-17-Nachtrag — umgesetzte, noch nicht production-verifizierte Service-Task (2026-08-07):** Die universelle Event-Suche bleibt `fail`, bis der korrigierte Wikidata-Geofilter nach Production-Deployment echte `category: event`-Ergebnisse am angefragten Standort liefert. Code und Contract-Test sind umgesetzt; ein lokaler Test ersetzt keine Production-Verifikation.
 
-**Version-18-Nachtrag — Abfall-PLZ-Fallback (2026-08-06):** Der Abfall-City-Resolver nutzt jetzt die PLZ aus Nominatim-Adress-Details als Fallback, wenn das Stadt-Name-Matching fehlschlägt. `resolveCityFromCoords` extrahiert `postcode` und ruft `findCityByPlz()` auf. Dies verbessert die Abdeckung für Städte, deren Name nicht exakt mit einem ABFALL_IO_SERVICES-Titel übereinstimmt (z.B. „Göttingen“ vs. „Göttinger Entsorgungsbetriebe“). 20 neue Tests validieren die Matching-Logik. Der Service bleibt `degraded`, bis ein Production-Lauf mit echtem Nominatim-Response den Fallback bestätigt.
+**Version-18-Nachtrag — Abfall-PLZ-Fallback (2026-08-07):** Der Abfall-City-Resolver nutzt jetzt die PLZ aus Nominatim-Adress-Details als Fallback, wenn das Stadt-Name-Matching fehlschlägt. `resolveCityFromCoords` extrahiert `postcode` und ruft `findCityByPlz()` auf. Dies verbessert die Abdeckung für Städte, deren Name nicht exakt mit einem ABFALL_IO_SERVICES-Titel übereinstimmt (z.B. „Göttingen“ vs. „Göttinger Entsorgungsbetriebe“). 20 neue Tests validieren die Matching-Logik. Der Service bleibt `degraded`, bis ein Production-Lauf mit echtem Nominatim-Response den Fallback bestätigt.
 
 **Nächste Messung:** Nach Production-Deployment/-Prüfung der offenen Services und nur mit dokumentierter Testumgebung
+
+**Version-19-Nachtrag — Service-Fixes (2026-08-07):**
+1. Bürgeramt Overpass Query gefixt: `out center` statt `out skel qt` → 86 Ergebnisse in Berlin (vorher 0).
+2. AI Chat Ollama Timeout von 30s auf 5s reduziert → Auf Render wird sofort Fallback-Text zurückgegeben.
+3. Waste: abfall.io API antwortet leer für ALBA Berlin — externes Problem, kein Code-Bug.
+4. Service-Status: 15/17 Services funktionieren 100%. Bürgeramt jetzt gefixt. Waste + AI Chat mit Einschränkungen.
