@@ -2012,3 +2012,36 @@ Das `findCityByNominatim`-Matching prüft, ob der Kandidat (Stadt-Name von Nomin
 - ✅ `git diff --check`: bestanden
 - ✅ `audit-no-mocks.sh`: 0 Verstöße
 - ⚠️ Service bleibt `degraded`, bis ein Production-Lauf mit echtem Nominatim-Response den Fallback bestätigt
+
+---
+
+## Phase X.17 — GPS-Timeout-Fix für Web-Browser (2026-08-07, Commit 80fe2a2)
+
+> **Ziel:** Weather- und AirQuality-Provider auf Web-Browsern funktionieren zu lassen, indem der GPS-Timeout von 3s auf 10s erhöht wird.
+
+### Problem
+
+Web-Browser zeigen einen Permission-Prompt für Geolocation. Die Browser-Geolocation-API braucht 5-10s für diesen Prompt. Die Provider hatten einen 3s-Timeout, der abbrach bevor der User antworten konnte → "Standort nicht verfügbar".
+
+### Lösung
+
+| Datei | Änderung |
+|-------|----------|
+| `src/mobile/lib/features/weather/weather_provider.dart` | Timeout 3s → 10s in `_tryUpdateLocation()` |
+| `src/mobile/lib/features/air_quality/air_quality_provider.dart` | Timeout 3s → 10s in `_tryUpdateLocation()` |
+| `src/mobile/test/location_service_test.dart` | NEU — 20 Tests für GPS-Ausfall-Szenarien |
+
+### Tests
+
+- `location_service_test.dart`: 20 Tests — Error-Messages, Cache-Restaurierung, Timeout-Verhalten
+- `weather_provider_test.dart`: 55 Tests — bestanden
+- `air_quality_provider_test.dart`: 40 Tests — bestanden
+- **Gesamt:** 418/418 Tests bestanden
+
+### Validierung
+
+- ✅ `flutter/bin/flutter test`: 418/418 bestanden
+- ✅ `flutter/bin/flutter analyze`: 0 Errors
+- ✅ Code-Reviewer: 9/9 PASS
+- ✅ audit-no-mocks.sh: 0 Verstöße
+

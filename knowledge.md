@@ -2,6 +2,8 @@
 
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
+>
+> **Aktueller Status-Override (2026-08-06):** Im Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Die öffentliche Prüfung ist nur eine Read-only-Teilmatrix: Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs bestanden; Abfall ist bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche ist `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat sind unbewertet/offen. Historische „live“-/Phasenangaben sind keine aktuelle Gesamtfunktionszusage.
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -65,6 +67,10 @@ cd src/mobile && src/mobile/flutter/bin/flutter build web --release --base-href 
 
 ## Architecture
 
+**Render-Readiness (2026-08-06):** `render.yaml` setzt `healthCheckPath: /health`. Der Endpoint ist read-only und prüft nur HTTP-Erreichbarkeit; die Fachservice-Funktionsfähigkeit bleibt gemäß Status-Override separat zu verifizieren. Die Migration läuft im aktuellen Backend als blockierender Startup-Hook vor `app.listen`.
+
+**Event-Suche (2026-08-06):** Die Wikidata-Abfrage verwendet jetzt `SERVICE wikibase:around` mit echten Aufruferkoordinaten und Radius. Der Production-Status bleibt `fail`, bis Render nach Deployment echte Event-Ergebnisse liefert.
+
 Three services under `src/`:
 
 ```
@@ -109,6 +115,7 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 - **Conventional Commits, lowercase, German descriptions.** Example: `feat(mobilitaet): oepnv-verbindungssuche hinzugefuegt`.
 - **Branch prefixes:** `feature/`, `fix/`, `docs/`, `refactor/`, `test/`.
 - **Service URLs via `--dart-define BACKEND_URL=...`** (default `https://heimat-backend.onrender.com`). See `src/mobile/lib/core/config/app_config.dart`.
+- **Ausführungsgrenze:** Im aktuellen Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. `localhost`-/DB-Fehler sind keine Produktverifikation; maßgeblich sind CI mit PostgreSQL oder read-only Production-Checks gegen Render.
 - **No `analysis_options.yaml`** in mobile — analyzer uses defaults. `flutter_lints` is wired into deps but unused.
 - **No `npm run migrate` / `npm run seed`** — those don't exist. Schema is loaded via `POST /api/migrate` (admin-only) or CI `psql -f`.
 - **Root `*.md` files (`AI-*.md`, `heimat-plan.md`, `blog/`, `funding/`, `marketing/`)** are planning/marketing docs, NOT code documentation. Don't read them for code context.
@@ -164,7 +171,7 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 
    **Update 2026-07-25 (Commits cfb0561 + e00105d):** WIRING DONE. `_authService.authHeaders` schickt jetzt Bearer-Token in allen 5 Finance-HTTP-Calls (initWallet, loadWallet 2x, loadTransactions, sendMoney). Die `/$userId`-URL-Suffixe wurden entfernt (Backend identifiziert User aus Bearer-Token via `requireAuth`). Backend hat zusätzlich eine `GET /api/finance/wallet`-Route bekommen (Commit e00105d). Schema hat eine alte `wallet_priv` Legacy-Spalte per `ALTER TABLE … DROP COLUMN IF EXISTS` verloren. End-to-End Finance-Roundtrip sollte jetzt mit Token-Auth gegen Render produktiv sein.
 
-13. **Phase 23 Roundtrip ✅ Live (2026-07-25):** Finance-JWT-Integration abgeschlossen. ADMIN_KEY auf Render gesetzt. preDeployCommand (auto) + `/api/admin/migrate` (manual) beide grün am 2026-07-25. security.test.ts Regression-Lock aktiv (Commit 3414aea). Konkret: (a) Mobile `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 HTTP-Calls. (b) Backend `GET /api/finance/wallet` Route neu (Commit e00105d). (c) Schema `wallet_priv` Legacy-Spalte per `ALTER TABLE DROP COLUMN IF EXISTS` verloren. (d) Ungeschützter `POST /api/migrate` entfernt (Commit 25ac7ab); nur `/api/admin/migrate` mit `X-Admin-Key` Header bleibt. (e) `src/backend/src/scripts/migrate.ts` (Node.js) läuft im `preDeployCommand` nach `buildCommand` (Commit e7fcd85) — wendet `dist/database/schema.sql` automatisch auf Production-DB an. (f) `src/backend/src/__tests__/security.test.ts` (Commit 3414aea) regresssion-locked dass POST /api/migrate 404 retourniert (sonst 200 mit Schema-loaded-Body). (g) Backend-CI Run #30173698956 für e7fcd85 grün (Lint/Test/Build).
+13. **Phase 23 Roundtrip ✅ Live (2026-07-25, historischer Nachweis):** Finance-JWT-Integration abgeschlossen. ADMIN_KEY auf Render gesetzt. Der damalige Migrationsnachweis wurde in den aktuellen Startup-Hook überführt; `/api/admin/migrate` bleibt der manuelle Admin-Pfad. security.test.ts Regression-Lock aktiv (Commit 3414aea). Konkret: (a) Mobile `finance_provider.dart` schickt Bearer-Token via `_authService.authHeaders` in allen 5 HTTP-Calls. (b) Backend `GET /api/finance/wallet` Route neu (Commit e00105d). (c) Schema `wallet_priv` Legacy-Spalte per `ALTER TABLE DROP COLUMN IF EXISTS` verloren. (d) Ungeschützter `POST /api/migrate` entfernt (Commit 25ac7ab); nur `/api/admin/migrate` mit `X-Admin-Key` Header bleibt. (e) `src/backend/src/scripts/migrate.ts` läuft im kompilierten Startup-Hook vor `app.listen`; bei Fehler startet die Instanz nicht. (f) `src/backend/src/__tests__/security.test.ts` (Commit 3414aea) regressions-locked dass POST /api/migrate 404 retourniert. (g) Backend-CI Run #30173698956 für e7fcd85 grün (Lint/Test/Build).
 
 ### ✅ Phase Q: Quality-Pass — AuthGate-Extraktion (2026-07-27)
 
@@ -278,9 +285,11 @@ Futai Ollama (lokal) ←→ HEIMAT AI Layer
 
 **Prinzip:** Keine Cloud-AI, keine API-Kosten. Alles lokal via Ollama + Open-Source-Modelle. Privacy-by-Design.
 
-## Phase 23 Recap — Stand Juli 2026
+## Phase 23 Recap — Stand Juli 2026 (historischer Nachweis)
 
-Auf einen Blick: Produktion läuft, Finance-Roundtrip ist end-to-end live, Auto-Migration ist abgesichert; kleinere offene Tasks in klarer Reihenfolge.
+> Die folgenden Angaben dokumentieren frühere Implementierungs- und Production-Meilensteine. Sie sind kein aktueller Gesamtstatus. Für den aktuellen Status gilt die Service-Registry-Verifikationslage: kein lokaler Server/PostgreSQL, öffentliche Read-only-Teilmatrix, mehrere Services offen/degraded/fail/unbewertet.
+
+Auf einen Blick: Produktion lief im dokumentierten Phase-23-Nachweis; Finance-Roundtrip, Auto-Migration und Security-Härtung wurden damals end-to-end verifiziert.
 
 ### ✅ Was funktioniert
 - User-Auth (JWT + bcryptjs): Register/Login/Logout end-to-end live auf `heimat-backend.onrender.com` (Commit 9c8deb7 + 1090203 + Phase 18-Backend)
@@ -421,7 +430,12 @@ ollamaService.chatWithContext({ health: { symptom } })
 | "Hallo" | Kein Triage | — |
 | "Ich kaufe Blumen und Druckpapier" | Kein Triage | — |
 
-### ❌ Was fehlt (echte Lücken)
+### ❌ Was fehlt (echte Lücken und aktuelle Verifikationsaufgaben)
+
+- **Keine lokale E2E-Umgebung:** Im Arbeitsverzeichnis läuft kein Backend-Server und kein PostgreSQL. CI mit bereitgestellter Datenbank oder ein read-only Production-Check ist erforderlich.
+- **Öffentliche Teilmatrix ist unvollständig:** Mobility-Journey, Finance, Health, Check-in und AI-Chat müssen separat mit gültiger Auth-/Stateful-Umgebung geprüft werden.
+- **Universelle Event-Suche:** Production liefert noch keine echten Event-Ergebnisse (`fail`); nach Deployment erneut read-only prüfen.
+- **Abfall:** Nur belegte kommunale Quellen ergänzen; nicht unterstützte Orte bleiben `degraded`.
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
 - ~~Parken (OSM Overpass)~~ ✅ erledigt (Commit d997789, 10 Unit-Tests + 6 Integration-Tests)
@@ -512,14 +526,18 @@ Ein intelligenter Health AI Agent, der:
 
 ## Service-Registry (14 Services, 6 Kategorien)
 
-| Kategorie | Services | Status |
-|-----------|----------|--------|
-| **Mobilität** | ÖPNV ✅, Parken ✅, E-Laden ✅ | Alle funktionieren |
-| **Gesundheit** | Ärzte ✅, Lebenszeichen ✅ | Beide funktionieren |
-| **Alltag** | Wetter ✅, Luft ✅, Abfall ✅ (AbfallNavi Bund), Bürgeramt ⚠️ (Berlin-Default), Jobs ✅ | 4 funktionieren, 1 ortsabhängig |
-| **Kultur & Reise** | Events ⚠️ (NUR Berlin), Hotels ❌ (Berlin-Default + keine Daten) | Nicht ortsunabhängig |
-| **Finanzen** | Taler-Wallet ✅ | Funktioniert |
-| **AI** | HEIMAT AI ✅ | Funktioniert| **Gesamt:** 14/14 Services funktionieren ortsunabhängig. KEIN Hardcoding mehr.
+> **Aktueller Verifikationsstatus, Version 15.0 (2026-08-06):** Im Arbeitsverzeichnis läuft kein lokaler Backend-Server und kein lokales PostgreSQL. Die Registry belegt nur Routing/Verfügbarkeit im UI, nicht die vollständige Service-Funktion. Es gibt keinen pauschalen 14/14-Nachweis.
+
+| Kategorie | Services | Aktueller Nachweis |
+|-----------|----------|--------------------|
+| **Mobilität** | ÖPNV, Parken, E-Laden | Parken/E-Laden in der öffentlichen Read-only-Teilmatrix bestanden; ÖPNV-Journey unbewertet |
+| **Gesundheit** | Ärzte, Lebenszeichen | Authentifizierte/stateful Pfade unbewertet |
+| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | Wetter/Luft/Bürgeramt/Jobs bestanden; Abfall je Ort `degraded` bei `CITY_NOT_SUPPORTED` |
+| **Kultur & Reise** | Events, Hotels | Öffentliche Events/Hotels bestanden; universelle Event-Suche `/api/search` `fail` |
+| **Finanzen** | Taler-Wallet | Authentifizierter/stateful Roundtrip unbewertet; EUR-Production-Exchange offen |
+| **AI** | HEIMAT AI | Authentifizierter/stateful Pfad unbewertet |
+
+**Statusregel:** Nur realer Datenpfad + Tests + Production-Check ergibt `funktionfähig`. Nicht belegte Services bleiben `offen`/`unbewertet`; historische Phasen- und CI-Claims sind kein aktueller Gesamtstatus.
 
 ### ✅ Berlin-Hardcoding behoben (2026-08-04)
 
@@ -552,6 +570,24 @@ Ein intelligenter Health AI Agent, der:
 - **Backend:** `abfallNaviService.ts` + `wasteCityRegistry.ts` erweitert + `wasteService.ts` adapter integriert
 - **API-Flow:** GET /orte → GET /orte/{id}/strassen → GET /strassen/{id}/ → GET /termine → Echte Abholtermine
 - **Commit:** `feat(backend): AbfallNavi (Bund) Integration` — CI grün nach E2E-Test-Fix
+
+
+### ✅ GPS-Timeout-Fix (2026-08-07, Commit 80fe2a2)
+
+**Problem:** Weather- und AirQuality-Provider hatten 3-Sekunden-Timeout für GPS. Browser brauchen 5-10s für Permission-Prompt → Timeout vor User-Antwort → "Standort nicht verfügbar".
+
+**Lösung:**
+- `weather_provider.dart`: Timeout 3s → 10s
+- `air_quality_provider.dart`: Timeout 3s → 10s
+- `location_service_test.dart`: NEU — 20 Tests für GPS-Ausfall-Szenarien
+
+**Details:**
+- Browser Geolocation-API braucht 5-10s für Permission-Prompt
+- 3s-Timeout hat abgebrochen bevor User antworten konnte
+- 10s passt zu typischen Browser-Verhalten
+- Kommentare korrigiert (kein hardcoded Berlin-Fallback)
+
+**Tests:** 418/418 bestanden
 
 ## Cost / footprint
 
