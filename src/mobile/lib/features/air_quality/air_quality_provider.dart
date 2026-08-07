@@ -12,7 +12,7 @@ import 'air_quality_dto.dart';
 /// - Online: ruft /api/air-quality/forecast?lat=&lng= (Backend hat 5-Min Cache + Retry)
 /// - Cache-Tier 1 (Memory): _forecast für sofortiges Tab-Switching
 /// - Cache-Tier 2 (SharedPreferences): JSON + Timestamp persistent
-/// - Location: LocationService.getCurrentLocation() mit Fallback Berlin
+/// - Location: LocationService.getCurrentLocation() (kein hardcoded Fallback)
 class AirQualityProvider extends ChangeNotifier {
   // ------------------------------------------------------------------
   // Cache-Keys + TTL
@@ -73,7 +73,7 @@ class AirQualityProvider extends ChangeNotifier {
   Future<void> _tryUpdateLocation() async {
     try {
       final pos = await LocationService.getCurrentLocation().timeout(
-        const Duration(seconds: 3),
+        const Duration(seconds: 10),
         onTimeout: () => null,
       );
       if (pos != null) {

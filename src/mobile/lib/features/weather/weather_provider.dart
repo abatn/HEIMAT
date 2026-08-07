@@ -90,7 +90,7 @@ class WeatherProvider extends ChangeNotifier {
   bool get hasData => _forecast != null;
 
   // ------------------------------------------------------------------
-  // init — Lade Cache + versuche Location (best-effort, 3s timeout)
+  // init — Lade Cache + versuche Location (best-effort, 10s timeout)
   // ------------------------------------------------------------------
   Future<void> init() async {
     await _loadFromCache();
@@ -108,7 +108,7 @@ class WeatherProvider extends ChangeNotifier {
   Future<void> _tryUpdateLocation() async {
     try {
       final pos = await LocationService.getCurrentLocation().timeout(
-        const Duration(seconds: 3),
+        const Duration(seconds: 10),
         onTimeout: () => null,
       );
       if (pos != null) {
