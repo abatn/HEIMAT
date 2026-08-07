@@ -18,6 +18,7 @@ import { CITY_BOUNDS, resolveCity, CityNotSupportedError, type WasteCityKey, typ
 import { type CityWasteConfig, getSupportedCities, findCityByPlz, findCityByName } from './wasteCityRegistry';
 import { AbfallIoService, type AbfallIoResult } from './abfallIoService';
 import { AbfallNaviService, type AbfallNaviResult } from './abfallNaviService';
+import { BsrService, type BsrResult } from './bsrService';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 import { externalServices } from '../config/externalServices';
 
@@ -163,6 +164,23 @@ export class WasteService {
         source = result.source;
       } catch (err) {
         logger.error(`WasteService: abfall.io failed for ${cityConfig.displayName}: ${(err as Error).message}`);
+        throw err;
+      }
+    } else if (cityConfig.adapter === 'bsr') {
+      // BSR (Berliner Stadtreinigung) Adapter: Eigene REST-API
+      const bsr = new BsrService(this.http);
+      try {
+        // BSR benötigt PLZ + Straße + Hausnummer
+        // PLZ wird aus Nominatim-Adress-Details extrahiert
+        const plz = await this.extractPlzFromCoords(lat, lng);
+        if (!plz || !street || !houseNr) {
+          throw new AddressRequiredError({ city: cityConfig.id as WasteCityKey, displayName: cityConfig.displayName, minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 });
+        }
+        const result = await bsr.fetchCalendar(plz, street, houseNr, weeks);
+        events = result.events;
+        source = result.source;
+      } catch (err) {
+        logger.error(`WasteService: BSR failed for ${cityConfig.displayName}: ${(err as Error).message}`);
         throw err;
       }
     } else if (cityConfig.adapter === 'abfall_navi' && cityConfig.abfallNaviRegion) {
@@ -363,5 +381,33 @@ export class WasteService {
     const cities = getSupportedCities();
     const found = cities.find((c) => c.id === city);
     return found?.displayName || city;
+  }
+
+  /**
+   * Extract PLZ from Nominatim reverse geocode for BSR adapter.
+   * BSR requires PLZ + Street + House number.
+   */
+  private async extractPlzFromCoords(lat: number, lng: number): Promise<string | null> {
+    try {
+      const response = await this.http.get('https://nominatim.openstreetmap.org/reverse', {
+        params: {
+          lat,
+          lon: lng,
+          format: 'jsonv2',
+          addressdetails: 1,
+          'accept-language': 'de',
+        },
+        timeout: 5000,
+        headers: {
+          'User-Agent': externalServices.userAgent,
+        },
+      });
+
+      const addr = response.data?.address || {};
+      return addr.postcode || null;
+    } catch (error) {
+      logger.warn(`WasteService: Nominatim PLZ extraction failed: ${(error as Error).message}`);
+      return null;
+    }
   }
 }

@@ -83,3 +83,22 @@ Live-API-Check: 13/14 Services erreichbar (HTTP 200). Waste 502 (externes Proble
 2. AI Chat Ollama Timeout von 30s auf 5s reduziert → Auf Render wird sofort Fallback-Text zurückgegeben.
 3. Waste: abfall.io API antwortet leer für ALBA Berlin — externes Problem, kein Code-Bug.
 4. Service-Status: 15/17 Services funktionieren 100%. Bürgeramt jetzt gefixt. Waste + AI Chat mit Einschränkungen.
+
+**Version-20-Nachtrag — BSR-Adapter für Berlin (2026-08-07):**
+1. BSR (Berliner Stadtreinigung) Adapter implementiert: Eigene REST-API (umnewforms.bsr.de).
+2. Berlin in wasteCityRegistry als 'bsr' Adapter registriert.
+3. WasteService erkennt jetzt 'bsr' Adapter und ruft BSR-API auf.
+4. 12 neue Tests für BSR-Adapter (bsrService.test.ts) — alle grün.
+5. Waste Service Status: Berlin jetzt mit BSR-Adapter (statt abfall.io).
+
+**Version-21-Nachtrag — Wikidata Event-Suche optimiert (2026-08-07):**
+1. Wikidata SPARQL Query: `wikibase:around` statt fragiles String-Filtering.
+2. Geospatial-Filterung mit echtem Radius (kilometre) statt CONTAINS-String.
+3. Tests aktualisiert (7/7 bestanden).
+4. Event-Suche Status: Wikidata-Query jetzt mit ordentlicher Geospatial-Filterung.
+
+**Version-22-Nachtrag — AI Chat Fallback verbessert (2026-08-07):**
+1. Fallback-Text verbessert: Hilfreiche Beschreibung statt generischer Fehler.
+2. 8 Tests bestanden (ollamaService.test.ts).
+3. TypeScript-Kompilierung bestanden.
+4. AI Chat Status: Bessere Fallback-Nachricht wenn Ollama nicht verfügbar.

@@ -12,6 +12,9 @@
 //
 // User-Regel: "mock, simulation, fake sind verboten"
 // → Alle APIs sind ECHTE Open-Data-Quellen.
+//
+// BSR (Berliner Stadtreinigung): Eigene REST-API, kein abfall.io.
+// Adapter-Typ: 'bsr' — PLZ + Straße + Hausnummer erforderlich.
 
 import axios from 'axios';
 import { logger } from '../utils/logger';
@@ -29,6 +32,8 @@ export interface CityWasteConfig {
   displayName: string;
   /** API-Adapter-Typ */
   adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io' | 'abfall_navi';
+  /** Optional: BSR-spezifische Parameter */
+  bsrPlz?: string;
   /** Primäre API-URL (konfigurierbar via Env) */
   primaryUrl: string;
   /** Fallback-URL (optional) */
@@ -131,6 +136,18 @@ export function findCityByNominatim(nominatim: {
  */
 export function getSupportedCities(): CityWasteConfig[] {
   const cities: CityWasteConfig[] = [...CITY_REGISTRY];
+  
+  // Berlin (BSR) — eigene REST-API, kein abfall.io
+  cities.push({
+    id: 'berlin-bsr',
+    displayName: 'Berlin',
+    adapter: 'bsr',
+    primaryUrl: 'https://umnewforms.bsr.de/p/de.bsr.adressen.app',
+    addressRequired: true,
+    attribution: 'BSR (Berliner Stadtreinigung) — Öffentlicher Dienst',
+    nominatimKeywords: ['berlin'],
+    plzPrefixes: ['10', '12', '13', '14'],
+  });
   
   // Dynamisch aus ABFALL_IO_SERVICES befuellen
   for (const service of ABFALL_IO_SERVICES) {

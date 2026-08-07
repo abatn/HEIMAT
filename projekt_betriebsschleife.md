@@ -117,3 +117,19 @@
 2. AI Chat: Ollama Timeout 30s→5s. Auf Render kein lokaler Ollama → sofortiger Fallback.
 3. Waste: abfall.io API antwortet leer (externes Problem).
 4. CI: Backend CI grün. Flutter CI + Deploy Web: `dart format` Fix nötig (1 Datei).
+
+**Version-20-Nachtrag — BSR-Adapter für Berlin (2026-08-07):**
+1. BSR (Berliner Stadtreinigung) Adapter implementiert: Eigene REST-API.
+2. Berlin in wasteCityRegistry als 'bsr' Adapter registriert.
+3. 12 neue Tests für BSR-Adapter — alle grün.
+4. TypeScript-Kompilierung: `tsc --noEmit` bestanden.
+
+**Version-21-Nachtrag — Wikidata Event-Suche optimiert (2026-08-07):**
+1. Wikidata SPARQL Query: `wikibase:around` statt String-Filtering.
+2. 7 Tests aktualisiert — alle grün.
+3. TypeScript-Kompilierung: `tsc --noEmit` bestanden.
+
+**Version-22-Nachtrag — AI Chat Fallback verbessert (2026-08-07):**
+1. Fallback-Text verbessert.
+2. 8 Tests bestanden.
+3. TypeScript-Kompilierung: `tsc --noEmit` bestanden.

@@ -41,16 +41,19 @@ export function buildWikidataEventsQuery(
     throw new RangeError('Event query radius must be greater than 0');
   }
 
-  // HINWEIS: wikibase:around ist auf query.wikidata.org instabil/down.
-  // Fallback: Vereinfachte Query die Events an Locations in der Naehe sucht.
-  // Die Location-Entitaeten (Q515=Stadt, Q16970=Gebaeude) werden nach
-  // Koordinaten-String gefiltert (CONTAINS) statt via GeoService.
+  // Use wikibase:around for proper geospatial filtering
+  // This is the recommended way to filter by coordinates in Wikidata SPARQL
   return `
       SELECT ?event ?eventLabel ?description ?startDate ?endDate ?locationLabel ?coord ?categoryLabel
       WHERE {
         ?event wdt:P276 ?location .
         ?location wdt:P625 ?coord .
-        FILTER(CONTAINS(STR(?coord), "Point(${lng.toFixed(2)} "))
+        SERVICE wikibase:around {
+          ?location wdt:P625 ?coord .
+          bd:serviceParam wikibase:center "Point(${lng} ${lat})" .
+          bd:serviceParam wikibase:radius "${radiusKm}" .
+          bd:serviceParam wikibase:unit "kilometre" .
+        }
         {
           ?event wdt:P31/wdt:P279* wd:Q1322418 .
         } UNION {

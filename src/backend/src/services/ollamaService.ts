@@ -92,7 +92,9 @@ export function buildHealthSystemPrompt(basePrompt: string): string {
 }
 
 const FALLBACK_MESSAGE =
-  'KI-Assistent ist nicht verfügbar. Bitte stelle sicher, dass Ollama auf dem Server läuft (http://localhost:11434).';
+  'KI-Assistent ist nicht verfügbar (Ollama nicht installiert). ' +
+  'Ich kann dir aber bei vielen Dingen helfen: Wetter, Abfallkalender, Parksuche, E-Ladestationen, Ärzte, Jobs und mehr. ' +
+  'Stelle mir eine Frage zu einem dieser Themen!';
 
 /** Separator zwischen Service-Kontexten im System-Prompt. */
 const SERVICE_CONTEXT_SEPARATOR = '\n\n---\n\n';

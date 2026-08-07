@@ -117,3 +117,19 @@
 - Service-Status: 15/17 Services funktionieren 100%.
 - Waste: `degraded` (abfall.io API-Problem).
 - AI Chat: Fallback auf Render (kein lokaler Ollama).
+
+**Version-20-Nachtrag — BSR-Adapter für Berlin (2026-08-07):**
+- BSR-Adapter implementiert: Eigene REST-API (umnewforms.bsr.de).
+- Berlin in wasteCityRegistry als 'bsr' Adapter registriert.
+- 12 neue Tests für BSR-Adapter — alle grün.
+- Waste Service: Berlin jetzt mit BSR-Adapter.
+
+**Version-21-Nachtrag — Wikidata Event-Suche optimiert (2026-08-07):**
+- Wikidata SPARQL Query: `wikibase:around` statt String-Filtering.
+- 7 Tests aktualisiert — alle grün.
+- Event-Suche: Ordentliche Geospatial-Filterung.
+
+**Version-22-Nachtrag — AI Chat Fallback verbessert (2026-08-07):**
+- Fallback-Text verbessert: Hilfreiche Beschreibung.
+- 8 Tests bestanden.
+- AI Chat: Bessere Fallback-Nachricht.
