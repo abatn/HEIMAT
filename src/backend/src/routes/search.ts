@@ -126,7 +126,17 @@ async function searchParking(
 
 const eventOnlyPattern = /event|veranstaltung|konzert|festival|markt/i;
 
-// Search events from the existing Wikidata + OpenStreetMap service
+// Helper: Promise mit Timeout
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+// Search events from the existing Overpass service (Wikidata wikibase:around instabil)
 async function searchEvents(
   query: string,
   lat: number,
@@ -134,7 +144,8 @@ async function searchEvents(
 ): Promise<SearchResult[]> {
   try {
     const service = new EventService();
-    const events = await service.getNearbyEvents(lat, lng, 10);
+    // 20s Timeout fuer Events (Overpass + Wikidata)
+    const events = await withTimeout(service.getNearbyEvents(lat, lng, 10), 20000);
     const categoryQuery = eventOnlyPattern.test(query);
     const searchTerm = query
       .split(/\s+/)
@@ -165,7 +176,7 @@ async function searchEvents(
       relevance: 0.7,
     }));
   } catch (error) {
-    logger.warn('Event search failed:', error);
+    logger.warn('Event search failed:', (error as Error).message);
     return [];
   }
 }
@@ -214,22 +225,30 @@ searchRouter.get('/', async (req: Request, res: Response) => {
     const categories = detectCategories(query);
     const results: SearchResult[] = [];
 
-    // Search in parallel
+    // Search in parallel — jedes mit eigenem Timeout (30s max gesamt)
+    const SEARCH_TIMEOUT = 15000; // 15s pro Kategorie
     const searches = categories.map((cat) => {
+      let promise: Promise<SearchResult[]>;
       switch (cat) {
         case 'doctor':
-          return searchAddresses(`${query} arzt`, lat, lng);
+          promise = searchAddresses(`${query} arzt`, lat, lng);
+          break;
         case 'parking':
-          return searchParking(lat, lng);
+          promise = searchParking(lat, lng);
+          break;
         case 'ev_charging':
-          return searchEvCharging(lat, lng);
+          promise = searchEvCharging(lat, lng);
+          break;
         case 'address':
-          return searchAddresses(query, lat, lng);
+          promise = searchAddresses(query, lat, lng);
+          break;
         case 'event':
-          return searchEvents(query, lat, lng);
+          promise = searchEvents(query, lat, lng);
+          break;
         default:
-          return Promise.resolve([]);
+          promise = Promise.resolve([]);
       }
+      return withTimeout(promise, SEARCH_TIMEOUT).catch(() => []);
     });
 
     const searchResults = await Promise.allSettled(searches);

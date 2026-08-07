@@ -41,15 +41,16 @@ export function buildWikidataEventsQuery(
     throw new RangeError('Event query radius must be greater than 0');
   }
 
+  // HINWEIS: wikibase:around ist auf query.wikidata.org instabil/down.
+  // Fallback: Vereinfachte Query die Events an Locations in der Naehe sucht.
+  // Die Location-Entitaeten (Q515=Stadt, Q16970=Gebaeude) werden nach
+  // Koordinaten-String gefiltert (CONTAINS) statt via GeoService.
   return `
       SELECT ?event ?eventLabel ?description ?startDate ?endDate ?locationLabel ?coord ?categoryLabel
       WHERE {
-        SERVICE wikibase:around {
-          ?location wdt:P625 ?coord .
-          bd:serviceParam wikibase:center "Point(${lng} ${lat})"^^geo:wktLiteral ;
-                          wikibase:radius "${radiusKm}" .
-        }
         ?event wdt:P276 ?location .
+        ?location wdt:P625 ?coord .
+        FILTER(CONTAINS(STR(?coord), "Point(${lng.toFixed(2)} "))
         {
           ?event wdt:P31/wdt:P279* wd:Q1322418 .
         } UNION {
@@ -168,7 +169,8 @@ export class EventService {
   }
 
   /**
-   * OpenStreetMap Overpass — Märkte, Kulturzentren, Kinos, Theater
+   * OpenStreetMap Overpass — Märkte, Kulturzentren, Kinos, Theater, Museen
+   * Nutzt out center; fuer way-Elemente (Center-Koordinaten)
    */
   private async fetchOsmEvents(
     lat: number,
@@ -177,17 +179,26 @@ export class EventService {
   ): Promise<Event[]> {
     const radiusM = radiusKm * 1000;
 
+    // node + way Elemente, out center fuer Center-Koordinaten bei ways
     const query = `
       [out:json][timeout:15];
       (
         node["amenity"="marketplace"](around:${radiusM},${lat},${lng});
+        way["amenity"="marketplace"](around:${radiusM},${lat},${lng});
         node["tourism"="museum"](around:${radiusM},${lat},${lng});
+        way["tourism"="museum"](around:${radiusM},${lat},${lng});
         node["amenity"="arts_centre"](around:${radiusM},${lat},${lng});
+        way["amenity"="arts_centre"](around:${radiusM},${lat},${lng});
         node["amenity"="cinema"](around:${radiusM},${lat},${lng});
+        way["amenity"="cinema"](around:${radiusM},${lat},${lng});
         node["amenity"="theatre"](around:${radiusM},${lat},${lng});
+        way["amenity"="theatre"](around:${radiusM},${lat},${lng});
         node["leisure"="culture_centre"](around:${radiusM},${lat},${lng});
+        way["leisure"="culture_centre"](around:${radiusM},${lat},${lng});
+        node["tourism"="exhibition"](around:${radiusM},${lat},${lng});
+        way["tourism"="exhibition"](around:${radiusM},${lat},${lng});
       );
-      out body;
+      out center;
     `;
 
     const MAX_RETRIES_PER_MIRROR = 2;
@@ -200,7 +211,7 @@ export class EventService {
             `data=${encodeURIComponent(query)}`,
             {
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              timeout: 10000,
+              timeout: 15000,
             },
           );
 
@@ -214,8 +225,9 @@ export class EventService {
               startDate: null,
               endDate: null,
               location: el.tags?.addr_full || el.tags?.['addr:street'] || null,
-              lat: el.lat || null,
-              lng: el.lon || null,
+              // node: lat/lon direkt, way: lat/lon via center
+              lat: el.lat || el.center?.lat || null,
+              lng: el.lon || el.center?.lon || null,
               url: el.tags?.website || null,
               source: 'osm' as const,
             }));
@@ -241,6 +253,7 @@ export class EventService {
 function _getCategoryLabel(tags: Record<string, string>): string {
   if (tags.amenity === 'marketplace') return 'Markt';
   if (tags.tourism === 'museum') return 'Museum';
+  if (tags.tourism === 'exhibition') return 'Ausstellung';
   if (tags.amenity === 'arts_centre') return 'Kulturzentrum';
   if (tags.amenity === 'cinema') return 'Kino';
   if (tags.amenity === 'theatre') return 'Theater';
@@ -250,6 +263,7 @@ function _getCategoryLabel(tags: Record<string, string>): string {
 function _getOsmCategory(tags: Record<string, string>): string {
   if (tags.amenity === 'marketplace') return 'Markt';
   if (tags.tourism === 'museum') return 'Museum';
+  if (tags.tourism === 'exhibition') return 'Ausstellung';
   if (tags.amenity === 'arts_centre') return 'Kultur';
   if (tags.amenity === 'cinema') return 'Kino';
   if (tags.amenity === 'theatre') return 'Theater';
