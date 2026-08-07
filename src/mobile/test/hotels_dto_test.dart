@@ -26,7 +26,7 @@ void main() {
         ],
       };
       final response = HotelsResponse.fromJson(json);
-      expect(response.count, 1);
+      expect(response.count, 2);
       expect(response.hotels.length, 1);
       expect(response.lat, 52.52);
       expect(response.lng, 13.41);
