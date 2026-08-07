@@ -375,7 +375,7 @@ export class OllamaService {
             temperature: 0.3,   // Deterministisch — Triage braucht Präzision
           },
         },
-        { timeout: 30000 },
+        { timeout: 5000 },
       );
 
       if (response.data?.message?.content) {
