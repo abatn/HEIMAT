@@ -51,9 +51,7 @@ export class BuergeramtService {
         node["office"="admin"](around:${radiusM},${lat},${lng});
         way["office"="admin"](around:${radiusM},${lat},${lng});
       );
-      out body;
-      >;
-      out skel qt;
+      out center;
     `;
 
     // Mirror-Fallback: Alle Mirrors der Reihe nach probieren
