@@ -20,11 +20,13 @@ import {
 // -----------------------------------------------------------------
 
 describe('findCityByNominatim — Stadt-Name-Matching', () => {
-  it('Berlin → matched ALBA Berlin via city-Feld', () => {
+  it('Berlin → matched BSR via city-Feld (statische CITY_REGISTRY)', () => {
+    // Berlin ist in statischer CITY_REGISTRY als 'bsr' Adapter registriert
+    // (vor ABFALL_IO_SERVICES), weil BSR ein eigener Adapter-Typ ist.
     const result = findCityByNominatim({ city: 'Berlin' });
     expect(result).not.toBeNull();
-    expect(result!.adapter).toBe('abfall_io');
-    expect(result!.displayName).toContain('Berlin');
+    expect(result!.adapter).toBe('bsr');
+    expect(result!.displayName).toBe('Berlin');
   });
 
   it('Landshut → matched Stadt Landshut via city-Feld', () => {
@@ -134,7 +136,10 @@ describe('findCityByPlz — PLZ-Matching', () => {
 // Diese Tests validieren, dass findCityByPlz die richtigen Matches liefert.
 
 describe('PLZ-Fallback — Indirekte Validierung', () => {
-  it('PLZ 10115 (Berlin) → findCityByPlz liefert Ergebnis → PLZ-Fallback funktioniert', () => {
+  it('PLZ 10115 (Berlin) → findCityByPlz liefert abfall_io (PLZ-Matching)', () => {
+    // findCityByPlz prüft nur ABFALL_IO_SERVICES, nicht statische CITY_REGISTRY.
+    // Daher liefert PLZ 10115 trotzdem abfall.io (ALBA Berlin).
+    // In der Praxis wird Berlin über Nominatim → statische CITY_REGISTRY → bsr aufgelöst.
     const result = findCityByPlz('10115');
     expect(result).not.toBeNull();
     expect(result!.adapter).toBe('abfall_io');
