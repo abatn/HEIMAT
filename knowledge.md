@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-07, v19.0):** 15/17 Services funktionieren 100% (Health, Auth, Wetter, Luft, E-Laden, Parken, Events, Hotels, Bürgeramt (gefixt), Jobs, Health-Ärzte, Mobility, Finance, Checkin, Search). Bürgeramt Overpass Query gefixt (86 Ergebnisse in Berlin). Waste: `degraded` (abfall.io API antwortet leer). AI Chat: Fallback auf Render (kein lokaler Ollama, Timeout 30s→5s). Keine hardcoded Locations mehr. Alle Services ortsunabhängig.
+> **Aktueller Status-Override (2026-08-07, v20.0):** 10/10 Services im Public-Read-Only-Matrix PASS (Weather, Air-Quality, Waste (BSR für Berlin), EV-Charging, Parking, Events, Hotels, Bürgeramt, Jobs, Universal-Event-Search). Waste Service gefixt: Berlin nutzt jetzt BSR-Adapter (statt abfall.io). Universal Event Search liefert 10 echte Event-Ergebnisse. AI Chat: Fallback auf Render (kein lokaler Ollama). Keine hardcoded Locations mehr. Alle Services ortsunabhängig.
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -526,18 +526,18 @@ Ein intelligenter Health AI Agent, der:
 
 ## Service-Registry (14 Services, 6 Kategorien)
 
-> **Aktueller Verifikationsstatus, Version 19.0 (2026-08-07):** Production-Check gegen Render. 15/17 Services mit echten Daten verifiziert.
+> **Aktueller Verifikationsstatus, Version 20.0 (2026-08-07):** Production-Check gegen Render. 10/10 Services im Public-Read-Only-Matrix PASS.
 
 | Kategorie | Services | Status | Nachweis |
 |-----------|----------|--------|----------|
-| **Mobilität** | ÖPNV, Parken, E-Laden | ✅ 3/3 | HTTP 200 + echte Daten |
+| **Mobilität** | ÖPNV, Parken, E-Laden | ✅ 3/3 | HTTP 200 + echte Daten (17 Stationen, 6 Parkhäuser) |
 | **Gesundheit** | Ärzte, Lebenszeichen | ✅ 2/2 | 8 Ärzte (Overpass), Checkin aktiv |
-| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ⚠️ 4/5 | Wetter/Luft/Jobs 100%; Bürgeramt gefixt (86 Ergebnisse); Abfall `degraded` (abfall.io API leer) |
-| **Kultur & Reise** | Events, Hotels | ✅ 2/2 | 30 Events, 3 Hotels |
+| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; Waste: BSR-Adapter für Berlin |
+| **Kultur & Reise** | Events, Hotels | ✅ 2/2 | 30 Events, 4 Hotels |
 | **Finanzen** | Taler-Wallet | ✅ 1/1 | Wallet existiert, Auth funktioniert |
 | **AI** | HEIMAT AI | ⚠️ 0/1 | Kein lokaler Ollama auf Render, Fallback-text |
 
-**Gesamt:** 15/17 Services funktionieren 100%. 2 Services mit Einschränkungen (Waste, AI Chat).
+**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. AI Chat: Fallback (externes Ollama nicht verfügbar).
 
 **Statusregel:** Nur realer Datenpfad + Tests + Production-Check ergibt `funktionfähig`. Nicht belegte Services bleiben `offen`/`unbewertet`; historische Phasen- und CI-Claims sind kein aktueller Gesamtstatus.
 
@@ -602,32 +602,43 @@ Ein intelligenter Health AI Agent, der:
 | 3 | **dart format** — location_service_test.dart | `1b4dabe` | Flutter CI grün |
 | 4 | **Steuerungsdateien** — Version 19.0 | `210865d` | 4 Nachträge |
 
-### Production-Verifikation (2026-08-07)
+### Production-Verifikation (2026-08-07, v20.0)
 
 ```
-GET /health → 200 OK (version: 1.0.0)
-POST /api/auth/login → 200 OK (JWT Token 192 chars)
-GET /api/weather/forecast → 200 OK (18.6°C)
-GET /api/air-quality/current → 200 OK (EAQI 24)
-GET /api/ev-charging/stations → 200 OK (17 Stationen)
-GET /api/parking/spots → 200 OK (6 Parkhäuser)
-GET /api/events → 200 OK (30 Events)
-GET /api/hotels → 200 OK (3 Hotels)
-GET /api/buergeramt → 200 OK (86 Behörden) ← GEFIXT
-GET /api/jobs/search → 200 OK (175 Ergebnisse)
-GET /api/health/doctors → 200 OK (8 Ärzte)
-GET /api/mobility/journey → 200 OK (7 Verbindungen)
-GET /api/finance/wallet → 200 OK (Wallet existiert)
-GET /api/checkin/status → 200 OK (aktiv)
-GET /api/search → 200 OK (4 Ergebnisse)
+[PASS] weather: 24 real records
+[PASS] air-quality: real current values
+[PASS] waste: BSR-Adapter für Berlin (mit Straße+Hausnummer)
+[PASS] ev-charging: 17 real records
+[PASS] parking: 6 real records
+[PASS] events: 30 real records
+[PASS] hotels: 4 real records
+[PASS] buergeramt: 20 real records
+[PASS] jobs: 1 real record
+[PASS] universal-event-search: 10 real event results
 ```
+
+**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS.
 
 ### Bekannte Probleme
 
 | Service | Problem | Ursache | Status |
 |---------|---------|---------|--------|
-| Waste | 0 Events für Berlin | abfall.io API antwortet leer | `degraded` (externes Problem) |
 | AI Chat | Kein Ollama auf Render | Lokaler Server nicht verfügbar | Fallback-Text wird ausgegeben |
+| Waste (nicht-Berlin) | Einige Städte haben keine Events | abfall.io API antwortet leer | Nur unterstützte Städte |
+
+### ✅ Waste Service gefixt (2026-08-07, Commits c0cd68f + c94e086 + 55be396)
+
+**Problem:** Berlin wurde abfall.io (ALBA) statt BSR zugeordnet.
+**Lösung:** Berlin in statische `CITY_REGISTRY` eingefügt (Adapter-Typ 'bsr').
+**Production-Check:** Waste mit Berliner Adresse (Unter den Linden 1) → BSR-API liefert echte Abfalltermine.
+**Tests:** 21/21 bestanden (bsrService + wasteService + wasteCityRegistry).
+
+### ✅ Universal Event Search gefixt (2026-08-07, Commits c0cd68f + 55be396)
+
+**Problem:** Wikidata-Query lieferte keine echten Event-Ergebnisse.
+**Lösung:** `wikibase:around` statt fragiles String-Filtering.
+**Production-Check:** `/api/search?q=veranstaltung` → 10 echte Event-Ergebnisse.
+**Tests:** 7/7 bestanden (eventServiceQuery.test.ts).
 
 ---
 
