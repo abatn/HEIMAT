@@ -20,6 +20,7 @@ import axios from 'axios';
 import { logger } from '../utils/logger';
 import { externalServices } from '../config/externalServices';
 import { ABFALL_IO_SERVICES, type AbfallIoServiceEntry } from './abfallIoService';
+import { ABFALL_NAVI_REGIONS, type AbfallNaviRegion } from './abfallNaviService';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,6 +69,7 @@ export interface CityWasteConfig {
 // Hardcoding ist verboten (User-Regel) — aber Berlin als einziger statischer Eintrag
 // ist noetig, weil BSR ein eigener Adapter-Typ ist (kein abfall.io).
 const CITY_REGISTRY: CityWasteConfig[] = [
+  // Berlin (BSR) — eigener Adapter-Typ, muss vor abfall.io kommen
   {
     id: 'berlin-bsr',
     displayName: 'Berlin',
@@ -78,6 +80,19 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     nominatimKeywords: ['berlin'],
     plzPrefixes: ['10', '12', '13', '14'],
   },
+  // AbfallNavi (Bund/RegioIT) — 19 Regionen
+  // Quelle: abfallnavi.api.bund.dev/openapi.yaml
+  // Jede Region hat /orte → /strassen → /hausnummern → /termine
+  ...ABFALL_NAVI_REGIONS.map(region => ({
+    id: `abfall-navi-${region.key}`,
+    displayName: region.name,
+    adapter: 'abfall_navi' as const,
+    primaryUrl: region.baseUrl,
+    addressRequired: true,
+    attribution: `AbfallNavi (Bund/RegioIT) — Öffentlicher Dienst (CC-BY)`,
+    nominatimKeywords: [region.name.toLowerCase()],
+    abfallNaviRegion: region.key,
+  })),
 ];
 
 // ---------------------------------------------------------------------------
@@ -110,10 +125,25 @@ export function findCityByNominatim(nominatim: {
   if (nominatim.county) candidates.push(nominatim.county.toLowerCase().trim());
 
   for (const candidate of candidates) {
-    // Check static registry first
+    // Check static registry first (includes Berlin BSR + AbfallNavi regions)
     for (const config of CITY_REGISTRY) {
       if (config.nominatimKeywords.some((kw) => candidate.includes(kw))) {
         return config;
+      }
+    }
+    // Check AbfallNavi regions (dynamisch, key-basiert)
+    for (const region of ABFALL_NAVI_REGIONS) {
+      if (candidate.includes(region.name.toLowerCase())) {
+        return {
+          id: `abfall-navi-${region.key}`,
+          displayName: region.name,
+          adapter: 'abfall_navi',
+          primaryUrl: region.baseUrl,
+          addressRequired: true,
+          attribution: `AbfallNavi (Bund/RegioIT) — Öffentlicher Dienst (CC-BY)`,
+          nominatimKeywords: [region.name.toLowerCase()],
+          abfallNaviRegion: region.key,
+        };
       }
     }
     // Then check abfall.io services (strict match: candidate must be >= 4 chars
@@ -163,6 +193,23 @@ export function getSupportedCities(): CityWasteConfig[] {
       abfallIoServiceId: service.serviceId,
       plzPrefixes: service.plzPrefix,
     });
+  }
+
+  // Dynamisch aus ABFALL_NAVI_REGIONS befuellen
+  for (const region of ABFALL_NAVI_REGIONS) {
+    // Nur hinzufügen wenn nicht bereits in CITY_REGISTRY (vermeide Duplikate)
+    if (!cities.some(c => c.id === `abfall-navi-${region.key}`)) {
+      cities.push({
+        id: `abfall-navi-${region.key}`,
+        displayName: region.name,
+        adapter: 'abfall_navi',
+        primaryUrl: region.baseUrl,
+        addressRequired: true,
+        attribution: `AbfallNavi (Bund/RegioIT) — Öffentlicher Dienst (CC-BY)`,
+        nominatimKeywords: [region.name.toLowerCase()],
+        abfallNaviRegion: region.key,
+      });
+    }
   }
   
   return cities;

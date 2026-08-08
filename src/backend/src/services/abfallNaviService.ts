@@ -5,12 +5,15 @@
 //   Staatliche API des Bundes (abfallnavi.api.bund.dev)
 //   19 Regionen in Deutschland, kostenlose OpenAPI
 //
-//   API-Flow:
+//   API-Flow (laut openapi.yaml):
 //     1. GET /orte → Orte im System
 //     2. GET /orte/{ortId}/strassen → Straßen im Ort
 //     3. GET /strassen/{strassenId} → Hausnummern
 //     4. GET /fraktionen → Müllsorten
-//     5. GET /termine → Abholtermine
+//     5. GET /hausnummern/{id}/termine → Abholtermine pro Hausnummer
+//     5b. GET /strassen/{id}/termine → Abholtermine pro Straße
+//   WICHTIG: /haus/{id}/termine EXISTIERT NICHT — 0 Bytes Response!
+//   Korrekter Endpoint: /hausnummern/{id}/termine
 //
 // MOCK-POLICY: Keine Mocks. Echte HTTP-Calls gegen abfallnavi.api.bund.dev
 // ---------------------------------------------------------------------------
@@ -52,9 +55,20 @@ export interface AbfallNaviFraktion {
 
 export interface AbfallNaviTermin {
   id: number;
+  /** Datum im Format 'YYYY-MM-DD' */
   datum: string;
-  fraktion: AbfallNaviFraktion;
-  abholdatum: string;
+  /** Bezirk mit Fraktions-Zuordnung */
+  bezirk?: {
+    id: number;
+    name: string;
+    gueltigAb: string;
+    fraktionId: number;
+  };
+  jahr?: number;
+  info?: string | null;
+  // Legacy-Felder (kommen nicht von der API, aber für Kompatibilität)
+  fraktion?: AbfallNaviFraktion;
+  abholdatum?: string;
   tonnen?: string[];
 }
 
@@ -162,6 +176,8 @@ export class AbfallNaviService {
 
   /**
    * Hole Termine für eine Hausnummer
+   * WICHTIG: Korrekter Endpoint ist /hausnummern/{id}/termine (NICHT /haus/)
+   * Quelle: abfallnavi.api.bund.dev/openapi.yaml → termineProHaussnummer
    */
   async getTermine(regionKey: string, hausId: number): Promise<AbfallNaviTermin[]> {
     const region = ABFALL_NAVI_REGIONS.find(r => r.key === regionKey);
@@ -169,20 +185,53 @@ export class AbfallNaviService {
       throw new Error(`Region '${regionKey}' nicht gefunden`);
     }
 
-    const response = await this.http.get<AbfallNaviTermin[]>(`${region.baseUrl}/haus/${hausId}/termine`);
+    const response = await this.http.get<AbfallNaviTermin[]>(`${region.baseUrl}/hausnummern/${hausId}/termine`);
     return response.data;
   }
 
   /**
-   * Konvertiere Termine zu WasteCalendarEvent[]
+   * Hole Termine für eine Straße (Alternative zu /hausnummern/)
+   * Quelle: abfallnavi.api.bund.dev/openapi.yaml → termineProStrasse
    */
+  async getTermineStrasse(regionKey: string, strassenId: number): Promise<AbfallNaviTermin[]> {
+    const region = ABFALL_NAVI_REGIONS.find(r => r.key === regionKey);
+    if (!region) {
+      throw new Error(`Region '${regionKey}' nicht gefunden`);
+    }
+
+    const response = await this.http.get<AbfallNaviTermin[]>(`${region.baseUrl}/strassen/${strassenId}/termine`);
+    return response.data;
+  }
+
+  /**
+   * Konvertiere Termine zu IcsEvent[]
+   * API-Response-Format: { id, datum: 'YYYY-MM-DD', bezirk: { id, name, fraktionId }, jahr, info }
+   * Fraktion-ID-Mapping (Nürnberg-Beispiel):
+   *   0 = Restabfall, 1 = Bioabfall, 2 = Papiertonne, 3 = Gelbe Tonne
+   */
+  private readonly fraktionMap: Record<number, string> = {
+    0: 'Restabfall',
+    1: 'Bioabfall',
+    2: 'Papiertonne',
+    3: 'Gelbe Tonne',
+    4: 'Papiertonne 1100',
+  };
+
   convertToEvents(termine: AbfallNaviTermin[]): IcsEvent[] {
-    return termine.map(termin => ({
-      start: termin.datum || termin.abholdatum,
-      summary: termin.fraktion?.name || 'Müllabfuhr',
-      category: termin.fraktion?.name,
-      description: `Müllabfuhr: ${termin.fraktion?.name}`,
-    }));
+    return termine.map(termin => {
+      // Bevorzuge bezirk.fraktionId für korrekte Müllsorten-Zuordnung
+      const fraktionId = termin.bezirk?.fraktionId ?? 0;
+      const fraktionName = this.fraktionMap[fraktionId] 
+        || termin.fraktion?.name 
+        || `Müllart ${fraktionId}`;
+      
+      return {
+        start: `${termin.datum}T06:00:00`,
+        summary: fraktionName,
+        category: fraktionName.toLowerCase(),
+        description: termin.info || `Müllabfuhr: ${fraktionName}`,
+      };
+    });
   }
 
   /**
@@ -208,13 +257,35 @@ export class AbfallNaviService {
     }
     const ort = orte[0]; // Normalerweise nur ein Ort pro Region
 
-    // 2. Straßen holen
-    const strassen = await this.getStrassen(regionKey, ort.id);
+    // 2. Straßen holen (mit Retry bei leerer Antwort — manche Orte haben mehrere
+    //    Straßendaten-Sets, z.B. Aachen hat Ort-ID 6484847 = 0 Strassen,
+    //    aber Ort-ID 11578729 = 1369 Strassen)
+    let strassen = await this.getStrassen(regionKey, ort.id);
     
-    // Straße finden (case-insensitive)
-    const strasse = strassen.find(s => 
-      s.name.toLowerCase().includes(street.toLowerCase())
-    );
+    // Fallback: Wenn erste Orte-Liste 0 Strassen liefert, versuche alle Orte
+    if (strassen.length === 0 && orte.length > 1) {
+      logger.warn(`AbfallNavi: ${region.name} Ort ${ort.id} hat 0 Strassen, versuche weitere Orte`);
+      for (const altOrt of orte.slice(1)) {
+        strassen = await this.getStrassen(regionKey, altOrt.id);
+        if (strassen.length > 0) break;
+      }
+    }
+    
+    if (strassen.length === 0) {
+      throw new Error(`Keine Straßen für Region '${regionKey}' gefunden`);
+    }
+    
+    // Straße finden (case-insensitive, fuzzy match)
+    const streetLower = street.toLowerCase().trim();
+    const strasse = strassen.find(s => {
+      const nameLower = s.name.toLowerCase().trim();
+      // Exakter Teilstring-Match
+      if (nameLower.includes(streetLower) || streetLower.includes(nameLower)) return true;
+      // Umlaut-Normalisierung: ü→ue, ö→oe, ä→ae, ß→ss
+      const normalized = nameLower.replace(/ü/g, 'ue').replace(/ö/g, 'oe').replace(/ä/g, 'ae').replace(/ß/g, 'ss');
+      const searchNorm = streetLower.replace(/ü/g, 'ue').replace(/ö/g, 'oe').replace(/ä/g, 'ae').replace(/ß/g, 'ss');
+      return normalized.includes(searchNorm) || searchNorm.includes(normalized);
+    });
     if (!strasse) {
       throw new Error(`Straße '${street}' in ${region.name} nicht gefunden`);
     }
@@ -244,8 +315,15 @@ export class AbfallNaviService {
       };
     }
 
-    // 4. Termine holen
-    const termine = await this.getTermine(regionKey, haus.id);
+    // 4. Termine holen (hausnummern-basiert)
+    let termine = await this.getTermine(regionKey, haus.id);
+    
+    // Fallback: Wenn hausnummern-basierte Termine leer sind, nutze strassen-basiert
+    if (termine.length === 0) {
+      logger.info(`AbfallNavi: ${region.name} hausnummern-Termine leer, versuche strassen-basiert`);
+      termine = await this.getTermineStrasse(regionKey, strasse.id);
+    }
+    
     const events = this.convertToEvents(termine);
 
     return {
