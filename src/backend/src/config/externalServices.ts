@@ -245,10 +245,9 @@ export class ExternalServiceRegistry {
           .map(s => s.trim().replace(/\/+$/, ''))
           .filter((s): s is string => s.length > 0)
       : [
-          'https://overpass.osm.ch/api/interpreter',        // 🥇 Primär (~0.2s, 50km-Test bestanden)
-          'https://maps.mail.ru/osm/tools/overpass/api/interpreter', // 🥈 Backup (~7s, zuverlässig)
-          'https://overpass-api.de/api/interpreter',        // 🥉 Backup (instabil bei großen Radien)
-          'https://overpass.kumi.systems/api/interpreter',  // 4. Nur letzter Ausweg (instabil)
+          'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
         ];
     // Phase X.3b scheme-check: alle mirror-URLs muessen http(s) sein.
     // ACHTUNG: dieser fasst die ganze Liste — wenn EINE mirror-URL kaputt
