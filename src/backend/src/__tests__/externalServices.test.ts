@@ -41,10 +41,10 @@ describe('ExternalServiceRegistry', () => {
     it('verwendet 4 Overpass-Default-Mirrors wenn OVERPASS_MIRRORS nicht gesetzt', () => {
       const r = new ExternalServiceRegistry({});
       expect(r.overpassMirrors).toEqual([
-        'https://overpass.osm.ch/api/interpreter',        // 🥇 Primär (~0.2s)
-        'https://maps.mail.ru/osm/tools/overpass/api/interpreter', // 🥈 Backup (~7s)
-        'https://overpass-api.de/api/interpreter',        // 🥉 Backup (instabil)
-        'https://overpass.kumi.systems/api/interpreter',  // 4. Nur letzter Ausweg
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter', // 🥇 Primär (zuverlässig, hat doctors-Daten)
+        'https://overpass-api.de/api/interpreter',        // 🥈 Backup (schnell, instabil bei großen Radien)
+        'https://overpass.kumi.systems/api/interpreter',  // 🥉 Backup (instabil)
+        'https://overpass.osm.ch/api/interpreter',        // 4. Nur letzter Ausweg (KEINE doctors-Daten!)
       ]);
     });
 
@@ -231,10 +231,10 @@ describe('ExternalServiceRegistry', () => {
       // Mitigation: verhindert ['']-Crash bei leerem env-var
       const r = new ExternalServiceRegistry({ OVERPASS_MIRRORS: '' });
       expect(r.overpassMirrors).toEqual([
-        'https://overpass.osm.ch/api/interpreter',        // 🥇 Primär (~0.2s)
-        'https://maps.mail.ru/osm/tools/overpass/api/interpreter', // 🥈 Backup (~7s)
-        'https://overpass-api.de/api/interpreter',        // 🥉 Backup (instabil)
-        'https://overpass.kumi.systems/api/interpreter',  // 4. Nur letzter Ausweg
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter', // 🥇 Primär (zuverlässig, hat doctors-Daten)
+        'https://overpass-api.de/api/interpreter',        // 🥈 Backup (schnell, instabil bei großen Radien)
+        'https://overpass.kumi.systems/api/interpreter',  // 🥉 Backup (instabil)
+        'https://overpass.osm.ch/api/interpreter',        // 4. Nur letzter Ausweg (KEINE doctors-Daten!)
       ]);
     });
 
