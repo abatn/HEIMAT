@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-08, v23.0):** 10/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) funktioniert jetzt mit schedule_id (User muss 24-stelligen Code von www.bsr.de/abfuhrkalender eingeben). GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig. **audit-no-mocks.sh: 0 Verstöße** (2026-08-08 bestätigt).
+> **Aktueller Status-Override (2026-08-08, v25.0):** 10/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) funktioniert jetzt mit schedule_id (User muss 24-stelligen Code von www.bsr.de/abfuhrkalender eingeben). GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig. **audit-no-mocks.sh: 0 Verstöße** (2026-08-08 bestätigt). **10-Behauptungs-Verifikation** abgeschlossen (8/10 korrekt). **lz4.overpass-api.de** als 5. Mirror getestet — NICHT hinzugefügt (Shared Rate-Limit mit overpass-api.de).
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -526,7 +526,7 @@ Ein intelligenter Health AI Agent, der:
 
 ## Service-Registry (14 Services, 6 Kategorien)
 
-> **Aktueller Verifikationsstatus, Version 23.0 (2026-08-08):** Production-Check gegen Render. 10/10 Services im Public-Read-Only-Matrix PASS. **audit-no-mocks.sh: 0 Verstöße** (bestätigt).
+> **Aktueller Verifikationsstatus, Version 25.0 (2026-08-08):** Production-Check gegen Render. 10/10 Services im Public-Read-Only-Matrix PASS. **audit-no-mocks.sh: 0 Verstöße** (bestätigt). **lz4.overpass-api.de** als 5. Mirror getestet — NICHT hinzugefügt (Shared Rate-Limit).
 
 | Kategorie | Services | Status | Nachweis |
 |-----------|----------|--------|----------|
@@ -667,8 +667,39 @@ Ein intelligenter Health AI Agent, der:
 **Architektur-Erkenntnisse:**
 - **Overpass-Abhängigkeit:** Parking, EV-Charging, Bürgeramt, Ärzte, Hotels, Events teilen sich 3 Overpass-Mirrors → Single Point of Failure bei Rate-Limit
 - **Cache-Asymmetrie:** Weather/AirQuality (5min), Parking/EV (24h), Events/Hotels/Bürgeramt/Jobs (KEIN Cache) → unnötige Overpass-Aufrufe
-- **GPS-Graceful-Degradation:** Alle Provider haben 0,0-Guards → App zeigt "Standort nicht verfügbar" statt Overpass-Timeout
+- **GPS-Graceful-Degradation:** Alle 8 Provider haben 0,0-Guards → App zeigt "Standort nicht verfügbar" statt Overpass-Timeout
 - **Redis-Platzhalter:** Dependency vorhanden, aber nicht als Caching-Layer genutzt → Potenzial für Overpass-Response-Caching
+- **DSGVO-konformer Cache möglich:** `lat.toFixed(2)|lng.toFixed(2)` keyed (nicht-personenbezogen, In-Memory = nicht persistent)
+- **lz4.overpass-api.de NICHT nutzbar:** Shared Rate-Limit mit overpass-api.de (2 Slots global)
+
+### ✅ lz4.overpass-api.de als 5. Mirror getestet (2026-08-08)
+
+**Test-Ergebnis:** ❌ NICHT hinzugefügt.
+
+| Query | Status | Zeit | Ergebnis |
+|-------|--------|------|----------|
+| Status-Endpoint | ✅ Erreichbar | — | Connected as: 93486703, Rate Limit: 2 |
+| Parking (Berlin) | ✅ HTTP 200 | 1.25s | JSON mit Daten |
+| EV-Charging (Berlin) | ✅ HTTP 200 | — | 1 Station gefunden |
+| Hotels (Berlin) | ❌ Rate-Limited | — | HTML-Fehler nach 3 Queries |
+
+**Kritischer Fund:**
+```
+lz4.overpass-api.de → lambert.openstreetmap.de (Announced endpoint)
+overpass-api.de     → lambert.openstreetmap.de (gleicher Host!)
+```
+
+**Beide teilen sich das gleiche Rate-Limit (2 Slots global)!**
+
+**Entscheidung:**
+- ❌ Kein Redundanz-Vorteil (gleicher Rate-Limit)
+- ❌ Zusätzliche Komplexität (5. Mirror)
+- ✅ Die 4 aktiven Mirrors sind optimal (3 verschiedene Hosts)
+
+**Empfohlene nächste Schritte:**
+1. Cache für Events/Hotels/Bürgeramt hinzufügen (DSGVO-konform)
+2. AI-Chat Rate-Limit überwachen
+3. overpass.kumi.systems beobachten (instabil)
 
 ### Bekannte Probleme
 
@@ -677,6 +708,7 @@ Ein intelligenter Health AI Agent, der:
 | AI Chat | Kein Ollama auf Render | Lokaler Server nicht verfügbar | Fallback-Text wird ausgegeben |
 | Waste (Berlin) | schedule_id erforderlich | BSR braucht 24-stelligen Code | User muss schedule_id eingeben |
 | Waste (nicht-Berlin) | Einige Städte haben keine Events | abfall.io API antwortet leer | Nur unterstützte Städte |
+| overpass.kumi.systems | Instabil | Temporäre Rate-Limits | Beobachten |
 
 ### ✅ Waste Service gefixt (2026-08-07, Commits c0cd68f + c94e086 + 55be396)
 
