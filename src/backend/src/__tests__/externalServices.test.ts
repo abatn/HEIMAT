@@ -38,12 +38,13 @@ describe('ExternalServiceRegistry', () => {
       expect(r.osrmUrl).toBe('https://router.project-osrm.org');
     });
 
-    it('verwendet 3 Overpass-Default-Mirrors wenn OVERPASS_MIRRORS nicht gesetzt', () => {
+    it('verwendet 4 Overpass-Default-Mirrors wenn OVERPASS_MIRRORS nicht gesetzt', () => {
       const r = new ExternalServiceRegistry({});
       expect(r.overpassMirrors).toEqual([
-        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-        'https://overpass-api.de/api/interpreter',
-        'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass.osm.ch/api/interpreter',        // 🥇 Primär (~0.2s)
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter', // 🥈 Backup (~7s)
+        'https://overpass-api.de/api/interpreter',        // 🥉 Backup (instabil)
+        'https://overpass.kumi.systems/api/interpreter',  // 4. Nur letzter Ausweg
       ]);
     });
 
@@ -230,9 +231,10 @@ describe('ExternalServiceRegistry', () => {
       // Mitigation: verhindert ['']-Crash bei leerem env-var
       const r = new ExternalServiceRegistry({ OVERPASS_MIRRORS: '' });
       expect(r.overpassMirrors).toEqual([
-        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-        'https://overpass-api.de/api/interpreter',
-        'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass.osm.ch/api/interpreter',        // 🥇 Primär (~0.2s)
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter', // 🥈 Backup (~7s)
+        'https://overpass-api.de/api/interpreter',        // 🥉 Backup (instabil)
+        'https://overpass.kumi.systems/api/interpreter',  // 4. Nur letzter Ausweg
       ]);
     });
 
@@ -263,7 +265,7 @@ describe('ExternalServiceRegistry', () => {
       expect(desc).toHaveProperty('talerExchangeBase');
       expect(desc).toHaveProperty('talerBankBase');
       expect(desc).toHaveProperty('envOverridesActive');
-      expect(desc.overpassMirrorCount).toBe(3);
+      expect(desc.overpassMirrorCount).toBe(4);
       expect(desc.envOverridesActive).toEqual([]); // kein override im test
     });
 
