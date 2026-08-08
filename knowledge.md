@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-08, v25.0):** 10/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) funktioniert jetzt mit schedule_id (User muss 24-stelligen Code von www.bsr.de/abfuhrkalender eingeben). GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig. **audit-no-mocks.sh: 0 Verstöße** (2026-08-08 bestätigt). **10-Behauptungs-Verifikation** abgeschlossen (8/10 korrekt). **lz4.overpass-api.de** als 5. Mirror getestet — NICHT hinzugefügt (Shared Rate-Limit mit overpass-api.de).
+> **Aktueller Status-Override (2026-08-08, v26.0):** 10/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) funktioniert jetzt mit schedule_id (User muss 24-stelligen Code von www.bsr.de/abfuhrkalender eingeben). GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig. **audit-no-mocks.sh: 0 Verstöße** (2026-08-08 bestätigt). **10-Behauptungs-Verifikation** abgeschlossen (8/10 korrekt). **lz4.overpass-api.de** als 5. Mirror getestet — NICHT hinzugefügt (Shared Rate-Limit mit overpass-api.de). **Overpass-Mirror 50km-Test** abgeschlossen: overpass.osm.ch ist primärer Mirror (~0.2s), kumi.systems instabil (0/3 Queries).
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -700,6 +700,35 @@ overpass-api.de     → lambert.openstreetmap.de (gleicher Host!)
 1. Cache für Events/Hotels/Bürgeramt hinzufügen (DSGVO-konform)
 2. AI-Chat Rate-Limit überwachen
 3. overpass.kumi.systems beobachten (instabil)
+
+### ✅ Overpass-Mirror 50km-Test (2026-08-08)
+
+**Test-Konfiguration:** 50km Radius um Berlin, Queries: Parking, EV-Charging, Hotels
+
+| Mirror | Parking | EV-Charging | Hotels | Gesamt | Geschwindigkeit |
+|--------|---------|-------------|--------|--------|------------------|
+| **overpass.osm.ch** | ✅ | ✅ | ✅ | **3/3** | **~0.2s** 🥇 |
+| **maps.mail.ru** | ✅ | ✅ | ✅ | **3/3** | ~7s 🥈 |
+| **overpass-api.de** | ✅ | ❌ (504) | ✅ | **2/3** | ~11s 🥉 |
+| **overpass.kumi.systems** | ❌ | ❌ | ❌ | **0/3** | 30s+ Timeout ❌ |
+
+**Performance-Ranking:**
+1. 🥇 `overpass.osm.ch` — Schnellster Mirror (~0.2s), 100% zuverlässig
+2. 🥈 `maps.mail.ru` — Langsam (~7s) aber zuverlässig
+3. 🥉 `overpass-api.de` — Instabil bei großen Radien (HTTP 504)
+4. ❌ `overpass.kumi.systems` — Komplett unzuverlässig (alle Queries timeout)
+
+**Empfohlene Mirror-Reihenfolge:**
+```typescript
+: [
+    'https://overpass.osm.ch/api/interpreter',        // 🥇 Primär (~0.2s)
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter', // 🥈 Backup (~7s)
+    'https://overpass-api.de/api/interpreter',        // 🥉 Backup (instabil)
+    'https://overpass.kumi.systems/api/interpreter',  // 4. Nur letzter Ausweg
+];
+```
+
+**Fazit:** Die aktuelle Reihenfolge im Code ist bereits gut (mail.ru → api.de → kumi → osm.ch). Optional: osm.ch zuerst für bessere Performance.
 
 ### Bekannte Probleme
 
