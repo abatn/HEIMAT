@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-08, v22.0):** 10/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) funktioniert jetzt mit schedule_id (User muss 24-stelligen Code von www.bsr.de/abfuhrkalender eingeben). GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig.
+> **Aktueller Status-Override (2026-08-08, v23.0):** 10/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) funktioniert jetzt mit schedule_id (User muss 24-stelligen Code von www.bsr.de/abfuhrkalender eingeben). GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig. **audit-no-mocks.sh: 0 Verstöße** (2026-08-08 bestätigt).
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -526,7 +526,7 @@ Ein intelligenter Health AI Agent, der:
 
 ## Service-Registry (14 Services, 6 Kategorien)
 
-> **Aktueller Verifikationsstatus, Version 22.0 (2026-08-08):** Production-Check gegen Render. 10/10 Services im Public-Read-Only-Matrix PASS.
+> **Aktueller Verifikationsstatus, Version 23.0 (2026-08-08):** Production-Check gegen Render. 10/10 Services im Public-Read-Only-Matrix PASS. **audit-no-mocks.sh: 0 Verstöße** (bestätigt).
 
 | Kategorie | Services | Status | Nachweis |
 |-----------|----------|--------|----------|
@@ -596,7 +596,7 @@ Ein intelligenter Health AI Agent, der:
 
 **Tests:** 418/418 bestanden (Phase 1) + 20/20 DTO-Tests (Phase 2)
 
-## Service-Status v22.0 (2026-08-08)
+## Service-Status v23.0 (2026-08-08)
 
 ### ✅ Neue Fixes in dieser Session
 
@@ -634,6 +634,18 @@ Ein intelligenter Health AI Agent, der:
 **Lösung:** `_withRetry()` Helper in `api_client.dart` mit 2 Retries + exponential backoff (1s, 2s).
 **Betrifft:** apiGet, apiPost, apiPut — alle HTTP-Calls haben jetzt Retry-Logik für 503/502/429.
 **Vorteil:** App funktioniert zuverlässig auch nach Render Cold-Starts.
+
+### ✅ Audit-no-mocks bestätigt (2026-08-08)
+
+**Ergebnis:** `OK audit-no-mocks.sh: 0 violations -- Mock-Policy konform`
+**Scan-Pfade:** src/backend/src/services/ src/backend/src/routes/ src/backend/src/middleware/ src/backend/src/scripts/ src/mobile/lib/
+**User-Regel:** AGENTS.md:143 + knowledge.md:283 eingehalten.
+
+**Keine Verstöße gegen Mock-Policy:**
+- ❌ Keine `jest.mock()` in Production-Code
+- ❌ Keine `Mock`, `Fake`, `Stub`, `Dummy` in Service/Route/Config-Dateien
+- ❌ Keine hartkodierten Orte im Production-Code (nur in Tests erlaubt)
+- ❌ Keine Simulation/Demo-Daten in Production
 
 ### Bekannte Probleme
 
