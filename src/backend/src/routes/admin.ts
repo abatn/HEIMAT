@@ -61,7 +61,15 @@ adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
       'Test Praxis Buffy',  // Test-Eintrag (Session Cleanup)
     ];
 
-    // 1. Löschen verknüpfter Termine
+    // 1. Löschen aus Warteliste (muss vor doctors passieren wegen Foreign Key)
+    await pool.query(
+      `DELETE FROM appointment_waitlist WHERE doctor_id IN (
+        SELECT id FROM doctors WHERE name = ANY($1::text[])
+      )`,
+      [fakeNames]
+    );
+
+    // 2. Löschen verknüpfter Termine
     await pool.query(
       `DELETE FROM appointments WHERE doctor_id IN (
         SELECT id FROM doctors WHERE name = ANY($1::text[])
@@ -69,7 +77,7 @@ adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
       [fakeNames]
     );
 
-    // 2. Löschen verknüpfter Slots
+    // 3. Löschen verknüpfter Slots
     await pool.query(
       `DELETE FROM doctor_slots WHERE doctor_id IN (
         SELECT id FROM doctors WHERE name = ANY($1::text[])
@@ -77,13 +85,13 @@ adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
       [fakeNames]
     );
 
-    // 3. Löschen der Fake-Ärzte
+    // 4. Löschen der Fake-Ärzte
     const result = await pool.query(
       'DELETE FROM doctors WHERE name = ANY($1::text[])',
       [fakeNames]
     );
 
-    // 4. Sanity-Check: wie viele Ärzte bleiben in der DB?
+    // 5. Sanity-Check: wie viele Ärzte bleiben in der DB?
     const remaining = await pool.query('SELECT count(*) FROM doctors');
     const remainingCount = parseInt(remaining.rows[0].count, 10);
 
