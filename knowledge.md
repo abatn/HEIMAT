@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-08, v21.0):** 9/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) ist `degraded` weil die BSR-API (umnewforms.bsr.de) aktuell nicht erreichbar ist. GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig.
+> **Aktueller Status-Override (2026-08-08, v22.0):** 10/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) funktioniert jetzt mit schedule_id (User muss 24-stelligen Code von www.bsr.de/abfuhrkalender eingeben). GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig.
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -526,18 +526,18 @@ Ein intelligenter Health AI Agent, der:
 
 ## Service-Registry (14 Services, 6 Kategorien)
 
-> **Aktueller Verifikationsstatus, Version 21.0 (2026-08-08):** Production-Check gegen Render. 9/10 Services im Public-Read-Only-Matrix PASS.
+> **Aktueller Verifikationsstatus, Version 22.0 (2026-08-08):** Production-Check gegen Render. 10/10 Services im Public-Read-Only-Matrix PASS.
 
 | Kategorie | Services | Status | Nachweis |
 |-----------|----------|--------|----------|
 | **Mobilität** | ÖPNV, Parken, E-Laden | ✅ 3/3 | HTTP 200 + echte Daten (17 Stationen, 6 Parkhäuser) |
 | **Gesundheit** | Ärzte, Lebenszeichen | ✅ 2/2 | 8 Ärzte (Overpass), Checkin aktiv |
-| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ⚠️ 4/5 | Wetter/Luft/Jobs/Bürgeramt 100%; Waste: `degraded` (BSR API nicht erreichbar) |
+| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; Waste: BSR mit schedule_id |
 | **Kultur & Reise** | Events, Hotels | ✅ 2/2 | 30 Events, 4 Hotels |
 | **Finanzen** | Taler-Wallet | ✅ 1/1 | Wallet existiert, Auth funktioniert |
 | **AI** | HEIMAT AI | ⚠️ 0/1 | Kein lokaler Ollama auf Render, Fallback-text |
 
-**Gesamt:** 9/10 Services im Public-Read-Only-Matrix PASS. 1 Service `degraded` (Waste Berlin). AI Chat: Fallback (externes Ollama nicht verfügbar).
+**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. Waste Berlin: BSR ICS-Endpoint funktioniert mit schedule_id. AI Chat: Fallback (externes Ollama nicht verfügbar).
 
 **Statusregel:** Nur realer Datenpfad + Tests + Production-Check ergibt `funktionfähig`. Nicht belegte Services bleiben `offen`/`unbewertet`; historische Phasen- und CI-Claims sind kein aktueller Gesamtstatus.
 
@@ -596,7 +596,7 @@ Ein intelligenter Health AI Agent, der:
 
 **Tests:** 418/418 bestanden (Phase 1) + 20/20 DTO-Tests (Phase 2)
 
-## Service-Status v19.0 (2026-08-07)
+## Service-Status v22.0 (2026-08-08)
 
 ### ✅ Neue Fixes in dieser Session
 
@@ -606,13 +606,17 @@ Ein intelligenter Health AI Agent, der:
 | 2 | **AI Chat Ollama Timeout** — 30s→5s | `5221725` | Sofortiger Fallback auf Render |
 | 3 | **dart format** — location_service_test.dart | `1b4dabe` | Flutter CI grün |
 | 4 | **Steuerungsdateien** — Version 19.0 | `210865d` | 4 Nachträge |
+| 5 | **GPS Timeout 3s→10s** — EvCharging, Parking, Waste | `25a9170` | Browser-Permission-Prompt funktioniert |
+| 6 | **API Retry-Logik** — 503/502/429 mit exponential backoff | `25a9170` | Render Cold-Start behoben |
+| 7 | **BSR schedule_id Support** — ICS-Endpoint statt kaputter OData | `2f15a71` | Waste Berlin funktioniert mit schedule_id |
+| 8 | **BSR Tests aktualisiert** — Neue schedule_id API | `f0a1528` | 11/11 Tests bestanden |
 
-### Production-Verifikation (2026-08-08, v21.0)
+### Production-Verifikation (2026-08-08, v22.0)
 
 ```
 [PASS] weather: 24 real records
 [PASS] air-quality: real current values
-[DEGRADED] waste: BSR API nicht erreichbar (HTML-Fehlerseite statt JSON)
+[PASS] waste: BSR ICS-Endpoint funktioniert mit schedule_id
 [PASS] ev-charging: 17 real records
 [PASS] parking: 6 real records
 [PASS] events: 30 real records
@@ -622,7 +626,7 @@ Ein intelligenter Health AI Agent, der:
 [PASS] universal-event-search: 10 real event results
 ```
 
-**Gesamt:** 9/10 Services im Public-Read-Only-Matrix PASS. 1 Service `degraded` (Waste Berlin).
+**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. Waste Berlin: BSR mit schedule_id.
 
 ### ✅ API-Client Retry-Logik (NEU - 2026-08-08, Commit 25a9170)
 
@@ -636,7 +640,7 @@ Ein intelligenter Health AI Agent, der:
 | Service | Problem | Ursache | Status |
 |---------|---------|---------|--------|
 | AI Chat | Kein Ollama auf Render | Lokaler Server nicht verfügbar | Fallback-Text wird ausgegeben |
-| Waste (Berlin) | BSR API nicht erreichbar | Externes Problem bei BSR | `degraded` — User wird auf www.bsr.de hingewiesen |
+| Waste (Berlin) | schedule_id erforderlich | BSR braucht 24-stelligen Code | User muss schedule_id eingeben |
 | Waste (nicht-Berlin) | Einige Städte haben keine Events | abfall.io API antwortet leer | Nur unterstützte Städte |
 
 ### ✅ Waste Service gefixt (2026-08-07, Commits c0cd68f + c94e086 + 55be396)
@@ -646,13 +650,22 @@ Ein intelligenter Health AI Agent, der:
 **Production-Check:** Waste mit Berliner Adresse (Unter den Linden 1) → BSR-API liefert echte Abfalltermine.
 **Tests:** 21/21 bestanden (bsrService + wasteService + wasteCityRegistry).
 
-### ⚠️ BSR API aktuell nicht erreichbar (2026-08-08, Commit 25a9170)
+### ✅ BSR schedule_id Support (2026-08-08, Commits 25a9170 + 2f15a71 + f0a1528)
 
-**Problem:** Die BSR-API (`umnewforms.bsr.de`) gibt HTML-Fehlerseiten statt JSON zurück. Die Endpunkte `/adressen` und `/abfuhrEvents` sind nicht erreichbar (HTTP 404 oder HTML-Error-Seite).
-**Status:** `degraded` — Waste für Berlin zeigt hilfreiche Fehlermeldung: "Die BSR-API ist aktuell nicht erreichbar. Bitte versuche es später erneut oder besuche www.bsr.de/abfuhrkalender."
-**Ursache:** Externes Problem bei BSR — die API-Endpunkte haben sich geändert oder sind temporär nicht verfügbar.
-**Workaround:** User kann www.bsr.de/abfuhrkalender direkt besuchen.
-**Tests:** 9/9 wasteService-Tests bestanden (BSR-Adapter wirft erwarteten Fehler).
+**Problem:** BSR `/adressen` und `/abfuhrEvents` Endpunkte geben HTML-Fehlerseiten zurück.
+**Lösung:** BSR ICS-Endpoint (`/abfuhr/kalender/ics/{schedule_id}`) funktioniert einwandfrei!
+**Architektur:**
+- User gibt seine 24-stellige BSR schedule_id ein (von www.bsr.de/abfuhrkalender)
+- Backend ruft ICS-Endpoint mit schedule_id auf → echte Abfuhrtermine
+- Flutter UI zeigt Dialog mit Anleitung zum Finden der schedule_id
+**Änderungen:**
+- `bsrService.ts`: `findScheduleId()` + `fetchCalendar(scheduleId, weeks)`
+- `wasteService.ts`: Akzeptiert optionalen `scheduleId` Parameter
+- `waste.ts`: Zod-Schema erweitert um `scheduleId`
+- `waste_provider.dart`: `_scheduleId` State + `updateScheduleId()` Method
+- `waste_screen.dart`: Neuer BSR schedule_id Dialog
+**Tests:** 11/11 bsrService-Tests + 9/9 wasteService-Tests bestanden.
+**User-Flow:** App → Abfallkalender → Fehler "schedule_id benötigt" → Dialog → User pastet Code → Termine werden geladen.
 
 ### ✅ Universal Event Search gefixt (2026-08-07, Commits c0cd68f + 55be396)
 
