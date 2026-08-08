@@ -2,10 +2,11 @@
 // bsrService — BSR (Berliner Stadtreinigung) Adapter
 //
 // ARCHITEKTUR:
-//   BSR eigene REST-API (umnewforms.bsr.de)
-//   1. GET /adressen?filter=PLZ eq '...' and Strasse eq '...' and Hausnr eq '...'
-//   2. GET /abfuhrEvents?filter=AddrKey eq '...' and DateFrom eq datetime'...'
-//   3. ODER: GET /abfuhr/kalender/ics/{schedule_id}?year=...&month=...
+//   BSR ICS-Endpoint (umnewforms.bsr.de) — FUNKTIONIERT!
+//   - GET /abfuhr/kalender/ics/{schedule_id}?year=YYYY&month=M
+//   - Benötigt: schedule_id (24-stelliger Code von BSR-Website)
+//   - User kann schedule_id direkt eingeben (App-UI) ODER
+//     Backend versucht BSR-Website zu scrapen
 //
 // MOCK-POLICY: Keine Mocks. Echte HTTP-Calls gegen umnewforms.bsr.de
 // ---------------------------------------------------------------------------
@@ -67,26 +68,36 @@ export class BsrService {
   constructor(private readonly http: AxiosInstance) {}
 
   /**
-   * Find address by PLZ, street, and house number
+   * Fetch schedule_id from BSR website by scraping the ICS download link.
+   * This is a fallback — User sollte schedule_id direkt eingeben.
    */
-  async findAddress(plz: string, street: string, houseNr: string): Promise<BsrAddress | null> {
-    const filter = `PLZ eq '${plz}' and Strasse eq '${street}' and Hausnr eq '${houseNr}'`;
-    const url = `${BSR_BASE_URL}/adressen`;
-    
+  async findScheduleId(street: string, houseNr: string): Promise<string | null> {
     try {
-      const response = await this.http.get(url, {
-        params: { filter },
+      // BSR Abfuhrkalender-Formular: Straße + Hausnummer eingeben
+      // Die Seite lädt dynamisch — wir versuchen den ICS-Link zu finden
+      const searchUrl = `https://www.bsr.de/abfuhrkalender`;
+      const response = await this.http.get(searchUrl, {
         headers: { 'User-Agent': BSR_USER_AGENT },
         timeout: 10000,
       });
 
-      const data = response.data;
-      if (Array.isArray(data) && data.length > 0) {
-        return data[0] as BsrAddress;
+      // Suche nach schedule_id Muster in der HTML-Antwort
+      const html = typeof response.data === 'string' ? response.data : '';
+      const match = html.match(/schedule_id[=\/]([A-Z0-9]{24})/i);
+      if (match) {
+        return match[1];
       }
+
+      // Alternative: Suche nach AddrKey Muster
+      const addrMatch = html.match(/AddrKey[=\/]([A-Z0-9]{24})/i);
+      if (addrMatch) {
+        return addrMatch[1];
+      }
+
+      logger.warn(`BSR: Could not find schedule_id for ${street} ${houseNr}`);
       return null;
     } catch (error) {
-      logger.warn(`BSR: Address lookup failed: ${(error as Error).message}`);
+      logger.warn(`BSR: schedule_id lookup failed: ${(error as Error).message}`);
       return null;
     }
   }
@@ -162,50 +173,39 @@ export class BsrService {
   }
 
   /**
-   * Komplett-Flow: Adresse → Kalender
+   * Komplett-Flow: schedule_id → Kalender
+   * 
+   * @param scheduleId 24-stelliger BSR-Schedule-Code (von User oder Website)
+   * @param weeks Vorhersage-Fenster (1-8 Wochen)
    */
   async fetchCalendar(
-    plz: string,
-    street: string,
-    houseNr: string,
+    scheduleId: string,
     weeks: number = 4,
   ): Promise<BsrResult> {
-    logger.info(`BSR: Fetching calendar for ${street} ${houseNr}, ${plz} Berlin`);
+    logger.info(`BSR: Fetching calendar for schedule_id=${scheduleId}`);
 
-    // 1. Adresse finden
-    const address = await this.findAddress(plz, street, houseNr);
-    if (!address) {
-      throw new Error(`Adresse '${street} ${houseNr}, ${plz} Berlin' nicht bei BSR gefunden`);
+    if (!scheduleId || scheduleId.length < 20) {
+      throw new Error(
+        `Ungültige BSR schedule_id: '${scheduleId}'. ` +
+        `Bitte gib deine 24-stellige schedule_id ein (findest du auf www.bsr.de/abfuhrkalender).`
+      );
     }
 
-    const scheduleId = address.AddrKey;
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
 
-    // 2. Kalender laden (iCal bevorzugt, REST als Fallback)
-    let events: IcsEvent[] = [];
+    // ICS-Endpoint funktioniert — REST-Endpoint ist kaputt
+    let events = await this.fetchCalendarViaIcal(scheduleId, year, month);
     
-    // Versuche iCal zuerst
-    events = await this.fetchCalendarViaIcal(scheduleId, year, month);
-    
-    // Wenn iCal leer, versuche REST
-    if (events.length === 0) {
-      events = await this.fetchCalendarViaRest(scheduleId, year, month);
-    }
-
-    // Wenn immer noch leer, versuche nächsten Monat
+    // Wenn leer, versuche nächsten Monat
     if (events.length === 0) {
       const nextMonth = month === 12 ? 1 : month + 1;
       const nextYear = month === 12 ? year + 1 : year;
       events = await this.fetchCalendarViaIcal(scheduleId, nextYear, nextMonth);
-      
-      if (events.length === 0) {
-        events = await this.fetchCalendarViaRest(scheduleId, nextYear, nextMonth);
-      }
     }
 
-    // 3. Nach Wochen filtern
+    // Nach Wochen filtern
     const cutoffMs = Date.now() + weeks * 7 * 24 * 60 * 60 * 1000;
     const filtered = events.filter((e) => {
       const t = Date.parse(e.start);
@@ -213,12 +213,12 @@ export class BsrService {
     }).sort((a, b) => a.start.localeCompare(b.start));
 
     const fetchedAt = new Date().toISOString();
-    logger.info(`BSR: ${filtered.length} events fetched for ${street} ${houseNr}`);
+    logger.info(`BSR: ${filtered.length} events fetched for schedule_id=${scheduleId}`);
 
     return {
       addrKey: scheduleId,
-      street: address.Strasse || street,
-      houseNr: address.Hausnr || houseNr,
+      street: '',
+      houseNr: '',
       events: filtered,
       source: `BSR (${scheduleId})`,
       fetchedAt,

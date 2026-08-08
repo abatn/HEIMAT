@@ -90,6 +90,7 @@ class WasteProvider extends ChangeNotifier {
   DateTime? _lastUpdated;
   bool _isStale = false;
   bool _hasConfig = false;
+  String _scheduleId = ''; // BSR schedule_id (24-stellig)
 
   // ------------------------------------------------------------------
   // Getter
@@ -106,6 +107,7 @@ class WasteProvider extends ChangeNotifier {
   String get street => _street;
   String get houseNr => _houseNr;
   int get weeks => _weeks;
+  String get scheduleId => _scheduleId;
 
   /// Phase X.3c: True wenn Location-Defaults geladen sind (Backend oder Cache).
   bool get hasCityConfig => _hasConfig;
@@ -187,6 +189,14 @@ class WasteProvider extends ChangeNotifier {
     unawaited(refresh());
   }
 
+  /// Setter: User gibt BSR schedule_id ein → re-trigger refresh.
+  void updateScheduleId(String scheduleId) {
+    _scheduleId = scheduleId.trim();
+    _error = null;
+    unawaited(_persistAddress());
+    unawaited(refresh());
+  }
+
   /// Setter: User wählt Wochen-Anzahl (1..8). Persistiert + re-fetch.
   void setWeeks(int weeks) {
     if (weeks < 1 || weeks > 8) return;
@@ -210,7 +220,10 @@ class WasteProvider extends ChangeNotifier {
     try {
       final qs =
           'lat=$_lat&lng=$_lng&weeks=$_weeks&street=${Uri.encodeComponent(_street)}&houseNr=${Uri.encodeComponent(_houseNr)}';
-      final data = await apiGet('/api/waste/calendar?$qs');
+      final qsWithSchedule = _scheduleId.isNotEmpty
+          ? '$qs&scheduleId=${Uri.encodeComponent(_scheduleId)}'
+          : qs;
+      final data = await apiGet('/api/waste/calendar?$qsWithSchedule');
 
       // 422 AddressRequiredError: code='ADDRESS_REQUIRED' (Backend-Format)
       if (data['status'] == 'error' && data['code'] == 'ADDRESS_REQUIRED') {

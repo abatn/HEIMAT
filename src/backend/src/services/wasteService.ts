@@ -120,6 +120,7 @@ export class WasteService {
     weeks: number = 4,
     street?: string,
     houseNr?: string,
+    scheduleId?: string,
   ): Promise<WasteCalendarResponse> {
     // 1. City-Resolver (dynamic via Nominatim — no hardcoding)
     const cityConfig = await resolveCity(lat, lng);
@@ -167,19 +168,24 @@ export class WasteService {
         throw err;
       }
     } else if (cityConfig.adapter === 'bsr') {
-      // BSR (Berliner Stadtreinigung) Adapter: Eigene REST-API
-      // STATUS: BSR API (umnewforms.bsr.de) ist aktuell nicht erreichbar (2026-08-08)
-      // TODO: BSR API復旧后再 implementieren. Bis dahin: degraded Status.
-      const plz = await this.extractPlzFromCoords(lat, lng);
-      if (!plz || !street || !houseNr) {
-        throw new AddressRequiredError({ city: cityConfig.id as WasteCityKey, displayName: cityConfig.displayName, minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 });
+      // BSR (Berliner Stadtreinigung) Adapter: ICS-Endpoint
+      // Benötigt: schedule_id (24-stelliger Code von www.bsr.de/abfuhrkalender)
+      if (!scheduleId) {
+        throw new Error(
+          `Abfallkalender für ${cityConfig.displayName} benötigt eine schedule_id. ` +
+          `Bitte besuche www.bsr.de/abfuhrkalender, gib deine Adresse ein, ` +
+          `und kopiere den 24-stelligen Code aus dem ICS-Download-Link.`
+        );
       }
-      // BSR API ist aktuell nicht erreichbar — werfe degradierte Fehlermeldung
-      throw new Error(
-        `Abfallkalender für ${cityConfig.displayName} ist derzeit nicht verfügbar. ` +
-        `Die BSR-API (umnewforms.bsr.de) ist aktuell nicht erreichbar. ` +
-        `Bitte versuche es später erneut oder besuche www.bsr.de/abfuhrkalender.`
-      );
+      const bsr = new BsrService(this.http);
+      try {
+        const result = await bsr.fetchCalendar(scheduleId, weeks);
+        events = result.events;
+        source = result.source;
+      } catch (err) {
+        logger.error(`WasteService: BSR failed for ${cityConfig.displayName}: ${(err as Error).message}`);
+        throw err;
+      }
     } else if (cityConfig.adapter === 'abfall_navi' && cityConfig.abfallNaviRegion) {
       // AbfallNavi (Bund) Adapter: Staatliche API
       const abfallNavi = new AbfallNaviService(this.http);

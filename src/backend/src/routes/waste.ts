@@ -47,6 +47,7 @@ const calendarQuerySchema = z.object({
   weeks: z.coerce.number().int().min(1).max(8).optional().default(4),
   street: z.string().min(1).max(200).optional(),
   houseNr: z.string().min(1).max(20).optional(),
+  scheduleId: z.string().min(20).max(30).optional(), // BSR schedule_id (24-stellig)
 });
 
 // ------------------------------------------------------------------
@@ -71,9 +72,10 @@ wasteRouter.get(
     const weeks = req.query.weeks ? parseInt(req.query.weeks as string, 10) : 4;
     const street = req.query.street as string | undefined;
     const houseNr = req.query.houseNr as string | undefined;
+    const scheduleId = req.query.scheduleId as string | undefined;
 
     try {
-      const data = await wasteService.getWasteCalendar(lat, lng, weeks, street, houseNr);
+      const data = await wasteService.getWasteCalendar(lat, lng, weeks, street, houseNr, scheduleId);
       res.json({
         status: data.status,
         city: data.city,

@@ -29,9 +29,11 @@ class WasteScreen extends StatefulWidget {
 class _WasteScreenState extends State<WasteScreen> {
   bool _initialized = false;
   bool _addressDialogShown = false;
+  bool _scheduleIdDialogShown = false;
 
   final _streetCtrl = TextEditingController();
   final _houseNrCtrl = TextEditingController();
+  final _scheduleIdCtrl = TextEditingController();
   String _dialogCity = 'hamburg';
 
   @override
@@ -52,6 +54,7 @@ class _WasteScreenState extends State<WasteScreen> {
   void dispose() {
     _streetCtrl.dispose();
     _houseNrCtrl.dispose();
+    _scheduleIdCtrl.dispose();
     super.dispose();
   }
 
@@ -173,11 +176,20 @@ class _WasteScreenState extends State<WasteScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_addressDialogShown) return;
+    if (_addressDialogShown || _scheduleIdDialogShown) return;
     final p = context.read<WasteProvider>();
     if (p.addressRequired && _initialized) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showAddressDialog(context);
+      });
+    }
+    // BSR schedule_id dialog: wenn Fehlermeldung schedule_id erfordert
+    if (p.error != null &&
+        p.error!.contains('schedule_id') &&
+        _initialized &&
+        !p.hasData) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showScheduleIdDialog(context);
       });
     }
   }
@@ -223,6 +235,7 @@ class _WasteScreenState extends State<WasteScreen> {
     }
 
     if (!p.hasData && p.error != null) {
+      final needsScheduleId = p.error!.contains('schedule_id');
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
@@ -230,10 +243,12 @@ class _WasteScreenState extends State<WasteScreen> {
           EmptyState(
             title: p.addressRequired
                 ? 'Adresse benötigt'
-                : 'Abfallkalender nicht verfügbar',
+                : needsScheduleId
+                    ? 'BSR schedule_id benötigt'
+                    : 'Abfallkalender nicht verfügbar',
             description: p.error!,
           ),
-          if (!p.addressRequired) ...[
+          if (!p.addressRequired && !needsScheduleId) ...[
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -241,6 +256,20 @@ class _WasteScreenState extends State<WasteScreen> {
                 onPressed: p.refresh,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Erneut versuchen'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+          if (needsScheduleId) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: FilledButton.icon(
+                onPressed: () => _showScheduleIdDialog(context),
+                icon: const Icon(Icons.key),
+                label: const Text('schedule_id eingeben'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                 ),
@@ -360,6 +389,106 @@ class _WasteScreenState extends State<WasteScreen> {
           ),
       ],
     );
+  }
+
+  /// Bottom-Sheet Dialog für BSR schedule_id (24-stelliger Code).
+  void _showScheduleIdDialog(BuildContext context) {
+    if (_scheduleIdDialogShown) return;
+    _scheduleIdDialogShown = true;
+
+    final p = context.read<WasteProvider>();
+    _scheduleIdCtrl.text = p.scheduleId;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetCtx).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.key, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'BSR schedule_id',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(sheetCtx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Für Berlin benötigen wir deine 24-stellige BSR schedule_id.\n\n'
+                'So findest du sie:\n'
+                '1. Gehe zu www.bsr.de/abfuhrkalender\n'
+                '2. Gib deine Adresse ein\n'
+                '3. Klicke auf den ICS-Download-Link\n'
+                '4. Kopiere den 24-stelligen Code aus der URL',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _scheduleIdCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'schedule_id',
+                  hintText: 'z.B. 049011000107000039600010',
+                  border: OutlineInputBorder(),
+                ),
+                maxLength: 30,
+              ),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () {
+                  final scheduleId = _scheduleIdCtrl.text.trim();
+                  if (scheduleId.isEmpty || scheduleId.length < 20) {
+                    ScaffoldMessenger.of(sheetCtx).showSnackBar(
+                      const SnackBar(
+                          content: Text(
+                              'Bitte gib eine gültige schedule_id ein (24-stellig).')),
+                    );
+                    return;
+                  }
+                  p.updateScheduleId(scheduleId);
+                  Navigator.pop(sheetCtx);
+                },
+                icon: const Icon(Icons.check),
+                label: const Text('Speichern & Neu laden'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    ).whenComplete(() {
+      _scheduleIdDialogShown = false;
+    });
   }
 
   String _relativeTime(DateTime dt) {
