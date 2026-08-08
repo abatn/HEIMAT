@@ -647,6 +647,29 @@ Ein intelligenter Health AI Agent, der:
 - ❌ Keine hartkodierten Orte im Production-Code (nur in Tests erlaubt)
 - ❌ Keine Simulation/Demo-Daten in Production
 
+### ✅ 10-Behauptungs-Verifikation (2026-08-08)
+
+**Ergebnis:** 8/10 korrekt, 1 teils, 1 falsch.
+
+| # | Behauptung | Urteil | Begründung |
+|---|-----------|--------|------------|
+| 1 | Nur 1 von 3 Overpass-Mirrors zuverlässig | ⚠️ Teils | Alle 3 sind im Code (externalServices.ts:248-250), aber aktuell instabil (temporärer Produktionszustand) |
+| 2 | Events/Hotels/Bürgeramt ohne Cache | ✅ Korrekt | Kein `cache`/`Cache` in eventService.ts, hotelService.ts, buergeramtService.ts. Jobs auch ohne Cache (Arbeitnow API) |
+| 3 | Provider lat=0 Guards fehlend | ⚠️ Teils falsch | Weather (Zeile 136) und AirQuality (Zeile 100) haben Guards gegen 0,0. Parking/EV/Waste auch (nach Fix) |
+| 4 | Migration blockierend, /health ohne DB | ✅ Korrekt | execSync vor app.listen (index.ts:112-120). GET /health gibt nur status:'ok' zurück (health.ts:1-14) |
+| 5 | routes/ai.ts:193 lat:0,lng:0 | ✅ Korrekt | Health-Triage nutzt lat:0,lng:0 (akzeptabel für Triage ohne Standort) |
+| 6 | /api/mobility/stops/nearby existiert nicht | ✅ Korrekt | Korrekter Pfad: /api/mobility/stops?lat=&lng=&radius= |
+| 7 | Doctors nur E2E-Test-Daten | ❌ Falsch | Ärzte-Route nutzt Overpass Live-Daten (100% Overpass, keine Seed-Daten seit Commit 760d88f) |
+| 8 | redis nur für Health-Check | ✅ Korrekt | `redis` ^6.1.0 in package.json, wird nur in /health/ready für optionalen Redis-Ping genutzt |
+| 9 | Rate-Limiter global 200/15min | ✅ Korrekt | `rateLimit({ windowMs: 15 * 60 * 1000, max: 200 })` in index.ts, keine per-Route-Overrides |
+| 10 | Verbesserungen ohne Code-Änderungen verifizierbar | ✅ Korrekt | render.yaml, externalServices.ts (3 Mirrors), Provider-Dateien (Guards) — alles sichtbar |
+
+**Architektur-Erkenntnisse:**
+- **Overpass-Abhängigkeit:** Parking, EV-Charging, Bürgeramt, Ärzte, Hotels, Events teilen sich 3 Overpass-Mirrors → Single Point of Failure bei Rate-Limit
+- **Cache-Asymmetrie:** Weather/AirQuality (5min), Parking/EV (24h), Events/Hotels/Bürgeramt/Jobs (KEIN Cache) → unnötige Overpass-Aufrufe
+- **GPS-Graceful-Degradation:** Alle Provider haben 0,0-Guards → App zeigt "Standort nicht verfügbar" statt Overpass-Timeout
+- **Redis-Platzhalter:** Dependency vorhanden, aber nicht als Caching-Layer genutzt → Potenzial für Overpass-Response-Caching
+
 ### Bekannte Probleme
 
 | Service | Problem | Ursache | Status |
