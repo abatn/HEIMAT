@@ -65,22 +65,20 @@ beforeEach(() => {
   service = new BsrService(mockHttp);
 });
 
-describe('BSR Service — Address Lookup', () => {
-  it('should find address by PLZ, street, and house number', async () => {
-    mockHttp.get.mockResolvedValueOnce({ data: [BERLIN_ADDRESS] });
+describe('BSR Service — Schedule ID Lookup', () => {
+  it('should find schedule_id from BSR website', async () => {
+    mockHttp.get.mockResolvedValueOnce({ data: '<html>schedule_id/abc123def456ghi789jkl012</html>' });
 
-    const result = await service.findAddress('10115', 'Unter den Linden', '1');
+    const result = await service.findScheduleId('Unter den Linden', '1');
     
     expect(result).not.toBeNull();
-    expect(result?.AddrKey).toBe('abc123def456ghi789jkl012');
-    expect(result?.PLZ).toBe('10115');
-    expect(result?.Strasse).toBe('Unter den Linden');
+    expect(result).toBe('abc123def456ghi789jkl012');
   });
 
-  it('should return null if address not found', async () => {
-    mockHttp.get.mockResolvedValueOnce({ data: [] });
+  it('should return null if schedule_id not found', async () => {
+    mockHttp.get.mockResolvedValueOnce({ data: '<html>No schedule_id here</html>' });
 
-    const result = await service.findAddress('10115', 'Nicht existierende Str', '999');
+    const result = await service.findScheduleId('Nicht existierende Str', '999');
     
     expect(result).toBeNull();
   });
@@ -88,7 +86,7 @@ describe('BSR Service — Address Lookup', () => {
   it('should handle API errors gracefully', async () => {
     mockHttp.get.mockRejectedValueOnce(new Error('Network error'));
 
-    const result = await service.findAddress('10115', 'Unter den Linden', '1');
+    const result = await service.findScheduleId('Unter den Linden', '1');
     
     expect(result).toBeNull();
   });
@@ -143,53 +141,30 @@ describe('BSR Service — REST Calendar', () => {
 });
 
 describe('BSR Service — Full Flow', () => {
-  it('should fetch complete calendar for Berlin address', async () => {
-    // Mock address lookup
-    mockHttp.get.mockResolvedValueOnce({ data: [BERLIN_ADDRESS] });
+  it('should fetch complete calendar with schedule_id', async () => {
     // Mock iCal fetch (first attempt)
     mockHttp.get.mockResolvedValueOnce({ data: BSR_ICS_DATA });
 
-    const result = await service.fetchCalendar('10115', 'Unter den Linden', '1', 4);
+    const result = await service.fetchCalendar('abc123def456ghi789jkl012', 4);
     
     expect(result.addrKey).toBe('abc123def456ghi789jkl012');
-    expect(result.street).toBe('Unter den Linden');
-    expect(result.houseNr).toBe('1');
     expect(result.events).toHaveLength(2);
     expect(result.source).toContain('BSR');
   });
 
-  it('should throw error if address not found', async () => {
-    mockHttp.get.mockResolvedValueOnce({ data: [] });
-
+  it('should throw error if schedule_id is invalid', async () => {
     await expect(
-      service.fetchCalendar('10115', 'Nicht existierende Str', '999', 4)
-    ).rejects.toThrow('nicht bei BSR gefunden');
-  });
-
-  it('should try REST fallback if iCal returns empty', async () => {
-    // Mock address lookup
-    mockHttp.get.mockResolvedValueOnce({ data: [BERLIN_ADDRESS] });
-    // Mock iCal fetch (empty)
-    mockHttp.get.mockResolvedValueOnce({ data: 'BEGIN:VCALENDAR\nEND:VCALENDAR' });
-    // Mock REST fetch
-    mockHttp.get.mockResolvedValueOnce({ data: BSR_REST_DATA });
-
-    const result = await service.fetchCalendar('10115', 'Unter den Linden', '1', 4);
-    
-    expect(result.events).toHaveLength(2);
+      service.fetchCalendar('short', 4)
+    ).rejects.toThrow('Ungültige BSR schedule_id');
   });
 
   it('should try next month if current month empty', async () => {
-    // Mock address lookup
-    mockHttp.get.mockResolvedValueOnce({ data: [BERLIN_ADDRESS] });
     // Mock iCal fetch for current month (empty)
     mockHttp.get.mockResolvedValueOnce({ data: 'BEGIN:VCALENDAR\nEND:VCALENDAR' });
-    // Mock REST fetch for current month (empty)
-    mockHttp.get.mockResolvedValueOnce({ data: [] });
     // Mock iCal fetch for next month (with data)
     mockHttp.get.mockResolvedValueOnce({ data: BSR_ICS_DATA });
 
-    const result = await service.fetchCalendar('10115', 'Unter den Linden', '1', 4);
+    const result = await service.fetchCalendar('abc123def456ghi789jkl012', 4);
     
     expect(result.events).toHaveLength(2);
   });
