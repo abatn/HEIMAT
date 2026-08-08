@@ -51,7 +51,7 @@ class ParkingProvider extends ChangeNotifier {
   Future<void> _tryUpdateLocation() async {
     try {
       final pos = await LocationService.getCurrentLocation().timeout(
-        const Duration(seconds: 3),
+        const Duration(seconds: 10),
         onTimeout: () => null,
       );
       if (pos != null) {
