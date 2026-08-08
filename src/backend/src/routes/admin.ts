@@ -58,6 +58,7 @@ adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
       'Dr. Sarah Fischer',
       'Dr. Thomas Koch',
       'E2E Test Praxis',  // E2E-Test-Daten (Commit 9330e98)
+      'Test Praxis Buffy',  // Test-Eintrag (Session Cleanup)
     ];
 
     // 1. Löschen verknüpfter Termine
