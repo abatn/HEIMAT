@@ -211,6 +211,14 @@ class WasteProvider extends ChangeNotifier {
   // ------------------------------------------------------------------
   Future<void> refresh() async {
     if (_isLoading) return;
+
+    // Kein Request wenn GPS fehlgeschlagen (0,0)
+    if (_lat == 0 && _lng == 0) {
+      _error = 'Standort nicht verfügbar. Bitte Standortzugriff erlauben.';
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _error = null;
     _errorCode = '';
@@ -218,12 +226,16 @@ class WasteProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final qs =
-          'lat=$_lat&lng=$_lng&weeks=$_weeks&street=${Uri.encodeComponent(_street)}&houseNr=${Uri.encodeComponent(_houseNr)}';
-      final qsWithSchedule = _scheduleId.isNotEmpty
-          ? '$qs&scheduleId=${Uri.encodeComponent(_scheduleId)}'
-          : qs;
-      final data = await apiGet('/api/waste/calendar?$qsWithSchedule');
+      // Nur street/houseNr senden wenn sie nicht leer sind (Zod min(1))
+      String qs = 'lat=$_lat&lng=$_lng&weeks=$_weeks';
+      if (_street.isNotEmpty && _houseNr.isNotEmpty) {
+        qs +=
+            '&street=${Uri.encodeComponent(_street)}&houseNr=${Uri.encodeComponent(_houseNr)}';
+      }
+      if (_scheduleId.isNotEmpty) {
+        qs += '&scheduleId=${Uri.encodeComponent(_scheduleId)}';
+      }
+      final data = await apiGet('/api/waste/calendar?$qs');
 
       // 422 AddressRequiredError: code='ADDRESS_REQUIRED' (Backend-Format)
       if (data['status'] == 'error' && data['code'] == 'ADDRESS_REQUIRED') {

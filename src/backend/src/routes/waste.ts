@@ -45,8 +45,8 @@ const calendarQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
   weeks: z.coerce.number().int().min(1).max(8).optional().default(4),
-  street: z.string().min(1).max(200).optional(),
-  houseNr: z.string().min(1).max(20).optional(),
+  street: z.string().max(200).optional().default(''), // leer ist OK
+  houseNr: z.string().max(20).optional().default(''), // leer ist OK
   scheduleId: z.string().min(20).max(30).optional(), // BSR schedule_id (24-stellig)
 });
 

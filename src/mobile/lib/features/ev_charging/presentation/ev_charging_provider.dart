@@ -77,6 +77,14 @@ class EvChargingProvider extends ChangeNotifier {
   // ------------------------------------------------------------------
   Future<void> refresh({double? radiusKm}) async {
     if (_isLoading) return;
+
+    // Kein Request wenn GPS fehlgeschlagen (0,0)
+    if (_lat == 0 && _lng == 0) {
+      _error = 'Standort nicht verfügbar. Bitte Standortzugriff erlauben.';
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _error = null;
     notifyListeners();
