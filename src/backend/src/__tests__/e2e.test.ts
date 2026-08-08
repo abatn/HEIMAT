@@ -13,12 +13,26 @@
 
 import request from 'supertest';
 import app from '../index';
+import { pool } from '../config/database';
 import { withRetry, isAcceptableStatus, TIMEOUTS } from '../utils/test-utils';
+
+/** Löscht alle vom E2E-Test angelegten Ärzte */
+async function cleanupE2EDoctors(): Promise<void> {
+  try {
+    await pool.query("DELETE FROM doctors WHERE name LIKE 'E2E Test%'");
+  } catch {
+    // cleanup-Fehler sind nicht test-relevant
+  }
+}
 
 describe('E2E: Voller User-Lifecycle (alle Services live)', () => {
   const testEmail = `e2e-${Date.now()}@heimat.de`;
   const testPassword = 'E2ETest123!';
   let authToken: string | undefined;
+
+  afterAll(async () => {
+    await cleanupE2EDoctors();
+  }, 10000);
 
   describe('1. Registrierung', () => {
     it('legt einen neuen User im Auth-Service an', async () => {
