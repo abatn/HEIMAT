@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-07, v20.0):** 10/10 Services im Public-Read-Only-Matrix PASS (Weather, Air-Quality, Waste (BSR für Berlin), EV-Charging, Parking, Events, Hotels, Bürgeramt, Jobs, Universal-Event-Search). Waste Service gefixt: Berlin nutzt jetzt BSR-Adapter (statt abfall.io). Universal Event Search liefert 10 echte Event-Ergebnisse. AI Chat: Fallback auf Render (kein lokaler Ollama). Keine hardcoded Locations mehr. Alle Services ortsunabhängig.
+> **Aktueller Status-Override (2026-08-08, v21.0):** 9/10 Services im Public-Read-Only-Matrix PASS. Waste (BSR) ist `degraded` weil die BSR-API (umnewforms.bsr.de) aktuell nicht erreichbar ist. GPS-Timeout für alle Provider (EvCharging, Parking, Waste) von 3s auf 10s erhöht (fuer Browser-Permission-Prompt). API-Client hat jetzt Retry-Logik für 503/502/429 Fehler (Render Cold-Start). Keine hardcoded Locations mehr. Alle Services ortsunabhängig.
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -526,18 +526,18 @@ Ein intelligenter Health AI Agent, der:
 
 ## Service-Registry (14 Services, 6 Kategorien)
 
-> **Aktueller Verifikationsstatus, Version 20.0 (2026-08-07):** Production-Check gegen Render. 10/10 Services im Public-Read-Only-Matrix PASS.
+> **Aktueller Verifikationsstatus, Version 21.0 (2026-08-08):** Production-Check gegen Render. 9/10 Services im Public-Read-Only-Matrix PASS.
 
 | Kategorie | Services | Status | Nachweis |
 |-----------|----------|--------|----------|
 | **Mobilität** | ÖPNV, Parken, E-Laden | ✅ 3/3 | HTTP 200 + echte Daten (17 Stationen, 6 Parkhäuser) |
 | **Gesundheit** | Ärzte, Lebenszeichen | ✅ 2/2 | 8 Ärzte (Overpass), Checkin aktiv |
-| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; Waste: BSR-Adapter für Berlin |
+| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ⚠️ 4/5 | Wetter/Luft/Jobs/Bürgeramt 100%; Waste: `degraded` (BSR API nicht erreichbar) |
 | **Kultur & Reise** | Events, Hotels | ✅ 2/2 | 30 Events, 4 Hotels |
 | **Finanzen** | Taler-Wallet | ✅ 1/1 | Wallet existiert, Auth funktioniert |
 | **AI** | HEIMAT AI | ⚠️ 0/1 | Kein lokaler Ollama auf Render, Fallback-text |
 
-**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. AI Chat: Fallback (externes Ollama nicht verfügbar).
+**Gesamt:** 9/10 Services im Public-Read-Only-Matrix PASS. 1 Service `degraded` (Waste Berlin). AI Chat: Fallback (externes Ollama nicht verfügbar).
 
 **Statusregel:** Nur realer Datenpfad + Tests + Production-Check ergibt `funktionfähig`. Nicht belegte Services bleiben `offen`/`unbewertet`; historische Phasen- und CI-Claims sind kein aktueller Gesamtstatus.
 
@@ -574,14 +574,19 @@ Ein intelligenter Health AI Agent, der:
 - **Commit:** `feat(backend): AbfallNavi (Bund) Integration` — CI grün nach E2E-Test-Fix
 
 
-### ✅ GPS-Timeout-Fix (2026-08-07, Commit 80fe2a2)
+### ✅ GPS-Timeout-Fix (2026-08-07, Commit 80fe2a2 + 2026-08-08, Commit 25a9170)
 
-**Problem:** Weather- und AirQuality-Provider hatten 3-Sekunden-Timeout für GPS. Browser brauchen 5-10s für Permission-Prompt → Timeout vor User-Antwort → "Standort nicht verfügbar".
+**Problem:** Weather-, AirQuality-, EvCharging-, Parking- und Waste-Provider hatten 3-Sekunden-Timeout für GPS. Browser brauchen 5-10s für Permission-Prompt → Timeout vor User-Antwort → "Standort nicht verfügbar".
 
-**Lösung:**
+**Lösung (Phase 1 - Commit 80fe2a2):**
 - `weather_provider.dart`: Timeout 3s → 10s
 - `air_quality_provider.dart`: Timeout 3s → 10s
 - `location_service_test.dart`: NEU — 20 Tests für GPS-Ausfall-Szenarien
+
+**Lösung (Phase 2 - Commit 25a9170):**
+- `ev_charging_provider.dart`: Timeout 3s → 10s
+- `parking_provider.dart`: Timeout 3s → 10s
+- `waste_provider.dart`: Timeout 3s → 10s
 
 **Details:**
 - Browser Geolocation-API braucht 5-10s für Permission-Prompt
@@ -589,7 +594,7 @@ Ein intelligenter Health AI Agent, der:
 - 10s passt zu typischen Browser-Verhalten
 - Kommentare korrigiert (kein hardcoded Berlin-Fallback)
 
-**Tests:** 418/418 bestanden
+**Tests:** 418/418 bestanden (Phase 1) + 20/20 DTO-Tests (Phase 2)
 
 ## Service-Status v19.0 (2026-08-07)
 
@@ -602,12 +607,12 @@ Ein intelligenter Health AI Agent, der:
 | 3 | **dart format** — location_service_test.dart | `1b4dabe` | Flutter CI grün |
 | 4 | **Steuerungsdateien** — Version 19.0 | `210865d` | 4 Nachträge |
 
-### Production-Verifikation (2026-08-07, v20.0)
+### Production-Verifikation (2026-08-08, v21.0)
 
 ```
 [PASS] weather: 24 real records
 [PASS] air-quality: real current values
-[PASS] waste: BSR-Adapter für Berlin (mit Straße+Hausnummer)
+[DEGRADED] waste: BSR API nicht erreichbar (HTML-Fehlerseite statt JSON)
 [PASS] ev-charging: 17 real records
 [PASS] parking: 6 real records
 [PASS] events: 30 real records
@@ -617,13 +622,21 @@ Ein intelligenter Health AI Agent, der:
 [PASS] universal-event-search: 10 real event results
 ```
 
-**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS.
+**Gesamt:** 9/10 Services im Public-Read-Only-Matrix PASS. 1 Service `degraded` (Waste Berlin).
+
+### ✅ API-Client Retry-Logik (NEU - 2026-08-08, Commit 25a9170)
+
+**Problem:** Render Cold-Start verursacht 503-Fehler beim ersten Request.
+**Lösung:** `_withRetry()` Helper in `api_client.dart` mit 2 Retries + exponential backoff (1s, 2s).
+**Betrifft:** apiGet, apiPost, apiPut — alle HTTP-Calls haben jetzt Retry-Logik für 503/502/429.
+**Vorteil:** App funktioniert zuverlässig auch nach Render Cold-Starts.
 
 ### Bekannte Probleme
 
 | Service | Problem | Ursache | Status |
 |---------|---------|---------|--------|
 | AI Chat | Kein Ollama auf Render | Lokaler Server nicht verfügbar | Fallback-Text wird ausgegeben |
+| Waste (Berlin) | BSR API nicht erreichbar | Externes Problem bei BSR | `degraded` — User wird auf www.bsr.de hingewiesen |
 | Waste (nicht-Berlin) | Einige Städte haben keine Events | abfall.io API antwortet leer | Nur unterstützte Städte |
 
 ### ✅ Waste Service gefixt (2026-08-07, Commits c0cd68f + c94e086 + 55be396)
@@ -632,6 +645,14 @@ Ein intelligenter Health AI Agent, der:
 **Lösung:** Berlin in statische `CITY_REGISTRY` eingefügt (Adapter-Typ 'bsr').
 **Production-Check:** Waste mit Berliner Adresse (Unter den Linden 1) → BSR-API liefert echte Abfalltermine.
 **Tests:** 21/21 bestanden (bsrService + wasteService + wasteCityRegistry).
+
+### ⚠️ BSR API aktuell nicht erreichbar (2026-08-08, Commit 25a9170)
+
+**Problem:** Die BSR-API (`umnewforms.bsr.de`) gibt HTML-Fehlerseiten statt JSON zurück. Die Endpunkte `/adressen` und `/abfuhrEvents` sind nicht erreichbar (HTTP 404 oder HTML-Error-Seite).
+**Status:** `degraded` — Waste für Berlin zeigt hilfreiche Fehlermeldung: "Die BSR-API ist aktuell nicht erreichbar. Bitte versuche es später erneut oder besuche www.bsr.de/abfuhrkalender."
+**Ursache:** Externes Problem bei BSR — die API-Endpunkte haben sich geändert oder sind temporär nicht verfügbar.
+**Workaround:** User kann www.bsr.de/abfuhrkalender direkt besuchen.
+**Tests:** 9/9 wasteService-Tests bestanden (BSR-Adapter wirft erwarteten Fehler).
 
 ### ✅ Universal Event Search gefixt (2026-08-07, Commits c0cd68f + 55be396)
 
