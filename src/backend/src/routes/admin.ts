@@ -50,12 +50,14 @@ adminRouter.post('/health/cleanup', async (req: Request, res: Response) => {
     // Fake-Ärzte: nie von echten Usern registriert (identischer Batch-Timestamp
     // 2026-07-15T18:53:44.378Z durch AI-Agent). Name-basierter Filter weil
     // PostgreSQL TIMESTAMP-Vergleich mit Timezone-Konvertierung fragil ist.
+    // E2E-Test-Ärzte: wurden durch e2e.test.ts erstellt (kein Cleanup vorher).
     const fakeNames = [
       'Dr. Anna Schmidt',
       'Dr. Lisa Müller',
       'Dr. Markus Weber',
       'Dr. Sarah Fischer',
       'Dr. Thomas Koch',
+      'E2E Test Praxis',  // E2E-Test-Daten (Commit 9330e98)
     ];
 
     // 1. Löschen verknüpfter Termine
