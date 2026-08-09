@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-09, v32.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 20/48 Regionen 100% funktional (AbfallNavi 19 + BSR 1). **abfall.io 27 Städte: DEPRECATED** (HTTP 403 Forbidden — im Code als `deprecated: true` markiert, gibt klare Fehlermeldung aus). Live-Verifikation: Nürnberg 83 Events, Solingen 51, Aachen 60. GPS-Timeout für alle Provider von 3s auf 10s erhöht. API-Client Retry-Logik für 503/502/429. Keine hardcoded Locations mehr. **audit-no-mocks.sh: 0 Verstöße.** **Overpass-Mirror optimiert:** osm.ch als Primär-Mirror.
+> **Aktueller Status-Override (2026-08-09, v33.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 110+ Regionen funktional (AbfallNavi 19 + AbfallPlus 90+ + BSR 1). **abfall.io 27 Städte: DEPRECATED** (HTTP 403 Forbidden). **AbfallPlus-Adapter komplett neu portiert:** Korrekte API-URLs, Cookie-Handling, Umlaut-Normalisierung. Bonn liefert echte Abfalltermine (36 Events). Live-Verifikation: Nürnberg 83, Bonn 36, Solingen 51, Aachen 60 Events. GPS-Timeout für alle Provider von 3s auf 10s erhöht. API-Client Retry-Logik für 503/502/429. Keine hardcoded Locations mehr. **audit-no-mocks.sh: 0 Verstöße.** **Overpass-Mirror optimiert:** osm.ch als Primär-Mirror.
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -532,7 +532,7 @@ Ein intelligenter Health AI Agent, der:
 |-----------|----------|--------|----------|
 | **Mobilität** | ÖPNV, Parken, E-Laden | ✅ 3/3 | HTTP 200 + echte Daten (17 Stationen, 6 Parkhäuser) |
 | **Gesundheit** | Ärzte, Lebenszeichen | ✅ 2/2 | **50+ Ärzte Berlin, 49+ Stuttgart, 51+ Hamburg** (100% Overpass-Live), Checkin aktiv |
-| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; **Waste: 20/48 Regionen funktional** (AbfallNavi + BSR); abfall.io 27 Städte degraded (403) |
+| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; **Waste: 110+ Regionen funktional** (AbfallNavi 19 + AbfallPlus 90+ + BSR 1); abfall.io 27 Städte deprecated (403) |
 | **Kultur & Reise** | Events, Hotels | ✅ 2/2 | 30 Events, 4 Hotels |
 | **Finanzen** | Taler-Wallet | ✅ 1/1 | Wallet existiert, Auth funktioniert |
 | **AI** | HEIMAT AI | ⚠️ 0/1 | Kein lokaler Ollama auf Render, Fallback-text |
@@ -591,15 +591,18 @@ Ein intelligenter Health AI Agent, der:
 - wasteService.ts: City-Name-Mapping dynamisch
 - Waste nutzt ABFALL_IO_SERVICES (28+ Kommunen) + AbfallNavi (19 Regionen)
 
-### ✅ Waste-Service verifiziert (2026-08-09, Version 31.0)
+### ✅ Waste-Service verifiziert (2026-08-09, Version 33.0)
 
-**20/48 Regionen via 2 funktionierende Adapter:**
+**110+ Regionen via 3 funktionierende Adapter:**
 
 | Adapter | Regionen | API | Status |
 |---------|----------|-----|--------|
 | **AbfallNavi** | 19 Regionen (Nürnberg, Aachen, Solingen, etc.) | abfallnavi.api.bund.dev | ✅ 100% |
+| **AbfallPlus** | 90+ Städte (Bonn, Leverkusen, Oldenburg, etc.) | app.abfallplus.de | ✅ **NEU — kompletter Flow funktional** |
 | **abfall.io** | 27 Städte (ALBA Berlin, Landshut, etc.) | api.abfall.io | ❌ **DEPRECATED** (HTTP 403 Forbidden — `deprecated: true` im Code, Commit `9cdb9fb`) |
 | **BSR** | 1 Stadt (Berlin) | umnewforms.bsr.de | ✅ Mit schedule_id |
+
+**AbfallPlus-Integration (2026-08-09, Commit fe05ca8):** Port der Python-Implementierung (AppAbfallplusDe.py) nach Node.js/TypeScript. Korrekte API-URLs: `https://app.abfallplus.de/{endpoint}` (Base) + `https://app.abfallplus.de/assistent/{endpoint}` (Assistant). `app_id` ist POST-Parameter, NICHT URL-Teil. Cookie-Session für Authentifizierung. Umlaut-Normalisierung (ae→ä, ue→ü, oe→ö) für Straßen-Suche. Auto-Select Kommune basierend auf erstem Buchstabe der Straße. **3 Integration-Tests bestanden:** init_connection, getStreets, fetchCalendar (Bonn, Auf dem Hügel 6 → 36 Events). **Live-Verifikation:** Bonn liefert echte Abfalltermine (Restabfallbehälter, Gelbe Großbehälter). **90+ unterstützte Städte:** Bonn, Leverkusen, Oldenburg, Würzburg, Karlsruhe, Hagen, Braunschweig, Leipzig, etc.
 
 **Live-Verifikation gegen Render:**
 
