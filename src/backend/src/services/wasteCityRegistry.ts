@@ -84,7 +84,7 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     nominatimKeywords: ['berlin'],
     plzPrefixes: ['10', '12', '13', '14'],
   },
-  // Stuttgart (Abfallwirtschaft Stuttgart) — DEPRECATED: API funktioniert nur mit Test-Adresse
+  // Stuttgart (Abfallwirtschaft Stuttgart) — LIMITIERT: API instabil, nur Test-Adresse
   {
     id: 'stuttgart-de',
     displayName: 'Stuttgart',
@@ -95,7 +95,7 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     nominatimKeywords: ['stuttgart'],
     plzPrefixes: ['70', '71', '72'],
     deprecated: true,
-    deprecatedReason: 'Stuttgart API funktioniert nur mit Test-Adresse. Nutze offizielle Stuttgart App.',
+    deprecatedReason: 'Stuttgart API instabil. Nutze offizielle Stuttgart App für zuverlässige Termine.',
   },
   // AbfallNavi (Bund/RegioIT) — 19 Regionen
   // Quelle: abfallnavi.api.bund.dev/openapi.yaml
