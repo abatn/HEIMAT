@@ -76,19 +76,8 @@ export interface CityWasteConfig {
 // Hardcoding ist verboten (User-Regel) — aber Berlin als einziger statischer Eintrag
 // ist noetig, weil BSR ein eigener Adapter-Typ ist (kein abfall.io).
 const CITY_REGISTRY: CityWasteConfig[] = [
-  // AbfallPlus (100+ Apps/Städte via k4systems API)
-  // Quelle: https://github.com/mampfes/hacs_waste_collection_schedule
-  ...Object.entries(SUPPORTED_APPS).map(([appId, cities]) => ({
-    id: `abfall-plus-${appId.replace(/[^a-z0-9]/gi, '-').slice(0, 20)}`,
-    displayName: cities[0] || appId,
-    adapter: 'abfall_plus' as const,
-    primaryUrl: `https://app.abfallplus.de/${appId}/`,
-    addressRequired: true,
-    attribution: `AbfallPlus — ${cities.join(', ')} (AGPL)`,
-    nominatimKeywords: cities.map(c => c.toLowerCase()),
-    abfallPlusAppId: appId,
-  })),
-  // Berlin (BSR) — eigener Adapter-Typ, muss vor abfall.io kommen
+  // Berlin (BSR) — eigener Adapter-Typ, MUSS VOR AbfallPlus kommen
+  // weil de.albagroup.app auch "Berlin" unterstützt, aber BSR hat priorität
   {
     id: 'berlin-bsr',
     displayName: 'Berlin',
@@ -99,6 +88,21 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     nominatimKeywords: ['berlin'],
     plzPrefixes: ['10', '12', '13', '14'],
   },
+  // AbfallPlus (100+ Apps/Städte via k4systems API)
+  // Quelle: https://github.com/mampfes/hacs_waste_collection_schedule
+  // Berlin wird hier AUSGESCHLOSSEN (bereits oben als BSR registriert)
+  ...Object.entries(SUPPORTED_APPS)
+    .filter(([appId]) => appId !== 'de.albagroup.app') // Berlin-Beeinflussung vermeiden
+    .map(([appId, cities]) => ({
+      id: `abfall-plus-${appId.replace(/[^a-z0-9]/gi, '-').slice(0, 20)}`,
+      displayName: cities[0] || appId,
+      adapter: 'abfall_plus' as const,
+      primaryUrl: `https://app.abfallplus.de/${appId}/`,
+      addressRequired: true,
+      attribution: `AbfallPlus — ${cities.join(', ')} (AGPL)`,
+      nominatimKeywords: cities.map(c => c.toLowerCase()),
+      abfallPlusAppId: appId,
+    })),
   // AbfallNavi (Bund/RegioIT) — 19 Regionen
   // Quelle: abfallnavi.api.bund.dev/openapi.yaml
   // Jede Region hat /orte → /strassen → /hausnummern → /termine
