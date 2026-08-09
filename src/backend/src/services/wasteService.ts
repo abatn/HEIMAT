@@ -242,17 +242,15 @@ export class WasteService {
         throw err;
       }
     } else if (cityConfig.adapter === 'awb_koeln') {
-      // AWB Köln: JSON API mit street_code + building_number
-      // street_code wird aus Nominatim/PLZ ermittelt (hier: Straße als Code verwenden)
-      const streetCode = parseInt(street || '0', 10) || 0;
-      const buildingNr = parseInt(houseNr || '0', 10) || 0;
-      if (!streetCode || !buildingNr) {
+      // AWB Köln: Streets-Lookup → street_code, dann Calendar
+      // Benötigt: Straßennamen + Hausnummer (WERDE automatisch in AwbKoelnService nachgeschlagen)
+      if (!street) {
         throw new Error(
-          `Abfallkalender für ${cityConfig.displayName} benötigt Straßencode + Hausnummer. ` +
-          `URL-Parameter: ?street=<code>&houseNr=<nummer>`
+          `Abfallkalender für ${cityConfig.displayName} benötigt eine Straße + Hausnummer. ` +
+          `URL-Parameter: ?street=...&houseNr=...`
         );
       }
-      const awbKoeln = new AwbKoelnService(streetCode, buildingNr);
+      const awbKoeln = new AwbKoelnService(street, houseNr || '1');
       try {
         const result = await awbKoeln.fetchCalendar(weeks);
         events = result.events.map(e => ({
@@ -267,12 +265,13 @@ export class WasteService {
       }
     } else if (cityConfig.adapter === 'stadtreinigung_hh') {
       // Stadtreinigung Hamburg: ICS mit hnId
-      // hnId wird aus Nominatim ermittelt (hier: houseNr als hnId verwenden)
+      // Benötigt: houseNr als hnId (Oder Straße → Lookup nötig)
+      // Fürs Erste: houseNr wird direkt als hnId verwendet
       const hnId = parseInt(houseNr || '0', 10) || 0;
       if (!hnId) {
         throw new Error(
           `Abfallkalender für ${cityConfig.displayName} benötigt eine Hausnummer-ID (hnId). ` +
-          `URL-Parameter: ?houseNr=<hnId>`
+          `URL-Parameter: ?houseNr=<hnId> (z.B. 53814 für Zabelweg 1B)`
         );
       }
       const hh = new StadtreinigungHhService(hnId);

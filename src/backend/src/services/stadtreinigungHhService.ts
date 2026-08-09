@@ -3,7 +3,7 @@
  * Quelle: https://github.com/mampfes/hacs_waste_collection_schedule
  * Datei: custom_components/.../source/stadtreinigung_hamburg.py
  *
- * API: GET https://backend.stadtreinigung.hamburg/kalender/abfuhrtermine.ics
+ * API: GET https://backend.stadtreinigung.hamburg/kalender/abholtermine.ics
  * Params: hnIds (house-number-ID)
  * Return: ICS-Datei
  */
@@ -35,7 +35,7 @@ export class StadtreinigungHhService {
       };
 
       const response = await axios.get(
-        'https://backend.stadtreinigung.hamburg/kalender/abfuhrtermine.ics',
+        'https://backend.stadtreinigung.hamburg/kalender/abholtermine.ics',
         {
           params,
           timeout: 15000,

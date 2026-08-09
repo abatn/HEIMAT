@@ -46,23 +46,47 @@ export class StadtreinigungLeipzigService {
         return { status: 'error', events: [], message: `Straße "${this.street}" nicht gefunden` };
       }
 
-      const streetEntry = streetsData.results[this.street];
+      // Find the matching street — API may return exact match or fuzzy
+      let streetEntry: Record<string, any> | null = null;
+      let matchedStreet = this.street;
+
+      // Try exact match first
+      if (streetsData.results[this.street]) {
+        streetEntry = streetsData.results[this.street];
+        matchedStreet = this.street;
+      } else {
+        // Try case-insensitive match
+        for (const key of Object.keys(streetsData.results)) {
+          if (key.toLowerCase() === this.street.toLowerCase()) {
+            streetEntry = streetsData.results[key];
+            matchedStreet = key;
+            break;
+          }
+        }
+      }
+
       if (!streetEntry) {
+        // Return available street names for debugging
+        const available = Object.keys(streetsData.results).slice(0, 10);
         return {
           status: 'error',
           events: [],
-          message: `Straße "${this.street}" nicht in der Datenbank`,
+          message: `Straße "${this.street}" nicht in der Datenbank. Verfügbar: ${available.join(', ')}`,
         };
       }
 
-      const positionNo = streetEntry[this.houseNumber];
-      if (!positionNo) {
+      // position_no can be an array like ["69194"] or a string
+      const positionNoRaw = streetEntry[this.houseNumber];
+      if (!positionNoRaw) {
+        const availableHnrs = Object.keys(streetEntry).slice(0, 10);
         return {
           status: 'error',
           events: [],
-          message: `Hausnummer "${this.houseNumber}" nicht gefunden`,
+          message: `Hausnummer "${this.houseNumber}" nicht gefunden. Verfügbar: ${availableHnrs.join(', ')}`,
         };
       }
+
+      const positionNo = Array.isArray(positionNoRaw) ? positionNoRaw[0] : positionNoRaw;
 
       // Step 2: Get ICS calendar
       const icsResp = await axios.get(
@@ -70,7 +94,7 @@ export class StadtreinigungLeipzigService {
         {
           params: {
             position_nos: positionNo,
-            name: `${this.street} ${this.houseNumber}`,
+            name: `${matchedStreet} ${this.houseNumber}`,
             mode: 'download',
           },
           timeout: 15000,
@@ -89,7 +113,7 @@ export class StadtreinigungLeipzigService {
         return isFinite(t) && t <= cutoffMs;
       });
 
-      logger.info(`Stadtreinigung Leipzig: ${events.length} Events für ${this.street} ${this.houseNumber}`);
+      logger.info(`Stadtreinigung Leipzig: ${events.length} Events für ${matchedStreet} ${this.houseNumber}`);
 
       return {
         status: 'ok',

@@ -110,13 +110,16 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     id: 'hamburg-srh',
     displayName: 'Hamburg',
     adapter: 'stadtreinigung_hh',
-    primaryUrl: 'https://backend.stadtreinigung.hamburg/kalender/abfuhrtermine.ics',
+    primaryUrl: 'https://backend.stadtreinigung.hamburg/kalender/abholtermine.ics',
     addressRequired: true,
     attribution: 'Stadtreinigung Hamburg — Öffentlicher Dienst',
     nominatimKeywords: ['hamburg'],
     plzPrefixes: ['20', '21', '22'],
   },
-  // Stuttgart — Abfall Stuttgart (HTML Form → Tabelle)
+  // Stuttgart — Abfall Stuttgart (SPA umgebaut, kein server-side rendering mehr)
+  // DEPRECATED: service.stuttgart.de hat die Website zu einer SPA umgebaut.
+  // Das POST gibt keine HTML-Tabelle mehr zurück, sondern nur das SPA-Shell.
+  // TODO: Neue API finden oder Browser-Automation implementieren.
   {
     id: 'stuttgart-abfall',
     displayName: 'Stuttgart',
@@ -126,6 +129,8 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     attribution: 'Abfall Stuttgart — Öffentlicher Dienst',
     nominatimKeywords: ['stuttgart'],
     plzPrefixes: ['70', '71'],
+    deprecated: true,
+    deprecatedReason: 'service.stuttgart.de wurde zu einer SPA umgebaut — keine server-side Tabelle mehr. Neue API wird gesucht.',
   },
   // Leipzig — Stadtreinigung Leipzig (REST JSON → ICS)
   {
