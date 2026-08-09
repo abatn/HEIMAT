@@ -1,77 +1,66 @@
 /**
  * phase-d.test.ts — E2E Tests für Phase D: Events, Hotels, Bürgeramt
  *
- * Testet die3 Backend-Routen mit echten API-Calls (Wikidata, Overpass, Nominatim).
+ * Testet die 3 Backend-Routen mit echten API-Calls (Wikidata, Overpass, Nominatim).
  * KEINE Mocks — echte externe APIs wie in Production.
+ *
+ * Nutzt supertest (wie e2e.test.ts) statt axios+localhost —
+ * dadurch kein laufender Server nötig (kein ECONNREFUSED in CI).
  */
 
-import axios from 'axios';
+import request from 'supertest';
+import app from '../index';
 import { withRetry, isAcceptableStatus, TIMEOUTS } from '../utils/test-utils';
 
-const BASE_URL = 'http://localhost:3000';
+// CI-kritisch: Globaler Timeout für alle Phase D-Tests
+// Externe APIs (Overpass, Wikidata, Nominatim) können in CI >60s brauchen
+jest.setTimeout(120_000);
 
-// E2E tests with external APIs — run sequentially to avoid worker crash
-jest.setTimeout(60000);
-
-// Skip in CI if external APIs are unreachable (worker crash prevention)
-const isCI = process.env.CI === 'true';
-
-// Skip in CI to prevent Jest worker crash from external API timeouts
-(isCI ? describe.skip : describe)('Phase D: Events + Hotels + Bürgeramt', () => {
+describe('Phase D: Events + Hotels + Bürgeramt', () => {
   // =========================================================================
   // Events — GET /api/events
   // =========================================================================
 
   describe('GET /api/events', () => {
     it('should return events or empty array for Berlin Mitte', async () => {
-      const response = await withRetry(
+      const res = await withRetry(
         () =>
-          axios.get(`${BASE_URL}/api/events`, {
-            params: { lat: 52.52, lng: 13.41, radius: 5 },
-            timeout: TIMEOUTS.overpass,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.overpass },
+          request(app).get(
+            '/api/events?lat=52.52&lng=13.41&radius=5',
+          ),
+        { name: 'phase-d-events', timeoutMs: TIMEOUTS.overpass },
       );
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
-      expect(response.data).toHaveProperty('count');
-      expect(response.data).toHaveProperty('events');
-      expect(response.data).toHaveProperty('center');
-      expect(response.data).toHaveProperty('radius');
-      expect(Array.isArray(response.data.events)).toBe(true);
-      expect(typeof response.data.count).toBe('number');
+      expect(isAcceptableStatus(res.status)).toBe(true);
+      expect(res.body).toHaveProperty('count');
+      expect(res.body).toHaveProperty('events');
+      expect(res.body).toHaveProperty('center');
+      expect(res.body).toHaveProperty('radius');
+      expect(Array.isArray(res.body.events)).toBe(true);
+      expect(typeof res.body.count).toBe('number');
     });
 
-    it('should accept default parameters', async () => {
-      const response = await withRetry(
-        () =>
-          axios.get(`${BASE_URL}/api/events`, {
-            timeout: TIMEOUTS.overpass,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.overpass },
-      );
+    it('should require lat+lng parameters (400 without)', async () => {
+      const res = await request(app).get('/api/events');
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
-      if (response.status === 200) {
-        expect(response.data.center).toEqual({ lat: 52.52, lng: 13.41 });
-        expect(response.data.radius).toBe(10);
-      }
+      // Ohne lat+lng → 400 Bad Request
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/lat.*lng|required/i);
     });
 
     it('should return events with correct structure', async () => {
-      const response = await withRetry(
+      const res = await withRetry(
         () =>
-          axios.get(`${BASE_URL}/api/events`, {
-            params: { lat: 52.52, lng: 13.41, radius: 2 },
-            timeout: TIMEOUTS.overpass,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.overpass },
+          request(app).get(
+            '/api/events?lat=52.52&lng=13.41&radius=2',
+          ),
+        { name: 'phase-d-events-structure', timeoutMs: TIMEOUTS.overpass },
       );
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
+      expect(isAcceptableStatus(res.status)).toBe(true);
 
-      if (response.status === 200 && response.data.events.length > 0) {
-        const event = response.data.events[0];
+      if (res.status === 200 && res.body.events.length > 0) {
+        const event = res.body.events[0];
         expect(event).toHaveProperty('id');
         expect(event).toHaveProperty('name');
         expect(event).toHaveProperty('category');
@@ -87,54 +76,44 @@ const isCI = process.env.CI === 'true';
 
   describe('GET /api/hotels', () => {
     it('should return hotels or empty array for Berlin Mitte', async () => {
-      const response = await withRetry(
+      const res = await withRetry(
         () =>
-          axios.get(`${BASE_URL}/api/hotels`, {
-            params: { lat: 52.52, lng: 13.41, radius: 2 },
-            timeout: TIMEOUTS.overpass,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.overpass },
+          request(app).get(
+            '/api/hotels?lat=52.52&lng=13.41&radius=2',
+          ),
+        { name: 'phase-d-hotels', timeoutMs: TIMEOUTS.overpass },
       );
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
-      expect(response.data).toHaveProperty('count');
-      expect(response.data).toHaveProperty('hotels');
-      expect(response.data).toHaveProperty('center');
-      expect(response.data).toHaveProperty('radius');
-      expect(Array.isArray(response.data.hotels)).toBe(true);
-      expect(typeof response.data.count).toBe('number');
+      expect(isAcceptableStatus(res.status)).toBe(true);
+      expect(res.body).toHaveProperty('count');
+      expect(res.body).toHaveProperty('hotels');
+      expect(res.body).toHaveProperty('center');
+      expect(res.body).toHaveProperty('radius');
+      expect(Array.isArray(res.body.hotels)).toBe(true);
+      expect(typeof res.body.count).toBe('number');
     });
 
-    it('should accept default parameters', async () => {
-      const response = await withRetry(
-        () =>
-          axios.get(`${BASE_URL}/api/hotels`, {
-            timeout: TIMEOUTS.overpass,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.overpass },
-      );
+    it('should require lat+lng parameters (400 without)', async () => {
+      const res = await request(app).get('/api/hotels');
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
-      if (response.status === 200) {
-        expect(response.data.center).toEqual({ lat: 52.52, lng: 13.41 });
-        expect(response.data.radius).toBe(5);
-      }
+      // Ohne lat+lng → 400 Bad Request
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/lat.*lng|required/i);
     });
 
     it('should return hotels with correct structure', async () => {
-      const response = await withRetry(
+      const res = await withRetry(
         () =>
-          axios.get(`${BASE_URL}/api/hotels`, {
-            params: { lat: 52.52, lng: 13.41, radius: 5 },
-            timeout: TIMEOUTS.overpass,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.overpass },
+          request(app).get(
+            '/api/hotels?lat=52.52&lng=13.41&radius=5',
+          ),
+        { name: 'phase-d-hotels-structure', timeoutMs: TIMEOUTS.overpass },
       );
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
+      expect(isAcceptableStatus(res.status)).toBe(true);
 
-      if (response.status === 200 && response.data.hotels.length > 0) {
-        const hotel = response.data.hotels[0];
+      if (res.status === 200 && res.body.hotels.length > 0) {
+        const hotel = res.body.hotels[0];
         expect(hotel).toHaveProperty('id');
         expect(hotel).toHaveProperty('name');
         expect(hotel).toHaveProperty('type');
@@ -152,54 +131,44 @@ const isCI = process.env.CI === 'true';
 
   describe('GET /api/buergeramt', () => {
     it('should return Bürgerämter for Berlin Mitte', async () => {
-      const response = await withRetry(
+      const res = await withRetry(
         () =>
-          axios.get(`${BASE_URL}/api/buergeramt`, {
-            params: { lat: 52.52, lng: 13.41, radius: 5 },
-            timeout: TIMEOUTS.nominatim,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.nominatim },
+          request(app).get(
+            '/api/buergeramt?lat=52.52&lng=13.41&radius=5',
+          ),
+        { name: 'phase-d-buergeramt', timeoutMs: TIMEOUTS.nominatim },
       );
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
-      expect(response.data).toHaveProperty('count');
-      expect(response.data).toHaveProperty('aemter');
-      expect(response.data).toHaveProperty('center');
-      expect(response.data).toHaveProperty('radius');
-      expect(Array.isArray(response.data.aemter)).toBe(true);
-      expect(typeof response.data.count).toBe('number');
+      expect(isAcceptableStatus(res.status)).toBe(true);
+      expect(res.body).toHaveProperty('count');
+      expect(res.body).toHaveProperty('aemter');
+      expect(res.body).toHaveProperty('center');
+      expect(res.body).toHaveProperty('radius');
+      expect(Array.isArray(res.body.aemter)).toBe(true);
+      expect(typeof res.body.count).toBe('number');
     });
 
-    it('should accept default parameters', async () => {
-      const response = await withRetry(
-        () =>
-          axios.get(`${BASE_URL}/api/buergeramt`, {
-            timeout: TIMEOUTS.nominatim,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.nominatim },
-      );
+    it('should require lat+lng parameters (400 without)', async () => {
+      const res = await request(app).get('/api/buergeramt');
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
-      if (response.status === 200) {
-        expect(response.data.center).toEqual({ lat: 52.52, lng: 13.41 });
-        expect(response.data.radius).toBe(10);
-      }
+      // Ohne lat+lng → 400 Bad Request
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/lat.*lng|required/i);
     });
 
     it('should return Bürgerämter with correct structure', async () => {
-      const response = await withRetry(
+      const res = await withRetry(
         () =>
-          axios.get(`${BASE_URL}/api/buergeramt`, {
-            params: { lat: 52.52, lng: 13.41, radius: 5 },
-            timeout: TIMEOUTS.nominatim,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.nominatim },
+          request(app).get(
+            '/api/buergeramt?lat=52.52&lng=13.41&radius=5',
+          ),
+        { name: 'phase-d-buergeramt-structure', timeoutMs: TIMEOUTS.nominatim },
       );
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
+      expect(isAcceptableStatus(res.status)).toBe(true);
 
-      if (response.status === 200 && response.data.aemter.length > 0) {
-        const amt = response.data.aemter[0];
+      if (res.status === 200 && res.body.aemter.length > 0) {
+        const amt = res.body.aemter[0];
         expect(amt).toHaveProperty('id');
         expect(amt).toHaveProperty('name');
         expect(amt).toHaveProperty('type');
@@ -211,19 +180,18 @@ const isCI = process.env.CI === 'true';
     });
 
     it('should find Bürgerämter in Berlin (non-empty)', async () => {
-      const response = await withRetry(
+      const res = await withRetry(
         () =>
-          axios.get(`${BASE_URL}/api/buergeramt`, {
-            params: { lat: 52.52, lng: 13.41, radius: 10 },
-            timeout: TIMEOUTS.nominatim,
-          }),
-        { retries: 2, timeoutMs: TIMEOUTS.nominatim },
+          request(app).get(
+            '/api/buergeramt?lat=52.52&lng=13.41&radius=10',
+          ),
+        { name: 'phase-d-buergeramt-berlin', timeoutMs: TIMEOUTS.nominatim },
       );
 
-      expect(isAcceptableStatus(response.status)).toBe(true);
+      expect(isAcceptableStatus(res.status)).toBe(true);
       // Berlin should have at least some government buildings (when API responds 200)
-      if (response.status === 200) {
-        expect(response.data.aemter.length).toBeGreaterThan(0);
+      if (res.status === 200) {
+        expect(res.body.aemter.length).toBeGreaterThan(0);
       }
     });
   });
@@ -234,32 +202,27 @@ const isCI = process.env.CI === 'true';
 
   describe('Cross-Service Parallel', () => {
     it('should handle parallel requests for all Phase D services', async () => {
-      const params = { lat: 52.52, lng: 13.41, radius: 5 };
-
       const [events, hotels, buergeramt] = await Promise.allSettled([
         withRetry(
           () =>
-            axios.get(`${BASE_URL}/api/events`, {
-              params,
-              timeout: TIMEOUTS.overpass,
-            }),
-          { retries: 2, timeoutMs: TIMEOUTS.overpass },
+            request(app).get(
+              '/api/events?lat=52.52&lng=13.41&radius=5',
+            ),
+          { name: 'phase-d-parallel-events', timeoutMs: TIMEOUTS.overpass },
         ),
         withRetry(
           () =>
-            axios.get(`${BASE_URL}/api/hotels`, {
-              params,
-              timeout: TIMEOUTS.overpass,
-            }),
-          { retries: 2, timeoutMs: TIMEOUTS.overpass },
+            request(app).get(
+              '/api/hotels?lat=52.52&lng=13.41&radius=5',
+            ),
+          { name: 'phase-d-parallel-hotels', timeoutMs: TIMEOUTS.overpass },
         ),
         withRetry(
           () =>
-            axios.get(`${BASE_URL}/api/buergeramt`, {
-              params,
-              timeout: TIMEOUTS.nominatim,
-            }),
-          { retries: 2, timeoutMs: TIMEOUTS.nominatim },
+            request(app).get(
+              '/api/buergeramt?lat=52.52&lng=13.41&radius=5',
+            ),
+          { name: 'phase-d-parallel-buergeramt', timeoutMs: TIMEOUTS.nominatim },
         ),
       ]);
 
