@@ -20,6 +20,11 @@ import { AbfallIoService, type AbfallIoResult } from './abfallIoService';
 import { AbfallNaviService, type AbfallNaviResult } from './abfallNaviService';
 import { AbfallPlusService, type AbfallPlusResult, SUPPORTED_APPS } from './abfallplusService';
 import { BsrService, type BsrResult } from './bsrService';
+import { AwbKoelnService } from './awbKoelnService';
+import { StadtreinigungHhService } from './stadtreinigungHhService';
+import { StadtreinigungLeipzigService } from './stadtreinigungLeipzigService';
+import { AbfallStuttgartService } from './abfallStuttgartService';
+import { AwmMuenchenService } from './awmMuenchenService';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 import { externalServices } from '../config/externalServices';
 
@@ -234,6 +239,104 @@ export class WasteService {
         source = result.source || 'AbfallPlus';
       } catch (err) {
         logger.error(`WasteService: AbfallPlus failed for ${cityConfig.displayName}: ${(err as Error).message}`);
+        throw err;
+      }
+    } else if (cityConfig.adapter === 'awb_koeln') {
+      // AWB Köln: JSON API mit street_code + building_number
+      // street_code wird aus Nominatim/PLZ ermittelt (hier: Straße als Code verwenden)
+      const streetCode = parseInt(street || '0', 10) || 0;
+      const buildingNr = parseInt(houseNr || '0', 10) || 0;
+      if (!streetCode || !buildingNr) {
+        throw new Error(
+          `Abfallkalender für ${cityConfig.displayName} benötigt Straßencode + Hausnummer. ` +
+          `URL-Parameter: ?street=<code>&houseNr=<nummer>`
+        );
+      }
+      const awbKoeln = new AwbKoelnService(streetCode, buildingNr);
+      try {
+        const result = await awbKoeln.fetchCalendar(weeks);
+        events = result.events.map(e => ({
+          start: e.date + 'T00:00:00',
+          summary: e.summary,
+          category: e.wasteType,
+        }));
+        source = result.source || 'AWB Köln';
+      } catch (err) {
+        logger.error(`WasteService: AWB Köln failed: ${(err as Error).message}`);
+        throw err;
+      }
+    } else if (cityConfig.adapter === 'stadtreinigung_hh') {
+      // Stadtreinigung Hamburg: ICS mit hnId
+      // hnId wird aus Nominatim ermittelt (hier: houseNr als hnId verwenden)
+      const hnId = parseInt(houseNr || '0', 10) || 0;
+      if (!hnId) {
+        throw new Error(
+          `Abfallkalender für ${cityConfig.displayName} benötigt eine Hausnummer-ID (hnId). ` +
+          `URL-Parameter: ?houseNr=<hnId>`
+        );
+      }
+      const hh = new StadtreinigungHhService(hnId);
+      try {
+        const result = await hh.fetchCalendar(weeks);
+        events = result.events;
+        source = result.source || 'Stadtreinigung Hamburg';
+      } catch (err) {
+        logger.error(`WasteService: Stadtreinigung HH failed: ${(err as Error).message}`);
+        throw err;
+      }
+    } else if (cityConfig.adapter === 'stadtreinigung_leipzig') {
+      // Stadtreinigung Leipzig: REST JSON → ICS
+      if (!street) {
+        throw new Error(
+          `Abfallkalender für ${cityConfig.displayName} benötigt eine Straße. ` +
+          `URL-Parameter: ?street=...&houseNr=...`
+        );
+      }
+      const leipzig = new StadtreinigungLeipzigService(street, houseNr || '');
+      try {
+        const result = await leipzig.fetchCalendar(weeks);
+        events = result.events;
+        source = result.source || 'Stadtreinigung Leipzig';
+      } catch (err) {
+        logger.error(`WasteService: Stadtreinigung Leipzig failed: ${(err as Error).message}`);
+        throw err;
+      }
+    } else if (cityConfig.adapter === 'abfall_stuttgart') {
+      // Abfall Stuttgart: HTML Form → Tabelle
+      if (!street) {
+        throw new Error(
+          `Abfallkalender für ${cityConfig.displayName} benötigt eine Straße. ` +
+          `URL-Parameter: ?street=...&houseNr=...`
+        );
+      }
+      const stuttgart = new AbfallStuttgartService(street, houseNr || '');
+      try {
+        const result = await stuttgart.fetchCalendar(weeks);
+        events = result.events.map(e => ({
+          start: e.date + 'T00:00:00',
+          summary: e.summary,
+          category: e.wasteType,
+        }));
+        source = result.source || 'Abfall Stuttgart';
+      } catch (err) {
+        logger.error(`WasteService: Abfall Stuttgart failed: ${(err as Error).message}`);
+        throw err;
+      }
+    } else if (cityConfig.adapter === 'awm_muenchen') {
+      // AWM München: Multi-Step Form → ICS
+      if (!street) {
+        throw new Error(
+          `Abfallkalender für ${cityConfig.displayName} benötigt eine Straße. ` +
+          `URL-Parameter: ?street=...&houseNr=...`
+        );
+      }
+      const muenchen = new AwmMuenchenService(street, houseNr || '');
+      try {
+        const result = await muenchen.fetchCalendar(weeks);
+        events = result.events;
+        source = result.source || 'AWM München';
+      } catch (err) {
+        logger.error(`WasteService: AWM München failed: ${(err as Error).message}`);
         throw err;
       }
     } else {

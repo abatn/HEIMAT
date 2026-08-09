@@ -33,7 +33,7 @@ export interface CityWasteConfig {
   /** Anzeigename (z.B. "Berlin", "München") */
   displayName: string;
   /** API-Adapter-Typ */
-  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io' | 'abfall_navi' | 'abfall_plus';
+  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io' | 'abfall_navi' | 'abfall_plus' | 'awb_koeln' | 'stadtreinigung_hh' | 'stadtreinigung_leipzig' | 'abfall_stuttgart' | 'awm_muenchen';
   /** Optional: BSR-spezifische Parameter */
   bsrPlz?: string;
   /** Primäre API-URL (konfigurierbar via Env) */
@@ -59,6 +59,10 @@ export interface CityWasteConfig {
   abfallNaviRegion?: string;
   /** Optional: AbfallPlus App-ID für abfall_plus Adapter */
   abfallPlusAppId?: string;
+  /** Optional: AWB Köln street_code */
+  awbKoelnStreetCode?: number;
+  /** Optional: Stadtreinigung Hamburg house-number-ID */
+  stadtreinigungHhHnId?: number;
   /** Optional: PLZ-Prefixes für Quick-Matching */
   plzPrefixes?: string[];
   /** Optional: Deprecated/Degraded — API ist server-seitig nicht erreichbar */
@@ -76,6 +80,67 @@ export interface CityWasteConfig {
 // Hardcoding ist verboten (User-Regel) — aber Berlin als einziger statischer Eintrag
 // ist noetig, weil BSR ein eigener Adapter-Typ ist (kein abfall.io).
 const CITY_REGISTRY: CityWasteConfig[] = [
+  // ======================================================================
+  // GROSSTADT-ADAPTER (5 neue Städte — 2026-08-09)
+  // ======================================================================
+  // Köln — AWB Köln (JSON API, street_code + building_number)
+  {
+    id: 'koeln-awb',
+    displayName: 'Köln',
+    adapter: 'awb_koeln',
+    primaryUrl: 'https://www.awbkoeln.de/api/calendar',
+    addressRequired: true,
+    attribution: 'AWB Köln — Öffentlicher Dienst',
+    nominatimKeywords: ['köln', 'koeln'],
+    plzPrefixes: ['50', '51'],
+  },
+  // München — AWM München (Multi-Step Form → ICS)
+  {
+    id: 'muenchen-awm',
+    displayName: 'München',
+    adapter: 'awm_muenchen',
+    primaryUrl: 'https://www.awm-muenchen.de/entsorgen/abfuhrkalender',
+    addressRequired: true,
+    attribution: 'AWM München — Öffentlicher Dienst',
+    nominatimKeywords: ['münchen', 'muenchen'],
+    plzPrefixes: ['80', '81', '82', '83', '85'],
+  },
+  // Hamburg — Stadtreinigung Hamburg (ICS mit hnId)
+  {
+    id: 'hamburg-srh',
+    displayName: 'Hamburg',
+    adapter: 'stadtreinigung_hh',
+    primaryUrl: 'https://backend.stadtreinigung.hamburg/kalender/abfuhrtermine.ics',
+    addressRequired: true,
+    attribution: 'Stadtreinigung Hamburg — Öffentlicher Dienst',
+    nominatimKeywords: ['hamburg'],
+    plzPrefixes: ['20', '21', '22'],
+  },
+  // Stuttgart — Abfall Stuttgart (HTML Form → Tabelle)
+  {
+    id: 'stuttgart-abfall',
+    displayName: 'Stuttgart',
+    adapter: 'abfall_stuttgart',
+    primaryUrl: 'https://service.stuttgart.de/lhs-services/aws/abfuhrtermine',
+    addressRequired: true,
+    attribution: 'Abfall Stuttgart — Öffentlicher Dienst',
+    nominatimKeywords: ['stuttgart'],
+    plzPrefixes: ['70', '71'],
+  },
+  // Leipzig — Stadtreinigung Leipzig (REST JSON → ICS)
+  {
+    id: 'leipzig-srl',
+    displayName: 'Leipzig',
+    adapter: 'stadtreinigung_leipzig',
+    primaryUrl: 'https://stadtreinigung-leipzig.de/rest/Navision/Streets',
+    addressRequired: true,
+    attribution: 'Stadtreinigung Leipzig — Öffentlicher Dienst',
+    nominatimKeywords: ['leipzig'],
+    plzPrefixes: ['04'],
+  },
+  // ======================================================================
+  // BESTEHENDE ADAPTER
+  // ======================================================================
   // Berlin (BSR) — eigener Adapter-Typ, MUSS VOR AbfallPlus kommen
   // weil de.albagroup.app auch "Berlin" unterstützt, aber BSR hat priorität
   {
