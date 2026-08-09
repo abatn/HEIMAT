@@ -91,6 +91,8 @@ const CITY_REGISTRY: CityWasteConfig[] = [
   // AbfallPlus (100+ Apps/Städte via k4systems API)
   // Quelle: https://github.com/mampfes/hacs_waste_collection_schedule
   // Berlin wird hier AUSGESCHLOSSEN (bereits oben als BSR registriert)
+  // AbfallPlus DEPRECATED: API-URLs korrekt portiert, aber API gibt 0 Events zurück
+  // TODO: API-Flow korrekt implementieren (init → bundesland → landkreis → kommune → strasse → hnr → abfallarten → calendar)
   ...Object.entries(SUPPORTED_APPS)
     .filter(([appId]) => appId !== 'de.albagroup.app') // Berlin-Beeinflussung vermeiden
     .map(([appId, cities]) => ({
@@ -102,6 +104,8 @@ const CITY_REGISTRY: CityWasteConfig[] = [
       attribution: `AbfallPlus — ${cities.join(', ')} (AGPL)`,
       nominatimKeywords: cities.map(c => c.toLowerCase()),
       abfallPlusAppId: appId,
+      deprecated: true,
+      deprecatedReason: 'AbfallPlus API gibt 0 Events zurück — API-Flow muss korrekt portiert werden',
     })),
   // AbfallNavi (Bund/RegioIT) — 19 Regionen
   // Quelle: abfallnavi.api.bund.dev/openapi.yaml
