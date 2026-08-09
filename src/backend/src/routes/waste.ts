@@ -22,6 +22,7 @@ import axios from 'axios';
 import { z } from 'zod';
 import { WasteService, AddressRequiredError } from '../services/wasteService';
 import { CityNotSupportedError } from '../services/wasteCityResolver';
+import { resolveAddressFromCoords } from '../services/wasteCityRegistry';
 import { AppError } from '../middleware/errorHandler';
 import { validate } from '../middleware/validate';
 import { logger } from '../utils/logger';
@@ -70,9 +71,23 @@ wasteRouter.get(
     const lat = parseFloat(req.query.lat as string);
     const lng = parseFloat(req.query.lng as string);
     const weeks = req.query.weeks ? parseInt(req.query.weeks as string, 10) : 4;
-    const street = req.query.street as string | undefined;
-    const houseNr = req.query.houseNr as string | undefined;
+    let street = req.query.street as string | undefined;
+    let houseNr = req.query.houseNr as string | undefined;
     const scheduleId = req.query.scheduleId as string | undefined;
+
+    // NEU: Auto-Fill — wenn street/houseNr nicht vorhanden, versuche Nominatim
+    if (!street && !houseNr && !scheduleId) {
+      try {
+        const addressResult = await resolveAddressFromCoords(lat, lng);
+        if (addressResult.street) {
+          street = addressResult.street;
+          houseNr = addressResult.houseNr;
+          logger.info(`Waste calendar: Auto-Fill from Nominatim → ${addressResult.displayName}, ${street} ${houseNr}`);
+        }
+      } catch (err) {
+        logger.warn(`Waste calendar: Auto-Fill Nominatim failed: ${(err as Error).message}`);
+      }
+    }
 
     try {
       const data = await wasteService.getWasteCalendar(lat, lng, weeks, street, houseNr, scheduleId);

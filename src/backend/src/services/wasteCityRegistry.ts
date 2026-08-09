@@ -247,6 +247,24 @@ export async function resolveCityFromCoords(
   lat: number,
   lng: number
 ): Promise<{ config: CityWasteConfig | null; displayName: string }> {
+  const result = await resolveAddressFromCoords(lat, lng);
+  return { config: result.config, displayName: result.displayName };
+}
+
+/**
+ * NEU: Resolve full address from GPS coordinates.
+ * Returns city config + street + houseNr for auto-fill.
+ * Used by waste route to avoid manual address entry.
+ */
+export async function resolveAddressFromCoords(
+  lat: number,
+  lng: number
+): Promise<{
+  config: CityWasteConfig | null;
+  displayName: string;
+  street: string;
+  houseNr: string;
+}> {
   try {
     const response = await axios.get(
       'https://nominatim.openstreetmap.org/reverse',
@@ -270,7 +288,6 @@ export async function resolveCityFromCoords(
 
     // Phase X.16: PLZ-Fallback — wenn Stadt-Name-Matching fehlschlägt,
     // versuche PLZ-basiertes Matching via ABFALL_IO_SERVICES.
-    // Nominatim liefert postcode in der Adress-Details, z.B. "postcode": "80331".
     if (!config && addr.postcode) {
       config = findCityByPlz(addr.postcode);
       if (config) {
@@ -281,17 +298,22 @@ export async function resolveCityFromCoords(
     const displayName =
       addr.city || addr.town || addr.village || addr.state || 'Unbekannt';
 
+    // Auto-Fill: Straße + Hausnummer aus Nominatim
+    // Nominatim liefert: road/rue/housenumber
+    const street = addr.road || addr.rue || addr.pedestrian || '';
+    const houseNr = addr.house_number || '';
+
     if (config) {
-      logger.info(`WasteCityRegistry: ${displayName} → ${config.id} (${config.adapter})`);
+      logger.info(`WasteCityRegistry: ${displayName} → ${config.id} (${config.adapter}) | street=${street} houseNr=${houseNr}`);
     } else {
       logger.info(`WasteCityRegistry: ${displayName} → nicht unterstützt`);
     }
 
-    return { config, displayName };
+    return { config, displayName, street, houseNr };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     logger.warn(`WasteCityRegistry: Nominatim failed — ${msg}`);
-    return { config: null, displayName: 'Unbekannt' };
+    return { config: null, displayName: 'Unbekannt', street: '', houseNr: '' };
   }
 }
 
