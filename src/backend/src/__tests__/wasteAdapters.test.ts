@@ -20,7 +20,7 @@ describe('Waste Adapters — Großstädte', () => {
 
   // Test 1: Köln — AWB Köln JSON API
   it('Köln: AWB API liefert Abfalltermine', async () => {
-    const service = new AwbKoelnService(2, 50); // Test-Adresse aus Python
+    const service = new AwbKoelnService('Ehrenstr', '1'); // Adresse mit Daten
     const result = await service.fetchCalendar(2);
 
     expect(result.status).toBe('ok');
