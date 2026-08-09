@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-09, v35.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 120+ Regionen funktional. **4 Großstadt-Adapter gefixt:** Köln (Streets-Lookup API), Hamburg (URL abholtermine.ics), Leipzig (Array-fuer-position_no). **Stuttgart DEPRECATED** (SPA umgebaut). **Live-Verifikation:** Köln 8 Events (Ehrenstraße), Hamburg 4 Events (Zabelweg), Leipzig 9 Events (Bahnhofsallee), München 3 Events, Nürnberg 83, Bonn 36. **audit-no-mocks.sh: 0 Verstöße.**
+> **Aktueller Status-Override (2026-08-09, v36.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 120+ Regionen funktional. **ALLE 5 Großstadt-Adapter funktional:** Köln 8 Events (Ehrenstraße), Hamburg 4 Events (Zabelweg), Leipzig 9 Events (Bahnhofsallee), München 3 Events, **Stuttgart 4 Events (Im Steinengarten)** — X-Requested-With Header + Autocomplete API entdeckt. Nürnberg 83, Bonn 36. **audit-no-mocks.sh: 0 Verstöße.**
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -537,7 +537,7 @@ Ein intelligenter Health AI Agent, der:
 | **Finanzen** | Taler-Wallet | ✅ 1/1 | Wallet existiert, Auth funktioniert |
 | **AI** | HEIMAT AI | ⚠️ 0/1 | Kein lokaler Ollama auf Render, Fallback-text |
 
-**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste: 20/48 Regionen funktional** (AbfallNavi 19 + BSR 1); abfall.io 27 Städte degraded (403 Forbidden). AI Chat: Fallback (externes Ollama nicht verfügbar).
+**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste: 120+ Regionen funktional** (AbfallNavi 19 + AbfallPlus 90+ + BSR 1 + 5 Großstadt-Adapter); abfall.io 27 Städte deprecated (403 Forbidden). AI Chat: Fallback (externes Ollama nicht verfügbar).
 
 ### ✅ Ärzte-Service 100% verifiziert (2026-08-08, Version 29.0)
 
@@ -591,9 +591,9 @@ Ein intelligenter Health AI Agent, der:
 - wasteService.ts: City-Name-Mapping dynamisch
 - Waste nutzt ABFALL_IO_SERVICES (28+ Kommunen) + AbfallNavi (19 Regionen)
 
-### ✅ Waste-Service verifiziert (2026-08-09, Version 34.0)
+### ✅ Waste-Service verifiziert (2026-08-09, Version 36.0)
 
-**120+ Regionen via 6 funktionierende Adapter:**
+**120+ Regionen via 6 funktionierende Adapter (ALLE 5 Großstadt-Adapter funktional):**
 
 | Adapter | Regionen | API | Status |
 |---------|----------|-----|--------|
@@ -604,8 +604,10 @@ Ein intelligenter Health AI Agent, der:
 | **AWB Köln** | 1 Stadt (Köln) | awbkoeln.de/api/calendar | ✅ **NEU — JSON API** |
 | **AWM München** | 1 Stadt (München) | awm-muenchen.de | ✅ **NEU — Multi-Step Form → ICS** |
 | **Stadtreinigung HH** | 1 Stadt (Hamburg) | backend.stadtreinigung.hamburg/abholtermine.ics | ✅ **FIXED — URL korrigiert + 4 Events** |
-| **Abfall Stuttgart** | 1 Stadt (Stuttgart) | service.stuttgart.de | ❌ **DEPRECATED — SPA umgebaut, kein server-side rendering** |
+| **Abfall Stuttgart** | 1 Stadt (Stuttgart) | service.stuttgart.de | ✅ **FIXED — X-Requested-With Header + Autocomplete API + 4 Events** |
 | **Stadtreinigung Leipzig** | 1 Stadt (Leipzig) | stadtreinigung-leipzig.de | ✅ **FIXED — Array-fuer-position_no + 9 Events** |
+
+**Stuttgart-Fix (2026-08-09, Commit 6aa43f1):** Komplett neue Port des Stuttgart-Adapters. Kerndurchbruch: `X-Requested-With: XMLHttpRequest` Header ist PFLICHT für die Autocomplete-Endpoints (`/lhs-services/aws/strassennamen` und `/lhs-services/aws/hausnummern`). Ohne diesen Header gibt es HTML statt JSON zurück. API-Flow: (1) GET Form → wastetype checkboxes, (2) GET strassennamen?street=... + X-Requested-With → canonical street name, (3) GET hausnummern?streetnr=...&street=... + X-Requested-With → house number, (4) POST form data + X-Requested-With → HTML awstable, (5) Parse: `<th>` headers = waste types, `<td>` = dates. **Live-Verifikation:** Im Steinengarten 7 → 4 Events (Restabfall, Bioabfall, Gelber Sack).
 
 **AbfallPlus-Integration (2026-08-09, Commit fe05ca8):** Port der Python-Implementierung (AppAbfallplusDe.py) nach Node.js/TypeScript. Korrekte API-URLs: `https://app.abfallplus.de/{endpoint}` (Base) + `https://app.abfallplus.de/assistent/{endpoint}` (Assistant). `app_id` ist POST-Parameter, NICHT URL-Teil. Cookie-Session für Authentifizierung. Umlaut-Normalisierung (ae→ä, ue→ü, oe→ö) für Straßen-Suche. Auto-Select Kommune basierend auf erstem Buchstabe der Straße. **3 Integration-Tests bestanden:** init_connection, getStreets, fetchCalendar (Bonn, Auf dem Hügel 6 → 36 Events). **Live-Verifikation:** Bonn liefert echte Abfalltermine (Restabfallbehälter, Gelbe Großbehälter). **90+ unterstützte Städte:** Bonn, Leverkusen, Oldenburg, Würzburg, Karlsruhe, Hagen, Braunschweig, Leipzig, etc.
 
