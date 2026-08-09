@@ -125,41 +125,65 @@ class WasteProvider extends ChangeNotifier {
       _calendar?.events ?? const <WasteCalendarEvent>[];
 
   // ------------------------------------------------------------------
-  // init — Cache-Reads + Deferred fetches
+  // init — Cache-Reads + GPS-first then fetch
   // ------------------------------------------------------------------
   Future<void> init() async {
     await _loadFromCache();
     await _loadConfigCache();
     notifyListeners();
-    if (!hasData || _isStale) {
-      unawaited(refresh());
-    }
-    // Phase B-3.1: LocationService nach initial-cache-load. Best-effort 3s.
-    unawaited(_tryUpdateLocation());
+
     // Phase X.3c: deferred location-defaults fetch (nur wenn cache stale oder leer).
-    // Independent von refresh() damit nicht durch main-thread blockiert.
     unawaited(_maybeFetchConfig());
+
+    // FIX: GPS ZUERST, dann refresh(). Verhindert Race-Condition wo refresh()
+    // mit lat=0,lng=0 läuft bevor GPS antwortet.
+    if (!hasData || _isStale) {
+      await _tryUpdateLocation();
+      // Nach GPS: Wenn Koordinaten gesetzt → refresh. Sonst Error-State.
+      if (_lat != 0 || _lng != 0) {
+        unawaited(refresh());
+      }
+    } else {
+      // Cache frisch → trotzdem GPS updaten (best-effort, kein blocking)
+      unawaited(_tryUpdateLocation());
+    }
   }
 
   /// Phase X.3c + B-3.1: LocationService-Integration.
-  /// Best-effort: 3s timeout, on failure bleibt Berlin-default.
+  /// FIX: Kein äußerer 10s-Timeout mehr — nur Geolocator eigenes 15s Timeout.
+  /// Das 10s-Timeout hat zuerst gefeuert und GPS abgebrochen → (0,0).
   /// Erkennt Hamburg/München via **dynamic** _cityDefaults.
   Future<void> _tryUpdateLocation() async {
     try {
-      final pos = await LocationService.getCurrentLocation().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => null,
-      );
+      // FIX: Kein äußerer Timeout — LocationService hat eigenen 15s Timeout.
+      // Vorher: 10s outer > 15s inner → äußere feuert zuerst → GPS abgebrochen.
+      final pos = await LocationService.getCurrentLocation();
       if (pos != null) {
         _lat = pos.latitude;
         _lng = pos.longitude;
         _city = _pickFromDynamicConfig(_lat, _lng);
         unawaited(_persistAddress());
         notifyListeners();
-        unawaited(refresh());
+        // FIX: NICHT refresh() hier aufrufen — aufrufender Kontext steuert das.
       }
     } catch (_) {
       // silently ignore — kein Fallback (Location nicht verfügbar)
+    }
+  }
+
+  /// FIX: Öffentliche Methode für 'Erneut versuchen' Button.
+  /// Holt GPS ERNEUT → dann refresh(). Löst Problem 3 (kein GPS-Retry).
+  Future<void> refreshWithLocation() async {
+    _error = null;
+    _isLoading = true;
+    notifyListeners();
+    await _tryUpdateLocation();
+    if (_lat != 0 || _lng != 0) {
+      await refresh();
+    } else {
+      _isLoading = false;
+      _error = 'Standort nicht verfügbar. Bitte Standortzugriff erlauben.';
+      notifyListeners();
     }
   }
 

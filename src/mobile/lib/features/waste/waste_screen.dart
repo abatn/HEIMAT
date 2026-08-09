@@ -210,7 +210,7 @@ class _WasteScreenState extends State<WasteScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: p.refresh,
+        onRefresh: p.refreshWithLocation,
         color: AppColors.primary,
         child: _buildBody(context, p),
       ),
@@ -253,7 +253,7 @@ class _WasteScreenState extends State<WasteScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: FilledButton.icon(
-                onPressed: p.refresh,
+                onPressed: p.refreshWithLocation,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Erneut versuchen'),
                 style: FilledButton.styleFrom(
