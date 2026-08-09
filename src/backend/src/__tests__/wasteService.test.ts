@@ -162,9 +162,9 @@ describe('wasteCityResolver — Bounding-Box-Mapping', () => {
     expect(b.id).toBeTruthy();
   });
 
-  it('Odenwald (49.45, 9.0) → supported via abfall.io (Rhein-Neckar-Kreis)', async () => {
+  it('Odenwald (49.45, 9.0) → supported via abfall_plus (Rhein-Neckar-Kreis)', async () => {
     const c = await resolveCity(49.45, 9.0);
-    expect(c.adapter).toBe('abfall_io');
+    expect(c.adapter).toBe('abfall_plus');
     expect(c.displayName).toContain('Rhein-Neckar');
   });
 

@@ -99,13 +99,11 @@ const CITY_REGISTRY: CityWasteConfig[] = [
       id: `abfall-plus-${appId.replace(/[^a-z0-9]/gi, '-').slice(0, 20)}`,
       displayName: cities[0] || appId,
       adapter: 'abfall_plus' as const,
-      primaryUrl: `https://app.abfallplus.de/${appId}/`,
+      primaryUrl: `https://app.abfallplus.de/`,
       addressRequired: true,
       attribution: `AbfallPlus — ${cities.join(', ')} (AGPL)`,
       nominatimKeywords: cities.map(c => c.toLowerCase()),
       abfallPlusAppId: appId,
-      deprecated: true,
-      deprecatedReason: 'AbfallPlus API gibt 0 Events zurück — API-Flow muss korrekt portiert werden',
     })),
   // AbfallNavi (Bund/RegioIT) — 19 Regionen
   // Quelle: abfallnavi.api.bund.dev/openapi.yaml
