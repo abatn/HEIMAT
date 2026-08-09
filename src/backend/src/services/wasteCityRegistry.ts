@@ -32,7 +32,7 @@ export interface CityWasteConfig {
   /** Anzeigename (z.B. "Berlin", "München") */
   displayName: string;
   /** API-Adapter-Typ */
-  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io' | 'abfall_navi' | 'stuttgart_de';
+  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io' | 'abfall_navi';
   /** Optional: BSR-spezifische Parameter */
   bsrPlz?: string;
   /** Primäre API-URL (konfigurierbar via Env) */
@@ -83,19 +83,6 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     attribution: 'BSR (Berliner Stadtreinigung) — Öffentlicher Dienst',
     nominatimKeywords: ['berlin'],
     plzPrefixes: ['10', '12', '13', '14'],
-  },
-  // Stuttgart (Abfallwirtschaft Stuttgart) — LIMITIERT: API instabil, nur Test-Adresse
-  {
-    id: 'stuttgart-de',
-    displayName: 'Stuttgart',
-    adapter: 'stuttgart_de',
-    primaryUrl: 'https://service.stuttgart.de/lhs-services/aws/abfuhrtermine',
-    addressRequired: true,
-    attribution: 'Abfallwirtschaft Stuttgart — Öffentlicher Dienst',
-    nominatimKeywords: ['stuttgart'],
-    plzPrefixes: ['70', '71', '72'],
-    deprecated: true,
-    deprecatedReason: 'Stuttgart API instabil. Nutze offizielle Stuttgart App für zuverlässige Termine.',
   },
   // AbfallNavi (Bund/RegioIT) — 19 Regionen
   // Quelle: abfallnavi.api.bund.dev/openapi.yaml

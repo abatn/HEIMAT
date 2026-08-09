@@ -19,7 +19,6 @@ import { type CityWasteConfig, getSupportedCities, findCityByPlz, findCityByName
 import { AbfallIoService, type AbfallIoResult } from './abfallIoService';
 import { AbfallNaviService, type AbfallNaviResult } from './abfallNaviService';
 import { BsrService, type BsrResult } from './bsrService';
-import { StuttgartService, type StuttgartResult } from './stuttgartService';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 import { externalServices } from '../config/externalServices';
 
@@ -215,21 +214,6 @@ export class WasteService {
         source = result.source;
       } catch (err) {
         logger.error(`WasteService: AbfallNavi failed for ${cityConfig.displayName}: ${(err as Error).message}`);
-        throw err;
-      }
-    } else if (cityConfig.adapter === 'stuttgart_de') {
-      // Stuttgart (Abfallwirtschaft Stuttgart) Adapter: HTML-Scraping
-      const stuttgart = new StuttgartService(this.http);
-      try {
-        const result = await stuttgart.fetchCalendar(
-          street || '',
-          houseNr || '',
-          weeks,
-        );
-        events = result.events;
-        source = result.source;
-      } catch (err) {
-        logger.error(`WasteService: Stuttgart failed for ${cityConfig.displayName}: ${(err as Error).message}`);
         throw err;
       }
     } else {
