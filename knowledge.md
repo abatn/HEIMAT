@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-09, v30.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service 100% funktional:** 48 Regionen/Städte via 3 Adapter (AbfallNavi 19, abfall.io 27, BSR 1). Live-Verifikation: Nürnberg 83 Events, Solingen 51, Aachen 60. GPS-Timeout für alle Provider von 3s auf 10s erhöht. API-Client Retry-Logik für 503/502/429. Keine hardcoded Locations mehr. **audit-no-mocks.sh: 0 Verstöße.** **Overpass-Mirror optimiert:** osm.ch als Primär-Mirror.
+> **Aktueller Status-Override (2026-08-09, v31.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 20/48 Regionen 100% funktional (AbfallNavi 19 + BSR 1). **abfall.io 27 Städte: DEGRADED** (HTTP 403 Forbidden — API blockiert server-seitige Aufrufe). Live-Verifikation: Nürnberg 83 Events, Solingen 51, Aachen 60. GPS-Timeout für alle Provider von 3s auf 10s erhöht. API-Client Retry-Logik für 503/502/429. Keine hardcoded Locations mehr. **audit-no-mocks.sh: 0 Verstöße.** **Overpass-Mirror optimiert:** osm.ch als Primär-Mirror.
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -435,7 +435,7 @@ ollamaService.chatWithContext({ health: { symptom } })
 - **Keine lokale E2E-Umgebung:** Im Arbeitsverzeichnis läuft kein Backend-Server und kein PostgreSQL. CI mit bereitgestellter Datenbank oder ein read-only Production-Check ist erforderlich.
 - **Öffentliche Teilmatrix ist unvollständig:** Mobility-Journey, Finance, Health, Check-in und AI-Chat müssen separat mit gültiger Auth-/Stateful-Umgebung geprüft werden.
 - **Universelle Event-Suche:** Production liefert noch keine echten Event-Ergebnisse (`fail`); nach Deployment erneut read-only prüfen.
-- ~~**Abfall:** Nur belegte kommunale Quellen ergänzen~~ ✅ Abgeschlossen (v30.0): 48 Regionen via AbfallNavi (19) + abfall.io (27) + BSR (1). Live-Verifikation: Nürnberg/Solingen/Aachen mit echten Events.
+- **Abfall:** ⚠️ **DEGRADED** (v31.0): 20/48 Regionen funktional (AbfallNavi 19 + BSR 1). **abfall.io 27 Städte: HTTP 403 Forbidden** — API blockiert server-seitige Aufrufe. Keine alternativen APIs gefunden (Jumomind/MüllALARM down). Empfehlung: abfall.io als degraded markieren oder Client-seitigen Fetch implementieren.
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
 - ~~Parken (OSM Overpass)~~ ✅ erledigt (Commit d997789, 10 Unit-Tests + 6 Integration-Tests)
@@ -532,12 +532,12 @@ Ein intelligenter Health AI Agent, der:
 |-----------|----------|--------|----------|
 | **Mobilität** | ÖPNV, Parken, E-Laden | ✅ 3/3 | HTTP 200 + echte Daten (17 Stationen, 6 Parkhäuser) |
 | **Gesundheit** | Ärzte, Lebenszeichen | ✅ 2/2 | **50+ Ärzte Berlin, 49+ Stuttgart, 51+ Hamburg** (100% Overpass-Live), Checkin aktiv |
-| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; **Waste: 48 Regionen 100% funktional** (Nürnberg 83, Solingen 51, Aachen 60 Events) |
+| **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; **Waste: 20/48 Regionen funktional** (AbfallNavi + BSR); abfall.io 27 Städte degraded (403) |
 | **Kultur & Reise** | Events, Hotels | ✅ 2/2 | 30 Events, 4 Hotels |
 | **Finanzen** | Taler-Wallet | ✅ 1/1 | Wallet existiert, Auth funktioniert |
 | **AI** | HEIMAT AI | ⚠️ 0/1 | Kein lokaler Ollama auf Render, Fallback-text |
 
-**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste: 48 Regionen 100% funktional** (AbfallNavi + abfall.io + BSR). AI Chat: Fallback (externes Ollama nicht verfügbar).
+**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste: 20/48 Regionen funktional** (AbfallNavi 19 + BSR 1); abfall.io 27 Städte degraded (403 Forbidden). AI Chat: Fallback (externes Ollama nicht verfügbar).
 
 ### ✅ Ärzte-Service 100% verifiziert (2026-08-08, Version 29.0)
 
@@ -591,14 +591,14 @@ Ein intelligenter Health AI Agent, der:
 - wasteService.ts: City-Name-Mapping dynamisch
 - Waste nutzt ABFALL_IO_SERVICES (28+ Kommunen) + AbfallNavi (19 Regionen)
 
-### ✅ Waste-Service 100% verifiziert (2026-08-09, Version 30.0)
+### ✅ Waste-Service verifiziert (2026-08-09, Version 31.0)
 
-**48 Regionen/Städte via 3 Adapter:**
+**20/48 Regionen via 2 funktionierende Adapter:**
 
 | Adapter | Regionen | API | Status |
 |---------|----------|-----|--------|
 | **AbfallNavi** | 19 Regionen (Nürnberg, Aachen, Solingen, etc.) | abfallnavi.api.bund.dev | ✅ 100% |
-| **abfall.io** | 27 Städte (ALBA Berlin, Landshut, etc.) | api.abfall.io | ⚠️ Einige 403 |
+| **abfall.io** | 27 Städte (ALBA Berlin, Landshut, etc.) | api.abfall.io | ❌ **DEGRADED** (HTTP 403 Forbidden — alle server-seitigen Aufrufe blockiert) |
 | **BSR** | 1 Stadt (Berlin) | umnewforms.bsr.de | ✅ Mit schedule_id |
 
 **Live-Verifikation gegen Render:**
@@ -621,7 +621,9 @@ Ein intelligenter Health AI Agent, der:
 - `abfallNaviService.ts`: Hausnummern separat laden via `getHausnummern()` (Commit `0265d40`)
 - `wasteCityRegistry.ts`: 19 AbfallNavi-Regionen dynamisch in CITY_REGISTRY
 
-**Flutter-Status:** 43/43 Provider-Tests + 10/10 DTO-Tests bestanden. WasteScreen zeigt alle 48 Regionen korrekt an.
+**abfall.io Status (2026-08-09):** ❌ **DEGRADED** — API gibt HTTP 403 Forbidden für alle server-seitigen Aufrufe zurück. Keine alternativen APIs gefunden (Jumomind/MüllALARM down). Empfehlung: Als degraded markieren oder Client-seitigen Fetch implementieren.
+
+**Flutter-Status:** 43/43 Provider-Tests + 10/10 DTO-Tests bestanden. WasteScreen zeigt alle Regionen korrekt an (abfall.io-Städte zeigen Fehlermeldung).
 
 
 ### ✅ GPS-Timeout-Fix (2026-08-07, Commit 80fe2a2 + 2026-08-08, Commit 25a9170)
@@ -666,7 +668,8 @@ Ein intelligenter Health AI Agent, der:
 ```
 [PASS] weather: 24 real records
 [PASS] air-quality: real current values
-[PASS] waste: 48 Regionen funktional (Nürnberg 83, Solingen 51, Aachen 60 Events)
+[PASS] waste: 20/48 Regionen funktional (Nürnberg 83, Solingen 51, Aachen 60 Events)
+[DEGRADED] waste-abfall-io: 27 Städte — HTTP 403 Forbidden (API blockiert server-IPs)
 [PASS] ev-charging: 17 real records
 [PASS] parking: 6 real records
 [PASS] events: 30 real records
@@ -676,7 +679,7 @@ Ein intelligenter Health AI Agent, der:
 [PASS] universal-event-search: 10 real event results
 ```
 
-**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste: 48 Regionen 100% funktional.**
+**Gesamt:** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste: 20/48 Regionen funktional** (abfall.io degraded).
 
 ### ✅ API-Client Retry-Logik (NEU - 2026-08-08, Commit 25a9170)
 
