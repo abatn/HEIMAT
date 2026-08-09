@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-09, v34.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 120+ Regionen funktional (AbfallNavi 19 + AbfallPlus 90+ + BSR 1 + 5 Großstadt-Adapter). **5 Großstadt-Adapter NEU:** Köln (AWB JSON API), München (AWM Multi-Step Form), Hamburg (Stadtreinigung ICS), Stuttgart (HTML Form), Leipzig (REST JSON + ICS). **abfall.io 27 Städte: DEPRECATED** (HTTP 403 Forbidden). **AbfallPlus-Adapter komplett neu portiert:** Korrekte API-URLs, Cookie-Handling, Umlaut-Normalisierung. Bonn liefert echte Abfalltermine (36 Events). Live-Verifikation: Köln 9 Events, München 3 Events, Nürnberg 83, Bonn 36, Solingen 51, Aachen 60. GPS-Timeout für alle Provider von 3s auf 10s erhöht. API-Client Retry-Logik für 503/502/429. Keine hardcoded Locations mehr. **audit-no-mocks.sh: 0 Verstöße.** **Overpass-Mirror optimiert:** osm.ch als Primär-Mirror.
+> **Aktueller Status-Override (2026-08-09, v35.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 120+ Regionen funktional. **4 Großstadt-Adapter gefixt:** Köln (Streets-Lookup API), Hamburg (URL abholtermine.ics), Leipzig (Array-fuer-position_no). **Stuttgart DEPRECATED** (SPA umgebaut). **Live-Verifikation:** Köln 8 Events (Ehrenstraße), Hamburg 4 Events (Zabelweg), Leipzig 9 Events (Bahnhofsallee), München 3 Events, Nürnberg 83, Bonn 36. **audit-no-mocks.sh: 0 Verstöße.**
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -603,9 +603,9 @@ Ein intelligenter Health AI Agent, der:
 | **BSR** | 1 Stadt (Berlin) | umnewforms.bsr.de | ✅ Mit schedule_id |
 | **AWB Köln** | 1 Stadt (Köln) | awbkoeln.de/api/calendar | ✅ **NEU — JSON API** |
 | **AWM München** | 1 Stadt (München) | awm-muenchen.de | ✅ **NEU — Multi-Step Form → ICS** |
-| **Stadtreinigung HH** | 1 Stadt (Hamburg) | backend.stadtreinigung.hamburg | ✅ **NEU — ICS mit hnId** |
-| **Abfall Stuttgart** | 1 Stadt (Stuttgart) | service.stuttgart.de | ✅ **NEU — HTML Form** |
-| **Stadtreinigung Leipzig** | 1 Stadt (Leipzig) | stadtreinigung-leipzig.de | ✅ **NEU — REST JSON + ICS** |
+| **Stadtreinigung HH** | 1 Stadt (Hamburg) | backend.stadtreinigung.hamburg/abholtermine.ics | ✅ **FIXED — URL korrigiert + 4 Events** |
+| **Abfall Stuttgart** | 1 Stadt (Stuttgart) | service.stuttgart.de | ❌ **DEPRECATED — SPA umgebaut, kein server-side rendering** |
+| **Stadtreinigung Leipzig** | 1 Stadt (Leipzig) | stadtreinigung-leipzig.de | ✅ **FIXED — Array-fuer-position_no + 9 Events** |
 
 **AbfallPlus-Integration (2026-08-09, Commit fe05ca8):** Port der Python-Implementierung (AppAbfallplusDe.py) nach Node.js/TypeScript. Korrekte API-URLs: `https://app.abfallplus.de/{endpoint}` (Base) + `https://app.abfallplus.de/assistent/{endpoint}` (Assistant). `app_id` ist POST-Parameter, NICHT URL-Teil. Cookie-Session für Authentifizierung. Umlaut-Normalisierung (ae→ä, ue→ü, oe→ö) für Straßen-Suche. Auto-Select Kommune basierend auf erstem Buchstabe der Straße. **3 Integration-Tests bestanden:** init_connection, getStreets, fetchCalendar (Bonn, Auf dem Hügel 6 → 36 Events). **Live-Verifikation:** Bonn liefert echte Abfalltermine (Restabfallbehälter, Gelbe Großbehälter). **90+ unterstützte Städte:** Bonn, Leverkusen, Oldenburg, Würzburg, Karlsruhe, Hagen, Braunschweig, Leipzig, etc.
 
