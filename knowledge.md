@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-09, v37.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 120+ Regionen funktional, 8/12 Großstädte mit echten Events verifiziert. **Alle 6 Adapter typen funktional:** AbfallNavi (Nürnberg 83, Aachen 77), AbfallPlus (Bonn 2), AWB Köln (8), Stadtreinigung HH (4), Stadtreinigung Leipzig (9), AWM München (3), Abfall Stuttgart (4 — X-Requested-With Header entdeckt). **audit-no-mocks.sh: 0 Verstöße.**
+> **Aktueller Status-Override (2026-08-09, v38.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 120+ Regionen funktional, 8/12 Großstädte mit echten Events verifiziert. **Alle 6 Adapter typen funktional:** AbfallNavi (Nürnberg 83, Aachen 77), AbfallPlus (Bonn 2), AWB Köln (8), Stadtreinigung HH (4), Stadtreinigung Leipzig (9), AWM München (3), Abfall Stuttgart (4). **Karlsruhe: deprecated** (awb-karlsruhe.de offline, AbfallPlus 401). **audit-no-mocks.sh: 0 Verstöße.**
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -626,9 +626,9 @@ Ein intelligenter Health AI Agent, der:
 | **Leverkusen** | AbfallPlus | **0 Events** | ⚠️ Adapter liefert leer |
 | **Oldenburg** | AbfallPlus | **0 Events** | ⚠️ Adapter liefert leer |
 | **Würzburg** | AbfallPlus | **0 Events** | ⚠️ Adapter liefert leer |
-| **Karlsruhe** | AbfallPlus | **0 Events** | ❌ "noch nicht verfügbar" (nur Kreis Karlsruhe in Registry) |
+| **Karlsruhe** | AbfallPlus | **0 Events** | ❌ **DEPRECATED** — awb-karlsruhe.de offline, AbfallPlus 401 UNAUTHORIZED |
 
-**Gesamt:** 8/12 Städte mit echten Events. 3 AbfallPlus-Städte liefern 0 Events (API-Problem). 1 Stadt nicht erkannt.
+**Gesamt:** 8/12 Städte mit echten Events. 3 AbfallPlus-Städte liefern 0 Events (API-Problem). Karlsruhe als deprecated markiert (Commit `e389c1e`).
 
 **API-Flow (AbfallNavi — 3 Schritte):**
 1. `GET /orte` → Ort-ID (z.B. 6756817 für Nürnberg)
