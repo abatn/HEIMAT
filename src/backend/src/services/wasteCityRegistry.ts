@@ -139,6 +139,21 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     nominatimKeywords: ['leipzig'],
     plzPrefixes: ['04'],
   },
+  // Karlsruhe — AbfallPlus (de.k4systems.abfallappka) DEPRECATED
+  // awb-karlsruhe.de offline, AbfallPlus 401 UNAUTHORIZED
+  {
+    id: 'karlsruhe-abfall-plus',
+    displayName: 'Karlsruhe',
+    adapter: 'abfall_plus',
+    primaryUrl: 'https://app.abfallplus.de/',
+    addressRequired: true,
+    attribution: 'AbfallPlus — Kreis Karlsruhe (AGPL)',
+    nominatimKeywords: ['karlsruhe'],
+    plzPrefixes: ['76'],
+    abfallPlusAppId: 'de.k4systems.abfallappka',
+    deprecated: true,
+    deprecatedReason: 'awb-karlsruhe.de offline, AbfallPlus API gibt 401 UNAUTHORIZED zurück',
+  },
   // ======================================================================
   // BESTEHENDE ADAPTER
   // ======================================================================
