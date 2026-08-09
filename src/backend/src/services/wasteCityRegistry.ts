@@ -21,6 +21,7 @@ import { logger } from '../utils/logger';
 import { externalServices } from '../config/externalServices';
 import { ABFALL_IO_SERVICES, type AbfallIoServiceEntry } from './abfallIoService';
 import { ABFALL_NAVI_REGIONS, type AbfallNaviRegion } from './abfallNaviService';
+import { SUPPORTED_APPS } from './abfallplusService';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,7 +33,7 @@ export interface CityWasteConfig {
   /** Anzeigename (z.B. "Berlin", "München") */
   displayName: string;
   /** API-Adapter-Typ */
-  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io' | 'abfall_navi';
+  adapter: 'bsr' | 'awb' | 'srh' | 'ical_url' | 'overpass_waste' | 'abfall_io' | 'abfall_navi' | 'abfall_plus';
   /** Optional: BSR-spezifische Parameter */
   bsrPlz?: string;
   /** Primäre API-URL (konfigurierbar via Env) */
@@ -56,6 +57,8 @@ export interface CityWasteConfig {
   abfallIoServiceId?: string;
   /** Optional: AbfallNavi Region-Key für abfall_navi Adapter */
   abfallNaviRegion?: string;
+  /** Optional: AbfallPlus App-ID für abfall_plus Adapter */
+  abfallPlusAppId?: string;
   /** Optional: PLZ-Prefixes für Quick-Matching */
   plzPrefixes?: string[];
   /** Optional: Deprecated/Degraded — API ist server-seitig nicht erreichbar */
@@ -73,6 +76,18 @@ export interface CityWasteConfig {
 // Hardcoding ist verboten (User-Regel) — aber Berlin als einziger statischer Eintrag
 // ist noetig, weil BSR ein eigener Adapter-Typ ist (kein abfall.io).
 const CITY_REGISTRY: CityWasteConfig[] = [
+  // AbfallPlus (100+ Apps/Städte via k4systems API)
+  // Quelle: https://github.com/mampfes/hacs_waste_collection_schedule
+  ...Object.entries(SUPPORTED_APPS).map(([appId, cities]) => ({
+    id: `abfall-plus-${appId.replace(/[^a-z0-9]/gi, '-').slice(0, 20)}`,
+    displayName: cities[0] || appId,
+    adapter: 'abfall_plus' as const,
+    primaryUrl: `https://app.abfallplus.de/${appId}/`,
+    addressRequired: true,
+    attribution: `AbfallPlus — ${cities.join(', ')} (AGPL)`,
+    nominatimKeywords: cities.map(c => c.toLowerCase()),
+    abfallPlusAppId: appId,
+  })),
   // Berlin (BSR) — eigener Adapter-Typ, muss vor abfall.io kommen
   {
     id: 'berlin-bsr',

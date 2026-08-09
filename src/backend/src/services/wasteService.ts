@@ -18,6 +18,7 @@ import { CITY_BOUNDS, resolveCity, CityNotSupportedError, type WasteCityKey, typ
 import { type CityWasteConfig, getSupportedCities, findCityByPlz, findCityByName } from './wasteCityRegistry';
 import { AbfallIoService, type AbfallIoResult } from './abfallIoService';
 import { AbfallNaviService, type AbfallNaviResult } from './abfallNaviService';
+import { AbfallPlusService, type AbfallPlusResult, SUPPORTED_APPS } from './abfallplusService';
 import { BsrService, type BsrResult } from './bsrService';
 import { parseIcsCalendar, type IcsEvent } from '../lib/icalParser';
 import { externalServices } from '../config/externalServices';
@@ -214,6 +215,25 @@ export class WasteService {
         source = result.source;
       } catch (err) {
         logger.error(`WasteService: AbfallNavi failed for ${cityConfig.displayName}: ${(err as Error).message}`);
+        throw err;
+      }
+    } else if (cityConfig.adapter === 'abfall_plus' && cityConfig.abfallPlusAppId) {
+      // AbfallPlus Adapter: k4systems API (100+ Apps/Städte)
+      const abfallPlus = new AbfallPlusService(cityConfig.abfallPlusAppId);
+      try {
+        const result = await abfallPlus.fetchCalendar(
+          street || '',
+          houseNr || '',
+          weeks,
+        );
+        events = result.events.map(e => ({
+          start: e.date + 'T00:00:00',
+          summary: e.summary,
+          category: e.wasteType,
+        }));
+        source = result.source || 'AbfallPlus';
+      } catch (err) {
+        logger.error(`WasteService: AbfallPlus failed for ${cityConfig.displayName}: ${(err as Error).message}`);
         throw err;
       }
     } else {
