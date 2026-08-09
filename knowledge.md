@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-09, v36.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 120+ Regionen funktional. **ALLE 5 Großstadt-Adapter funktional:** Köln 8 Events (Ehrenstraße), Hamburg 4 Events (Zabelweg), Leipzig 9 Events (Bahnhofsallee), München 3 Events, **Stuttgart 4 Events (Im Steinengarten)** — X-Requested-With Header + Autocomplete API entdeckt. Nürnberg 83, Bonn 36. **audit-no-mocks.sh: 0 Verstöße.**
+> **Aktueller Status-Override (2026-08-09, v37.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 120+ Regionen funktional, 8/12 Großstädte mit echten Events verifiziert. **Alle 6 Adapter typen funktional:** AbfallNavi (Nürnberg 83, Aachen 77), AbfallPlus (Bonn 2), AWB Köln (8), Stadtreinigung HH (4), Stadtreinigung Leipzig (9), AWM München (3), Abfall Stuttgart (4 — X-Requested-With Header entdeckt). **audit-no-mocks.sh: 0 Verstöße.**
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -611,13 +611,24 @@ Ein intelligenter Health AI Agent, der:
 
 **AbfallPlus-Integration (2026-08-09, Commit fe05ca8):** Port der Python-Implementierung (AppAbfallplusDe.py) nach Node.js/TypeScript. Korrekte API-URLs: `https://app.abfallplus.de/{endpoint}` (Base) + `https://app.abfallplus.de/assistent/{endpoint}` (Assistant). `app_id` ist POST-Parameter, NICHT URL-Teil. Cookie-Session für Authentifizierung. Umlaut-Normalisierung (ae→ä, ue→ü, oe→ö) für Straßen-Suche. Auto-Select Kommune basierend auf erstem Buchstabe der Straße. **3 Integration-Tests bestanden:** init_connection, getStreets, fetchCalendar (Bonn, Auf dem Hügel 6 → 36 Events). **Live-Verifikation:** Bonn liefert echte Abfalltermine (Restabfallbehälter, Gelbe Großbehälter). **90+ unterstützte Städte:** Bonn, Leverkusen, Oldenburg, Würzburg, Karlsruhe, Hagen, Braunschweig, Leipzig, etc.
 
-**Live-Verifikation gegen Render:**
+**Live-Verifikation gegen Render (2026-08-09, v37.0 — alle 12 Städte getestet):**
 
-| Stadt | Adapter | Events | Müllsorten |
-|-------|---------|--------|------------|
-| **Nürnberg** | AbfallNavi | **83 Events** | Restabfall, Papiertonne, Gelbe Tonne |
-| **Solingen** | AbfallNavi | **51 Events** | Bioabfall, Papiertonne, Gelbe Tonne |
-| **Aachen** | AbfallNavi | **60 Events** | Restabfall, Bioabfall, Papiertonne 1100 |
+| Stadt | Adapter | Events | Status |
+|-------|---------|--------|--------|
+| **Nürnberg** | AbfallNavi | **83 Events** | ✅ |
+| **Aachen** | AbfallNavi | **77 Events** | ✅ |
+| **Bonn** | AbfallPlus | **2 Events** | ✅ |
+| **Köln** | AWB Köln | **8 Events** | ✅ |
+| **Hamburg** | Stadtreinigung HH | **4 Events** | ✅ |
+| **Leipzig** | Stadtreinigung Leipzig | **9 Events** | ✅ |
+| **München** | AWM München | **3 Events** | ✅ |
+| **Stuttgart** | Abfall Stuttgart | **4 Events** | ✅ |
+| **Leverkusen** | AbfallPlus | **0 Events** | ⚠️ Adapter liefert leer |
+| **Oldenburg** | AbfallPlus | **0 Events** | ⚠️ Adapter liefert leer |
+| **Würzburg** | AbfallPlus | **0 Events** | ⚠️ Adapter liefert leer |
+| **Karlsruhe** | AbfallPlus | **0 Events** | ❌ "noch nicht verfügbar" (nur Kreis Karlsruhe in Registry) |
+
+**Gesamt:** 8/12 Städte mit echten Events. 3 AbfallPlus-Städte liefern 0 Events (API-Problem). 1 Stadt nicht erkannt.
 
 **API-Flow (AbfallNavi — 3 Schritte):**
 1. `GET /orte` → Ort-ID (z.B. 6756817 für Nürnberg)
