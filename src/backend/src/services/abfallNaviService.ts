@@ -290,17 +290,26 @@ export class AbfallNaviService {
       throw new Error(`Straße '${street}' in ${region.name} nicht gefunden`);
     }
 
-    // 3. Hausnummer finden
-    const haus = strasse.hausNrList?.find(h => h.nr === houseNr);
+    // 3. Hausnummern separat laden
+    // WICHTIG: /orte/{ortId}/strassen liefert KEIN hausNrList!
+    // Erst /strassen/{id} (oder /strassen/{id}/termine) liefert Hausnummern.
+    let hausnummern = strasse.hausNrList;
+    if (!hausnummern || hausnummern.length === 0) {
+      hausnummern = await this.getHausnummern(regionKey, strasse.id);
+    }
+    
+    if (!hausnummern || hausnummern.length === 0) {
+      throw new Error(`Keine Hausnummern für '${street}' in ${region.name} gefunden`);
+    }
+
+    // 4. Hausnummer finden
+    const haus = hausnummern.find(h => h.nr === houseNr);
     if (!haus) {
       // Wenn keine Hausnummer gefunden, nehme die erste
-      const fallbackHaus = strasse.hausNrList?.[0];
-      if (!fallbackHaus) {
-        throw new Error(`Keine Hausnummern für '${street}' in ${region.name} gefunden`);
-      }
+      const fallbackHaus = hausnummern[0];
       logger.warn(`Hausnummer '${houseNr}' nicht gefunden, verwende '${fallbackHaus.nr}'`);
       
-      // 4. Termine für Fallback-Haus holen
+      // 5. Termine für Fallback-Haus holen
       const termine = await this.getTermine(regionKey, fallbackHaus.id);
       const events = this.convertToEvents(termine);
 
@@ -315,7 +324,7 @@ export class AbfallNaviService {
       };
     }
 
-    // 4. Termine holen (hausnummern-basiert)
+    // 5. Termine holen (hausnummern-basiert)
     let termine = await this.getTermine(regionKey, haus.id);
     
     // Fallback: Wenn hausnummern-basierte Termine leer sind, nutze strassen-basiert
