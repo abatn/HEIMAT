@@ -145,7 +145,8 @@ export class WasteService {
 
     // 2. Address-Required Check (dynamic per city config)
     // BSR: scheduleId ist eine Alternative zu street+houseNr
-    const hasAddress = street && houseNr;
+    // AbfallNavi: street ALLEIN reicht (houseNr optional — API sucht nächste Hausnummer)
+    const hasAddress = street && street.length > 0;
     const hasScheduleId = scheduleId && scheduleId.length >= 20;
     if (cityConfig.addressRequired && !hasAddress && !hasScheduleId) {
       throw new AddressRequiredError({ city: cityConfig.id as WasteCityKey, displayName: cityConfig.displayName, minLat: 0, maxLat: 0, minLng: 0, maxLng: 0 });
