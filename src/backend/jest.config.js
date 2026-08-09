@@ -10,7 +10,7 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],
   forceExit: true,
-  testTimeout: 30000,
+  testTimeout: 90000,  // 90s für externe APIs (Overpass, Nominatim, Taler)
   // Warte bis Postgres bereit ist BEVOR Tests starten
   globalSetup: './globalSetup.ts',
 };
