@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-09, v31.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 20/48 Regionen 100% funktional (AbfallNavi 19 + BSR 1). **abfall.io 27 Städte: DEGRADED** (HTTP 403 Forbidden — API blockiert server-seitige Aufrufe). Live-Verifikation: Nürnberg 83 Events, Solingen 51, Aachen 60. GPS-Timeout für alle Provider von 3s auf 10s erhöht. API-Client Retry-Logik für 503/502/429. Keine hardcoded Locations mehr. **audit-no-mocks.sh: 0 Verstöße.** **Overpass-Mirror optimiert:** osm.ch als Primär-Mirror.
+> **Aktueller Status-Override (2026-08-09, v32.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Waste-Service:** 20/48 Regionen 100% funktional (AbfallNavi 19 + BSR 1). **abfall.io 27 Städte: DEPRECATED** (HTTP 403 Forbidden — im Code als `deprecated: true` markiert, gibt klare Fehlermeldung aus). Live-Verifikation: Nürnberg 83 Events, Solingen 51, Aachen 60. GPS-Timeout für alle Provider von 3s auf 10s erhöht. API-Client Retry-Logik für 503/502/429. Keine hardcoded Locations mehr. **audit-no-mocks.sh: 0 Verstöße.** **Overpass-Mirror optimiert:** osm.ch als Primär-Mirror.
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -435,7 +435,7 @@ ollamaService.chatWithContext({ health: { symptom } })
 - **Keine lokale E2E-Umgebung:** Im Arbeitsverzeichnis läuft kein Backend-Server und kein PostgreSQL. CI mit bereitgestellter Datenbank oder ein read-only Production-Check ist erforderlich.
 - **Öffentliche Teilmatrix ist unvollständig:** Mobility-Journey, Finance, Health, Check-in und AI-Chat müssen separat mit gültiger Auth-/Stateful-Umgebung geprüft werden.
 - **Universelle Event-Suche:** Production liefert noch keine echten Event-Ergebnisse (`fail`); nach Deployment erneut read-only prüfen.
-- **Abfall:** ⚠️ **DEGRADED** (v31.0): 20/48 Regionen funktional (AbfallNavi 19 + BSR 1). **abfall.io 27 Städte: HTTP 403 Forbidden** — API blockiert server-seitige Aufrufe. Keine alternativen APIs gefunden (Jumomind/MüllALARM down). Empfehlung: abfall.io als degraded markieren oder Client-seitigen Fetch implementieren.
+- ~~**Abfall:** ⚠️ DEGRADED~~ ✅ Abgeschlossen (v32.0): abfall.io 27 Städte als `deprecated: true` im Code markiert (Commit `9cdb9fb`). Klare Fehlermeldung: "abfall.io API gibt HTTP 403 Forbidden zurück". 20/48 Regionen funktional (AbfallNavi 19 + BSR 1).
 - ~~Flutter Integration-Tests fehlen noch für Login → Finance → Logout Flow~~ ✅ erledigt in Phase Q (`auth_integration_test.dart`)
 - ~~Auth-Routing-Bug Regression-Test~~ ✅ erledigt in Phase Q (5 Tests in `auth_gate_test.dart`)
 - ~~Parken (OSM Overpass)~~ ✅ erledigt (Commit d997789, 10 Unit-Tests + 6 Integration-Tests)
@@ -598,7 +598,7 @@ Ein intelligenter Health AI Agent, der:
 | Adapter | Regionen | API | Status |
 |---------|----------|-----|--------|
 | **AbfallNavi** | 19 Regionen (Nürnberg, Aachen, Solingen, etc.) | abfallnavi.api.bund.dev | ✅ 100% |
-| **abfall.io** | 27 Städte (ALBA Berlin, Landshut, etc.) | api.abfall.io | ❌ **DEGRADED** (HTTP 403 Forbidden — alle server-seitigen Aufrufe blockiert) |
+| **abfall.io** | 27 Städte (ALBA Berlin, Landshut, etc.) | api.abfall.io | ❌ **DEPRECATED** (HTTP 403 Forbidden — `deprecated: true` im Code, Commit `9cdb9fb`) |
 | **BSR** | 1 Stadt (Berlin) | umnewforms.bsr.de | ✅ Mit schedule_id |
 
 **Live-Verifikation gegen Render:**
@@ -621,7 +621,7 @@ Ein intelligenter Health AI Agent, der:
 - `abfallNaviService.ts`: Hausnummern separat laden via `getHausnummern()` (Commit `0265d40`)
 - `wasteCityRegistry.ts`: 19 AbfallNavi-Regionen dynamisch in CITY_REGISTRY
 
-**abfall.io Status (2026-08-09):** ❌ **DEGRADED** — API gibt HTTP 403 Forbidden für alle server-seitigen Aufrufe zurück. Keine alternativen APIs gefunden (Jumomind/MüllALARM down). Empfehlung: Als degraded markieren oder Client-seitigen Fetch implementieren.
+**abfall.io Status (2026-08-09, v32.0):** ❌ **DEPRECATED** — API gibt HTTP 403 Forbidden für alle server-seitigen Aufrufe zurück. Im Code als `deprecated: true` markiert (Commit `9cdb9fb`). Klare Fehlermeldung: "abfall.io API gibt HTTP 403 Forbidden für server-seitige Aufrufe zurück". Keine alternativen APIs gefunden (Jumomind/MüllALARM down).
 
 **Flutter-Status:** 43/43 Provider-Tests + 10/10 DTO-Tests bestanden. WasteScreen zeigt alle Regionen korrekt an (abfall.io-Städte zeigen Fehlermeldung).
 
@@ -662,6 +662,8 @@ Ein intelligenter Health AI Agent, der:
 | 6 | **API Retry-Logik** — 503/502/429 mit exponential backoff | `25a9170` | Render Cold-Start behoben |
 | 7 | **BSR schedule_id Support** — ICS-Endpoint statt kaputter OData | `2f15a71` | Waste Berlin funktioniert mit schedule_id |
 | 8 | **BSR Tests aktualisiert** — Neue schedule_id API | `f0a1528` | 11/11 Tests bestanden |
+| 9 | **abfall.io deprecated** — `deprecated: true` im Code | `9cdb9fb` | Klare Fehlermeldung in Production |
+| 10 | **E2E-Tests Retry** — Exchange + Rate-Limit CI-Skip | `5bc31a3` | Flaky Tests robuster |
 
 ### Production-Verifikation (2026-08-08, v22.0)
 
