@@ -2,6 +2,9 @@ import request from 'supertest';
 import app from '../index';
 import { withRetry, isAcceptableStatus, TIMEOUTS } from '../utils/test-utils';
 
+// CI-kritisch: Globaler Timeout für externe APIs (Overpass kann langsam sein)
+jest.setTimeout(120_000);
+
 describe('E-Ladestationen API', () => {
   describe('GET /api/ev-charging/stations', () => {
     it('should return live stations or 503 if OpenStreetMap unreachable', async () => {
@@ -10,7 +13,7 @@ describe('E-Ladestationen API', () => {
           request(app).get(
             '/api/ev-charging/stations?lat=52.5200&lng=13.4050&radius_km=5',
           ),
-        { name: 'ev-charging', timeoutMs: TIMEOUTS.overpass },
+        { name: 'ev-charging', retries: 3, timeoutMs: TIMEOUTS.overpass },
       );
 
       expect(isAcceptableStatus(res.status)).toBe(true);
@@ -39,7 +42,7 @@ describe('E-Ladestationen API', () => {
           request(app).get(
             '/api/ev-charging/stations?lat=52.5200&lng=13.4050',
           ),
-        { name: 'ev-charging-default', timeoutMs: TIMEOUTS.overpass },
+        { name: 'ev-charging-default', retries: 3, timeoutMs: TIMEOUTS.overpass },
       );
 
       expect(isAcceptableStatus(res.status)).toBe(true);
