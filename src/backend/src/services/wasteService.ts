@@ -133,6 +133,16 @@ export class WasteService {
       );
     }
 
+    // 1c. Check if city is deprecated (e.g. abfall.io HTTP 403)
+    if (cityConfig.deprecated) {
+      logger.warn(`WasteService: ${cityConfig.displayName} ist deprecated — ${cityConfig.deprecatedReason}`);
+      throw new Error(
+        `Abfallkalender für ${cityConfig.displayName} ist derzeit nicht verfügbar. ` +
+        `${cityConfig.deprecatedReason}. ` +
+        `Bitte versuche es später erneut oder kontaktiere den Support.`
+      );
+    }
+
     // 2. Address-Required Check (dynamic per city config)
     // BSR: scheduleId ist eine Alternative zu street+houseNr
     const hasAddress = street && houseNr;
@@ -264,7 +274,7 @@ export class WasteService {
   /** Get service-status metadata (used by /api/waste/status route). */
   getStatus(): {
     service: 'waste';
-    cities: { city: WasteCityKey; displayName: string; addressRequired: boolean; attribution: string }[];
+    cities: { city: WasteCityKey; displayName: string; addressRequired: boolean; attribution: string; deprecated?: boolean; deprecatedReason?: string }[];
     cacheEntries: number;
   } {
     const cities = getSupportedCities();
@@ -275,6 +285,7 @@ export class WasteService {
         displayName: c.displayName,
         addressRequired: c.addressRequired,
         attribution: c.attribution,
+        ...(c.deprecated ? { deprecated: true, deprecatedReason: c.deprecatedReason } : {}),
       })),
       cacheEntries: this.cache.size,
     };

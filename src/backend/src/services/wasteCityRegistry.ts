@@ -58,6 +58,10 @@ export interface CityWasteConfig {
   abfallNaviRegion?: string;
   /** Optional: PLZ-Prefixes für Quick-Matching */
   plzPrefixes?: string[];
+  /** Optional: Deprecated/Degraded — API ist server-seitig nicht erreichbar */
+  deprecated?: boolean;
+  /** Optional: Grund für Deprecated */
+  deprecatedReason?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +152,7 @@ export function findCityByNominatim(nominatim: {
     }
     // Then check abfall.io services (strict match: candidate must be >= 4 chars
     // AND be a significant part of the service title to avoid false positives)
+    // NOTE: abfall.io API gibt HTTP 403 für server-seitige Aufrufe zurück (2026-08-09)
     for (const service of ABFALL_IO_SERVICES) {
       const titleLower = service.title.toLowerCase();
       // Only match if candidate is a significant word (>= 4 chars) AND
@@ -166,6 +171,8 @@ export function findCityByNominatim(nominatim: {
           attribution: `abfall.io — ${service.title} (AGPL)`,
           nominatimKeywords: [service.title.toLowerCase()],
           abfallIoServiceId: service.serviceId,
+          deprecated: true,
+          deprecatedReason: 'abfall.io API gibt HTTP 403 Forbidden für server-seitige Aufrufe zurück',
         };
       }
     }
@@ -181,6 +188,7 @@ export function getSupportedCities(): CityWasteConfig[] {
   const cities: CityWasteConfig[] = [...CITY_REGISTRY];
   
   // Dynamisch aus ABFALL_IO_SERVICES befuellen
+  // NOTE: abfall.io API gibt HTTP 403 für server-seitige Aufrufe zurück (2026-08-09)
   for (const service of ABFALL_IO_SERVICES) {
     cities.push({
       id: `abfall-io-${service.serviceId.slice(0, 8)}`,
@@ -192,6 +200,8 @@ export function getSupportedCities(): CityWasteConfig[] {
       nominatimKeywords: [service.title.toLowerCase()],
       abfallIoServiceId: service.serviceId,
       plzPrefixes: service.plzPrefix,
+      deprecated: true,
+      deprecatedReason: 'abfall.io API gibt HTTP 403 Forbidden für server-seitige Aufrufe zurück',
     });
   }
 
@@ -303,6 +313,7 @@ export function findCityByPlz(plz: string): CityWasteConfig | null {
   }
 
   // Check abfall.io services by PLZ prefix
+  // NOTE: abfall.io API gibt HTTP 403 für server-seitige Aufrufe zurück (2026-08-09)
   for (const service of ABFALL_IO_SERVICES) {
     if (service.plzPrefix?.some((prefix) => normalizedPlz.startsWith(prefix))) {
       return {
@@ -315,6 +326,8 @@ export function findCityByPlz(plz: string): CityWasteConfig | null {
         nominatimKeywords: [service.title.toLowerCase()],
         abfallIoServiceId: service.serviceId,
         plzPrefixes: service.plzPrefix,
+        deprecated: true,
+        deprecatedReason: 'abfall.io API gibt HTTP 403 Forbidden für server-seitige Aufrufe zurück',
       };
     }
   }
@@ -339,6 +352,7 @@ export function findCityByName(cityName: string): CityWasteConfig | null {
   if (staticResult) return staticResult;
 
   // Then check abfall.io services (fuzzy match)
+  // NOTE: abfall.io API gibt HTTP 403 für server-seitige Aufrufe zurück (2026-08-09)
   for (const service of ABFALL_IO_SERVICES) {
     const titleLower = service.title.toLowerCase();
     // Match if city name is contained in service title
@@ -352,6 +366,8 @@ export function findCityByName(cityName: string): CityWasteConfig | null {
         attribution: `abfall.io — ${service.title} (AGPL)`,
         nominatimKeywords: [service.title.toLowerCase()],
         abfallIoServiceId: service.serviceId,
+        deprecated: true,
+        deprecatedReason: 'abfall.io API gibt HTTP 403 Forbidden für server-seitige Aufrufe zurück',
       };
     }
   }
