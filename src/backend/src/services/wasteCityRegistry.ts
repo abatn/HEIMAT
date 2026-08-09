@@ -116,10 +116,8 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     nominatimKeywords: ['hamburg'],
     plzPrefixes: ['20', '21', '22'],
   },
-  // Stuttgart — Abfall Stuttgart (SPA umgebaut, kein server-side rendering mehr)
-  // DEPRECATED: service.stuttgart.de hat die Website zu einer SPA umgebaut.
-  // Das POST gibt keine HTML-Tabelle mehr zurück, sondern nur das SPA-Shell.
-  // TODO: Neue API finden oder Browser-Automation implementieren.
+  // Stuttgart — Abfall Stuttgart (HTML Form + AJAX Autocomplete)
+  // API: X-Requested-With Header + Street/HouseNr Autocomplete → POST → awstable
   {
     id: 'stuttgart-abfall',
     displayName: 'Stuttgart',
@@ -129,8 +127,6 @@ const CITY_REGISTRY: CityWasteConfig[] = [
     attribution: 'Abfall Stuttgart — Öffentlicher Dienst',
     nominatimKeywords: ['stuttgart'],
     plzPrefixes: ['70', '71'],
-    deprecated: true,
-    deprecatedReason: 'service.stuttgart.de wurde zu einer SPA umgebaut — keine server-side Tabelle mehr. Neue API wird gesucht.',
   },
   // Leipzig — Stadtreinigung Leipzig (REST JSON → ICS)
   {
