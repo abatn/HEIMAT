@@ -926,3 +926,23 @@ Response: "Hallo! Ich bin HEIMAT AI, dein persönlicher Assistent..."
 - Verfügbar: ✅ Ja
 - Modell: llama3.1:8b
 - URL: http://158.180.18.110:11434 (externer Server)
+
+### ✅ Adzuna Umlaut + Category Fix (2026-08-10, Version 41.0)
+
+**Zwei Bugs gefixt:**
+
+1. **Umlaut-Bug:** Adzuna akzeptiert keine deutschen Umlaute in Location-Namen.
+   - Fix: `normalizeLocation()` normalisiert ä→ae, ö→oe, ü→ue, ß→ss
+   - "München" wird zu "Muenchen" BEVOR der API-Call erfolgt
+
+2. **Category-Bug:** Adzuna hat category als Response-Feld, NICHT als Query-Parameter.
+   - Fix: Keine category-Parameter an Adzuna senden
+   - Stattdessen: Nach `category.tag` in der Response filtern
+   - Beispiel: `category.tag === 'it-jobs'` für IT-Jobs
+
+**Live-Verifikation (2026-08-10):**
+- `Koch+München+gastro`: Source=adzuna, Total=106 ✅
+- `test+technik`: Source=adzuna, Total=2679, Nur IT-Stellen ✅
+- `test+alle`: Source=adzuna, Total=26434, Alle Kategorien ✅
+
+**Commit:** `19c7a21` — fix(jobs): Adzuna Umlaut-Bug + Category-Bug gefixt
