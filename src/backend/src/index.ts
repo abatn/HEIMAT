@@ -45,6 +45,7 @@ import { gtfsService } from './services/gtfsService';
 import { swaggerSpec } from './config/swagger';
 import swaggerUi from 'swagger-ui-express';
 import { errorMessage } from './utils/error';
+import { ollamaService } from './services/ollamaService';
 
 dotenv.config();
 
@@ -136,6 +137,18 @@ if (require.main === module) {
   app.listen(PORT, '0.0.0.0', async () => {
     logger.info(`HEIMAT Backend running on port ${PORT}`);
     await testConnection();
+
+    // Ollama Warmup: Modell sofort beim Start in den RAM laden
+    // Verhindert Cold-Start-Timeout beim ersten Chat-Aufruf
+    ollamaService.status().then(status => {
+      if (status.available) {
+        logger.info(`Ollama Warmup: ${status.message}`);
+      } else {
+        logger.warn(`Ollama Warmup: ${status.message}`);
+      }
+    }).catch(e => {
+      logger.warn(`Ollama Warmup fehlgeschlagen: ${e}`);
+    });
 
     try {
       // OPT-IN-Default: RAPTOR-In-Memory-Routing-Engine braucht beim Initialisieren

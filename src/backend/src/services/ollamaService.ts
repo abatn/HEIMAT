@@ -372,12 +372,13 @@ export class OllamaService {
           model,
           messages,
           stream: false,
+          keep_alive: 10,       // Modell 10 Minuten im RAM halten (verhindert wiederholtes Laden)
           options: {
             num_predict: 100,   // Max 100 Tokens (~75 Wörter) — kürzer = schneller
             temperature: 0.3,   // Deterministisch — Triage braucht Präzision
           },
         },
-        { timeout: 5000 },
+        { timeout: 120000 },   // 2 Minuten Timeout — Modell braucht Zeit zum Laden
       );
 
       if (response.data?.message?.content) {
