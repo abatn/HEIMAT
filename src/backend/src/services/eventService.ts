@@ -88,7 +88,7 @@ export class EventService {
   async getNearbyEvents(
     lat: number,
     lng: number,
-    radiusKm: number = 10,
+    radiusKm: number = 5,
   ): Promise<Event[]> {
     const results = await Promise.allSettled([
       this.fetchWikidataEvents(lat, lng, radiusKm),
@@ -184,22 +184,14 @@ export class EventService {
 
     // node + way Elemente, out center fuer Center-Koordinaten bei ways
     const query = `
-      [out:json][timeout:15];
+      [out:json][timeout:25];
       (
-        node["amenity"="marketplace"](around:${radiusM},${lat},${lng});
-        way["amenity"="marketplace"](around:${radiusM},${lat},${lng});
-        node["tourism"="museum"](around:${radiusM},${lat},${lng});
-        way["tourism"="museum"](around:${radiusM},${lat},${lng});
-        node["amenity"="arts_centre"](around:${radiusM},${lat},${lng});
-        way["amenity"="arts_centre"](around:${radiusM},${lat},${lng});
-        node["amenity"="cinema"](around:${radiusM},${lat},${lng});
-        way["amenity"="cinema"](around:${radiusM},${lat},${lng});
-        node["amenity"="theatre"](around:${radiusM},${lat},${lng});
-        way["amenity"="theatre"](around:${radiusM},${lat},${lng});
-        node["leisure"="culture_centre"](around:${radiusM},${lat},${lng});
-        way["leisure"="culture_centre"](around:${radiusM},${lat},${lng});
-        node["tourism"="exhibition"](around:${radiusM},${lat},${lng});
-        way["tourism"="exhibition"](around:${radiusM},${lat},${lng});
+        nwr["amenity"="marketplace"](around:${radiusM},${lat},${lng});
+        nwr["tourism"="museum"](around:${radiusM},${lat},${lng});
+        nwr["amenity"="arts_centre"](around:${radiusM},${lat},${lng});
+        nwr["amenity"="cinema"](around:${radiusM},${lat},${lng});
+        nwr["amenity"="theatre"](around:${radiusM},${lat},${lng});
+        nwr["tourism"="exhibition"](around:${radiusM},${lat},${lng});
       );
       out center;
     `;
@@ -214,7 +206,7 @@ export class EventService {
             `data=${encodeURIComponent(query)}`,
             {
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              timeout: 15000,
+              timeout: 25000,
             },
           );
 

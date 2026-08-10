@@ -39,7 +39,7 @@ export class HotelService {
   async getNearbyHotels(
     lat: number,
     lng: number,
-    radiusKm: number = 5,
+    radiusKm: number = 3,
   ): Promise<Hotel[]> {
     const results = await Promise.allSettled([
       this.fetchOverpassHotels(lat, lng, radiusKm),
@@ -83,7 +83,7 @@ export class HotelService {
     const radiusM = radiusKm * 1000;
 
     const query = `
-      [out:json][timeout:20];
+      [out:json][timeout:25];
       (
         nwr["tourism"="hotel"](around:${radiusM},${lat},${lng});
         nwr["tourism"="hostel"](around:${radiusM},${lat},${lng});
@@ -92,8 +92,6 @@ export class HotelService {
         nwr["tourism"="apartment"](around:${radiusM},${lat},${lng});
       );
       out body;
-      >;
-      out skel qt;
     `;
 
     const MAX_RETRIES_PER_MIRROR = 2;
@@ -106,7 +104,7 @@ export class HotelService {
             `data=${encodeURIComponent(query)}`,
             {
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              timeout: 10000,
+              timeout: 25000,
             },
           );
 

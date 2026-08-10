@@ -23,7 +23,7 @@ hotelsRouter.get('/', async (req: Request, res: Response) => {
     }
     const lat = parseFloat(latStr);
     const lng = parseFloat(lngStr);
-    const radius = parseFloat(req.query.radius as string) || 5;
+    const radius = parseFloat(req.query.radius as string) || 3;
 
     logger.info(`Hotels requested: lat=${lat}, lng=${lng}, radius=${radius}km`);
 
