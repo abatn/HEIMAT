@@ -900,3 +900,29 @@ overpass-api.de     → lambert.openstreetmap.de (gleicher Host!)
 - `logistics-warehouse-jobs` → Logistik ✅
 
 **WICHTIG:** `healthcare-jobs`, `trade-jobs`, `public-sector-jobs` sind UNGÜLTIG für DE → leere Antwort.
+
+### ✅ Ollama Timeout Fix (2026-08-10, Version 40.0)
+
+**Problem:** Chat-Endpoint schlug fehl wegen zu kurzem Timeout (5s axios + 25s Route).
+
+**Fixes:**
+1. `ollamaService.ts`: axios timeout 5000ms → 120000ms (2 Minuten)
+2. `ollamaService.ts`: `keep_alive: 10` hinzugefügt (Modell 10 Min im RAM)
+3. `routes/ai.ts`: `ROUTE_TIMEOUT_MS` 25000ms → 120000ms (2 Minuten)
+4. `index.ts`: Startup-Warmup via `ollamaService.status()`
+
+**Commits:**
+- `e2ef8d3`: fix(ollama): Timeout 5s->120s, keep_alive:10, Warmup-Call
+- `4beb936`: fix(ollama): Route-Timeout 25s->120s fuer Chat-Endpoint
+
+**Live-Verifikation (2026-08-10):**
+```
+POST /api/ai/chat {"message":"hi"}
+Status: ok
+Response: "Hallo! Ich bin HEIMAT AI, dein persönlicher Assistent..."
+```
+
+**Ollama-Status auf Production:**
+- Verfügbar: ✅ Ja
+- Modell: llama3.1:8b
+- URL: http://158.180.18.110:11434 (externer Server)
