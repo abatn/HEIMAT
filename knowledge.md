@@ -946,3 +946,29 @@ Response: "Hallo! Ich bin HEIMAT AI, dein persönlicher Assistent..."
 - `test+alle`: Source=adzuna, Total=26434, Alle Kategorien ✅
 
 **Commit:** `19c7a21` — fix(jobs): Adzuna Umlaut-Bug + Category-Bug gefixt
+
+### ✅ Adzuna Category-Filter 100% Fix (2026-08-10, Version 42.0)
+
+**Problem:** 4 von 7 Kategorien (bildung, gastro, verwaltung, logistik) fielen auf arbeitnow mit 176 Gesamt-Jobs zurück.
+
+**Root Cause:**
+1. Adzuna akzeptiert `category` als Query-Parameter (NICHT nur als Response-Feld)
+2. Umlaut-Normalisierung war falsch — Adzuna akzeptiert UTF-8 kodierte Umlaute direkt
+
+**Fixes:**
+1. `category`-Parameter wird jetzt an Adzuna gesendet (statt Response-Filterung)
+2. `normalizeLocation()` entfernt — Adzuna akzeptiert "München" direkt
+
+**Live-Verifikation (2026-08-10):**
+- technik: adzuna|2678 ✅
+- gesundheit: adzuna|162 ✅
+- handwerk: adzuna|163 ✅
+- bildung: adzuna|47 ✅
+- gastro: adzuna|82 ✅
+- verwaltung: adzuna|48 ✅
+- logistik: adzuna|268 ✅
+- Koch+München+gastro: adzuna|106 ✅ (Umlaut funktioniert!)
+
+**Commits:**
+- `c979984`: fix(jobs): Adzuna category Query-Parameter aktiviert
+- `bdfb25f`: fix(jobs): Umlaut-Normalisierung entfernt — Adzuna akzeptiert UTF-8
