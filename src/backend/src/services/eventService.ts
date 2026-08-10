@@ -88,7 +88,7 @@ export class EventService {
   async getNearbyEvents(
     lat: number,
     lng: number,
-    radiusKm: number = 5,
+    radiusKm: number = 2,
   ): Promise<Event[]> {
     const results = await Promise.allSettled([
       this.fetchWikidataEvents(lat, lng, radiusKm),
