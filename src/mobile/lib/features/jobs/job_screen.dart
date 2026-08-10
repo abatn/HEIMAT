@@ -233,7 +233,8 @@ class _JobScreenState extends State<JobScreen> {
           return EmptyState(
             icon: Icons.search_off,
             title: 'Keine Jobs gefunden',
-            description: 'Versuche einen anderen Suchbegriff oder Branchen-Filter',
+            description:
+                'Versuche einen anderen Suchbegriff oder Branchen-Filter',
           );
         }
 
@@ -380,7 +381,7 @@ class _JobScreenState extends State<JobScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        job.formattedSalary!
+                        job.formattedSalary!,
                         style: TextStyle(
                           color: Colors.orange,
                           fontSize: 11,
