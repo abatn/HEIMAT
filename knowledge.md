@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-10, v42.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Production-Check (13:44 UTC):** Health ✅, Wetter ✅ (29.6°C Berlin), Luftqualität ✅ (AQI 45), Abfall ✅ (Nürnberg), E-Laden ✅ (17 Stationen), Parken ✅ (9 Parkplätze), Jobs ✅ (20 Listings), Ärzte ✅ (33), ÖPNV ✅ (30 Stops), Bürgeramt ✅ (0 Ergebnisse). **Events/Hotels: Overpass-Timeout.** **Waste-Service:** 120+ Regionen, 6 Adapter. **Jobs:** Adzuna API (alle 7 Kategorien) + Skill-Matching. **Health AI:** Phase 1+2 abgeschlossen (105 Tests). **audit-no-mocks.sh: 0 Verstöße.**
+> **Aktueller Status-Override (2026-08-10, v43.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Production-Check (13:44 UTC):** Health ✅, Wetter ✅ (29.6°C Berlin), Luftqualität ✅ (AQI 45), Abfall ✅ (Nürnberg), E-Laden ✅ (17 Stationen), Parken ✅ (9 Parkplätze), Jobs ✅ (20 Listings), Ärzte ✅ (33), ÖPNV ✅ (30 Stops), Bürgeramt ✅ (0 Ergebnisse). **Events/Hotels: Optimiert** (Radius reduziert, nwr-Query, Timeout 25s). **Waste-Service:** 120+ Regionen, 6 Adapter. **Jobs:** Adzuna API (alle 7 Kategorien) + Skill-Matching. **Health AI:** Phase 1+2 abgeschlossen (105 Tests). **audit-no-mocks.sh: 0 Verstöße.**
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -430,7 +430,23 @@ ollamaService.chatWithContext({ health: { symptom } })
 | "Hallo" | Kein Triage | — |
 | "Ich kaufe Blumen und Druckpapier" | Kein Triage | — |
 
-### ⚠️ Verbleibende offene Tasks (v42.0)
+### ✅ Events/Hotels Overpass-Optimierung (2026-08-10, Commit e72bb5c)
+
+**Problem:** Events und Hotels gaben bei Production-Check timeouts (>30s) zurück.
+
+**Lösung:**
+- **Events:** Default Radius 10→5km, `nwr`-Query (effizienter als node+way), Timeout 15→25s
+- **Hotels:** Default Radius 5→3km, Timeout 10→25s
+- **Routes:** Default Radii angeglichen (Events 5km, Hotels 3km)
+
+**Änderungen:**
+- `eventService.ts`: nwr-Query mit 6 Amenity-Typen (marketplace, museum, arts_centre, cinema, theatre, exhibition)
+- `hotelService.ts`: nwr-Query mit 5 Tourism-Typen (hotel, hostel, motel, guest_house, apartment)
+- Beide Services: Client-Timeout 25s für Overpass-Calls
+
+**Validation:** 7/7 Tests bestanden, audit-no-mocks 0 violations.
+
+### ⚠️ Verbleibende offene Tasks (v43.0)
 
 | # | Task | Status | Priorität |
 |---|------|--------|-----------|
@@ -438,7 +454,6 @@ ollamaService.chatWithContext({ health: { symptom } })
 | 2 | **Futai Chat Integration** | Mini-Program-Container steht, aber keine Futai-Integration | 🟢 Niedrig |
 | 3 | **Health AI Phase 3** | Foto-Analyse, erweiterte Differentialdiagnose | 🟢 Niedrig |
 | 4 | **TypeScript 7 Upgrade** | typescript-eslint@8 inkompatibel | 🟡 Mittel |
-| 5 | **Events/Hotels Overpass-Timeout** | Overpass-Query hängt bei großen Radien | 🟡 Mittel |
 
 ### ❌ Bekannte Einschränkungen (keine Bugs)
 
@@ -589,7 +604,7 @@ Ein intelligenter Health AI Agent, der:
 | **Mobilität** | ÖPNV, Parken, E-Laden | ✅ 3/3 | HTTP 200 + echte Daten (17 Stationen, 6 Parkhäuser) |
 | **Gesundheit** | Ärzte, Lebenszeichen | ✅ 2/2 | **50+ Ärzte Berlin, 49+ Stuttgart, 51+ Hamburg** (100% Overpass-Live), Checkin aktiv |
 | **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; **Waste: 120+ Regionen funktional** (AbfallNavi 19 + AbfallPlus 90+ + BSR 1 + **5 Großstadt-Adapter: Köln, München, Hamburg, Stuttgart, Leipzig**); abfall.io 27 Städte deprecated (403) |
-| **Kultur & Reise** | Events, Hotels | ⚠️ 2/2 | Events/Hotels: Overpass-Timeout bei großen Radien (kleine Radien funktionieren) |
+| **Kultur & Reise** | Events, Hotels | ✅ 2/2 | Events/Hotels: Optimiert (Radius 5/3km, nwr-Query, Timeout 25s) |
 | **Finanzen** | Taler-Wallet | ✅ 1/1 | Wallet existiert, Auth funktioniert |
 | **AI** | HEIMAT AI | ✅ 1/1 | Phase 1+2 abgeschlossen (105 Tests), Fallback bei keinem Ollama |
 
