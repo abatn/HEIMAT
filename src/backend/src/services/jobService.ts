@@ -40,15 +40,16 @@ export interface JobSearchResult {
   source: 'adzuna' | 'arbeitnow' | 'mixed';
 }
 
-// Branchen-Mapping: UI-Filter → Adzuna Category Tag
+// Branchen-Mapping: UI-Filter → Adzuna Category Tag (DE API)
+// Gültig getestet: 2026-08-10
 const BRANCHEN_MAP: Record<string, string> = {
   alle: '',
   technik: 'it-jobs',
-  gesundheit: 'healthcare-jobs',
-  handwerk: 'trade-jobs',
+  gesundheit: 'healthcare-nursing-jobs',
+  handwerk: 'manufacturing-jobs',
   bildung: 'teaching-jobs',
   gastro: 'hospitality-catering-jobs',
-  verwaltung: 'public-sector-jobs',
+  verwaltung: 'admin-jobs',
   logistik: 'logistics-warehouse-jobs',
 };
 
