@@ -851,3 +851,34 @@ overpass-api.de     → lambert.openstreetmap.de (gleicher Host!)
 ## Cost / footprint
 
 - ~€70/year hosting (Hetzner Cloud). Domain €10/year. 100% volunteer labor. Funded via Open Collective + Prototype Fund/BMBF/Stiftungen grants.
+
+### ✅ Jobs-Service erweitert — Adzuna API (2026-08-10, Version 39.0)
+
+**Neue Features:**
+1. **Adzuna API als primäre Datenquelle** — 250 kostenlose Calls/Tag, alle Branchen
+2. **Branchen-Filter:** Technik, Gesundheit, Handwerk, Bildung, Gastro, Verwaltung, Logistik
+3. **Gehaltsdaten:** salary_min/salary_max aus Adzuna (wenn vom Arbeitgeber angegeben)
+4. **Skill-Matching:** POST /api/jobs/extract-skills + /api/jobs/match-skills (Ollama + Fallback-Regex)
+5. **Karriere-Pfad:** GET /api/career/advice?role=... (Lernpfade für 10+ Berufsgruppen)
+
+**Env-Vars (auf Render gesetzt):**
+- `ADZUNA_APP_ID` = fb712f88
+- `ADZUNA_APP_KEY` = 11bed006064ba31205a288e9c201fd50
+
+**Architecture:**
+- Primary: Adzuna API (alle Branchen, Gehaltsdaten)
+- Fallback: Arbeitnow API (Tech-Jobs, kein API-Key)
+- Skill-Matching: Ollama (wenn online) + Regex-Fallback (wenn offline)
+- Karriere-Pfad: Lokale Wissensbasis (10+ Berufsgruppen)
+
+**Test-Ergebnisse (lokal, 24/24 grün):**
+- jobs.test.ts: 11 Tests (echte API-Calls gegen Adzuna + Arbeitnow)
+- skillMatch.test.ts: 7 Tests (Match-Score deterministisch, Extraktion mit Ollama/Fallback)
+- career.test.ts: 6 Tests (Karriere-Pfad + Lernpfade)
+
+**API-Endpoints:**
+- GET /api/jobs/search?q=...&location=...&branchen=... — Jobsuche
+- POST /api/jobs/extract-skills — Skills aus Job-Beschreibung extrahieren
+- POST /api/jobs/match-skills — Match-Score berechnen
+- GET /api/career/advice?role=... — Karriere-Pfad + Lernpfade
+- GET /api/career/roles — Verfügbare Berufsgruppen
