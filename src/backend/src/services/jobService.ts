@@ -66,23 +66,10 @@ export const BRANCHEN_LABELS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Umlaut-Normalisierung für Adzuna (akzeptiert keine deutschen Umlaute)
-// ---------------------------------------------------------------------------
-
-function normalizeLocation(location: string): string {
-  return location
-    .replace(/ä/g, 'ae')
-    .replace(/ö/g, 'oe')
-    .replace(/ü/g, 'ue')
-    .replace(/Ä/g, 'Ae')
-    .replace(/Ö/g, 'Oe')
-    .replace(/Ü/g, 'Ue')
-    .replace(/ß/g, 'ss');
-}
-
-// ---------------------------------------------------------------------------
 // Adzuna API (primär)
 // ---------------------------------------------------------------------------
+// HINWEIS: Adzuna akzeptiert UTF-8 kodierte Umlaute (ä, ö, ü) im where-Parameter.
+// KEINE Normalisierung nötig! "München" funktioniert direkt.
 
 const ADZUNA_BASE = 'https://api.adzuna.com/v1/api/jobs/de/search';
 const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID || '';
@@ -145,9 +132,6 @@ export class JobService {
   ): Promise<JobSearchResult> {
     const adzunaPage = page + 1; // Adzuna ist 1-basiert
     
-    // Umlaute normalisieren (Adzuna akzeptiert keine deutschen Umlaute)
-    const normalizedLocation = location ? normalizeLocation(location) : undefined;
-    
     const params: Record<string, string | number> = {
       app_id: ADZUNA_APP_ID,
       app_key: ADZUNA_APP_KEY,
@@ -156,8 +140,8 @@ export class JobService {
       sort_by: 'date',
     };
 
-    if (normalizedLocation) {
-      params.where = normalizedLocation;
+    if (location) {
+      params.where = location; // Adzuna akzeptiert UTF-8 kodierte Umlaute
     }
 
     // Branchen-Filter: Adzuna akzeptiert category als Query-Parameter
