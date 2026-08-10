@@ -66,6 +66,21 @@ export const BRANCHEN_LABELS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// Umlaut-Normalisierung für Adzuna (akzeptiert keine deutschen Umlaute)
+// ---------------------------------------------------------------------------
+
+function normalizeLocation(location: string): string {
+  return location
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/Ä/g, 'Ae')
+    .replace(/Ö/g, 'Oe')
+    .replace(/Ü/g, 'Ue')
+    .replace(/ß/g, 'ss');
+}
+
+// ---------------------------------------------------------------------------
 // Adzuna API (primär)
 // ---------------------------------------------------------------------------
 
@@ -129,22 +144,24 @@ export class JobService {
     perPage: number = 20
   ): Promise<JobSearchResult> {
     const adzunaPage = page + 1; // Adzuna ist 1-basiert
+    
+    // Umlaute normalisieren (Adzuna akzeptiert keine deutschen Umlaute)
+    const normalizedLocation = location ? normalizeLocation(location) : undefined;
+    
     const params: Record<string, string | number> = {
       app_id: ADZUNA_APP_ID,
       app_key: ADZUNA_APP_KEY,
       what: query,
-      results_per_page: Math.min(perPage, 50),
+      results_per_page: 50, // Max 50 pro Seite fuer besseres Filtering
       sort_by: 'date',
     };
 
-    if (location) {
-      params.where = location;
+    if (normalizedLocation) {
+      params.where = normalizedLocation;
     }
 
-    // Branchen-Filter
-    if (branchen && branchen !== 'alle' && BRANCHEN_MAP[branchen]) {
-      params.category = BRANCHEN_MAP[branchen];
-    }
+    // WICHTIG: Adzuna hat category als Response-Feld, NICHT als Query-Parameter!
+    // Wir senden KEINE category-Parameter und filtern nach der Response.
 
     const response = await axios.get(`${ADZUNA_BASE}/${adzunaPage}`, {
       params,
@@ -153,9 +170,22 @@ export class JobService {
     });
 
     const data = response.data;
-    const results = data.results || [];
+    let results = data.results || [];
 
-    const jobs: JobListing[] = results.map((item: Record<string, unknown>) => {
+    // Branchen-Filter: Nach category.tag filtern (Adzuna hat KEIN Query-Parameter dafuer)
+    const targetCategory = branchen && branchen !== 'alle' ? BRANCHEN_MAP[branchen] : undefined;
+    if (targetCategory) {
+      results = results.filter((item: Record<string, unknown>) => {
+        const category = item.category as Record<string, unknown> | undefined;
+        return category?.tag === targetCategory;
+      });
+    }
+
+    // Paginierung nach dem Filtern
+    const start = page * perPage;
+    const filteredResults = results.slice(start, start + perPage);
+
+    const jobs: JobListing[] = filteredResults.map((item: Record<string, unknown>) => {
       const company = item.company as Record<string, unknown> | undefined;
       const loc = item.location as Record<string, unknown> | undefined;
       const category = item.category as Record<string, unknown> | undefined;
@@ -185,7 +215,7 @@ export class JobService {
 
     return {
       jobs,
-      total: data.count || 0,
+      total: targetCategory ? results.length : (data.count || 0),
       page,
       per_page: perPage,
       source: 'adzuna',
