@@ -1,13 +1,13 @@
-// jobs.ts — Phase D: Job-Suche Routes
+// jobs.ts — Erweiterte Job-Suche Routes
 //
-// GET /api/jobs/search?q=Entwickler&location=Berlin&page=0&per_page=20
+// GET /api/jobs/search?q=Krankenpfleger&location=Berlin&branchen=gesundheit
+// GET /api/jobs/status — Health-Check + verfügbare Branchen
 //
-// Datenquelle: Arbeitnow API (Open Source, kein API-Key)
-// Pattern-Mirror zu weather.ts / airQuality.ts / waste.ts
+// Datenquellen: Adzuna API (primär) + Arbeitnow (Fallback)
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { jobService } from '../services/jobService';
+import { jobService, BRANCHEN_LABELS } from '../services/jobService';
 import { validate } from '../middleware/validate';
 import { logger } from '../utils/logger';
 
@@ -26,6 +26,13 @@ const asyncHandler =
 const jobSearchQuerySchema = z.object({
   q: z.string().min(1, 'Suchbegriff erforderlich').max(200),
   location: z.string().max(200).optional(),
+  branchen: z
+    .string()
+    .optional()
+    .refine(
+      (v) => !v || v in BRANCHEN_LABELS,
+      'Ungültige Branche. Gültig: alle, technik, gesundheit, handwerk, bildung, gastro, verwaltung, logistik'
+    ),
   page: z
     .string()
     .optional()
@@ -46,18 +53,25 @@ jobsRouter.get(
   asyncHandler(async (req: Request, res: Response) => {
     const q = req.query.q as string;
     const location = req.query.location as string | undefined;
+    const branchen = req.query.branchen as string | undefined;
     const page = parseInt((req.query.page as string) || '0', 10);
     const perPage = parseInt((req.query.per_page as string) || '20', 10);
 
     try {
-      const result = await jobService.searchJobs(q, location, page, perPage);
+      const result = await jobService.searchJobs(
+        q,
+        location,
+        branchen,
+        page,
+        perPage
+      );
       res.json({ status: 'ok', ...result });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`Jobs search failed: ${msg}`);
       res.status(502).json({
         status: 'error',
-        message: 'Job-Suche fehlgeschlagen (Arbeitnow API)',
+        message: 'Job-Suche fehlgeschlagen',
         detail: msg,
       });
     }
@@ -65,14 +79,17 @@ jobsRouter.get(
 );
 
 // ---------------------------------------------------------------------------
-// GET /api/jobs/status — Health-Check
+// GET /api/jobs/status — Health-Check + verfügbare Branchen
 // ---------------------------------------------------------------------------
 
 jobsRouter.get('/status', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    source: 'arbeitnow',
-    attribution: 'https://www.arbeitnow.com',
-    license: 'Free public API, no key required',
+    sources: ['adzuna', 'arbeitnow'],
+    branchen: BRANCHEN_LABELS,
+    attribution: {
+      adzuna: 'https://www.adzuna.de',
+      arbeitnow: 'https://www.arbeitnow.com',
+    },
   });
 });

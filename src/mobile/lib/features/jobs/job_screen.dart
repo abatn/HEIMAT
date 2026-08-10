@@ -1,13 +1,12 @@
-/// job_screen.dart — Phase D: Job-Suche Screen (Arbeitnow API)
+/// job_screen.dart — Erweiterter Job-Suche Screen
 ///
 /// Features:
 /// 1. Suchleiste mit Stichwort + Standort
-/// 2. Job-Liste mit Firmenname, Titel, Standort, Remote-Badge
-/// 3. Lazy Loading (weitere laden)
-/// 4. Skeleton-Loader während Laden
-/// 5. EmptyState bei keinen Treffern
-///
-/// Pattern-Mirror zu air_quality_screen.dart / waste_screen.dart
+/// 2. Branchen-Filter Chips (Alle, Technik, Gesundheit, Handwerk, etc.)
+/// 3. Job-Liste mit Firmenname, Titel, Standort, Remote-Badge, Gehalt
+/// 4. Lazy Loading (weitere laden)
+/// 5. Skeleton-Loader während Laden
+/// 6. EmptyState bei keinen Treffern
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -74,7 +73,7 @@ class _JobScreenState extends State<JobScreen> {
       ),
       body: Column(
         children: [
-          // Suchleiste
+          // Suchleiste + Branchen-Filter
           _buildSearchBar(),
           // Ergebnisse
           Expanded(child: _buildBody()),
@@ -101,7 +100,7 @@ class _JobScreenState extends State<JobScreen> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Stichwort (z.B. Entwickler)',
+                    hintText: 'Stichwort (z.B. Krankenpfleger)',
                     prefixIcon: const Icon(Icons.search, size: 20),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -136,7 +135,10 @@ class _JobScreenState extends State<JobScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          // Branchen-Filter
+          _buildBranchenFilter(),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -147,6 +149,43 @@ class _JobScreenState extends State<JobScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBranchenFilter() {
+    return Consumer<JobProvider>(
+      builder: (context, provider, _) {
+        return SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: BranchenFilter.all.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final key = BranchenFilter.all[index];
+              final label = BranchenFilter.labels[key] ?? key;
+              final isSelected = provider.branchen == key;
+
+              return FilterChip(
+                label: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+                selected: isSelected,
+                onSelected: (_) => provider.setBranchen(key),
+                backgroundColor: AppColors.surface,
+                selectedColor: AppColors.primary,
+                checkmarkColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -194,7 +233,7 @@ class _JobScreenState extends State<JobScreen> {
           return EmptyState(
             icon: Icons.search_off,
             title: 'Keine Jobs gefunden',
-            description: 'Versuche einen anderen Suchbegriff',
+            description: 'Versuche einen anderen Suchbegriff oder Branchen-Filter',
           );
         }
 
@@ -229,16 +268,40 @@ class _JobScreenState extends State<JobScreen> {
   Widget _buildJobList(JobProvider provider) {
     return Column(
       children: [
-        // Treffer-Anzahl
+        // Treffer-Anzahl + Quelle
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           alignment: Alignment.centerLeft,
-          child: Text(
-            '${provider.total} Jobs gefunden',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-            ),
+          child: Row(
+            children: [
+              Text(
+                '${provider.total} Jobs gefunden',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  provider.result?.source == 'adzuna'
+                      ? 'Adzuna'
+                      : provider.result?.source == 'arbeitnow'
+                          ? 'Arbeitnow'
+                          : 'Gemischt',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         // Job-Liste
@@ -273,7 +336,7 @@ class _JobScreenState extends State<JobScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Firma + Remote-Badge
+              // Firma + Remote-Badge + Quelle
               Row(
                 children: [
                   Expanded(
@@ -305,6 +368,27 @@ class _JobScreenState extends State<JobScreen> {
                         ),
                       ),
                     ),
+                  if (job.formattedSalary != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        job.formattedSalary!
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 4),
@@ -318,7 +402,7 @@ class _JobScreenState extends State<JobScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Standort + Zeit
+              // Standort + Zeit + Kategorie
               Row(
                 children: [
                   Icon(Icons.location_on_outlined,
@@ -331,6 +415,26 @@ class _JobScreenState extends State<JobScreen> {
                       fontSize: 12,
                     ),
                   ),
+                  if (job.category != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        job.category!,
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ],
                   const Spacer(),
                   Text(
                     job.relativeTime,
@@ -444,7 +548,42 @@ class _JobScreenState extends State<JobScreen> {
                     ],
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                // Gehalt
+                if (job.formattedSalary != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.euro, size: 20, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Text(
+                          job.formattedSalary!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        if (job.salaryIsPredicted) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '(geschätzt)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 // Job-Typen
                 if (job.jobTypes.isNotEmpty)
                   Wrap(
