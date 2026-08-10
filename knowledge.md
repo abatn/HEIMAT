@@ -882,3 +882,21 @@ overpass-api.de     → lambert.openstreetmap.de (gleicher Host!)
 - POST /api/jobs/match-skills — Match-Score berechnen
 - GET /api/career/advice?role=... — Karriere-Pfad + Lernpfade
 - GET /api/career/roles — Verfügbare Berufsgruppen
+
+**Live-Verifikation (2026-08-10, v39.1):**
+
+| Test | Source | Total | Gehalt | Category |
+|------|--------|-------|--------|----------|
+| Krankenpfleger Berlin | ✅ adzuna | 341 | — | Gesundheitswesen & Pflege |
+| Entwickler Berlin (IT) | ✅ adzuna | 552 | €55k-70k | IT-Stellen |
+
+**Category-Tags (DE Adzuna API, gültig 2026-08-10):**
+- `it-jobs` → Technik ✅
+- `healthcare-nursing-jobs` → Gesundheit ✅
+- `manufacturing-jobs` → Handwerk ✅
+- `teaching-jobs` → Bildung ✅
+- `hospitality-catering-jobs` → Gastro ✅
+- `admin-jobs` → Verwaltung ✅
+- `logistics-warehouse-jobs` → Logistik ✅
+
+**WICHTIG:** `healthcare-jobs`, `trade-jobs`, `public-sector-jobs` sind UNGÜLTIG für DE → leere Antwort.
