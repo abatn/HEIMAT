@@ -160,8 +160,11 @@ export class JobService {
       params.where = normalizedLocation;
     }
 
-    // WICHTIG: Adzuna hat category als Response-Feld, NICHT als Query-Parameter!
-    // Wir senden KEINE category-Parameter und filtern nach der Response.
+    // Branchen-Filter: Adzuna akzeptiert category als Query-Parameter
+    const targetCategory = branchen && branchen !== 'alle' ? BRANCHEN_MAP[branchen] : undefined;
+    if (targetCategory) {
+      params.category = targetCategory;
+    }
 
     const response = await axios.get(`${ADZUNA_BASE}/${adzunaPage}`, {
       params,
@@ -170,22 +173,13 @@ export class JobService {
     });
 
     const data = response.data;
-    let results = data.results || [];
+    const results = data.results || [];
 
-    // Branchen-Filter: Nach category.tag filtern (Adzuna hat KEIN Query-Parameter dafuer)
-    const targetCategory = branchen && branchen !== 'alle' ? BRANCHEN_MAP[branchen] : undefined;
-    if (targetCategory) {
-      results = results.filter((item: Record<string, unknown>) => {
-        const category = item.category as Record<string, unknown> | undefined;
-        return category?.tag === targetCategory;
-      });
-    }
-
-    // Paginierung nach dem Filtern
+    // Paginierung
     const start = page * perPage;
-    const filteredResults = results.slice(start, start + perPage);
+    const paginatedResults = results.slice(start, start + perPage);
 
-    const jobs: JobListing[] = filteredResults.map((item: Record<string, unknown>) => {
+    const jobs: JobListing[] = paginatedResults.map((item: Record<string, unknown>) => {
       const company = item.company as Record<string, unknown> | undefined;
       const loc = item.location as Record<string, unknown> | undefined;
       const category = item.category as Record<string, unknown> | undefined;
@@ -215,7 +209,7 @@ export class JobService {
 
     return {
       jobs,
-      total: targetCategory ? results.length : (data.count || 0),
+      total: data.count || 0,
       page,
       per_page: perPage,
       source: 'adzuna',
