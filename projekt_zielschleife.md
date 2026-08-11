@@ -1,6 +1,6 @@
 # Zielschleife (angewandte Schleife)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 50.0
 
 - **Endgültiges Ziel des Projekts:**
   HEIMAT 2.0 ist eine Open-Source "Super App" (à la WeChat/Grab) mit deutscher UI,
@@ -57,7 +57,7 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v49.0:** **DEPLOYED + PRODUCTION-VERIFIZIERT.** Commit 9df1b60 (Phase X.19+X.20) ist auf main und live auf Render. Production-E2E-Check (07:20 UTC): **Mobility Search → 30 echte Stops** (Alexanderplatz), **Universal Search → doctor/zahnarzt/hotel/veranstaltung/parken liefern echte Ergebnisse** (HTTP 200). Beide Services sind damit **funktionfähig** eingetragen. Hinweis: 'E2E Test Praxis'-DB-Artefakte verdrängen bei q=arzt die OSM-Top-5 (distance 0) — Bereinigung via Admin-Endpoint offen.
+**Änderung v50.0:** **Admin-Cleanup ausgeführt.** `POST /api/admin/health/cleanup` gegen Render: **36 Fake-Ärzte gelöscht** (inkl. 'E2E Test Praxis'), 0 DB-Einträge verbleibend. `q=arzt` liefert jetzt 5 echte OSM-Praxen mit Distanz (Neurologie Hackescher Markt 0.4km, Augenarzt 0.5km, Chirurg 0.7km, Orthopäde 1.1km, Innere Medizin 1.1km). Damit ist der letzte offene Datenqualitäts-Punkt der Universal Search geschlossen.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

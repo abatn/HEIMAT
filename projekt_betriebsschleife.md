@@ -1,6 +1,6 @@
 # Betriebsschleife (schnell)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 50.0
 
 - **Welche Daten werden täglich/wöchentlich erhoben?**
   - **Täglich (bei jedem Commit/CI-Lauf):**
@@ -92,7 +92,7 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v49.0:** Deployment + Production-Verifikation. Betriebsdaten: Commit 9df1b60 auf main, Render-Deploy live (Uptime 119s beim Check). E2E gegen `heimat-backend.onrender.com`: stops/search 200 (5152 B, 30 Stops), search zahnarzt 200, hotel 200, veranstaltung 200, parken 200. Damit sind Mobility Search + Universal Search **funktionfähig** (vorher die zwei offenen „funktionieren nicht“-Services).
+**Änderung v50.0:** Admin-Cleanup. Betriebsdaten: `POST /api/admin/health/cleanup` → success, deleted=36, remainingDbDoctors=0. `q=arzt` E2E nach Cleanup: count 5, doctor-Kategorie, 5 echte OSM-Praxen (0.4-1.1km). Datenqualität der Universal Search damit vollständig realdaten-basiert.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

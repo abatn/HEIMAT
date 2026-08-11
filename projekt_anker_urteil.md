@@ -1,6 +1,6 @@
 # Anker (Anchors) – nicht schönbare Messgrößen
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 50.0
 
 1. **Echte Einnahmen:** 0 EUR — Projekt ist Open Source, keine Monetarisierung implementiert
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)
@@ -90,7 +90,7 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v49.0:** Production-Verifikation nach Deployment. Anker: „Funktionfähig" jetzt belegt für **Mobility Search** und **Universal Search** — realer Datenpfad (HTTP 200, echte Stops/Ärzte/Hotels/Events/Parkplätze) + Tests (173/173) + Production-Check gegen Render erfüllt. Die letzten zwei offenen „funktionieren nicht“-Services sind damit geschlossen.
+**Änderung v50.0:** Admin-Cleanup als abschließender Datenqualitäts-Schritt. Anker: 36 Fake-Ärzte entfernt (Echtheits-Dimension: 100% Overpass-Live-Daten, keine Test-Artefakte mehr in der DB). Universal Search doctor-Kategorie liefert ausschließlich echte OSM-Praxen.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

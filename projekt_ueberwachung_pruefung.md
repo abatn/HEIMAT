@@ -1,6 +1,6 @@
 # Überwachungsschleife (Gegenmaßstab)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 50.0
 
 - **Was wird überwacht? (Kennzahlen)**
   - **Code-Qualität:**
@@ -60,7 +60,7 @@
 
 # Prüfschleife (unabhängig)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 50.0
 
 - **Welche Zahlen werden geprüft?**
   - Backend-Test-Ergebnisse (CI: 555/555 = 100%, lokal: 413/555 = 75.5%)
@@ -108,6 +108,6 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v49.0:** Prüfschleife: unabhängiger Production-E2E-Check nach Deployment bestätigt die zuvor nur lokal belegten Fixes. Neue belegte funktionfähige Services: Mobility Search (30 Stops), Universal Search (5 Kategorien liefern echte Daten). Offener Prüfpunkt: 'E2E Test Praxis'-DB-Artefakte (distance 0) — Bereinigung via `POST /api/admin/health/cleanup` (ADMIN_KEY nötig).
+**Änderung v50.0:** Prüfschleife: Admin-Cleanup verifiziert. 36 Fake-Ärzte gelöscht, q=arzt liefert 5 echte OSM-Praxen (Neurologie, Augenarzt, Chirurg, Orthopäde, Innere Medizin). Offener Prüfpunkt „E2E Test Praxis-Artefakte“ geschlossen.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.

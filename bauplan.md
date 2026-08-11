@@ -2352,5 +2352,5 @@ Web-Browser zeigen einen Permission-Prompt für Geolocation. Die Browser-Geoloca
 |---------|--------|----------|
 | **Universal Search** | ✅ **FUNKTIONFÄHIG (Production)** | Commit 9df1b60 deployed. E2E gegen Render: `q=arzt` → doctor-Kategorie; `q=zahnarzt` → Zahnarztpraxis am Checkpoint Charlie; `q=hotel` → 5 Hotels; `q=veranstaltung` → Events; `q=parken` → Parkplätze. Alle HTTP 200. |
 | **Mobility Search** | ✅ **FUNKTIONFÄHIG (Production)** | Commit 9df1b60 deployed. E2E gegen Render: `q=Alexanderplatz Berlin` → **30 echte Stops** (Alexanderplatz, U Alexanderplatz, subway). HTTP 200. |
-| **Doctor-Suche ohne DB** | ✅ **Robust (Production)** | DB-Fallback auf Overpass bestätigt. Hinweis: DB enthält noch 'E2E Test Praxis'-Artefakte (distance 0, verdrängen OSM-Top-5) — Bereinigung via `POST /api/admin/health/cleanup` möglich (braucht ADMIN_KEY), offen dokumentiert. |
+| **Doctor-Suche ohne DB** | ✅ **Sauber (Production)** | Admin-Cleanup ausgeführt: 36 Fake-Ärzte via `POST /api/admin/health/cleanup` gelöscht (inkl. E2E Test Praxis). `q=arzt` liefert jetzt 5 echte OSM-Praxen: Neurologie am Hackeschen Markt (0.4km), Augenarzt (0.5km), Chirurg, Orthopäde, Innere Medizin. |
 
