@@ -19,12 +19,23 @@ import { logger } from '../utils/logger';
 import { ParkingService } from '../services/parkingService';
 import { EvChargingService } from '../services/evChargingService';
 import { EventService, Event } from '../services/eventService';
+import { HotelService } from '../services/hotelService';
+import { BuergeramtService } from '../services/buergeramtService';
+import { healthService } from '../services/healthService';
+import { jobService } from '../services/jobService';
 
 export const searchRouter = Router();
 
+// Module-level singletons (consistent with hotels.ts, buergeramt.ts patterns)
+const parkingService = new ParkingService();
+const evChargingService = new EvChargingService();
+const eventService = new EventService();
+const hotelService = new HotelService();
+const buergeramtService = new BuergeramtService();
+
 interface SearchResult {
   id: string;
-  category: 'doctor' | 'parking' | 'ev_charging' | 'address' | 'event';
+  category: 'doctor' | 'parking' | 'ev_charging' | 'address' | 'event' | 'hotel' | 'buergeramt' | 'job';
   name: string;
   description: string;
   distance: number | null;
@@ -33,8 +44,8 @@ interface SearchResult {
   relevance: number;
 }
 
-// Category detection from query
-function detectCategories(query: string): string[] {
+// Category detection from query (exportiert für Unit-Tests)
+export function detectCategories(query: string): string[] {
   const lower = query.toLowerCase();
   const categories: string[] = [];
 
@@ -50,13 +61,22 @@ function detectCategories(query: string): string[] {
   if (lower.match(/event|veranstaltung|konzert|festival|markt|museum|theater|kino|ausstellung/)) {
     categories.push('event');
   }
+  if (lower.match(/hotel|hostel|pension|unterkunft|übernachtung/)) {
+    categories.push('hotel');
+  }
+  if (lower.match(/bürgeramt|amt|behörde|verwaltung/)) {
+    categories.push('buergeramt');
+  }
+  if (lower.match(/job|stelle|arbeit|karriere|firma/)) {
+    categories.push('job');
+  }
   if (lower.match(/straße|str\.|weg|platz|adresse/)) {
     categories.push('address');
   }
 
   // If no specific category detected, search all
   if (categories.length === 0) {
-    categories.push('doctor', 'parking', 'ev_charging');
+    categories.push('doctor', 'parking', 'ev_charging', 'event');
   }
 
   return categories;
@@ -100,16 +120,77 @@ async function searchAddresses(
   }
 }
 
+// Reine Kategorie-Begriffe (mit Wortgrenzen) — nur "arzt"/"praxis"/... sind
+// reine Kategorie-Wörter und werden entfernt. Spezialisierungen wie
+// "zahnarzt", "hautarzt" oder "augenarzt" enthalten zwar "arzt", sind aber
+// echte Filter-Begriffe und bleiben erhalten.
+export const doctorCategoryPattern = /^(arzt|ärzte|doktor|praxis|klinik|apotheke|gesundheit)$/i;
+
+/**
+ * Filtert Ärzte nach dem Suchbegriff, ignoriert aber reine Kategorie-Wörter
+ * ("arzt", "praxis", ...), damit "arzt"-Suchen ALLE nahen Praxen liefern
+ * statt 0 Ergebnisse. Spezifische Begriffe ("zahnarzt", "haut", "müller")
+ * werden als UND-Filter angewendet. Exportiert für Unit-Tests (search.test.ts).
+ */
+export function filterDoctorsByQuery(
+  doctors: Array<{ name?: string; specialty?: string; address?: string }>,
+  query: string,
+): Array<{ name?: string; specialty?: string; address?: string }> {
+  const terms = query
+    .split(/\s+/)
+    .filter((term) => !doctorCategoryPattern.test(term))
+    .map((term) => term.toLowerCase())
+    .filter(Boolean);
+  if (terms.length === 0) {
+    return doctors;
+  }
+  return doctors.filter((d) => {
+    const haystack = [d.name, d.specialty, d.address]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return terms.every((term) => haystack.includes(term));
+  });
+}
+
+// Search doctors via Overpass (same as healthService)
+// Hinweis: Die Suche ist standort-anchored (lat/lng bestimmen den Umkreis).
+// Ortsnamen im Query (z.B. "arzt münchen" an Berliner Koordinaten) werden
+// als Filter-Text behandelt und können das Ergebnis ausdünnen — bekannte
+// Limitation des Standort-basierten Designs.
+async function searchDoctors(
+  query: string,
+  lat: number,
+  lng: number,
+): Promise<SearchResult[]> {
+  try {
+    const doctors = await healthService.getNearbyDoctors(lat, lng, 2000);
+    const matching = filterDoctorsByQuery(doctors, query);
+    return matching.slice(0, 5).map((d: any) => ({
+      id: d.id || `doctor/${d.name}`,
+      category: 'doctor' as const,
+      name: d.name,
+      description: d.specialty || 'Arzt',
+      distance: d.distanceKm ?? null,
+      lat: d.latitude,
+      lng: d.longitude,
+      relevance: 0.9,
+    }));
+  } catch (error) {
+    logger.warn('Doctor search failed:', error);
+    return [];
+  }
+}
+
 // Search parking spots
 async function searchParking(
   lat: number,
   lng: number,
 ): Promise<SearchResult[]> {
   try {
-    const service = new ParkingService();
-    const spots = await service.getNearbySpots(lat, lng, 2);
+    const spots = await parkingService.getNearbySpots(lat, lng, 2);
     return spots.slice(0, 5).map((spot: any) => ({
-      id: spot.id || `parking/${Math.random()}`,
+      id: spot.id || `parking/${spot.name}`,
       category: 'parking' as const,
       name: spot.name || 'Parkplatz',
       description: `${spot.fee === 'yes' ? 'Kostenpflichtig' : 'Kostenlos'}${spot.capacity ? ` · ${spot.capacity} Plätze` : ''}`,
@@ -143,9 +224,8 @@ async function searchEvents(
   lng: number,
 ): Promise<SearchResult[]> {
   try {
-    const service = new EventService();
     // 20s Timeout fuer Events (Overpass + Wikidata)
-    const events = await withTimeout(service.getNearbyEvents(lat, lng, 10), 20000);
+    const events = await withTimeout(eventService.getNearbyEvents(lat, lng, 10), 20000);
     const categoryQuery = eventOnlyPattern.test(query);
     const searchTerm = query
       .split(/\s+/)
@@ -187,10 +267,9 @@ async function searchEvCharging(
   lng: number,
 ): Promise<SearchResult[]> {
   try {
-    const service = new EvChargingService();
-    const stations = await service.getNearbyStations(lat, lng, 5);
+    const stations = await evChargingService.getNearbyStations(lat, lng, 5);
     return stations.slice(0, 5).map((station: any) => ({
-      id: station.id || `ev/${Math.random()}`,
+      id: station.id || `ev/${station.name}`,
       category: 'ev_charging' as const,
       name: station.name || 'Ladestation',
       description: `${station.sockets?.length || 0} Steckertypen${station.operator ? ` · ${station.operator}` : ''}`,
@@ -201,6 +280,74 @@ async function searchEvCharging(
     }));
   } catch (error) {
     logger.warn('EV Charging search failed:', error);
+    return [];
+  }
+}
+
+// Search hotels via Overpass
+async function searchHotels(
+  lat: number,
+  lng: number,
+): Promise<SearchResult[]> {
+  try {
+    const hotels = await hotelService.getNearbyHotels(lat, lng, 5);
+    return hotels.slice(0, 5).map((hotel: any) => ({
+      id: hotel.id || `hotel/${hotel.name}`,
+      category: 'hotel' as const,
+      name: hotel.name,
+      description: `${hotel.type || 'Unterkunft'}${hotel.stars ? ` · ${hotel.stars} Sterne` : ''}`,
+      distance: hotel.distance_km || null,
+      lat: hotel.lat,
+      lng: hotel.lng,
+      relevance: 0.7,
+    }));
+  } catch (error) {
+    logger.warn('Hotel search failed:', error);
+    return [];
+  }
+}
+
+// Search Bürgeramt via Nominatim
+async function searchBuergeramt(
+  lat: number,
+  lng: number,
+): Promise<SearchResult[]> {
+  try {
+    const aemter = await buergeramtService.getNearbyAemter(lat, lng, 5);
+    return aemter.slice(0, 5).map((amt: any) => ({
+      id: amt.id || `amt/${amt.name}`,
+      category: 'buergeramt' as const,
+      name: amt.name,
+      description: amt.address || 'Bürgeramt',
+      distance: amt.distance_km || null,
+      lat: amt.lat,
+      lng: amt.lng,
+      relevance: 0.7,
+    }));
+  } catch (error) {
+    logger.warn('Bürgeramt search failed:', error);
+    return [];
+  }
+}
+
+// Search jobs via Arbeitnow
+async function searchJobs(
+  query: string,
+): Promise<SearchResult[]> {
+  try {
+    const result = await jobService.searchJobs(query, undefined, undefined, 0, 5);
+    return (result.jobs || []).map((job: any) => ({
+      id: job.id || `job/${job.title}`,
+      category: 'job' as const,
+      name: job.title,
+      description: `${job.company || ''}${job.location ? ` · ${job.location}` : ''}`,
+      distance: null,
+      lat: null,
+      lng: null,
+      relevance: 0.7,
+    }));
+  } catch (error) {
+    logger.warn('Job search failed:', error);
     return [];
   }
 }
@@ -231,7 +378,7 @@ searchRouter.get('/', async (req: Request, res: Response) => {
       let promise: Promise<SearchResult[]>;
       switch (cat) {
         case 'doctor':
-          promise = searchAddresses(`${query} arzt`, lat, lng);
+          promise = searchDoctors(query, lat, lng);
           break;
         case 'parking':
           promise = searchParking(lat, lng);
@@ -244,6 +391,15 @@ searchRouter.get('/', async (req: Request, res: Response) => {
           break;
         case 'event':
           promise = searchEvents(query, lat, lng);
+          break;
+        case 'hotel':
+          promise = searchHotels(lat, lng);
+          break;
+        case 'buergeramt':
+          promise = searchBuergeramt(lat, lng);
+          break;
+        case 'job':
+          promise = searchJobs(query);
           break;
         default:
           promise = Promise.resolve([]);

@@ -20,6 +20,9 @@ import { logger } from '../utils/logger';
 
 export const smartAlertsRouter = Router();
 
+// Module-level singleton (consistent with other route files)
+const wasteService = new WasteService(axios);
+
 interface SmartAlert {
   id: string;
   type: 'waste' | 'weather' | 'airquality' | 'transit' | 'parking' | 'reminder';
@@ -50,7 +53,7 @@ smartAlertsRouter.get('/', async (req: Request, res: Response) => {
     const [weatherResult, airQualityResult, wasteResult] = await Promise.allSettled([
       weatherService.getWeather(lat, lng),
       airQualityService.getAirQuality(lat, lng),
-      new WasteService(axios.create()).getWasteCalendar(lat, lng, 2),
+      wasteService.getWasteCalendar(lat, lng, 2),
     ]);
 
     // Weather alerts

@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import axios, { AxiosError } from 'axios';
 import { externalServices } from '../config/externalServices';
+import { errorMessage } from '../utils/error';
 
 export interface Doctor {
   id: string;
@@ -387,28 +388,35 @@ export class HealthService {
     radiusMeters: number = 3000,
     specialty?: string
   ): Promise<Doctor[]> {
-    // 1. DB-Ärzte im Umkreis laden (via Haversine)
-    const dbDoctors = await query<Doctor>(
-      `SELECT *,
-        ROUND((6371 * acos(LEAST(1,
-          cos(radians($2)) * cos(radians(latitude)) *
-          cos(radians(longitude) - radians($1)) +
-          sin(radians($2)) * sin(radians(latitude))
-        )))::numeric, 1) AS distance_km
-       FROM doctors
-       WHERE (6371000 * acos(LEAST(1,
-         cos(radians($2)) * cos(radians(latitude)) *
-         cos(radians(longitude) - radians($1)) +
-         sin(radians($2)) * sin(radians(latitude))
-       ))) < $3
-       ORDER BY distance_km`,
-      [lng, lat, radiusMeters]
-    );
+    // 1. DB-Ärzte im Umkreis laden (via Haversine). Bei DB-Fehler (z.B.
+    // Suche ohne Datenbank) fallen wir auf reine Overpass-Daten zurueck,
+    // damit die Arzt-Suche trotzdem echte Ergebnisse liefert.
+    let dbMarked: Doctor[] = [];
+    try {
+      const dbDoctors = await query<Doctor>(
+        `SELECT *,
+          ROUND((6371 * acos(LEAST(1,
+            cos(radians($2)) * cos(radians(latitude)) *
+            cos(radians(longitude) - radians($1)) +
+            sin(radians($2)) * sin(radians(latitude))
+          )))::numeric, 1) AS distance_km
+         FROM doctors
+         WHERE (6371000 * acos(LEAST(1,
+           cos(radians($2)) * cos(radians(latitude)) *
+           cos(radians(longitude) - radians($1)) +
+           sin(radians($2)) * sin(radians(latitude))
+         ))) < $3
+         ORDER BY distance_km`,
+        [lng, lat, radiusMeters]
+      );
 
-    const dbMarked: Doctor[] = dbDoctors.map(d => {
-      const distRaw = (d as any).distance_km;
-      return { ...d, source: 'db' as const, distanceKm: distRaw != null ? Number(distRaw) : undefined };
-    });
+      dbMarked = dbDoctors.map(d => {
+        const distRaw = (d as any).distance_km;
+        return { ...d, source: 'db' as const, distanceKm: distRaw != null ? Number(distRaw) : undefined };
+      });
+    } catch (e) {
+      logger.warn(`DB-Arzt-Abfrage fehlgeschlagen, nutze nur Overpass: ${errorMessage(e)}`);
+    }
 
     // 2. Overpass: echte OSM-Praxen
     let osmDoctors: Doctor[] = [];

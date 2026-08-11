@@ -16,6 +16,11 @@ import { logger } from '../utils/logger';
 
 export const dailyBriefingRouter = Router();
 
+// Module-level singletons (consistent with other route files)
+const wasteService = new WasteService(axios);
+const parkingService = new ParkingService();
+const evChargingService = new EvChargingService();
+
 interface DailyBriefing {
   greeting: string;
   timestamp: string;
@@ -86,16 +91,14 @@ dailyBriefingRouter.get('/', async (req: Request, res: Response) => {
 
     logger.info(`Daily Briefing requested: lat=${lat}, lng=${lng}, period=${period}`);
 
-    const wasteServiceInstance = new WasteService(axios.create());
-
     // Parallel fetch all services
     const [weatherResult, airQualityResult, wasteResult, parkingResult, evChargingResult] = 
       await Promise.allSettled([
         weatherService.getWeather(lat, lng),
         airQualityService.getAirQuality(lat, lng),
-        wasteServiceInstance.getWasteCalendar(lat, lng, 1),
-        new ParkingService().getNearbySpots(lat, lng, 2),
-        new EvChargingService().getNearbyStations(lat, lng, 5),
+        wasteService.getWasteCalendar(lat, lng, 1),
+        parkingService.getNearbySpots(lat, lng, 2),
+        evChargingService.getNearbyStations(lat, lng, 5),
       ]);
 
     // Process weather

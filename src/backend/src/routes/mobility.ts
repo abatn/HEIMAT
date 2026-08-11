@@ -40,9 +40,9 @@ mobilityRouter.get('/stops', validate(stopsQuerySchema, 'query'), asyncHandler(a
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 
-// Haltestellen-Suche via db-vendo (MUST be before /stops/:id!)
+// Haltestellen-Suche via Nominatim + Overpass (MUST be before /stops/:id!)
 mobilityRouter.get('/stops/search', validate(searchQuerySchema, 'query'), asyncHandler(async (req: Request, res: Response) => {
-  const stops = await dbVendoService.searchStops(req.query.q as string, 5);
+  const stops = await mobilityService.searchStops(req.query.q as string);
   res.json({ status: 'ok', stops, count: stops.length });
 }));
 

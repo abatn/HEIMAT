@@ -36,6 +36,34 @@ describe('Mobility API', () => {
     });
   });
 
+  describe('GET /api/mobility/stops/search', () => {
+    it('should return stops for a valid query via Nominatim + Overpass', async () => {
+      const res = await withRetry(
+        () =>
+          request(app).get(
+            '/api/mobility/stops/search?q=Alexanderplatz%20Berlin',
+          ),
+        { name: 'mobility-stops-search', retries: 3, timeoutMs: TIMEOUTS.nominatim },
+      );
+
+      expect(isAcceptableStatus(res.status)).toBe(true);
+      if (res.status === 200) {
+        expect(res.body).toHaveProperty('stops');
+        expect(Array.isArray(res.body.stops)).toBe(true);
+        // Regression-Lock: HTTP 200 mit leerem Ergebnis war der dokumentierte
+        // Bug (dbVendoService.searchStops lieferte immer []). Der Fix nutzt
+        // Nominatim + Overpass und MUSS für eine reale Location Stops liefern.
+        expect(res.body.stops.length).toBeGreaterThan(0);
+        expect(res.body.count).toBeGreaterThan(0);
+      }
+    }, TIMEOUTS.nominatim);
+
+    it('should return error without query parameter', async () => {
+      const res = await request(app).get('/api/mobility/stops/search');
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe('GET /api/mobility/stops/:id', () => {
     it('should return a specific stop when live data is available', async () => {
       const stopsRes = await withRetry(

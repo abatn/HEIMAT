@@ -39,7 +39,7 @@ export class HotelService {
   async getNearbyHotels(
     lat: number,
     lng: number,
-    radiusKm: number = 3,
+    radiusKm: number = 2,
   ): Promise<Hotel[]> {
     const results = await Promise.allSettled([
       this.fetchOverpassHotels(lat, lng, radiusKm),
@@ -88,8 +88,6 @@ export class HotelService {
         nwr["tourism"="hotel"](around:${radiusM},${lat},${lng});
         nwr["tourism"="hostel"](around:${radiusM},${lat},${lng});
         nwr["tourism"="motel"](around:${radiusM},${lat},${lng});
-        nwr["tourism"="guest_house"](around:${radiusM},${lat},${lng});
-        nwr["tourism"="apartment"](around:${radiusM},${lat},${lng});
       );
       out body;
     `;
