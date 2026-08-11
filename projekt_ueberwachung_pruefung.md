@@ -1,6 +1,6 @@
 # Überwachungsschleife (Gegenmaßstab)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
 
 - **Was wird überwacht? (Kennzahlen)**
   - **Code-Qualität:**
@@ -60,7 +60,7 @@
 
 # Prüfschleife (unabhängig)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
 
 - **Welche Zahlen werden geprüft?**
   - Backend-Test-Ergebnisse (CI: 555/555 = 100%, lokal: 413/555 = 75.5%)
@@ -98,9 +98,9 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v48.0, 2026-08-11)
+## Messung der 5 „besser"-Dimensionen (v49.0, 2026-08-11)
 
-| # | Dimension | v47.0 | v48.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v48.0 | v49.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
@@ -108,6 +108,6 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v48.0:** Prüfschleife: TypeScript 6.0.3 + typescript-eslint 8.67.0 geprüft — tsc 0 Errors, Build OK, Lint 0 Errors, 173/173 Tests (9 Suiten), audit-no-mocks 0. TS7-Inkompatibilität per peerDependencies-Beleg dokumentiert (kein Upgrade ohne typescript-eslint-Major).
+**Änderung v49.0:** Prüfschleife: unabhängiger Production-E2E-Check nach Deployment bestätigt die zuvor nur lokal belegten Fixes. Neue belegte funktionfähige Services: Mobility Search (30 Stops), Universal Search (5 Kategorien liefern echte Daten). Offener Prüfpunkt: 'E2E Test Praxis'-DB-Artefakte (distance 0) — Bereinigung via `POST /api/admin/health/cleanup` (ADMIN_KEY nötig).
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.

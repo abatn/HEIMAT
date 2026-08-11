@@ -2228,8 +2228,8 @@ Web-Browser zeigen einen Permission-Prompt für Geolocation. Die Browser-Geoloca
 | 10 | AI Status | `/api/ai/status` | 200 | Ollama aktiv | ✅ |
 | 11 | Daily Briefing | `/api/daily-briefing?lat=52.52&lng=13.405` | 200 | Briefing-Daten | ✅ |
 | 12 | Smart Alerts | `/api/smart-alerts?lat=52.52&lng=13.405` | 200 | 1 Alert | ✅ |
-| 13 | Mobility Search | `/api/mobility/stops/search?q=Alexanderplatz` | 200 | 0 (Fix pending deploy) | ⏳ |
-| 14 | Universal Search | `/api/search?q=arzt&lat=52.52&lng=13.405` | 200 | 0 (Fix pending deploy) | ⏳ |
+| 13 | Mobility Search | `/api/mobility/stops/search?q=Alexanderplatz` | 200 | **30 echte Stops (Alexanderplatz, U Alexanderplatz)** | ✅ **FUNKTIONFÄHIG (Production-verifiziert 2026-08-11)** |
+| 14 | Universal Search | `/api/search?q=arzt&lat=52.52&lng=13.405` | 200 | **doctor-Kategorie: echte OSM-Praxen (zahnarzt→Zahnarztpraxis am Checkpoint Charlie, hotel→5 Hotels)** | ✅ **FUNKTIONFÄHIG (Production-verifiziert 2026-08-11)** |
 | 15 | Waste | `/api/waste/calendar?lat=52.52&lng=13.405` | 502 | schedule_id benötigt | ⚠️ |
 
 ### Offene Tasks
@@ -2340,17 +2340,17 @@ Web-Browser zeigen einen Permission-Prompt für Geolocation. Die Browser-Geoloca
 
 ### Offene Tasks (nach X.20)
 
-1. **Fixes deployen** — Mobility-Search + Universal-Search sind lokal 100% grün, aber Production liefert noch die alten Bugs (`stops: []`, `count: 0`). Deployment = Commit + Push.
+1. ~~**Fixes deployen**~~ ✅ **ERLEDIGT (2026-08-11):** Commit 9df1b60 + Push nach main, Production-verifiziert.
 2. **Finance: EUR Production Exchange** — Business-Dependency, kein Code-Fix möglich.
 3. **Waste: schedule_id für Berlin** — Erwartetes Verhalten (BSR-Adapter), kein Bug.
-4. **TypeScript 7 Upgrade** — typescript-eslint@8 Inkompatibilität.
+4. ~~**TypeScript 7 Upgrade**~~ ✅ **ERLEDIGT (X.21):** TS6.0.3 + typescript-eslint 8.67.0, TS7 dokumentiert inkompatibel.
 5. **Futai Chat Integration** + **Health AI Phase 3** — niedrige Priorität.
 
-### Service-Status v47.0 (nach X.20, lokal verifiziert)
+### Service-Status v48.0 (Production-verifiziert 2026-08-11)
 
 | Service | Status | Nachweis |
 |---------|--------|----------|
-| **Universal Search** | ✅ **GEFIXT (lokal)** | 26 Tests inkl. Live: "arzt" liefert echte Ärzte, 8 Kategorien |
-| **Mobility Search** | ✅ **GEFIXT (lokal)** | Verschärfter Test: 200 ⇒ echte Stops |
-| **Doctor-Suche ohne DB** | ✅ **Robust** | DB-Fallback auf Overpass statt 0 Ergebnisse |
+| **Universal Search** | ✅ **FUNKTIONFÄHIG (Production)** | Commit 9df1b60 deployed. E2E gegen Render: `q=arzt` → doctor-Kategorie; `q=zahnarzt` → Zahnarztpraxis am Checkpoint Charlie; `q=hotel` → 5 Hotels; `q=veranstaltung` → Events; `q=parken` → Parkplätze. Alle HTTP 200. |
+| **Mobility Search** | ✅ **FUNKTIONFÄHIG (Production)** | Commit 9df1b60 deployed. E2E gegen Render: `q=Alexanderplatz Berlin` → **30 echte Stops** (Alexanderplatz, U Alexanderplatz, subway). HTTP 200. |
+| **Doctor-Suche ohne DB** | ✅ **Robust (Production)** | DB-Fallback auf Overpass bestätigt. Hinweis: DB enthält noch 'E2E Test Praxis'-Artefakte (distance 0, verdrängen OSM-Top-5) — Bereinigung via `POST /api/admin/health/cleanup` möglich (braucht ADMIN_KEY), offen dokumentiert. |
 

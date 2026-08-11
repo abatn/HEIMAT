@@ -1,6 +1,6 @@
 # Anker (Anchors) – nicht schönbare Messgrößen
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
 
 1. **Echte Einnahmen:** 0 EUR — Projekt ist Open Source, keine Monetarisierung implementiert
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)
@@ -80,9 +80,9 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v48.0, 2026-08-11)
+## Messung der 5 „besser"-Dimensionen (v49.0, 2026-08-11)
 
-| # | Dimension | v47.0 | v48.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v48.0 | v49.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
@@ -90,7 +90,7 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v48.0:** TypeScript-Upgrade 5.6.3 → 6.0.3 + typescript-eslint → 8.67.0. Anker: Toolchain aktuell (innerhalb der typescript-eslint-Support-Range). TS7-Upgrade als Task geschlossen — dokumentierte Inkompatibilität (peerDependencies `>=4.8.4 <6.1.0`), kein „offen"-Status mehr, sondern begründete Entscheidung.
+**Änderung v49.0:** Production-Verifikation nach Deployment. Anker: „Funktionfähig" jetzt belegt für **Mobility Search** und **Universal Search** — realer Datenpfad (HTTP 200, echte Stops/Ärzte/Hotels/Events/Parkplätze) + Tests (173/173) + Production-Check gegen Render erfüllt. Die letzten zwei offenen „funktionieren nicht“-Services sind damit geschlossen.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

@@ -1,6 +1,6 @@
 # Zielschleife (angewandte Schleife)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
 
 - **Endgültiges Ziel des Projekts:**
   HEIMAT 2.0 ist eine Open-Source "Super App" (à la WeChat/Grab) mit deutscher UI,
@@ -47,9 +47,9 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v48.0, 2026-08-11)
+## Messung der 5 „besser"-Dimensionen (v49.0, 2026-08-11)
 
-| # | Dimension | v47.0 | v48.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v48.0 | v49.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
@@ -57,7 +57,7 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v48.0:** Phase X.21 — TypeScript-Upgrade 5.6.3 → 6.0.3 + typescript-eslint 8.67.0. Offene Task „TypeScript 7 Upgrade" beantwortet: TS 7.0.2 (tsgo) ist mit typescript-eslint inkompatibel (peerDependencies `>=4.8.4 <6.1.0`, belegt) → Upgrade auf neueste kompatible Version 6.0.3. Validierung: tsc 0 Errors, Build OK, Lint 0 Errors, 173/173 Tests, audit-no-mocks 0.
+**Änderung v49.0:** **DEPLOYED + PRODUCTION-VERIFIZIERT.** Commit 9df1b60 (Phase X.19+X.20) ist auf main und live auf Render. Production-E2E-Check (07:20 UTC): **Mobility Search → 30 echte Stops** (Alexanderplatz), **Universal Search → doctor/zahnarzt/hotel/veranstaltung/parken liefern echte Ergebnisse** (HTTP 200). Beide Services sind damit **funktionfähig** eingetragen. Hinweis: 'E2E Test Praxis'-DB-Artefakte verdrängen bei q=arzt die OSM-Top-5 (distance 0) — Bereinigung via Admin-Endpoint offen.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

@@ -1,6 +1,6 @@
 # Betriebsschleife (schnell)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 49.0
 
 - **Welche Daten werden täglich/wöchentlich erhoben?**
   - **Täglich (bei jedem Commit/CI-Lauf):**
@@ -82,9 +82,9 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v48.0, 2026-08-11)
+## Messung der 5 „besser"-Dimensionen (v49.0, 2026-08-11)
 
-| # | Dimension | v47.0 | v48.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v48.0 | v49.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
@@ -92,7 +92,7 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v48.0:** Phase X.21 — TypeScript 5.6.3 → 6.0.3, typescript-eslint 8.65.0 → 8.67.0. Betriebsdaten: tsc 0 Errors, Build `dist/index.js` OK, Lint 0 Errors (135 Warnings unverändert), 173/173 Tests in 9 Suiten, audit-no-mocks 0. TS7 (tsgo) bewusst ausgeschlossen — peerDependencies-Beleg `<6.1.0`.
+**Änderung v49.0:** Deployment + Production-Verifikation. Betriebsdaten: Commit 9df1b60 auf main, Render-Deploy live (Uptime 119s beim Check). E2E gegen `heimat-backend.onrender.com`: stops/search 200 (5152 B, 30 Stops), search zahnarzt 200, hotel 200, veranstaltung 200, parken 200. Damit sind Mobility Search + Universal Search **funktionfähig** (vorher die zwei offenen „funktionieren nicht“-Services).
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
