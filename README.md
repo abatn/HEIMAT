@@ -51,6 +51,8 @@ HEIMAT 2.0 ist eine datenschutzkonforme, kostenfreie Super App für den deutsche
 - **100% Datenschutzkonform** – DSGVO als Feature, nicht als Hindernis
 - **100% Community-getrieben** – Entwicklung durch Freiwillige, nicht durch Unternehmen
 
+> 🧭 **Die Philosophie hinter HEIMAT:** „HEIMAT ist ein Medium, in dem die anhaltende Aufmerksamkeit einer App auf die anhaltende Aufmerksamkeit eines Anwenders trifft." — Mehr in [philosophie-heimat.md](philosophie-heimat.md)
+
 ---
 
 ## Features
