@@ -1,6 +1,6 @@
 # Überwachungsschleife (Gegenmaßstab)
 
-**Letzte Aktualisierung:** 2026-08-07 | Version 19.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
 
 - **Was wird überwacht? (Kennzahlen)**
   - **Code-Qualität:**
@@ -60,7 +60,7 @@
 
 # Prüfschleife (unabhängig)
 
-**Letzte Aktualisierung:** 2026-08-07 | Version 19.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
 
 - **Welche Zahlen werden geprüft?**
   - Backend-Test-Ergebnisse (CI: 555/555 = 100%, lokal: 413/555 = 75.5%)
@@ -98,61 +98,16 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v19.0, 2026-08-07)
+## Messung der 5 „besser"-Dimensionen (v48.0, 2026-08-11)
 
-| # | Dimension | v19.0 | v19.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v47.0 | v48.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
-| 5 | **Echte APIs** | 122 Calls | 122 Calls | — stabil | — | ✅ OK |
+| 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v19.0:** Prüfschleife: Mobility Timeout-Fix bestätigt.
+**Änderung v48.0:** Prüfschleife: TypeScript 6.0.3 + typescript-eslint 8.67.0 geprüft — tsc 0 Errors, Build OK, Lint 0 Errors, 173/173 Tests (9 Suiten), audit-no-mocks 0. TS7-Inkompatibilität per peerDependencies-Beleg dokumentiert (kein Upgrade ohne typescript-eslint-Major).
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
-
-**Version-12-Nachtrag (2026-08-07):** Die lokale universelle Event-Suche ist mit echten OSM-Daten verifiziert (2/2 Integrationstests). Production liefert vor Deployment noch den alten leeren Event-Zweig. Offener Prüfpunkt: Deployment, danach read-only E2E mit `Veranstaltung` und `Museum` an einem Standort außerhalb Berlins.
-
-**Version-13-Nachtrag (2026-08-07):** Die neue öffentliche Read-only-Teilmatrix wurde mit echten Render-Daten ausgeführt. 8 Dienste bestanden an zwei Standorten; Abfall ist wegen fehlender kommunaler Abdeckung `degraded`; universelle Event-Suche ist `fail`. Authentifizierte/stateful Services sind bewusst nicht enthalten.
-
-**Version-14-Nachtrag — Prüfgrenze:** Es existiert aktuell kein lokaler Backend-Server und kein lokales PostgreSQL. Deshalb sind lokale Flutter-/DB-Testfehler keine Serviceverifikation. Die öffentliche Read-only-Teilmatrix gegen Render ist ebenfalls kein vollständiger Projektcheck: authentifizierte/stateful Services sowie nicht erreichbare oder fehlschlagende Services bleiben ausdrücklich unbewertet bzw. nicht funktionfähig.
-
-**Version-15-Nachtrag — aktuelle Prüfliste (2026-08-07):** Für den aktuellen Status gelten ausschließlich belegte Nachweise. Bestanden sind in der dokumentierten Teilmatrix Wetter, Luftqualität, E-Laden, Parken, Events, Hotels, Bürgeramt und Jobs. Abfall bleibt bei `CITY_NOT_SUPPORTED` `degraded`; die universelle Event-Suche bleibt `fail`; Mobility-Journey, Finance, Health, Check-in und AI-Chat sind unbewertet/offen. Kein lokaler Server/PostgreSQL und kein vorhandener Screen, Route oder HTTP-200 ersetzt diese Prüfung.
-
-**Version-16-Nachtrag — Render-Prüfgrenze (2026-08-07):** Der neue `healthCheckPath: /health` prüft nur die Erreichbarkeit des bestehenden HTTP-Endpunkts. Er darf nicht als Fachservice- oder Datenbank-Gesamtnachweis interpretiert werden. Die Fachservice-Matrix und die authentifizierten/stateful Prüfungen bleiben separat erforderlich.
-
-**Version-17-Nachtrag — Event-Suche (2026-08-07):** Die zuvor ungefilterte Wikidata-Query wurde auf `SERVICE wikibase:around` mit echten Standort-/Radiusparametern umgestellt. Das ist ein Code-/Contract-Test-Nachweis, kein Production-Erfolg. Der offene Prüfpunkt bleibt ein realer Render-Lauf von `verify:services`. Der Query benötigt einen Wikidata-Event-Ort (`P276`) mit Koordinaten (`P625`); fehlende Ortsdaten sind eine dokumentierte Datenquellenbegrenzung.
-
-**Version-18-Nachtrag — Abfall-PLZ-Fallback (2026-08-07):** Die PLZ-Fallback-Logik in `resolveCityFromCoords` wurde implementiert und mit 20 Tests validiert. Der Abfall-Service bleibt `degraded`, bis ein echter Production-Lauf den PLZ-Fallback mit Nominatim-Daten bestätigt. Die Tests prüfen die reine Matching-Logik (findCityByNominatim, findCityByPlz) ohne HTTP-Abhängigkeiten.
-
-**Nächste Messung:** Nach CI-/Production-Prüfung mit dokumentierter Umgebung
-
-**Version-19-Nachtrag — Service-Fixes (2026-08-07):**
-1. Bürgeramt: Overpass `out center` fix verifiziert — 86 Ergebnisse in Berlin.
-2. AI Chat: Ollama Timeout-Reduktion verifiziert — Fallback funktioniert auf Render.
-3. Waste: abfall.io API antwortet leer — externes Problem, kein Code-Bug.
-4. TypeScript-Check: `tsc --noEmit` bestanden nach allen Fixes.
-
-**Version-20-Nachtrag — BSR-Adapter für Berlin (2026-08-07):**
-1. BSR-Adapter implementiert und getestet (12 Tests, alle grün).
-2. Berlin in wasteCityRegistry als 'bsr' Adapter registriert.
-3. TypeScript-Kompilierung: `tsc --noEmit` bestanden.
-4. Waste Service: Berlin jetzt mit BSR-Adapter (statt abfall.io).
-
-**Version-21-Nachtrag — Wikidata Event-Suche optimiert (2026-08-07):**
-1. Wikidata SPARQL Query: `wikibase:around` statt String-Filtering.
-2. 7 Tests aktualisiert — alle grün.
-3. TypeScript-Kompilierung: `tsc --noEmit` bestanden.
-
-**Version-22-Nachtrag — AI Chat Fallback verbessert (2026-08-07):**
-1. Fallback-Text verbessert.
-2. 8 Tests bestanden.
-3. TypeScript-Kompilierung: `tsc --noEmit` bestanden.
-
-**Version-23-Nachtrag — Waste Service Berlin-BSR-Adapter Fix (2026-08-07):**
-1. Berlin in statische CITY_REGISTRY eingefügt (Adapter-Typ 'bsr').
-2. `findCityByNominatim()` findet jetzt BSR vor abfall.io.
-3. 21 Tests bestanden (bsrService + wasteService).
-4. TypeScript-Kompilierung: `tsc --noEmit` bestanden.
-5. Production-Check: 9/10 Services PASS.

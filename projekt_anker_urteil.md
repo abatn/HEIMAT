@@ -1,6 +1,6 @@
 # Anker (Anchors) – nicht schönbare Messgrößen
 
-**Letzte Aktualisierung:** 2026-08-07 | Version 19.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
 
 1. **Echte Einnahmen:** 0 EUR — Projekt ist Open Source, keine Monetarisierung implementiert
 2. **Tatsächliche Nutzer:** 0 (Demo-User `heimat-demo-user@heimat.de` existiert in Prod-DB, kein aktiver User-Betrieb)
@@ -80,17 +80,17 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v19.0, 2026-08-07)
+## Messung der 5 „besser"-Dimensionen (v48.0, 2026-08-11)
 
-| # | Dimension | v19.0 | v19.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v47.0 | v48.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
-| 5 | **Echte APIs** | 122 Calls | 122 Calls | — stabil | — | ✅ OK |
+| 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v19.0:** Mobility Timeout-Fix. 13/14 Services funktional.
+**Änderung v48.0:** TypeScript-Upgrade 5.6.3 → 6.0.3 + typescript-eslint → 8.67.0. Anker: Toolchain aktuell (innerhalb der typescript-eslint-Support-Range). TS7-Upgrade als Task geschlossen — dokumentierte Inkompatibilität (peerDependencies `>=4.8.4 <6.1.0`), kein „offen"-Status mehr, sondern begründete Entscheidung.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

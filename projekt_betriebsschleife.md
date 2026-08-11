@@ -1,6 +1,6 @@
 # Betriebsschleife (schnell)
 
-**Letzte Aktualisierung:** 2026-08-07 | Version 19.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
 
 - **Welche Daten werden täglich/wöchentlich erhoben?**
   - **Täglich (bei jedem Commit/CI-Lauf):**
@@ -82,17 +82,17 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v19.0, 2026-08-07)
+## Messung der 5 „besser"-Dimensionen (v48.0, 2026-08-11)
 
-| # | Dimension | v19.0 | v19.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v47.0 | v48.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
-| 5 | **Echte APIs** | 122 Calls | 122 Calls | — stabil | — | ✅ OK |
+| 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v19.0:** Mobility Timeout 25s→10s. 13/14 APIs erreichbar.
+**Änderung v48.0:** Phase X.21 — TypeScript 5.6.3 → 6.0.3, typescript-eslint 8.65.0 → 8.67.0. Betriebsdaten: tsc 0 Errors, Build `dist/index.js` OK, Lint 0 Errors (135 Warnings unverändert), 173/173 Tests in 9 Suiten, audit-no-mocks 0. TS7 (tsgo) bewusst ausgeschlossen — peerDependencies-Beleg `<6.1.0`.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

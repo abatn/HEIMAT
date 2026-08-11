@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-10, v43.0):** 10/10 Services im Public-Read-Only-Matrix PASS. **Production-Check (13:44 UTC):** Health ✅, Wetter ✅ (29.6°C Berlin), Luftqualität ✅ (AQI 45), Abfall ✅ (Nürnberg), E-Laden ✅ (17 Stationen), Parken ✅ (9 Parkplätze), Jobs ✅ (20 Listings), Ärzte ✅ (33), ÖPNV ✅ (30 Stops), Bürgeramt ✅ (0 Ergebnisse). **Events/Hotels: Optimiert** (Radius reduziert, nwr-Query, Timeout 25s). **Waste-Service:** 120+ Regionen, 6 Adapter. **Jobs:** Adzuna API (alle 7 Kategorien) + Skill-Matching. **Health AI:** Phase 1+2 abgeschlossen (105 Tests). **audit-no-mocks.sh: 0 Verstöße.**
+> **Aktueller Status-Override (2026-08-11, v48.0):** **Phase X.21:** TypeScript-Upgrade 5.6.3→6.0.3 + typescript-eslint→8.67.0 (TS7/tsgo bewusst ausgeschlossen — peerDependencies `<6.1.0`). tsc 0 Errors, Build OK, Lint 0 Errors, 173/173 Tests, audit-no-mocks 0. **Phase X.20:** Universal-Search-Doctor-Bug gefixt ("arzt"-Suche lieferte 0, weil nach dem Wort "arzt" in Arzt-Daten gefiltert wurde) + 26 neue Such-Tests (Unit+Live) + Mobility-Search-Test verschärft (200 ⇒ echte Stops) + DB-Fallback für Doctor-Suche. Validierung: search 26/26, mobility 20/20, health 48/48, audit-no-mocks 0. **Production-Check (08:15 UTC):** 11/11 Endpoints HTTP 200 mit echten Daten (Bürgeramt 20 Ämter, Events, Hotels, Departures live). **⚠️ Mobility-Search + Universal-Search Fixes sind lokal fertig, aber noch NICHT deployed — Production liefert weiterhin die alten Bugs (`stops: []`, `count: 0`).**
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -430,21 +430,26 @@ ollamaService.chatWithContext({ health: { symptom } })
 | "Hallo" | Kein Triage | — |
 | "Ich kaufe Blumen und Druckpapier" | Kein Triage | — |
 
-### ✅ Events/Hotels Overpass-Optimierung (2026-08-10, Commit e72bb5c)
+### ✅ Events/Hotels Overpass-Optimierung (2026-08-10, Commit e72bb5c + 2026-08-11 Fix)
 
 **Problem:** Events und Hotels gaben bei Production-Check timeouts (>30s) zurück.
 
-**Lösung:**
+**Lösung (Phase 1 - 2026-08-10):**
 - **Events:** Default Radius 10→5km, `nwr`-Query (effizienter als node+way), Timeout 15→25s
 - **Hotels:** Default Radius 5→3km, Timeout 10→25s
 - **Routes:** Default Radii angeglichen (Events 5km, Hotels 3km)
 
+**Lösung (Phase 2 - 2026-08-11):**
+- **Hotels:** Default Radius 3→2km, Tourism-Typen 5→3 (hotel, hostel, motel)
+- **Route:** Default Radius 3→2km
+- **Tests:** 5 neue Integration-Tests für Hotels-Service
+
 **Änderungen:**
 - `eventService.ts`: nwr-Query mit 6 Amenity-Typen (marketplace, museum, arts_centre, cinema, theatre, exhibition)
-- `hotelService.ts`: nwr-Query mit 5 Tourism-Typen (hotel, hostel, motel, guest_house, apartment)
+- `hotelService.ts`: nwr-Query mit 3 Tourism-Typen (hotel, hostel, motel) — guest_house und apartment entfernt
 - Beide Services: Client-Timeout 25s für Overpass-Calls
 
-**Validation:** 7/7 Tests bestanden, audit-no-mocks 0 violations.
+**Validation:** 5/5 Hotels-Tests bestanden, Production-Check: 30 Hotels in Berlin (2km Radius).
 
 ### ⚠️ Verbleibende offene Tasks (v43.0)
 
@@ -453,7 +458,7 @@ ollamaService.chatWithContext({ health: { symptom } })
 | 1 | **Wallet 0.00 KUDOS** | Kein EUR-Exchange live. Manueller Bank-Wire nötig | 🔴 Blockiert (extern) |
 | 2 | **Futai Chat Integration** | Mini-Program-Container steht, aber keine Futai-Integration | 🟢 Niedrig |
 | 3 | **Health AI Phase 3** | Foto-Analyse, erweiterte Differentialdiagnose | 🟢 Niedrig |
-| 4 | **TypeScript 7 Upgrade** | typescript-eslint@8 inkompatibel | 🟡 Mittel |
+| 4 | ~~**TypeScript 7 Upgrade**~~ | ✅ **Geschlossen (v48.0):** TS7 (tsgo) inkompatibel mit typescript-eslint (peerDeps `>=4.8.4 <6.1.0`). Stattdessen Upgrade TS 5.6.3→**6.0.3** + typescript-eslint→8.67.0. tsc 0 Errors, Lint 0 Errors, 173/173 Tests. |
 
 ### ❌ Bekannte Einschränkungen (keine Bugs)
 
@@ -604,7 +609,7 @@ Ein intelligenter Health AI Agent, der:
 | **Mobilität** | ÖPNV, Parken, E-Laden | ✅ 3/3 | HTTP 200 + echte Daten (17 Stationen, 6 Parkhäuser) |
 | **Gesundheit** | Ärzte, Lebenszeichen | ✅ 2/2 | **50+ Ärzte Berlin, 49+ Stuttgart, 51+ Hamburg** (100% Overpass-Live), Checkin aktiv |
 | **Alltag** | Wetter, Luft, Abfall, Bürgeramt, Jobs | ✅ 5/5 | Wetter/Luft/Jobs/Bürgeramt 100%; **Waste: 120+ Regionen funktional** (AbfallNavi 19 + AbfallPlus 90+ + BSR 1 + **5 Großstadt-Adapter: Köln, München, Hamburg, Stuttgart, Leipzig**); abfall.io 27 Städte deprecated (403) |
-| **Kultur & Reise** | Events, Hotels | ✅ 2/2 | Events/Hotels: Optimiert (Radius 5/3km, nwr-Query, Timeout 25s) |
+| **Kultur & Reise** | Events, Hotels | ✅ 2/2 | Events/Hotels: Optimiert (Events 5km, Hotels 2km, nwr-Query, Timeout 25s) |
 | **Finanzen** | Taler-Wallet | ✅ 1/1 | Wallet existiert, Auth funktioniert |
 | **AI** | HEIMAT AI | ✅ 1/1 | Phase 1+2 abgeschlossen (105 Tests), Fallback bei keinem Ollama |
 

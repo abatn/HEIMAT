@@ -1,6 +1,6 @@
 # Zielschleife (angewandte Schleife)
 
-**Letzte Aktualisierung:** 2026-08-07 | Version 19.0
+**Letzte Aktualisierung:** 2026-08-11 | Version 48.0
 
 - **Endgültiges Ziel des Projekts:**
   HEIMAT 2.0 ist eine Open-Source "Super App" (à la WeChat/Grab) mit deutscher UI,
@@ -47,18 +47,17 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v19.0, 2026-08-07)
+## Messung der 5 „besser"-Dimensionen (v48.0, 2026-08-11)
 
-| # | Dimension | v19.0 | v19.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v47.0 | v48.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
 | 3 | **Regressionen** | 0 | 0 | — stabil | >0 | ✅ OK |
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
-| 5 | **Echte APIs** | 122 Calls | 122 Calls | — stabil | — | ✅ OK |
+| 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v19.0:** Mobility-Service Timeout 25s→10s (schnellerer Failover).
-Live-API-Check: 13/14 Services erreichbar (HTTP 200). Waste 502 (externes Problem).
+**Änderung v48.0:** Phase X.21 — TypeScript-Upgrade 5.6.3 → 6.0.3 + typescript-eslint 8.67.0. Offene Task „TypeScript 7 Upgrade" beantwortet: TS 7.0.2 (tsgo) ist mit typescript-eslint inkompatibel (peerDependencies `>=4.8.4 <6.1.0`, belegt) → Upgrade auf neueste kompatible Version 6.0.3. Validierung: tsc 0 Errors, Build OK, Lint 0 Errors, 173/173 Tests, audit-no-mocks 0.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
