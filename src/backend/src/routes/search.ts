@@ -164,7 +164,11 @@ async function searchDoctors(
   lng: number,
 ): Promise<SearchResult[]> {
   try {
-    const doctors = await healthService.getNearbyDoctors(lat, lng, 2000);
+    let doctors = await healthService.getNearbyDoctors(lat, lng, 5000);
+    // Fallback: bei 0 Ergebnissen groesseren Radius versuchen (Overpass instabil)
+    if (doctors.length === 0) {
+      doctors = await healthService.getNearbyDoctors(lat, lng, 20000);
+    }
     const matching = filterDoctorsByQuery(doctors, query);
     return matching.slice(0, 5).map((d: any) => ({
       id: d.id || `doctor/${d.name}`,
