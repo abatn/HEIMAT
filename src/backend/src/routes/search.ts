@@ -181,29 +181,27 @@ async function searchDoctors(
         relevance: 0.9,
       }));
     }
-    // Fallback 2: Nominatim — sucht "arzt near berlin" und liefert OSM-Places
-    const nomQuery = `${query} near ${lat},${lng}`;
+    // Fallback 2: DB-Arztsuche (ohne Entfernungsfilter — Overpass instabil)
     try {
-      const nomResp = await axios.get(
-        'https://nominatim.openstreetmap.org/search',
-        {
-          params: { q: nomQuery, format: 'json', limit: 5, addressdetails: 1 },
-          headers: { 'User-Agent': 'HEIMAT/2.0' },
-          timeout: 10000,
-        },
+      const { query: dbQuery } = await import('../config/database');
+      const dbDoctors = await dbQuery(
+        `SELECT *, 0 AS distance_km FROM doctors ORDER BY name LIMIT 10`
       );
-      return (nomResp.data || []).map((item: any) => ({
-        id: `doctor/nominatim/${item.place_id}`,
-        category: 'doctor' as const,
-        name: item.display_name.split(',')[0],
-        description: item.type || 'Arzt',
-        distance: null,
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-        relevance: 0.6,
-      }));
+      if (dbDoctors.length > 0) {
+        const filtered = filterDoctorsByQuery(dbDoctors, query);
+        return filtered.slice(0, 5).map((d: any) => ({
+          id: d.id || `doctor/${d.name}`,
+          category: 'doctor' as const,
+          name: d.name,
+          description: d.specialty || 'Arzt',
+          distance: null,
+          lat: d.latitude,
+          lng: d.longitude,
+          relevance: 0.5,
+        }));
+      }
     } catch {
-      // Nominatim fehlgeschlagen — leer zurueckgeben
+      // DB fehlgeschlagen — leer zurueckgeben
     }
     return [];
   } catch (error) {
