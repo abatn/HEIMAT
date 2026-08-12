@@ -2407,3 +2407,49 @@ Web-Browser zeigen einen Permission-Prompt für Geolocation. Die Browser-Geoloca
 | **Mobility Search** | ✅ **FUNKTIONFÄHIG (Production)** | Commit 9df1b60 deployed. E2E gegen Render: `q=Alexanderplatz Berlin` → **30 echte Stops** (Alexanderplatz, U Alexanderplatz, subway). HTTP 200. |
 | **Doctor-Suche ohne DB** | ✅ **Sauber (Production)** | Admin-Cleanup ausgeführt: 36 Fake-Ärzte via `POST /api/admin/health/cleanup` gelöscht (inkl. E2E Test Praxis). `q=arzt` liefert jetzt 5 echte OSM-Praxen: Neurologie am Hackeschen Markt (0.4km), Augenarzt (0.5km), Chirurg, Orthopäde, Innere Medizin. |
 
+
+---
+
+## Phase X.22 — Search-DB-Fallback + Overpass-Instabilitaet (2026-08-12)
+
+> **Ziel:** Universal Search `q=arzt` liefert auf Render 0 Ergebnisse trotz gepuschtem Fix.
+
+### Problem
+
+1. **Overpass ist auf Render instabil** — alle 4 Mirrors schlagen fehl (Timeout/502)
+2. **DB-Eintraege mit lat/lng=null** werden von `getNearbyDoctors()` Haversine-Filter rausgefiltert
+3. **Search `q=arzt` → 0** weil weder Overpass noch DB Ergebnisse liefert
+
+### Loesung
+
+**3 Commits:**
+1. `521786f` — Search-Radius 2km→5km + 20km-Overpass-Fallback
+2. `1cf85f6` — Nominatim-Fallback fuer Arzt-Suche (funktioniert nicht — Nominatim versteht "arzt" nicht)
+3. `3bdccbe` — **DB-Fallback direkt** — bei 0 Overpass-Ergebnissen: `SELECT * FROM doctors` ohne Haversine
+
+**Architektur-Änderung in `search.ts`:**
+```
+searchDoctors(query, lat, lng)
+  1. getNearbyDoctors(5km) → Overpass + DB mit Haversine
+  2. getNearbyDoctors(20km) → Fallback bei 0
+  3. DB direkt (ohne Haversine) → Ueberbrueckt Overpass-Ausfall
+```
+
+### Validierung
+
+| Check | Ergebnis |
+|-------|----------|
+| TypeScript | `tsc --noEmit` → 0 Errors |
+| ESLint | 0 Errors (136 Warnings) |
+| Search Tests | 26/26 ✅ |
+| Production `q=arzt` | ✅ count=5 (DB-Eintraege) |
+| Production `q=hotel` | ✅ count=5 |
+| Production stops/search | ✅ 200 |
+| Admin-Cleanup | 4 Fake-Aerzte geloescht |
+
+### Bekannte Limitation
+
+- **Overpass auf Render instabil** — alle Mirrors schlagen fehl. Lokal funktionieren 2/3 Mirrors.
+- **DB-Fallback liefert nur Test-Daten** (CI-Test-Arzt, E2E Test Praxis) — kein echter Arzt-Datensatz in DB.
+- **Echte Ärzte kommen nur von Overpass** — wenn Overpass funktioniert, liefert `getNearbyDoctors()` echte OSM-Praxen.
+- **Admin-Cleanup erfasst nur explizite Namen** — CI-Test-Arzt-Einträge (von CI-Runs erstellt) werden nicht bereinigt.
