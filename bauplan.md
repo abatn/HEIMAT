@@ -1,3 +1,56 @@
+## Phase Futai-Registry — ComingSoonScreen Placeholder (2026-08-11)
+
+> **Ziel:** Futai als 15. Service in der ServiceRegistry registrieren — ehrlicher ComingSoonScreen-Placeholder statt fehlendem Service.
+
+### Status
+
+- ✅ `service_registry.dart` — `futai`-Eintrag mit `ComingSoonScreen` nativeBuilder hinzugefügt
+- ✅ `service_registry_test.dart` — Erwartete IDs von 14 auf 15 aktualisiert
+- ✅ `dart format` — 0 Änderungen (bereits formatiert)
+- ✅ `flutter analyze` — No issues found
+- ✅ `flutter test` — 37/37 grün (23 service_registry + 14 app_smoke)
+
+### Änderungen
+
+| Datei | Änderung |
+|-------|----------|
+| `lib/features/miniprogram/domain/service_registry.dart` | Import `coming_soon_screen.dart` + `futai` ServiceDefinition |
+| `test/service_registry_test.dart` | 14→15 Services, `futai` zu expectedIds hinzugefügt |
+
+### Offene Punkte (bewusst nicht umgesetzt)
+
+- **Futai WebView-Integration**: Erfordert Architectur-Design (React Native → WebView in Flutter)
+- **Futai Backend-Sharing**: Separate Phase (Supabase Multi-User)
+- **Futai Flutter-Rewrite**: 2-3 Wochen Aufwand, nicht Priorität
+
+---
+
+## Phase ESLint-Cleanup — Dead Config Files (2026-08-11)
+
+> **Ziel:** Überflüssige ESLint-Konfigurationsdateien entfernen, die bei ESLint 10+ (Flat Config) nicht mehr unterstützt werden.
+
+### Status
+
+- ✅ `eslint.config.mjs` — Flat Config funktioniert (0 Errors, 135 Warnungen)
+- ✅ `npm run lint` bestanden — nur Warnung: `ESLintIgnoreWarning: The ".eslintignore" file is no longer supported`
+- ⏳ `.eslintrc.json` — Tote Datei (ESLint 10 ignoriert sie), manuelles `rm` erforderlich
+- ⏳ `.eslintignore` — Tote Datei (ignores已在 `eslint.config.mjs:48` definiert), manuelles `rm` erforderlich
+
+### Begründung
+
+ESLint 10 verwendet standardmäßig Flat Config (`eslint.config.mjs`). Die legacy-Dateien `.eslintrc.json` und `.eslintignore` werden nicht gelesen, verursachen aber eine Warnung im CI. Die identischen Regeln sind bereits in `eslint.config.mjs` dupliziert.
+
+### Validation
+
+- `cd src/backend && npm run lint` → 0 Errors, 135 Warnungen (alle `warn`-Level)
+- Flat Config `eslint.config.mjs` allein ausreichend
+
+### Offene Punkte
+
+- **Manuelles `rm` nötig:** `rm src/backend/.eslintrc.json src/backend/.eslintignore` (kein automatisches Deployment-Skript verfügbar)
+
+---
+
 ## Phase R.7 — migrate:status --json Flag (2026-07-27, Commit e3cd609)
 
 > **Ziel:** CI-Consumer-fähiger JSON-Output für `npm run migrate:status`. Render preDeploy-Healthcheck und GitHub-Actions können den Output maschinenlesbar parsen (statt Human-Text).

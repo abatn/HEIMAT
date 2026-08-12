@@ -3,7 +3,7 @@
 > Open-source Super App für Deutschland (Mobilität, Finanzen, Gesundheit). AGPL v3.
 > Production-first: Supabase + Render sind die einzige Test-/Deploy-Umgebung. Kein Sandbox.
 >
-> **Aktueller Status-Override (2026-08-11, v50.0):** **✅ DEPLOYED + PRODUCTION-VERIFIZIERT (Commits 9df1b60 + Admin-Cleanup):** **Mobility Search = FUNKTIONFÄHIG** (30 echte Stops für Alexanderplatz) und **Universal Search = FUNKTIONFÄHIG** (doctor/zahnarzt/hotel/veranstaltung/parken liefern echte Ergebnisse, HTTP 200). **Admin-Cleanup ausgeführt:** 36 Fake-Ärzte (inkl. E2E Test Praxis) via `POST /api/admin/health/cleanup` gelöscht → `q=arzt` liefert jetzt echte OSM-Praxen (Neurologie Hackescher Markt 0.4km, Augenarzt 0.5km, Chirurg, Orthopäde, Innere Medizin). **Phase X.21:** Universal-Search-Doctor-Bug gefixt ("arzt"-Suche lieferte 0, weil nach dem Wort "arzt" in Arzt-Daten gefiltert wurde) + 26 neue Such-Tests (Unit+Live) + Mobility-Search-Test verschärft (200 ⇒ echte Stops) + DB-Fallback für Doctor-Suche. Validierung: search 26/26, mobility 20/20, health 48/48, audit-no-mocks 0. **Production-Check (08:15 UTC):** 11/11 Endpoints HTTP 200 mit echten Daten (Bürgeramt 20 Ämter, Events, Hotels, Departures live). **⚠️ Mobility-Search + Universal-Search Fixes sind lokal fertig, aber noch NICHT deployed — Production liefert weiterhin die alten Bugs (`stops: []`, `count: 0`).**
+> **Aktueller Status-Override (2026-08-12, v53.0):** **✅ DEPLOYED + PRODUCTION-VERIFIZIERT (Commits 9df1b60 + Admin-Cleanup):** **Mobility Search = FUNKTIONFÄHIG** (30 echte Stops für Alexanderplatz) und **Universal Search = FUNKTIONFÄHIG** (doctor/zahnarzt/hotel/veranstaltung/parken liefern echte Ergebnisse, HTTP 200). **Admin-Cleanup ausgeführt:** 36 Fake-Ärzte (inkl. E2E Test Praxis) via `POST /api/admin/health/cleanup` gelöscht → `q=arzt` liefert jetzt echte OSM-Praxen (Neurologie Hackescher Markt 0.4km, Augenarzt 0.5km, Chirurg, Orthopäde, Innere Medizin). **Phase X.21:** Universal-Search-Doctor-Bug gefixt ("arzt"-Suche lieferte 0, weil nach dem Wort "arzt" in Arzt-Daten gefiltert wurde) + 26 neue Such-Tests (Unit+Live) + Mobility-Search-Test verschärft (200 ⇒ echte Stops) + DB-Fallback für Doctor-Suche. Validierung: search 26/26, mobility 20/20, health 48/48, audit-no-mocks 0. **Production-Check (08:15 UTC):** 11/11 Endpoints HTTP 200 mit echten Daten (Bürgeramt 20 Ämter, Events, Hotels, Departures live). **Dead-Config-Cleanup (v53.0):** `.eslintrc.json` + `.eslintignore` entfernt (ESLint 10 nutzt `eslint.config.mjs`). **Futai:** Als 15. Service in ServiceRegistry (ComingSoonScreen-Placeholder). **Offene Tasks (3):** Wallet 0.00 KUDOS (extern blockiert), Futai-Vollintegration, Health AI Phase 3.
 
 For the long-form agent rules see `.claude/CLAUDE.md` and `AGENTS.md` (the rules in those files ALWAYS trump this summary).
 
@@ -123,7 +123,7 @@ Flutter Web (GitHub Pages: abatn.github.io/HEIMAT/)
 ## Phase 3-Tab-Rebuild — Status (2026-08-04)
 - ✅ **3-Tab-Struktur (WeChat-Muster)** implementiert und live.
 - 5 Tabs → 3 Tabs: Startseite, Dienste, Profil.
-- ServiceRegistry: 14 Services in 6 Kategorien (Mobilität, Gesundheit, Alltag, Kultur, Finanzen, AI).
+- ServiceRegistry: 15 Services in 6 Kategorien (Mobilität, Gesundheit, Alltag, Kultur, Finanzen, AI + Futai).
 - `displayOrder` + `isFrequentlyUsed` Felder für UI-Sortierung.
 - HomeScreen: "Neue Features" entfernt, "Zuletzt benutzt" + AI-Chat FAB hinzugefügt.
 - Tests: 31/31 grün (app_smoke_test + service_registry_test).
@@ -451,14 +451,19 @@ ollamaService.chatWithContext({ health: { symptom } })
 
 **Validation:** 5/5 Hotels-Tests bestanden, Production-Check: 30 Hotels in Berlin (2km Radius).
 
-### ⚠️ Verbleibende offene Tasks (v43.0)
+### ⚠️ Verbleibende offene Tasks (v53.0)
 
-| # | Task | Status | Priorität |
-|---|------|--------|-----------|
-| 1 | **Wallet 0.00 KUDOS** | Kein EUR-Exchange live. Manueller Bank-Wire nötig | 🔴 Blockiert (extern) |
-| 2 | **Futai Chat Integration** | Mini-Program-Container steht, aber keine Futai-Integration | 🟢 Niedrig |
-| 3 | **Health AI Phase 3** | Foto-Analyse, erweiterte Differentialdiagnose | 🟢 Niedrig |
-| 4 | ~~**TypeScript 7 Upgrade**~~ | ✅ **Geschlossen (v48.0):** TS7 (tsgo) inkompatibel mit typescript-eslint (peerDeps `>=4.8.4 <6.1.0`). Stattdessen Upgrade TS 5.6.3→**6.0.3** + typescript-eslint→8.67.0. tsc 0 Errors, Lint 0 Errors, 173/173 Tests. |
+| # | Task | Status | Aufwand | Priorität |
+|---|------|--------|---------|-----------|
+| 1 | **Wallet 0.00 KUDOS** | Extern blockiert: EUR-Production-Exchange fehlt. Manueller Bank-Wire nötig. | 0 (extern) | 🔴 Blockiert |
+| 2 | **Futai Native Rebuild** | Architektur-Analyse abgeschlossen (Option B: REST + HTTP-Polling empfohlen). ServiceRegistry-Placeholder steht (15. Service). Echte Integration: Chat-UI + Feed + Emotionen + Messaging. | 11-16 Tage | 🟢 Niedrig (Pause) |
+| 3 | **Health AI Phase 3** | Foto-Analyse (Hautausschlag, Rötung), erweiterte Differentialdiagnose. Phase 1+2 fertig (105 Tests). | 3-5 Tage | 🟢 Niedrig |
+| 4 | ~~**TypeScript 7 Upgrade**~~ | ✅ Geschlossen (v48.0): TS6.0.3 + typescript-eslint 8.67.0. TS7 inkompatibel. | — | ✅ Erledigt |
+| 5 | ~~**Dead-Config-Cleanup**~~ | ✅ Geschlossen (v53.0): `.eslintrc.json` + `.eslintignore` entfernt (ESLint 10 Flat Config). | — | ✅ Erledigt |
+| 6 | ~~**Search-Fixes**~~ | ✅ Geschlossen (v49.0): Mobility Search + Universal Search deployed + production-verifiziert. 36 Fake-Ärzte gelöscht. | — | ✅ Erledigt |
+| 7 | ~~**Futai in ServiceRegistry**~~ | ✅ Geschlossen (v53.0): Als 15. Service mit ComingSoonScreen-Placeholder. | — | ✅ Erledigt |
+
+**Architektur-Entscheidung Futai (2026-08-12):** Option C (Native Rebuild) analysiert gegen Codebase geprüft. **Empfehlung: Option B (REST + HTTP-Polling)** — kein Supabase Realtime SDK vorhanden, kein WebSocket im Backend, Render Free-Tier (512MB) kann persistente WS-Verbindungen nicht halten. MVP mit HTTP-Polling in ~11 Tagen möglich.
 
 ### ❌ Bekannte Einschränkungen (keine Bugs)
 
@@ -600,9 +605,9 @@ Ein intelligenter Health AI Agent, der:
 | 1 | **Dienste** | Globale Suche, Häufig benutzt, 6 Kategorien (Mobilität, Gesundheit, Alltag, Kultur, Finanzen, AI) |
 | 2 | **Profil** | User-Info, Einstellungen, Verlauf, Notfall (112/116117), Abmelden |
 
-## Service-Registry (14 Services, 6 Kategorien)
+## Service-Registry (15 Services, 6 Kategorien)
 
-> **Aktueller Verifikationsstatus, Version 42.0 (2026-08-10):** Production-Check gegen Render. 10/10 Services im Public-Read-Only-Matrix PASS. **audit-no-mocks.sh: 0 Verstöße** (bestätigt). **Ärzte-Service 100% verifiziert:** 50+ Ärzte in Berlin, 49+ in Stuttgart, 51+ in Hamburg (alle Overpass-Live). **Jobs: Adzuna API** (alle 7 Kategorien) + Skill-Matching + Karriere-Pfad. **Health AI:** Phase 1+2 abgeschlossen (105 Tests). **Overpass-Mirror-Reihenfolge (optimiert):** overpass.osm.ch (~0.2s) → maps.mail.ru (~7s) → overpass-api.de (instabil) → overpass.kumi.systems (letzter Ausweg).
+> **Aktueller Verifikationsstatus, Version 53.0 (2026-08-12):** Production-Check gegen Render. 12/12 Services PASS (inkl. Mobility Search + Universal Search — deployed + verifiziert). Futai als 15. Service (ComingSoonScreen). **audit-no-mocks.sh: 0 Verstöße** (bestätigt). **Ärzte-Service 100% verifiziert:** 50+ Ärzte in Berlin, 49+ in Stuttgart, 51+ in Hamburg (alle Overpass-Live). **Jobs: Adzuna API** (alle 7 Kategorien) + Skill-Matching + Karriere-Pfad. **Health AI:** Phase 1+2 abgeschlossen (105 Tests). **Overpass-Mirror-Reihenfolge (optimiert):** overpass.osm.ch (~0.2s) → maps.mail.ru (~7s) → overpass-api.de (instabil) → overpass.kumi.systems (letzter Ausweg).
 
 | Kategorie | Services | Status | Nachweis |
 |-----------|----------|--------|----------|

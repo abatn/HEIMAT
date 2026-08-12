@@ -12,6 +12,7 @@ import '../../jobs/job_screen.dart';
 import '../../events/events_screen.dart';
 import '../../hotels/hotels_screen.dart';
 import '../../buergeramt/buergeramt_screen.dart';
+import '../presentation/coming_soon_screen.dart';
 import 'service_definition.dart';
 
 /// ServiceRegistry — Singleton-Verzeichnis aller HEIMAT-Services.
@@ -37,7 +38,7 @@ import 'service_definition.dart';
 /// - ✅ events → Native Flutter (Wikidata + OSM — Phase D, 2026-08-04)
 /// - ✅ hotels → Native Flutter (OSM Overpass — Phase D, 2026-08-04)
 /// - ✅ buergeramt → Native Flutter (Nominatim — Phase D, 2026-08-04)
-/// - ⏳ futai → ComingSoonScreen-Placeholder
+/// - ⏳ futai → ComingSoonScreen (Phase Futai-Integration, 2026-08-11)
 class ServiceRegistry {
   ServiceRegistry._();
   static final ServiceRegistry instance = ServiceRegistry._();
@@ -232,6 +233,31 @@ class ServiceRegistry {
         ],
         nativeBuilder: (_) => const AiChatScreen(),
         displayOrder: 1,
+      ),
+      'futai': ServiceDefinition(
+        id: 'futai',
+        name: 'Futai Chat',
+        category: 'AI',
+        description:
+            'KI-Assistent mit Gedächtnis & Emotionen — Integration in Planung.',
+        searchTags: const [
+          'futai',
+          'chat',
+          'ki',
+          'assistent',
+          'sozial',
+          'gedächtnis'
+        ],
+        nativeBuilder: (_) => const ComingSoonScreen(
+          serviceName: 'Futai Chat',
+          description:
+              'KI-Assistent mit Gedächtnis & Emotionen — Integration in Planung. '
+              'Futai ist eine Open-Source Social-Media-App mit KI-Chat (Ollama), '
+              '12 Emotionen, Gedächtnis und Feed.',
+          category: 'AI',
+          searchTags: ['futai', 'chat', 'ki', 'assistent', 'sozial'],
+        ),
+        displayOrder: 2,
       ),
     });
   }

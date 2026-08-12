@@ -1,6 +1,6 @@
 # Betriebsschleife (schnell)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 50.0
+**Letzte Aktualisierung:** 2026-08-12 | Version 53.0
 
 - **Welche Daten werden täglich/wöchentlich erhoben?**
   - **Täglich (bei jedem Commit/CI-Lauf):**
@@ -82,9 +82,9 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v49.0, 2026-08-11)
+## Messung der 5 „besser"-Dimensionen (v51.0, 2026-08-11)
 
-| # | Dimension | v48.0 | v49.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v50.0 | v51.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
@@ -92,7 +92,7 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v50.0:** Admin-Cleanup. Betriebsdaten: `POST /api/admin/health/cleanup` → success, deleted=36, remainingDbDoctors=0. `q=arzt` E2E nach Cleanup: count 5, doctor-Kategorie, 5 echte OSM-Praxen (0.4-1.1km). Datenqualität der Universal Search damit vollständig realdaten-basiert.
+**Änderung v51.0:** ESLint-Cleanup dokumentiert. `npm run lint` validiert: 0 Errors, 135 Warnungen (warn-Level). Dead-Config-Dateien (.eslintrc.json, .eslintignore) identifiziert — manuelles rm nötig.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 

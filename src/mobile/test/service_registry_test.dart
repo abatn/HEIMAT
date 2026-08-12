@@ -10,7 +10,7 @@ void main() {
     ServiceRegistry.instance.initialize();
   });
 
-  group('ServiceRegistry - alle 14 Services', () {
+  group('ServiceRegistry - alle 15 Services', () {
     const expectedIds = <String>[
       'mobility',
       'parking',
@@ -26,9 +26,10 @@ void main() {
       'hotels',
       'finance',
       'ai_chat',
+      'futai',
     ];
 
-    test('14 erwartete Service-IDs sind vollstaendig registriert', () {
+    test('15 erwartete Service-IDs sind vollstaendig registriert', () {
       for (final id in expectedIds) {
         final def = ServiceRegistry.instance.lookup(id);
         expect(def, isNotNull, reason: 'Service "$id" fehlt in der Registry');

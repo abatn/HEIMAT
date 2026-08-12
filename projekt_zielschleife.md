@@ -1,6 +1,6 @@
 # Zielschleife (angewandte Schleife)
 
-**Letzte Aktualisierung:** 2026-08-11 | Version 50.0
+**Letzte Aktualisierung:** 2026-08-12 | Version 53.0
 
 - **Endgültiges Ziel des Projekts:**
   HEIMAT 2.0 ist eine Open-Source "Super App" (à la WeChat/Grab) mit deutscher UI,
@@ -47,9 +47,9 @@
 
 ---
 
-## Messung der 5 „besser"-Dimensionen (v49.0, 2026-08-11)
+## Messung der 5 „besser"-Dimensionen (v52.0, 2026-08-11)
 
-| # | Dimension | v48.0 | v49.0 (heute) | Änderung | 20%-Schwelle | Status |
+| # | Dimension | v51.0 | v52.0 (heute) | Änderung | 20%-Schwelle | Status |
 |---|-----------|------|---------------|----------|--------------|--------|
 | 1 | **CI-Testrate** | 100% (CI) | 100% (CI) | — stabil | <80% | ✅ OK |
 | 2 | **Phasen-Fortschritt** | 100% (10/10) | 100% (10/10) | — stabil | <24% | ✅ OK |
@@ -57,7 +57,7 @@
 | 4 | **Mock-Verbot** | 0 Violations | 0 Violations | — stabil | >0 | ✅ OK |
 | 5 | **Echte APIs** | 150+ Calls | 150+ Calls | — stabil | — | ✅ OK |
 
-**Änderung v50.0:** **Admin-Cleanup ausgeführt.** `POST /api/admin/health/cleanup` gegen Render: **36 Fake-Ärzte gelöscht** (inkl. 'E2E Test Praxis'), 0 DB-Einträge verbleibend. `q=arzt` liefert jetzt 5 echte OSM-Praxen mit Distanz (Neurologie Hackescher Markt 0.4km, Augenarzt 0.5km, Chirurg 0.7km, Orthopäde 1.1km, Innere Medizin 1.1km). Damit ist der letzte offene Datenqualitäts-Punkt der Universal Search geschlossen.
+**Änderung v52.0:** **Futai als 15. Service registriert** (ComingSoonScreen-Placeholder). CI grün: dart format 0, analyze 0, tests 37/37. ServiceRegistry wächst von 14 auf 15 Services.
 
 **Ergebnis:** Keine 20%-Schwelle überschritten. Feedback-Loop funktioniert.
 
