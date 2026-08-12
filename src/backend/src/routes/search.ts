@@ -163,8 +163,8 @@ async function searchDoctors(
   lng: number,
 ): Promise<SearchResult[]> {
   try {
+    // 1. Overpass via healthService (fuer echte OSM-Praxen mit Koordinaten)
     let doctors = await healthService.getNearbyDoctors(lat, lng, 5000);
-    // Fallback 1: bei 0 Ergebnissen groesseren Radius versuchen (Overpass instabil)
     if (doctors.length === 0) {
       doctors = await healthService.getNearbyDoctors(lat, lng, 20000);
     }
@@ -181,11 +181,13 @@ async function searchDoctors(
         relevance: 0.9,
       }));
     }
-    // Fallback 2: DB-Arztsuche (ohne Entfernungsfilter — Overpass instabil)
+    // 2. DB-Fallback: alle Aerzte aus der DB (ohne Entfernungsfilter)
+    // Ueberbrueckt Overpass-Ausfall auf Render — DB-Eintraege koennen
+    // lat/lng=null haben (z.B. E2E-Test-Eintraege oder manuell angelegte Praxen).
     try {
       const { query: dbQuery } = await import('../config/database');
       const dbDoctors = await dbQuery(
-        `SELECT *, 0 AS distance_km FROM doctors ORDER BY name LIMIT 10`
+        `SELECT * FROM doctors ORDER BY name LIMIT 10`
       );
       if (dbDoctors.length > 0) {
         const filtered = filterDoctorsByQuery(dbDoctors, query);
