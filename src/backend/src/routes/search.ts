@@ -153,11 +153,10 @@ export function filterDoctorsByQuery(
   });
 }
 
-// Search doctors via Overpass (same as healthService)
+// Search doctors via Overpass + Nominatim fallback
 // Hinweis: Die Suche ist standort-anchored (lat/lng bestimmen den Umkreis).
-// Ortsnamen im Query (z.B. "arzt münchen" an Berliner Koordinaten) werden
-// als Filter-Text behandelt und können das Ergebnis ausdünnen — bekannte
-// Limitation des Standort-basierten Designs.
+// Overpass ist auf Render instabil — bei 0 Ergebnissen wird Nominatim als
+// Fallback fuer Arzt-Suchen genutzt.
 async function searchDoctors(
   query: string,
   lat: number,
@@ -165,21 +164,48 @@ async function searchDoctors(
 ): Promise<SearchResult[]> {
   try {
     let doctors = await healthService.getNearbyDoctors(lat, lng, 5000);
-    // Fallback: bei 0 Ergebnissen groesseren Radius versuchen (Overpass instabil)
+    // Fallback 1: bei 0 Ergebnissen groesseren Radius versuchen (Overpass instabil)
     if (doctors.length === 0) {
       doctors = await healthService.getNearbyDoctors(lat, lng, 20000);
     }
     const matching = filterDoctorsByQuery(doctors, query);
-    return matching.slice(0, 5).map((d: any) => ({
-      id: d.id || `doctor/${d.name}`,
-      category: 'doctor' as const,
-      name: d.name,
-      description: d.specialty || 'Arzt',
-      distance: d.distanceKm ?? null,
-      lat: d.latitude,
-      lng: d.longitude,
-      relevance: 0.9,
-    }));
+    if (matching.length > 0) {
+      return matching.slice(0, 5).map((d: any) => ({
+        id: d.id || `doctor/${d.name}`,
+        category: 'doctor' as const,
+        name: d.name,
+        description: d.specialty || 'Arzt',
+        distance: d.distanceKm ?? null,
+        lat: d.latitude,
+        lng: d.longitude,
+        relevance: 0.9,
+      }));
+    }
+    // Fallback 2: Nominatim — sucht "arzt near berlin" und liefert OSM-Places
+    const nomQuery = `${query} near ${lat},${lng}`;
+    try {
+      const nomResp = await axios.get(
+        'https://nominatim.openstreetmap.org/search',
+        {
+          params: { q: nomQuery, format: 'json', limit: 5, addressdetails: 1 },
+          headers: { 'User-Agent': 'HEIMAT/2.0' },
+          timeout: 10000,
+        },
+      );
+      return (nomResp.data || []).map((item: any) => ({
+        id: `doctor/nominatim/${item.place_id}`,
+        category: 'doctor' as const,
+        name: item.display_name.split(',')[0],
+        description: item.type || 'Arzt',
+        distance: null,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+        relevance: 0.6,
+      }));
+    } catch {
+      // Nominatim fehlgeschlagen — leer zurueckgeben
+    }
+    return [];
   } catch (error) {
     logger.warn('Doctor search failed:', error);
     return [];
