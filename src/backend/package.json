@@ -23,7 +23,7 @@
     "verify:services": "ts-node src/scripts/verify-services.ts"
   },
   "dependencies": {
-    "@types/cheerio": "^0.22.35",
+    "@types/cheerio": "^1.0.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/uuid": "^10.0.0",
